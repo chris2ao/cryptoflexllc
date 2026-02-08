@@ -1,0 +1,406 @@
+---
+title: "Building Custom Analytics: Tracking Every Visitor with Next.js, Neon Postgres, and Claude Code"
+date: "2026-02-08T12:00:00"
+author: "Chris Johnson"
+readingTime: "15 min read"
+description: "How I built a custom visitor analytics system from scratch using Claude Code - capturing IP addresses, geolocation, browser fingerprints, and device data. Includes the full troubleshooting saga of getting Neon Postgres connected through Vercel."
+tags: ["Claude Code", "Analytics", "Next.js", "Neon Postgres", "Vercel"]
+---
+
+# Building Custom Analytics: Tracking Every Visitor with Next.js, Neon Postgres, and Claude Code
+
+I wanted to know who was visiting my site. Not aggregate pageview counts -- I wanted the real details. IP addresses, geolocation, what browser they're using, what device, where they came from. The kind of data that tells you whether your traffic is real humans or bots, whether they're finding you from Google or a direct link, and what part of the world they're in.
+
+This is the story of building that system from scratch with Claude Code, and the surprisingly frustrating journey of getting a database connection string to actually work.
+
+## Why Not Just Use Vercel Analytics?
+
+When I first asked Claude Code about tracking visitors, it laid out the options. Vercel has a built-in analytics product -- free tier, easy setup, one component drop-in. But there's a catch: **Vercel Web Analytics is privacy-focused by design.** It doesn't expose IP addresses, individual user agents, or any per-visitor data. You get aggregate numbers -- total visitors, top pages, referrer breakdown -- but nothing tied to individual sessions.
+
+For a personal portfolio site where I want to understand exactly who's visiting and from where, that wasn't enough. I asked about alternatives that could give me the raw data, and Claude suggested building a custom tracking system using an API route and a database.
+
+## The Architecture
+
+Here's what we built:
+
+```
+Browser (page load)
+  |
+  |-- sendBeacon() --> POST /api/analytics/track
+                          |
+                          |-- Read IP from x-forwarded-for header
+                          |-- Read geo from x-vercel-ip-* headers
+                          |-- Parse User-Agent string
+                          |-- INSERT INTO page_views (Neon Postgres)
+                          |
+Dashboard (/analytics?secret=...)
+  |
+  |-- Server Component queries Neon directly
+  |-- Renders stats, tables, raw visitor log
+```
+
+Five files make the whole system work:
+
+| File | Purpose |
+|------|---------|
+| `src/lib/analytics.ts` | Database connection, TypeScript types, User-Agent parser |
+| `src/components/analytics-tracker.tsx` | Client component that fires tracking beacon |
+| `src/app/api/analytics/track/route.ts` | POST endpoint that records visits |
+| `src/app/api/analytics/setup/route.ts` | One-time table creation endpoint |
+| `src/app/analytics/page.tsx` | Dashboard to view all the data |
+
+## The Client-Side Tracker
+
+The tracking component is a `"use client"` React component that lives in the root layout. It renders nothing visible -- it's purely a side effect. On every page navigation, it sends a POST request to the tracking API:
+
+```tsx
+"use client";
+
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+
+export function AnalyticsTracker() {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const payload = JSON.stringify({ path: pathname });
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(
+        "/api/analytics/track",
+        new Blob([payload], { type: "application/json" })
+      );
+    } else {
+      fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  }, [pathname]);
+
+  return null;
+}
+```
+
+A few things worth noting here:
+
+**Why `sendBeacon()` instead of `fetch()`?** The `sendBeacon` API is non-blocking -- the browser sends the request in the background without waiting for a response. It also survives page unloads, meaning if a user clicks a link and navigates away, the beacon still gets delivered. Regular `fetch` requests can get cancelled during navigation.
+
+**Why `usePathname()`?** Next.js App Router uses client-side navigation. When you click a link, there's no full page reload -- React swaps the content. The `usePathname()` hook re-fires whenever the URL changes, so we track every navigation, not just the initial page load.
+
+**What does the client send?** Just the page path. Nothing sensitive. All the juicy data -- IP, geo, user agent -- gets extracted server-side from request headers. The client doesn't need to know about any of it.
+
+## The Tracking API Route
+
+This is where the magic happens. When the beacon arrives, the API route reads headers that Vercel injects into every request:
+
+```tsx
+// Extract IP address
+// x-forwarded-for may contain: "client, proxy1, proxy2"
+const forwardedFor = request.headers.get("x-forwarded-for");
+const realIp = request.headers.get("x-real-ip");
+const ipAddress = forwardedFor
+  ? forwardedFor.split(",")[0].trim()
+  : realIp || "127.0.0.1";
+
+// Extract Vercel geolocation headers
+const country = decodeURIComponent(
+  request.headers.get("x-vercel-ip-country") || "Unknown"
+);
+const city = decodeURIComponent(
+  request.headers.get("x-vercel-ip-city") || "Unknown"
+);
+const region = decodeURIComponent(
+  request.headers.get("x-vercel-ip-country-region") || "Unknown"
+);
+const latitude = request.headers.get("x-vercel-ip-latitude") || "";
+const longitude = request.headers.get("x-vercel-ip-longitude") || "";
+```
+
+**How Vercel's geo headers work:** When a request hits Vercel's edge network, Vercel resolves the client IP to a geographic location and injects headers before forwarding to your serverless function. These include:
+
+- `x-forwarded-for` -- the client's IP address (first in the comma-separated list)
+- `x-real-ip` -- single client IP (Vercel-specific)
+- `x-vercel-ip-country` -- ISO country code like "US"
+- `x-vercel-ip-country-region` -- state/region code like "FL"
+- `x-vercel-ip-city` -- city name (URL-encoded)
+- `x-vercel-ip-latitude` and `x-vercel-ip-longitude` -- coordinates
+
+These headers only exist when deployed to Vercel. In local development, you'll see `127.0.0.1` and `Unknown` for everything.
+
+## The Lightweight User-Agent Parser
+
+Instead of pulling in a heavy library like `ua-parser-js` (17 KB), Claude built a lightweight regex-based parser. It covers about 95% of real traffic:
+
+```tsx
+export function parseBrowser(ua: string): string {
+  if (!ua) return "Unknown";
+
+  // Order matters - check specific browsers before generic engines
+  const browsers: [RegExp, string][] = [
+    [/Edg(?:e|A|iOS)?\/(\d+)/, "Edge"],
+    [/OPR\/(\d+)/, "Opera"],
+    [/Firefox\/(\d+)/, "Firefox"],
+    [/CriOS\/(\d+)/, "Chrome iOS"],
+    [/Chrome\/(\d+)/, "Chrome"],
+    [/Version\/(\d+).*Safari/, "Safari"],
+  ];
+
+  for (const [regex, name] of browsers) {
+    const match = ua.match(regex);
+    if (match) return `${name} ${match[1]}`;
+  }
+
+  if (/bot|crawl|spider/i.test(ua)) return "Bot";
+  return "Other";
+}
+```
+
+**Why order matters:** Chrome's User-Agent string contains "Safari" (for historical compatibility reasons). If you check for Safari first, every Chrome user gets misidentified. Edge contains "Chrome" in its UA string. You have to check from most specific to least specific.
+
+The parser also detects OS (Windows, macOS, Linux, iOS, Android), device type (Desktop, Mobile, Tablet, Bot), and version numbers.
+
+## The Database: Neon Serverless Postgres
+
+For storage, I went with [Neon](https://neon.tech) -- a serverless Postgres provider with a generous free tier (0.5 GB storage). The key feature is their serverless driver (`@neondatabase/serverless`), which sends queries over HTTP instead of maintaining a persistent TCP connection. This is perfect for Vercel's serverless functions because:
+
+1. **No connection pool management.** Each function invocation creates a fresh HTTP connection
+2. **Zero cold-start penalty.** No TCP/TLS handshake to wait for
+3. **Neon handles pooling.** Connection pooling happens on Neon's infrastructure
+
+The driver uses tagged template literals for automatic parameterization (SQL injection prevention):
+
+```tsx
+import { neon } from "@neondatabase/serverless";
+
+export function getDb() {
+  let databaseUrl = process.env.DATABASE_URL;
+  // ... validation ...
+  return neon(databaseUrl);
+}
+
+// Usage - parameters are automatically escaped
+const sql = getDb();
+await sql`
+  INSERT INTO page_views (page_path, ip_address, browser)
+  VALUES (${pagePath}, ${ipAddress}, ${browser})
+`;
+```
+
+**Important note on the `@vercel/postgres` package:** When I first tried to install Vercel's Postgres SDK, npm returned a deprecation warning. Vercel has migrated their Postgres offering to Neon as the backend provider. The `@vercel/postgres` package still works but is no longer maintained. Use `@neondatabase/serverless` directly instead -- it's what Vercel recommends going forward.
+
+## The Dashboard
+
+The analytics dashboard is a React Server Component -- no `"use client"` needed. It queries Neon directly at request time and renders the results as static HTML. No loading spinners, no client-side JavaScript for the data fetch, and the `ANALYTICS_SECRET` never reaches the browser.
+
+The dashboard runs seven queries in parallel using `Promise.all()`:
+
+1. **Summary stats** -- total views, unique visitors, date range
+2. **Top pages** -- most visited pages with unique visitor counts
+3. **Top countries** -- geographic breakdown
+4. **Browsers** -- browser usage distribution
+5. **Devices** -- Desktop vs Mobile vs Tablet vs Bot
+6. **Operating systems** -- OS breakdown
+7. **Recent visits** -- last 50 individual visits with full details
+
+It supports time filtering (`?days=7`, `?days=14`, `?days=30`, `?days=90`) and is protected by the `ANALYTICS_SECRET` environment variable. Without the secret in the URL, you get an "Access Denied" page.
+
+## The Troubleshooting Saga
+
+Here's where the story gets interesting. Building the code was the easy part. Getting the database connected in production took longer than writing the entire analytics system.
+
+### Problem 1: The Neon Connection String
+
+When you create a Neon project, the dashboard shows your connection string. There's a handy "Copy" button. But here's the gotcha -- **Neon's default copy gives you the `psql` CLI command**, not the raw connection string:
+
+```
+psql 'postgresql://user:password@host/database?sslmode=require'
+```
+
+See the `psql` prefix and the surrounding single quotes? The `neon()` driver expects a raw URL:
+
+```
+postgresql://user:password@host/database?sslmode=require
+```
+
+I pasted the full CLI command into my Vercel environment variable and got this error:
+
+```json
+{
+  "error": "Failed to create table",
+  "details": "Database connection string provided to `neon()` is not a valid URL."
+}
+```
+
+The error message was clear, but the fix wasn't immediately obvious because the connection string *looked* correct in the Vercel dashboard.
+
+### Problem 2: The Phantom Environment Variable
+
+After realizing the issue, I updated the `DATABASE_URL` in Vercel's Settings > Environment Variables. Removed the `psql` prefix and quotes. Saved. Redeployed.
+
+Same error.
+
+The Vercel dashboard showed the correct value -- `postgresql://...` with no prefix. But the runtime error still showed the old `psql '...'` value. I verified the env var visually. Updated it again. Redeployed again.
+
+Same error.
+
+After multiple redeploys, I was staring at the Vercel environment variables page showing one value and the runtime error showing a different value. This is the kind of debugging that makes you question reality.
+
+### The Fix: Defensive Code
+
+Rather than continuing to fight the environment variable, I added a sanitization step to the database connection function:
+
+```tsx
+export function getDb() {
+  let databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL environment variable is not set.");
+  }
+
+  // Strip "psql" prefix and surrounding quotes if present
+  databaseUrl = databaseUrl
+    .replace(/^psql\s+/, "")
+    .replace(/^'|'$/g, "");
+
+  return neon(databaseUrl);
+}
+```
+
+Two regex replacements:
+- `replace(/^psql\s+/, "")` -- strips the `psql ` prefix
+- `replace(/^'|'$/g, "")` -- strips leading and trailing single quotes
+
+This way, **both** formats work -- whether you paste the raw URL or the full CLI command. After merging this fix and redeploying, the setup endpoint returned success immediately.
+
+**Lesson learned:** When you're dealing with user-provided configuration values (even if the "user" is yourself), always sanitize defensively. The Neon dashboard makes it easy to copy the wrong format, and the error isn't obvious until you know what to look for.
+
+### Problem 3: Environment Variables Need a Redeploy
+
+This is a Vercel fundamental that caught me off guard in the moment: **changing an environment variable does NOT affect running deployments.** You must redeploy for the new value to take effect. The Vercel dashboard updates instantly, but your serverless functions are still running with the values that were baked in at build time.
+
+The fix is straightforward -- go to Deployments, click the three dots on the latest deployment, and select "Redeploy." But when you're troubleshooting and forget this step, you'll spend 20 minutes wondering why your changes aren't working.
+
+## What Each Visit Captures
+
+Here's the full list of data points stored for every page view:
+
+| Field | Source | Example |
+|-------|--------|---------|
+| Timestamp | Server clock | 2026-02-08T15:30:00Z |
+| Page path | Client beacon | /blog/my-post |
+| IP address | x-forwarded-for header | 73.215.xxx.xxx |
+| Country | x-vercel-ip-country | US |
+| City | x-vercel-ip-city | Jacksonville |
+| Region | x-vercel-ip-country-region | FL |
+| Latitude/Longitude | x-vercel-ip-latitude/longitude | 30.33, -81.66 |
+| Browser | Parsed from User-Agent | Chrome 120 |
+| OS | Parsed from User-Agent | Windows 10/11 |
+| Device type | Parsed from User-Agent | Desktop |
+| Referrer | Referer header | google.com or (direct) |
+
+All of this is extracted server-side from standard HTTP headers. The client only sends the page path. No cookies, no fingerprinting, no localStorage, no third-party scripts.
+
+## The Setup Process
+
+For anyone who wants to replicate this, here's the complete setup:
+
+### Step 1: Install the Neon driver
+
+```bash
+npm install @neondatabase/serverless
+```
+
+### Step 2: Create a Neon project
+
+Go to [neon.tech](https://neon.tech), sign up (free), create a project. Copy the **connection string** -- make sure you get just the URL starting with `postgresql://`, not the `psql` CLI command.
+
+### Step 3: Add environment variables in Vercel
+
+In your Vercel project settings, add two environment variables:
+
+- `DATABASE_URL` -- your Neon connection string
+- `ANALYTICS_SECRET` -- a random string for dashboard access (generate one with `openssl rand -hex 32`)
+
+### Step 4: Deploy and initialize
+
+After deploying, visit your setup endpoint once:
+
+```
+https://yoursite.com/api/analytics/setup?secret=YOUR_SECRET
+```
+
+You should see: `{"success": true, "message": "page_views table and indexes created successfully."}`
+
+### Step 5: View your dashboard
+
+```
+https://yoursite.com/analytics?secret=YOUR_SECRET
+```
+
+That's it. Every page view from that point forward is tracked automatically.
+
+## Technical Details for the Curious
+
+### Why Tagged Template Literals?
+
+Neon's `neon()` function returns a tagged template function, not a regular function. This means you write:
+
+```tsx
+// Correct - tagged template literal
+await sql`SELECT * FROM page_views WHERE ip_address = ${ip}`;
+
+// Wrong - regular function call
+await sql("SELECT * FROM page_views WHERE ip_address = $1", [ip]);
+```
+
+The tagged template syntax automatically parameterizes your queries. The `${ip}` is NOT string interpolation -- it's a parameter placeholder that gets sent separately from the SQL string, preventing SQL injection.
+
+This bit me during development. I initially tried to pass a multi-statement SQL string as a regular function call for the table setup, and TypeScript caught the type error: `Argument of type 'string' is not assignable to parameter of type 'TemplateStringsArray'`. The fix was splitting each SQL statement into its own tagged template call.
+
+### Why `sendBeacon()` Over `fetch()`?
+
+Three reasons:
+
+1. **Non-blocking.** The browser sends the request without waiting for a response. No performance impact on page load.
+2. **Survives navigation.** If the user clicks a link immediately after the page loads, a regular `fetch` might get cancelled. `sendBeacon` is guaranteed to complete.
+3. **No CORS issues.** Same-origin beacon requests don't need CORS headers.
+
+The fallback `fetch` with `keepalive: true` provides similar guarantees for the rare browser that doesn't support `sendBeacon`.
+
+### Why a Server Component for the Dashboard?
+
+The analytics dashboard is a React Server Component (no `"use client"` directive). This means:
+
+- Database queries run on Vercel's infrastructure, not in the browser
+- The `ANALYTICS_SECRET` is checked server-side and never sent to the client
+- No loading state needed -- the HTML arrives with data already rendered
+- The Neon connection string stays on the server
+
+The tradeoff is that the dashboard doesn't auto-refresh. You have to reload the page to see new data. For a personal analytics dashboard, that's fine.
+
+## Cost
+
+Everything in this system is free:
+
+- **Neon Postgres:** Free tier includes 0.5 GB storage and 190 hours of compute per month
+- **Vercel Serverless Functions:** Free tier includes 100 GB-hours per month
+- **No external services:** No Google Analytics, no Mixpanel, no monthly SaaS fees
+
+For a portfolio site, this will likely be free forever. Even a moderately popular blog would stay well within the free tiers.
+
+## What's Next
+
+The system tracks everything I need right now, but there are a few improvements I'm considering:
+
+- **Self-IP filtering** -- exclude my own visits from the data
+- **Daily/weekly email digests** -- automated traffic summaries
+- **CSV export** -- download raw data for analysis
+- **Visitor sessions** -- group page views by visitor session instead of treating each as independent
+
+But for now, it works. Every visit to [cryptoflexllc.com](https://cryptoflexllc.com) is tracked with full detail, stored in a real database, and viewable on a private dashboard. Built from scratch in a single session with Claude Code.
+
+---
+
+*Built with Claude Code (Opus 4.6). The full source code is at [github.com/chris2ao/cryptoflexllc](https://github.com/chris2ao/cryptoflexllc). This post is part of a series about AI-assisted development. Previous: [My First 24 Hours with Claude Code](/blog/my-first-24-hours-with-claude-code).*
