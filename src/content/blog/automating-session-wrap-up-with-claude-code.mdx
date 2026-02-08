@@ -1,0 +1,405 @@
+---
+title: "Automating Session Wrap-Up: Building a Custom Claude Code Command"
+date: "2026-02-08T14:00:00"
+description: "How I built a /wrap-up slash command that automates end-of-session documentation across multiple repos - updating changelogs, cleaning up config, committing, and pushing. A step-by-step breakdown of the command, the Claude Code features it uses, and why you should build one too."
+tags: ["Claude Code", "Automation", "Commands", "Workflow"]
+---
+
+# Automating Session Wrap-Up: Building a Custom Claude Code Command
+
+Every session with Claude Code ends the same way. You've written code, fixed bugs, learned something new, and now you need to document it all. Update the changelog. Write the README narrative. Clean up the config files that accumulated one-off permissions. Commit across multiple repos. Push everything to GitHub.
+
+It takes 10-15 minutes. It's not hard. And that's exactly why it's dangerous - it's easy enough to do, but tedious enough to skip. And when you skip it, you lose the context. Next session, you're staring at `git log` trying to remember what you did and why.
+
+So I did what any reasonable person would do: I made Claude Code do it for me.
+
+## What We're Building
+
+A slash command called `/wrap-up` that you type at the end of any session. It handles everything:
+
+1. Surveys all your repos for uncommitted changes
+2. Reviews what happened in the session
+3. Updates your changelog with a properly formatted entry
+4. Adds to your README narrative (if the session was significant)
+5. Updates your persistent memory file
+6. Cleans up accumulated permission bloat in your settings
+7. Commits everything with detailed messages
+8. Pushes to GitHub (after asking you first)
+9. Shows you a final summary table
+
+One command. Zero things forgotten.
+
+## The Raw Command File
+
+Before I break this down, here's the complete command file. This lives at `~/.claude/commands/wrap-up.md` - user-level, so it works from any project.
+
+```markdown
+---
+description: "End-of-session wrap-up: update docs, clean up, commit and push all repos"
+---
+
+# /wrap-up - End of Session Documentation & Cleanup
+
+You are an end-of-session wrap-up agent. Your job is to document
+everything that was done in this session, clean up accumulated
+artifacts, and push all changes to GitHub.
+
+## Repository Locations
+
+| Repo | Local Path | Remote | Purpose |
+|------|-----------|--------|---------|
+| CJClaude_1 | D:\...\CJClaude_1 | chris2ao/CJClaude_1 (public) | Learning journal |
+| cryptoflexllc | D:\...\cryptoflexllc | chris2ao/cryptoflexllc (public) | Website |
+| cryptoflex-ops | D:\...\cryptoflex-ops | chris2ao/cryptoflex-ops (private) | Ops docs |
+| claude-code-config | ~/.claude | chris2ao/claude-code-config (private) | Config |
+
+## Execution Steps
+
+Run these in order. Do NOT skip steps. Ask the user before pushing.
+
+### Step 1: Survey All Repos
+### Step 2: Review Session Context
+### Step 3: Update CHANGELOG.md
+### Step 4: Update README.md
+### Step 5: Update MEMORY.md
+### Step 6: Clean Up settings.local.json
+### Step 7: Update Other Repos
+### Step 8: Commit All Changes
+### Step 9: Push to GitHub
+### Step 10: Final Report
+```
+
+*(I've shortened the repo paths for readability - the real file has full absolute paths.)*
+
+That's the skeleton. Now let's walk through each piece and understand what's actually happening under the hood.
+
+## How Custom Commands Work in Claude Code
+
+Before diving into the steps, let's understand the mechanism. Claude Code supports **custom slash commands** - markdown files that act as instructions Claude follows when you invoke them.
+
+There are two places to put them:
+
+- **`~/.claude/commands/`** - user-level, works in every project
+- **`.claude/commands/`** - project-level, only works in that repo
+
+Each file needs YAML frontmatter with at least a `description` field:
+
+```markdown
+---
+description: "What this command does"
+---
+
+# Instructions for Claude go here
+```
+
+When you type `/wrap-up` in a session, Claude reads this file and follows the instructions. It has access to the full conversation history, all its normal tools (Read, Write, Edit, Bash, Grep, Glob), and the context from your CLAUDE.md and rules files.
+
+That's it. No SDK, no API, no build step. Just a markdown file with clear instructions.
+
+### Why This Matters
+
+This is one of Claude Code's most underappreciated features. You're essentially writing a **system prompt for a specific task**. The more precise your instructions, the more reliable the output. Think of it like writing a runbook that an extremely capable junior developer will follow to the letter.
+
+The key insight: **you're not writing code, you're writing instructions for an agent.** The quality of the output depends entirely on the quality of your instructions.
+
+## Step-by-Step Breakdown
+
+### Step 1: Survey All Repos
+
+```markdown
+Run `git status` and `git diff --stat` on ALL four repos in parallel.
+Identify which repos have changes (staged, unstaged, or untracked files).
+Report findings to the user before proceeding.
+```
+
+**What's happening:** Claude uses the **Bash tool** to run `git status` and `git diff --stat` across all four repository paths. The word "in parallel" is important here - Claude Code can execute multiple independent tool calls simultaneously. Four `git status` calls that would run sequentially in ~4 seconds finish in ~1 second when parallelized.
+
+**Why this matters:** You need the full picture before making changes. Maybe you forgot to commit something in one repo from an earlier session. Maybe there are staged changes you didn't mean to include. This step surfaces everything before any automated changes happen.
+
+**Claude Code feature used:** The **Bash tool** with parallel execution. Claude can dispatch multiple independent Bash commands in a single turn, and they execute concurrently.
+
+### Step 2: Review Session Context
+
+```markdown
+Analyze the conversation history to identify:
+- What tasks were completed
+- What was learned (new patterns, gotchas, fixes)
+- What failed and why
+- Any new learned skills extracted
+- Any config changes made
+- Any security-relevant actions taken
+```
+
+**What's happening:** Claude reviews the entire conversation from the current session. It has full access to every message, tool call, and result from the session. This is just analysis - no tools are called.
+
+**Why this matters:** This is the step that makes automated documentation possible. Claude doesn't just know what files changed (that's what `git diff` is for). It knows *why* they changed, what was tried first, what failed, and what the reasoning was. That context is gold for a changelog entry but would take you 10 minutes to write manually.
+
+**Claude Code feature used:** **Conversation context access.** Slash commands execute within the current session, so they inherit the full conversation history. This is fundamentally different from a hook (which only gets a JSON payload about a specific event) or a standalone script (which has no session context at all).
+
+### Step 3: Update CHANGELOG.md
+
+```markdown
+Add a new dated entry at the TOP of the changelog (below the header).
+Follow the existing format exactly:
+
+## YYYY-MM-DD - [Brief descriptive title]
+
+### What changed
+- **Action verb** description of what was done
+
+### What was learned
+1. Numbered list of key takeaways
+
+Rules:
+- Use bold action verbs: **Fixed**, **Added**, **Removed**...
+- Include technical details (file paths, error messages, commands)
+- Document failures and dead ends, not just successes
+```
+
+**What's happening:** Claude uses the **Read tool** to read the current `CHANGELOG.md`, then the **Edit tool** to insert a new entry at the top. The format template and rules ensure consistency across sessions - every entry looks the same whether it was written at 9 AM or midnight.
+
+**Why this matters:** The instructions are specific about *how* to write the entry: bold action verbs, technical details, documenting failures. Without these instructions, you'd get generic entries like "Updated some files." With them, you get entries like:
+
+```markdown
+- **Validated** both active tokens: gh CLI (OS keyring) authenticated
+  as chris2ao, MCP GitHub server PAT (gho_* OAuth, 40 chars) API
+  check OK, 4,888/5,000 remaining
+```
+
+**The "document failures" rule** is especially important. Most changelogs only record successes. But the failed approaches are where the real learning happens. If you tried three things and only the third one worked, all three should be documented - future you will thank present you.
+
+**Claude Code features used:** **Read tool** and **Edit tool.** The Edit tool does exact string replacement, which is safer than rewriting the entire file. It finds a specific string in the file and replaces it, preserving everything else.
+
+### Step 4: Update README.md
+
+```markdown
+If the session involved significant new work (not just minor fixes),
+add a new Phase entry to the narrative. Follow the existing style:
+- Brief paragraph describing what happened and why
+- Mention key technical details
+- Note any architectural decisions or direction changes
+
+If the session was minor, skip this step and note that no README
+update was needed.
+```
+
+**What's happening:** Claude makes a judgment call. Not every session deserves a new Phase in the README narrative. A quick bug fix? Skip it. Building a new feature, running a security audit, creating a new command? That gets a Phase entry.
+
+**Why this matters:** This is a good example of giving Claude decision-making authority within bounds. The instruction doesn't say "always update" or "never update" - it says "if significant." Claude has the full session context to make that call, and it's explicit about what counts as significant.
+
+**Pro tip:** If you find Claude's judgment about "significant" doesn't match yours, make the criteria more explicit. Instead of "significant new work," you could say "any session that created new files, modified architecture, or extracted learned skills."
+
+### Step 5: Update MEMORY.md
+
+```markdown
+Update MEMORY.md if:
+- New learned skills were extracted
+- New key learnings were discovered
+- Project architecture changed
+- New repos were created
+- Blog posts were added
+
+Keep MEMORY.md under 200 lines. Be concise.
+```
+
+**What's happening:** Claude Code has a **persistent auto-memory** system. Each project gets a `MEMORY.md` file that's automatically loaded into the system prompt at the start of every session. This is how Claude "remembers" things across sessions - it reads this file every time.
+
+**Why this matters:** MEMORY.md is your cross-session context. If you extracted a new learned skill today, future sessions need to know about it. If you created a new repo, it should be in the inventory. The 200-line limit forces conciseness - this file is loaded into every session's context window, so bloat costs you real capability.
+
+**Claude Code feature used:** **Auto-memory** (`~/.claude/projects/<project>/memory/MEMORY.md`). This is different from the MCP memory server (which stores structured entities/relations). MEMORY.md is a flat markdown file injected into the system prompt. Simple but effective.
+
+### Step 6: Clean Up settings.local.json
+
+```markdown
+Read .claude/settings.local.json and remove accumulated one-off
+permission entries. Keep:
+- General wildcard permissions (Bash(git:*), Bash(npm:*), etc.)
+- WebSearch and WebFetch domain permissions
+- MCP tool permissions
+- Hook configurations (never modify hooks)
+
+Remove:
+- Very specific one-off Bash commands
+- Redundant entries already covered by wildcards
+- Session-specific file paths in permission entries
+```
+
+**What's happening:** This is housekeeping that most people never think about. Every time Claude runs a command and you approve it, that specific command string gets added to `settings.local.json` as an allowed permission. Over a long session, this list balloons with hyper-specific entries like:
+
+```json
+"Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"D:\\Users\\specific\\path\\temp-script.ps1\")"
+```
+
+That entry will never match again. It's dead weight. Meanwhile, a general `Bash(powershell.exe:*)` already covers all PowerShell execution.
+
+**Why this matters:** Permission bloat slows down Claude Code's permission matching and clutters your config. It's like never clearing your browser history - technically it still works, but it accumulates cruft. This step is the equivalent of a `settings.local.json` garbage collector.
+
+**Claude Code features used:** **Read tool** and **Edit tool** to surgically remove redundant entries. The instructions are specific about what to keep vs. remove, so Claude doesn't accidentally delete your hook configuration.
+
+### Step 7: Update Other Repos
+
+```markdown
+For each repo with changes:
+- cryptoflexllc: If site changes were made, ensure build passes
+- cryptoflex-ops: If deployment or operational changes were documented
+- claude-code-config: If new skills were extracted or rules modified
+```
+
+**What's happening:** This is conditional logic. Not every session touches every repo. The command checks which repos have changes (from Step 1) and only acts on those that need attention. For the website repo, it even verifies the build passes before committing - you don't want to push broken code just because it's end-of-session.
+
+**Claude Code feature used:** The **Bash tool** for build verification (`npx next build`) and git operations. Claude tracks the state from Step 1 and only processes repos that had changes.
+
+### Step 8: Commit All Changes
+
+```markdown
+For each repo with changes, create commits following conventional
+commit format: docs:, fix:, feat:, chore:
+
+CRITICAL: Commit message body must be written in the persona of
+Hulk Hogan. The subject line stays professional, but the body
+should be a detailed explanation written as if Hulk Hogan himself
+is explaining what went down.
+
+Always include Co-Authored-By: Claude Opus 4.6
+```
+
+**What's happening:** Commits use [conventional commit](https://www.conventionalcommits.org/) format for the subject line (`docs:`, `feat:`, `fix:`, etc.), which is machine-parseable and widely adopted. The body contains the detailed technical explanation.
+
+And yes, the body is written in the voice of Hulk Hogan. Because if you're going to read commit history, it should at least make you smile. Here's a real example:
+
+```
+feat: Add /wrap-up command and 3 new learned skills
+
+Well let me tell you something, brother! The Hulkster just leg-dropped
+the boring commit messages right out of this command. The subject line
+keeps it professional with conventional commits, but the body? That's
+where the 24-inch pythons do the talking, brother! Every commit is now
+a detailed technical breakdown of what changed and why, delivered with
+the power of Hulkamania running wild.
+```
+
+**Why this matters (seriously):** Beyond the entertainment value, there's a real lesson here. **Claude Code will follow whatever persona or style instructions you give it.** This isn't just a gimmick - the same technique works for matching your team's commit message style, writing in a specific technical voice, or following corporate documentation standards. The persona is the proof of concept; the pattern is universally useful.
+
+**Claude Code features used:** **Bash tool** for `git add` and `git commit`. The HEREDOC format for commit messages is specified explicitly because multi-line strings in bash are finicky, and Claude needs to know the exact syntax.
+
+### Step 9: Push to GitHub
+
+```markdown
+Ask the user for confirmation before pushing. Show them:
+- Which repos have commits ready to push
+- A one-line summary of each commit
+
+Then push all repos.
+```
+
+**What's happening:** This is the safety valve. Everything up to this point is local - you can review, amend, or undo it. Pushing is irreversible (for public repos especially). So the command explicitly pauses and asks for confirmation.
+
+**Why this matters:** Automating destructive or irreversible operations without a confirmation step is a recipe for disaster. The command shows you exactly what's about to be pushed so you can catch anything unexpected. This follows Claude Code's own design philosophy - it always asks before taking actions that affect shared state.
+
+### Step 10: Final Report
+
+```markdown
+Present a summary table:
+
+| Repo | Action | Commit | Status |
+|------|--------|--------|--------|
+| CJClaude_1 | Updated CHANGELOG, README | abc1234 | Pushed |
+| claude-code-config | Added skill #8 | def5678 | Pushed |
+| cryptoflexllc | No changes | - | Clean |
+| cryptoflex-ops | No changes | - | Clean |
+```
+
+**What's happening:** A clean summary so you know exactly what happened. Short hash for each commit (clickable if you're in a terminal that supports it), clear status for each repo.
+
+## The Safety Rails
+
+The command includes an "Important Notes" section that acts as a set of guardrails:
+
+```markdown
+- Never commit secrets. If you find tokens, keys, or passwords
+  in staged files, STOP and alert the user.
+- Never force push. Always use regular git push.
+- PowerShell from Git Bash: Write temp .ps1 files instead of
+  inline commands. Git Bash strips $ from PowerShell variables.
+- Read before editing. Always read files before modifying them.
+- Preserve history. Never delete changelog entries or README phases.
+```
+
+These aren't just nice-to-haves. Each one comes from a real mistake:
+
+- **The secrets rule** exists because I once had a GitHub PAT show up in a config file that was about to be committed to a public repo.
+- **The force push rule** exists because force pushing to a public repo's main branch can overwrite other people's work.
+- **The PowerShell rule** exists because I wasted 20 minutes debugging why `$env:USERPROFILE` was empty in a PowerShell command - turns out Git Bash was eating the `$` before PowerShell ever saw it. (This is now [learned skill #8](/blog/configuring-claude-code).)
+- **The "read before editing" rule** exists because Claude's Edit tool does exact string matching. If you try to edit a file you haven't read, you're guessing at the content and the edit will fail.
+- **The "preserve history" rule** exists because the whole point of a changelog is history. Deleting old entries defeats the purpose.
+
+## Why You Should Build Your Own
+
+You probably don't have four repos to synchronize, don't write changelogs in a specific format, and definitely don't need Hulk Hogan commit messages. That's not the point.
+
+The point is: **you have repetitive end-of-session tasks that you sometimes skip.** Maybe it's running tests before committing. Maybe it's updating a JIRA ticket. Maybe it's writing a standup summary. Maybe it's just making sure you didn't leave `console.log` statements in the code.
+
+Whatever your version of "wrap-up" is, you can encode it as a slash command. Here's the template:
+
+```markdown
+---
+description: "What this command does in one line"
+---
+
+# /your-command - Title
+
+You are a [role description]. Your job is to [primary objective].
+
+## Context
+[Any paths, URLs, conventions, or constraints Claude needs to know]
+
+## Steps
+[Numbered, ordered steps with specific instructions for each]
+
+## Important Notes
+[Safety rails, edge cases, things to never do]
+```
+
+The key principles:
+
+1. **Be specific.** "Update the changelog" is vague. "Add a new dated entry at the TOP, using bold action verbs and including technical details" is actionable.
+
+2. **Include the format.** Show Claude exactly what the output should look like. Templates, examples, and format rules eliminate guesswork.
+
+3. **Add safety rails.** Think about what could go wrong and add explicit instructions to prevent it. "Never force push" costs one line and prevents real damage.
+
+4. **Give decision-making criteria.** "Update the README if significant" is good, but "Update the README if new files were created, architecture changed, or learned skills were extracted" is better.
+
+5. **Encode your gotchas.** Every environment has quirks. Git Bash eating PowerShell variables. PATH not being set correctly. Build commands needing specific flags. Put them in the command so Claude handles them automatically.
+
+## What This Looks Like in Practice
+
+Here's what happens when I type `/wrap-up` at the end of a session:
+
+1. Claude immediately runs four `git status` commands in parallel and reports back: "CJClaude_1 has modified CHANGELOG.md and settings.local.json. The other three repos are clean."
+
+2. It reviews the session and drafts a changelog entry. I see the entry before it's written and can adjust it.
+
+3. It decides whether the session warrants a new README phase. If I disagree, I just say so.
+
+4. It cleans up my settings file - I usually see "Removed 8 one-off permission entries, kept 15 general permissions."
+
+5. It shows me what's about to be committed and pushed, and waits for my "go ahead."
+
+6. It pushes and shows the summary table.
+
+Total time: about 90 seconds, versus 10-15 minutes doing it manually. And nothing gets forgotten.
+
+## The Bigger Picture
+
+This command is part of a broader pattern I've been building with Claude Code: **making the tedious parts automatic so I can focus on the interesting parts.** Session logging hooks capture what tools were used. The `/learn` command extracts reusable patterns. The `/wrap-up` command handles documentation and cleanup.
+
+Each piece is simple on its own - a markdown file, a PowerShell script, a JSON config. But together, they create an environment where the boring maintenance work happens automatically and consistently.
+
+That's the real value of Claude Code's extensibility. Not that it can do things you can't do - but that it can do things you won't do. The documentation you'll skip when you're tired. The cleanup you'll forget when you're excited about the next feature. The commit message you'll shortcut to "misc fixes."
+
+Build the command once. Run it every session. Never lose context again.
+
+---
+
+*This post is part of a series about AI-assisted development. Previous: [My First 24 Hours with Claude Code](/blog/my-first-24-hours-with-claude-code). For deeper dives on specific topics, see [Configuring Claude Code](/blog/configuring-claude-code) (rules, hooks, MCP, plugins) and [Getting Started with Claude Code](/blog/getting-started-with-claude-code) (the Ollama-to-Anthropic journey).*
