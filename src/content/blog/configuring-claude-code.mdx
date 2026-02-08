@@ -1,33 +1,33 @@
 ---
 title: "Configuring Claude Code: Rules, Hooks, MCP Servers, and Plugins"
 date: "2026-02-07"
-description: "A deep dive into configuring Claude Code for real-world use — from modular rules and session logging hooks to MCP servers and the everything-claude-code plugin ecosystem."
+description: "A deep dive into configuring Claude Code for real-world use - from modular rules and session logging hooks to MCP servers and the everything-claude-code plugin ecosystem."
 tags: ["Claude Code", "Configuration", "MCP", "Hooks"]
 ---
 
 # Configuring Claude Code: Rules, Hooks, MCP Servers, and Plugins
 
-Out of the box, Claude Code works fine. But after using it for a while, you start wanting more: persistent memory across sessions, automatic logging, guardrails to prevent bad habits, and shortcuts for common workflows. This post documents how I configured Claude Code from scratch — including the things that didn't work on the first try.
+Out of the box, Claude Code works fine. But after using it for a while, you start wanting more: persistent memory across sessions, automatic logging, guardrails to prevent bad habits, and shortcuts for common workflows. This post documents how I configured Claude Code from scratch - including the things that didn't work on the first try.
 
 ## The Two-Tier Config System
 
 Claude Code has two levels of configuration:
 
-**Project-level** (`./CLAUDE.md`, `.claude/settings.local.json`) — applies only to the current project. This is where you put project-specific instructions, hook scripts, and permissions. Checked into git, shared with collaborators.
+**Project-level** (`./CLAUDE.md`, `.claude/settings.local.json`) - applies only to the current project. This is where you put project-specific instructions, hook scripts, and permissions. Checked into git, shared with collaborators.
 
-**User-level** (`~/.claude/rules/`, `~/.claude.json`, `~/.claude/settings.json`) — applies to every project. This is where you put universal standards like coding style, security rules, and MCP servers. Personal to your machine.
+**User-level** (`~/.claude/rules/`, `~/.claude.json`, `~/.claude/settings.json`) - applies to every project. This is where you put universal standards like coding style, security rules, and MCP servers. Personal to your machine.
 
 This separation means you write project instructions once in `CLAUDE.md` and universal standards once in `~/.claude/rules/`. No duplication.
 
 ## Setting Up Rules
 
-Rules are markdown files in `~/.claude/rules/` that Claude reads at the start of every session. Think of them as persistent instructions — "always do X, never do Y."
+Rules are markdown files in `~/.claude/rules/` that Claude reads at the start of every session. Think of them as persistent instructions - "always do X, never do Y."
 
 I started with the rules from [everything-claude-code](https://github.com/affaan-m/everything-claude-code), a community configuration repo with 41,000+ stars. Then I trimmed them significantly.
 
 ### Why Trim?
 
-Every line in a rule file costs context window tokens. Rationale paragraphs, examples, and checklists that restate things Claude already knows are pure overhead. A rule like "always create new objects, never mutate existing ones" is enough — you don't need three paragraphs explaining why immutability matters.
+Every line in a rule file costs context window tokens. Rationale paragraphs, examples, and checklists that restate things Claude already knows are pure overhead. A rule like "always create new objects, never mutate existing ones" is enough - you don't need three paragraphs explaining why immutability matters.
 
 After trimming ~40% of the original content, I ended up with 8 concise rule files:
 
@@ -48,7 +48,7 @@ After trimming ~40% of the original content, I ended up with 8 concise rule file
 
 ## Building a Session Logging System with Hooks
 
-This is where things got interesting — and where I made my biggest mistake before finding the right approach.
+This is where things got interesting - and where I made my biggest mistake before finding the right approach.
 
 ### The Wrong Way: Building a Rust Binary
 
@@ -58,13 +58,13 @@ My first idea was to build a standalone Rust program that would intercept Claude
 
 ### The Right Way: Hooks
 
-Claude Code has a **hooks system** — shell commands that run automatically when events happen. Hooks receive JSON data on stdin with real session context.
+Claude Code has a **hooks system** - shell commands that run automatically when events happen. Hooks receive JSON data on stdin with real session context.
 
 I wrote two PowerShell scripts:
 
-**`log-activity.ps1`** — runs after every tool use (PostToolUse hook). Logs every file edit, command execution, and write operation to `activity_log.txt` with timestamps.
+**`log-activity.ps1`** - runs after every tool use (PostToolUse hook). Logs every file edit, command execution, and write operation to `activity_log.txt` with timestamps.
 
-**`save-session.ps1`** — runs when a session ends (SessionEnd hook). Copies the full conversation transcript to `.claude/session_archive/` with a human-readable summary.
+**`save-session.ps1`** - runs when a session ends (SessionEnd hook). Copies the full conversation transcript to `.claude/session_archive/` with a human-readable summary.
 
 Configuration in `.claude/settings.local.json`:
 
@@ -100,7 +100,7 @@ If you're on Windows, there are three traps I fell into:
 
 3. **Error handling:** Hooks should NEVER crash Claude Code. Set `$ErrorActionPreference = "SilentlyContinue"` so errors are swallowed gracefully.
 
-These are exactly the kind of gotchas that waste hours because there are no error messages — everything just silently doesn't work.
+These are exactly the kind of gotchas that waste hours because there are no error messages - everything just silently doesn't work.
 
 ## MCP Servers: Extending Claude Code's Capabilities
 
@@ -108,9 +108,9 @@ MCP (Model Context Protocol) servers are background processes that give Claude n
 
 ### The Two I Kept
 
-**Memory server** (`@modelcontextprotocol/server-memory`) — maintains a persistent knowledge graph across sessions. Claude can store entities, relationships, and observations that survive between conversations. Nothing built into Claude Code does this.
+**Memory server** (`@modelcontextprotocol/server-memory`) - maintains a persistent knowledge graph across sessions. Claude can store entities, relationships, and observations that survive between conversations. Nothing built into Claude Code does this.
 
-**Context7** (`@upstash/context7-mcp`) — fetches live, up-to-date documentation for any library or framework. Instead of relying on training data (which has a knowledge cutoff), Claude gets the current docs on demand.
+**Context7** (`@upstash/context7-mcp`) - fetches live, up-to-date documentation for any library or framework. Instead of relying on training data (which has a knowledge cutoff), Claude gets the current docs on demand.
 
 ### The Three I Dropped
 
@@ -162,9 +162,9 @@ Restart Claude Code and the plugin loads automatically.
 
 ### The Missing Frontmatter Bug
 
-After installing, I noticed that more than half the slash commands weren't appearing. Investigation revealed that 18 of 31 command files in the `commands/` directory were missing YAML frontmatter — the `---\ndescription: ...\n---` block at the top of each `.md` file.
+After installing, I noticed that more than half the slash commands weren't appearing. Investigation revealed that 18 of 31 command files in the `commands/` directory were missing YAML frontmatter - the `---\ndescription: ...\n---` block at the top of each `.md` file.
 
-Claude Code requires this frontmatter to register commands. Without it, the files are silently ignored. No error, no warning — the commands just don't exist.
+Claude Code requires this frontmatter to register commands. Without it, the files are silently ignored. No error, no warning - the commands just don't exist.
 
 I fixed all 18 files manually by adding frontmatter. But since these edits are in the plugin cache (`~/.claude/plugins/cache/...`), they'll be overwritten on plugin updates. This is an upstream bug in v1.2.0.
 
@@ -172,7 +172,7 @@ I fixed all 18 files manually by adding frontmatter. But since these edits are i
 
 | Command | What It Does |
 |---------|-------------|
-| `/plan` | Structured planning before implementation — analyzes requirements, waits for approval |
+| `/plan` | Structured planning before implementation - analyzes requirements, waits for approval |
 | `/verify` | 6-phase check: build, types, lint, tests, security, git status |
 | `/learn` | Extracts reusable patterns from your session and saves them as skills |
 | `/tdd` | Enforces test-driven development: write test → make it pass → refactor |
@@ -197,7 +197,7 @@ The `.gitignore` whitelists only the files worth tracking: `rules/`, `skills/lea
 
 1. **Start with hooks.** I wasted time on the Rust binary. If I'd read the Claude Code docs more carefully, I would have found hooks immediately.
 
-2. **Trim rules from the start.** Don't copy verbose rules wholesale — read them, understand what they enforce, then write concise versions.
+2. **Trim rules from the start.** Don't copy verbose rules wholesale - read them, understand what they enforce, then write concise versions.
 
 3. **Install MCP servers one at a time.** Installing five at once made it hard to tell which ones were actually useful.
 

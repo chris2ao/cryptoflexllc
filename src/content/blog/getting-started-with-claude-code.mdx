@@ -1,21 +1,21 @@
 ---
 title: "Getting Started with Claude Code: From Local AI to Cloud-Powered Development"
 date: "2026-02-06"
-description: "My journey from running Ollama with Qwen locally (too slow) to setting up an Anthropic account and discovering Claude Code — the AI CLI tool that changed how I build software."
+description: "My journey from running Ollama with Qwen locally (too slow) to setting up an Anthropic account and discovering Claude Code - the AI CLI tool that changed how I build software."
 tags: ["Claude Code", "AI", "Getting Started", "Ollama"]
 ---
 
 # Getting Started with Claude Code: From Local AI to Cloud-Powered Development
 
-Before I ever touched Claude Code, I tried the local route. If you're thinking about AI-assisted development, you've probably considered running a model locally too. Here's what happened when I did — and why I ended up going a different direction.
+Before I ever touched Claude Code, I tried the local route. If you're thinking about AI-assisted development, you've probably considered running a model locally too. Here's what happened when I did - and why I ended up going a different direction.
 
 ## The Local AI Experiment: Ollama + Qwen
 
-The idea was appealing: run an AI model on my own hardware, no cloud dependency, no API costs, complete privacy. I installed [Ollama](https://ollama.com/) and pulled the Qwen 3.4B model — a smaller, faster model that should theoretically run fine on consumer hardware.
+The idea was appealing: run an AI model on my own hardware, no cloud dependency, no API costs, complete privacy. I installed [Ollama](https://ollama.com/) and pulled the Qwen 3.4B model - a smaller, faster model that should theoretically run fine on consumer hardware.
 
 **The reality:** It was too slow to be useful.
 
-The response times made it impractical for development work. When you're in the middle of writing code and you need to ask "how does this Next.js API work?" or "refactor this function," waiting 30+ seconds for each response kills your flow. And the smaller model meant the answers weren't always accurate enough for production code — I'd spend more time verifying the output than I saved by using AI in the first place.
+The response times made it impractical for development work. When you're in the middle of writing code and you need to ask "how does this Next.js API work?" or "refactor this function," waiting 30+ seconds for each response kills your flow. And the smaller model meant the answers weren't always accurate enough for production code - I'd spend more time verifying the output than I saved by using AI in the first place.
 
 There are absolutely valid use cases for local models. Privacy-sensitive work, offline environments, or if you have serious GPU hardware. But for day-to-day development on a normal workstation? The cloud models are just better right now.
 
@@ -34,17 +34,17 @@ The pricing is reasonable for individual use. Sonnet 4.5 handles most developmen
 If you don't already have a code editor, [VS Code](https://code.visualstudio.com/) is the standard choice for web development:
 
 1. Download from [code.visualstudio.com](https://code.visualstudio.com/)
-2. Run the installer — accept defaults
+2. Run the installer - accept defaults
 3. Open it and install a few essential extensions:
-   - **ESLint** — catches JavaScript/TypeScript errors
-   - **Tailwind CSS IntelliSense** — autocomplete for Tailwind classes
-   - **Prettier** — auto-formats your code on save
+   - **ESLint** - catches JavaScript/TypeScript errors
+   - **Tailwind CSS IntelliSense** - autocomplete for Tailwind classes
+   - **Prettier** - auto-formats your code on save
 
 VS Code has a built-in terminal (`` Ctrl+` ``), which is where you'll run Claude Code. You can see your file tree, edit code, and interact with Claude all in one window.
 
 ## Installing Claude Code
 
-Claude Code is Anthropic's command-line tool that gives Claude direct access to your project — it can read files, write code, run commands, and manage your codebase. It's not a chatbot with copy-paste snippets. It's more like pair programming with an AI that has context about your entire project.
+Claude Code is Anthropic's command-line tool that gives Claude direct access to your project - it can read files, write code, run commands, and manage your codebase. It's not a chatbot with copy-paste snippets. It's more like pair programming with an AI that has context about your entire project.
 
 ### Prerequisites
 
@@ -79,7 +79,7 @@ Navigate to your project directory and run:
 claude
 ```
 
-The first time, it'll ask you to authenticate with your Anthropic account. Follow the prompts — it opens a browser window for authentication. Once authenticated, you're in.
+The first time, it'll ask you to authenticate with your Anthropic account. Follow the prompts - it opens a browser window for authentication. Once authenticated, you're in.
 
 ## What Claude Code Actually Does
 
@@ -89,14 +89,14 @@ When you start a session, Claude Code indexes your project. It knows your file s
 
 1. **Reads** the relevant files to understand context
 2. **Plans** what needs to change (and often tells you before doing it)
-3. **Writes** the code — creating new files or editing existing ones
+3. **Writes** the code - creating new files or editing existing ones
 4. **Runs** commands if needed (npm install, git operations, build verification)
 
 The key difference from a chatbot: you don't copy-paste code snippets. Claude Code writes directly to your files. You review the changes, approve or reject them, and iterate.
 
 ## My First Real Test
 
-I asked Claude Code to build a website. Not a hello-world — a real production site with multiple pages, a blog system, responsive design, and SEO metadata. I described what I wanted in plain English:
+I asked Claude Code to build a website. Not a hello-world - a real production site with multiple pages, a blog system, responsive design, and SEO metadata. I described what I wanted in plain English:
 
 > "Build a personal tech blog and portfolio site. Dark theme with a cyan accent. Next.js with Tailwind CSS and shadcn/ui. MDX for blog posts. Pages for about, services, portfolio, and contact."
 
@@ -131,14 +131,14 @@ If you have a 4090 or better, local models might work for you. For the rest of u
 
 ### 5. Don't fight the tooling
 
-I initially tried to build custom infrastructure around Claude Code (a Rust binary to intercept conversations — it didn't work). Then I discovered Claude Code has a built-in **hooks system** for exactly that kind of automation. Use the platform's extension points instead of building around them.
+I initially tried to build custom infrastructure around Claude Code (a Rust binary to intercept conversations - it didn't work). Then I discovered Claude Code has a built-in **hooks system** for exactly that kind of automation. Use the platform's extension points instead of building around them.
 
 ## What's Next
 
 If you're just getting started with Claude Code, my recommendation:
 
 1. Install it and authenticate
-2. Start with a small project — something you'd normally build yourself
+2. Start with a small project - something you'd normally build yourself
 3. Describe what you want in detail, then watch what Claude Code does
 4. Review every change, ask questions, iterate
 5. Once you're comfortable, explore the configuration system: rules, hooks, MCP servers, and plugins
@@ -147,4 +147,4 @@ I've documented my entire Claude Code configuration journey in a [separate post]
 
 ---
 
-*This post is part of a series about AI-assisted development. Next up: [Configuring Claude Code](/blog/configuring-claude-code) — rules, hooks, MCP servers, and the plugin ecosystem.*
+*This post is part of a series about AI-assisted development. Next up: [Configuring Claude Code](/blog/configuring-claude-code) - rules, hooks, MCP servers, and the plugin ecosystem.*
