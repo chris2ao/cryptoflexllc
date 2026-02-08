@@ -21,11 +21,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: post.title,
     description: post.description,
+    authors: post.author ? [{ name: post.author }] : undefined,
     openGraph: {
       title: post.title,
       description: post.description,
       type: "article",
       publishedTime: post.date,
+      authors: post.author ? [post.author] : undefined,
     },
   };
 }
@@ -50,13 +52,19 @@ export default async function BlogPostPage({ params }: Props) {
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
             {post.title}
           </h1>
-          <p className="mt-4 text-muted-foreground">
-            {new Date(post.date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+            {post.author && <span>{post.author}</span>}
+            {post.author && <span>&middot;</span>}
+            <span>
+              {new Date(post.date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+            {post.readingTime && <span>&middot;</span>}
+            {post.readingTime && <span>{post.readingTime}</span>}
+          </div>
         </header>
 
         {/* Post content */}
