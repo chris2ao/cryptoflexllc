@@ -1,0 +1,191 @@
+---
+title: "How I Built This Site with Next.js, Tailwind v4, and Claude Code"
+date: "2026-02-07"
+description: "A walkthrough of building cryptoflexllc.com from scratch — the tech decisions, the component architecture, and what I learned about modern web development along the way."
+tags: ["Next.js", "Tailwind CSS", "Web Development", "shadcn/ui"]
+---
+
+# How I Built This Site with Next.js, Tailwind v4, and Claude Code
+
+This site — the one you're reading right now — was built in a single session with Claude Code. Not a template, not a drag-and-drop builder. Real code, real decisions, real deployment. Here's how it came together and what I learned.
+
+## The Stack
+
+| Technology | Why |
+|---|---|
+| **Next.js 15** | App Router with server components by default — faster pages, simpler data fetching |
+| **React 19** | Latest React with server component support |
+| **Tailwind CSS v4** | New version: all config lives in CSS via `@theme` blocks. No more `tailwind.config.ts` |
+| **shadcn/ui** | Copies real component source code into your project. You own it, you can modify it |
+| **MDX** | Blog posts as Markdown files with embedded React components. No database needed |
+
+## The Big Decision: Tailwind v4
+
+If you've used Tailwind before, v4 is a significant change. The configuration that used to live in `tailwind.config.ts` now lives directly in your CSS:
+
+```css
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-primary: var(--primary);
+  /* ... */
+}
+```
+
+All your design tokens — colors, fonts, spacing, border radii — are defined as CSS variables in `:root` and bridged to Tailwind utilities via the `@theme` block. It's actually simpler once you get used to it.
+
+## Dark Mode: All In
+
+I didn't want a light/dark toggle. The site is dark mode, period. One line in the root layout makes this happen:
+
+```tsx
+<html lang="en" className="dark">
+```
+
+The color palette uses the **OKLCH color space** — a perceptually uniform system where colors with the same lightness value actually look equally bright to human eyes. The accent color is a cyan at `oklch(0.75 0.15 195)`.
+
+Key colors:
+
+| Role | Value | What It Looks Like |
+|------|-------|--------------------|
+| Background | `oklch(0.141 0.005 285.823)` | Near-black with a subtle blue tint |
+| Foreground | `oklch(0.985 0 0)` | Almost white |
+| Primary | `oklch(0.75 0.15 195)` | Cyan — the accent everywhere |
+| Card | `oklch(0.178 0.005 285.823)` | Slightly lighter than background |
+| Border | `oklch(1 0 0 / 10%)` | Semi-transparent white — subtle |
+
+## The Component Architecture
+
+### Glassmorphism Nav
+
+The sticky navigation uses a glass effect — semi-transparent background with a backdrop blur:
+
+```tsx
+<header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
+```
+
+On mobile, the nav links collapse into a hamburger menu that opens a **Sheet** (a drawer from shadcn/ui built on Radix Dialog). It handles focus trapping, escape key, click-outside, and screen reader announcements automatically.
+
+### The `asChild` Pattern
+
+You'll see `asChild` throughout the code. This is a Radix pattern that means "don't render your default element — render my child instead." It's how you put button styling on a Next.js Link:
+
+```tsx
+<Button asChild size="lg">
+  <Link href="/blog">Read the Blog</Link>
+</Button>
+```
+
+The result is a `<a>` tag with button styling, not a `<button>` wrapping an `<a>`. Semantically correct and better for accessibility.
+
+### The `group` Hover Pattern
+
+Blog cards use Tailwind's `group` pattern for coordinated hover effects. Wrap the whole card in a link with `className="group"`, then any child can react to the parent hover:
+
+```tsx
+<Link href={`/blog/${post.slug}`} className="group">
+  <Card className="hover:border-primary/50">
+    <h3 className="group-hover:text-primary">
+      {post.title}
+    </h3>
+  </Card>
+</Link>
+```
+
+When you hover anywhere on the card, the title turns cyan and the border gets a subtle tint. One hover target, multiple visual responses.
+
+## The Blog System
+
+This is the part I'm most proud of. The blog is powered by MDX files — write Markdown, and it becomes a page on the site. No database, no CMS, no API.
+
+### How It Works
+
+1. **Write a file:** Drop an `.mdx` file into `src/content/blog/`
+2. **Add frontmatter:** Title, date, description, tags at the top
+3. **Done:** The post appears on `/blog` and gets its own page at `/blog/your-slug`
+
+The slug comes from the filename. `my-first-post.mdx` becomes `/blog/my-first-post`.
+
+### Under the Hood
+
+A utility file (`lib/blog.ts`) reads all `.mdx` files at build time, parses the frontmatter with `gray-matter`, and returns sorted post data. Because this runs in a **Server Component**, there's no client-side fetch, no loading spinner, no API call. The data is baked into the HTML at build time.
+
+Blog posts are rendered with `next-mdx-remote`, which converts MDX to React components on the server. The typography is handled by Tailwind's `prose` classes — they style headings, paragraphs, lists, code blocks, and links without you writing any CSS.
+
+### Static Generation
+
+Every blog post is pre-built at compile time via `generateStaticParams()`. The result is static HTML — fast, cacheable, and SEO-friendly. When you add a new post, you push to GitHub and Vercel rebuilds automatically.
+
+## The Contact Page Workaround
+
+The Contact page needed to be a client component (it uses `useState` for form state). But in Next.js 15, you can't export `metadata` from a client component.
+
+The solution: a separate `layout.tsx` that exports the metadata:
+
+```tsx
+// contact/layout.tsx — server component with metadata
+export const metadata: Metadata = {
+  title: "Contact",
+  description: "Get in touch with Chris Johnson at CryptoFlex LLC.",
+};
+
+export default function ContactLayout({ children }) {
+  return children; // Just passes through
+}
+```
+
+```tsx
+// contact/page.tsx — client component with form
+"use client";
+export default function ContactPage() {
+  // ... form with useState
+}
+```
+
+The layout is a server component that does nothing except provide metadata. The page is a client component with the actual form. It's a bit of a hack, but it's the official pattern.
+
+## The Sticky Footer Trick
+
+A common problem: on pages with little content, the footer floats in the middle of the screen instead of sticking to the bottom. The fix is three lines of Tailwind:
+
+```tsx
+<body className="min-h-screen flex flex-col">
+  <Nav />
+  <main className="flex-1">{children}</main>
+  <Footer />
+</body>
+```
+
+- `min-h-screen` — body fills at least the viewport height
+- `flex flex-col` — vertical flex layout
+- `flex-1` on main — main grows to fill available space, pushing footer down
+
+## What I'd Change
+
+Looking back, a few things I'd do differently:
+
+1. **Add a real contact form.** The `mailto:` approach works but isn't great UX. A service like Formspree or Resend would be better.
+
+2. **Add image optimization.** Blog post images should use Next.js `<Image>` for automatic optimization and lazy loading.
+
+3. **Add a table of contents.** For longer posts, auto-generating a TOC from headings would help navigation.
+
+4. **Add reading time.** A simple word count / 200 WPM calculation displayed under the post title.
+
+## The Full Build Guide
+
+If you want to build a similar site from scratch, I've written a comprehensive step-by-step guide that covers every command, every file, every decision: **[BUILD-GUIDE.md](https://github.com/chris2ao/cryptoflexllc/blob/main/BUILD-GUIDE.md)**.
+
+It's about 1,300 lines and walks through scaffolding, shadcn/ui setup, the dark theme, all components, the MDX blog system, SEO, and deployment. Someone should be able to follow it and build the same site.
+
+## Final Thoughts
+
+Building a production website in a single session feels like it shouldn't be possible. But the combination of Next.js (which handles routing, rendering, and optimization), Tailwind (which eliminates the CSS bottleneck), shadcn/ui (which gives you accessible components), and Claude Code (which writes the code while you make the decisions) made it real.
+
+The code is open source: [github.com/chris2ao/cryptoflexllc](https://github.com/chris2ao/cryptoflexllc). Fork it, modify it, learn from it.
+
+---
+
+*This post is part of a series about AI-assisted development. Previous: [Configuring Claude Code](/blog/configuring-claude-code).*

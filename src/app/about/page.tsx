@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -157,12 +158,14 @@ export default function AboutPage() {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            {/* Photo placeholder */}
-            <div className="aspect-square rounded-xl bg-muted flex items-center justify-center">
-              <span className="text-muted-foreground text-sm">
-                Photo coming soon
-              </span>
-            </div>
+            <Image
+              src="/headshot.jpeg"
+              alt="Chris Johnson"
+              width={400}
+              height={400}
+              className="aspect-square rounded-xl object-cover"
+              priority
+            />
 
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
