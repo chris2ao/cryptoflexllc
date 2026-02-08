@@ -23,13 +23,19 @@ export function BlogCard({ post }: { post: BlogPost }) {
           <p className="text-sm text-muted-foreground line-clamp-3">
             {post.description}
           </p>
-          <p className="mt-4 text-xs text-muted-foreground">
-            {new Date(post.date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+          <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+            {post.author && <span>{post.author}</span>}
+            {post.author && <span>&middot;</span>}
+            <span>
+              {new Date(post.date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+            {post.readingTime && <span>&middot;</span>}
+            {post.readingTime && <span>{post.readingTime}</span>}
+          </div>
         </CardContent>
       </Card>
     </Link>

@@ -6,6 +6,8 @@ export interface BlogPost {
   slug: string;
   title: string;
   date: string;
+  author: string;
+  readingTime: string;
   description: string;
   tags: string[];
   content: string;
@@ -28,6 +30,8 @@ export function getAllPosts(): BlogPost[] {
       slug,
       title: data.title ?? slug,
       date: data.date ?? "1970-01-01",
+      author: data.author ?? "",
+      readingTime: data.readingTime ?? "",
       description: data.description ?? "",
       tags: data.tags ?? [],
       content,
@@ -54,6 +58,8 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
     slug,
     title: data.title ?? slug,
     date: data.date ?? "1970-01-01",
+    author: data.author ?? "",
+    readingTime: data.readingTime ?? "",
     description: data.description ?? "",
     tags: data.tags ?? [],
     content,
