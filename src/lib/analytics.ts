@@ -68,7 +68,7 @@ export interface VisitorRecord {
  *   3. Neon handles connection pooling on their infrastructure
  */
 export function getDb() {
-  const databaseUrl = process.env.DATABASE_URL;
+  let databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error(
       "DATABASE_URL environment variable is not set. " +
@@ -76,6 +76,12 @@ export function getDb() {
         "connection string to your Vercel environment variables."
     );
   }
+
+  // Sanitize: strip "psql" prefix and surrounding quotes if someone
+  // pasted the Neon CLI command instead of just the connection string.
+  // e.g. psql 'postgresql://...' → postgresql://...
+  databaseUrl = databaseUrl.replace(/^psql\s+/, "").replace(/^'|'$/g, "");
+
   return neon(databaseUrl);
 }
 
