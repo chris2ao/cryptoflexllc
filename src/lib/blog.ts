@@ -8,7 +8,6 @@ export interface BlogPost {
   date: string;
   description: string;
   tags: string[];
-  image?: string;
   content: string;
 }
 
@@ -31,7 +30,6 @@ export function getAllPosts(): BlogPost[] {
       date: data.date ?? "1970-01-01",
       description: data.description ?? "",
       tags: data.tags ?? [],
-      image: data.image,
       content,
     };
   });
@@ -43,6 +41,9 @@ export function getAllPosts(): BlogPost[] {
 }
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
+  if (slug.includes('/') || slug.includes('\\') || slug.includes('..')) {
+    return undefined;
+  }
   const filePath = path.join(contentDir, `${slug}.mdx`);
   if (!fs.existsSync(filePath)) return undefined;
 
@@ -55,7 +56,6 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
     date: data.date ?? "1970-01-01",
     description: data.description ?? "",
     tags: data.tags ?? [],
-    image: data.image,
     content,
   };
 }

@@ -1,6 +1,6 @@
 ---
 title: "My First 24 Hours with Claude Code: From Zero to Production Website"
-date: "2026-02-07"
+date: "2026-02-07T22:00:00"
 description: "A detailed, hour-by-hour account of my first day with Claude Code - starting with Ollama frustrations, discovering Opus 4.6, building a complete website, and deploying to production. 30 commits, 4 repositories, and one very long day."
 tags: ["Claude Code", "AI", "Ollama", "Next.js", "Journey"]
 ---
@@ -146,7 +146,7 @@ $stdinData = [Console]::In.ReadToEnd()
 $hookData = $stdinData | ConvertFrom-Json
 ```
 
-A small thing, but the kind of thing that has zero error messages. The script runs, reads nothing, and silently does nothing. I only figured it out by adding debug logging to verify what was actually coming through.
+A small thing, but the kind of thing that has zero error messages. The script runs, reads nothing, and silently does nothing. I only figured it out by adding debug logging to verify what was actually coming through. (I go deeper on this and other Windows/PowerShell gotchas in [Configuring Claude Code](/blog/configuring-claude-code).)
 
 ### Cleaning Up After Qwen
 
@@ -221,7 +221,7 @@ Without that `---` block, the file is silently ignored. Eighteen of the plugin's
 
 I fixed all 18 files by adding frontmatter with descriptions sourced from the `.opencode/commands/` equivalents (which had them). After that, all 31 commands appeared.
 
-**Lesson learned:** When something silently doesn't work in Claude Code, check for missing frontmatter. It's the most common cause of "I configured this but nothing happened."
+**Lesson learned:** When something silently doesn't work in Claude Code, check for missing frontmatter. It's the most common cause of "I configured this but nothing happened." (Full details on the plugin setup and the fix in [Configuring Claude Code](/blog/configuring-claude-code).)
 
 ### Trimming the Rules
 
@@ -248,7 +248,7 @@ claude mcp add context7 @upstash/context7-mcp --scope user
 - **memory** - persistent knowledge graph that survives across sessions
 - **context7** - live documentation lookup for any library or framework
 
-But here's the gotcha that cost me 30 minutes: **`~/.claude/mcp-servers.json` is for Claude Desktop, not Claude Code.** I configured all my servers in the wrong file. Claude Code stores MCP servers in `~/.claude.json` under `"mcpServers"`. The `claude mcp add` CLI command writes to the correct location - don't try to edit the file manually.
+But here's the gotcha that cost me 30 minutes: **`~/.claude/mcp-servers.json` is for Claude Desktop, not Claude Code.** I configured all my servers in the wrong file. Claude Code stores MCP servers in `~/.claude.json` under `"mcpServers"`. The `claude mcp add` CLI command writes to the correct location - don't try to edit the file manually. (See [Configuring Claude Code](/blog/configuring-claude-code) for the full MCP setup walkthrough.)
 
 ### The Node.js PATH Nightmare
 
@@ -360,7 +360,7 @@ export default function ContactLayout({
 }
 ```
 
-The layout does nothing except provide metadata. Next.js renders the server layout wrapping the client page, and both metadata and interactivity work.
+The layout does nothing except provide metadata. Next.js renders the server layout wrapping the client page, and both metadata and interactivity work. (More on the component architecture in [How I Built This Site](/blog/how-i-built-this-site).)
 
 ### Production Build
 
@@ -468,7 +468,7 @@ If I were starting over tomorrow, here's what I'd change:
 
 1. **Skip the local model entirely** (unless you have specific privacy requirements). The time I spent debugging Qwen's output was time I could have spent building.
 
-2. **Start with the hooks system** instead of trying to build external tooling. Read the [Claude Code docs on hooks](https://docs.claude.com) before writing any automation.
+2. **Start with the hooks system** instead of trying to build external tooling. Read the [Claude Code docs on hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) before writing any automation.
 
 3. **Install everything-claude-code immediately.** The rules and commands save significant time. Just be ready to fix the frontmatter bug on 18 command files.
 
@@ -491,3 +491,5 @@ For me, it did. And I'm just getting started.
 ---
 
 *Built with Claude Code (Opus 4.6). Every command in this post was actually run. Every error was actually encountered. Every fix was actually applied. The full changelog, git history, and session archives are public at [github.com/chris2ao/CJClaude_1](https://github.com/chris2ao/CJClaude_1).*
+
+*This post is part of a series about AI-assisted development. Previous: [How I Built This Site](/blog/how-i-built-this-site). For deeper dives on specific topics, see [Configuring Claude Code](/blog/configuring-claude-code) (rules, hooks, MCP, plugins) and [How I Built This Site](/blog/how-i-built-this-site) (component architecture, Tailwind v4, MDX system).*
