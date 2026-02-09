@@ -7,8 +7,6 @@ description: "How I built a 12-step /wrap-up slash command that automates end-of
 tags: ["Claude Code", "Automation", "Commands", "Workflow"]
 ---
 
-# Automating Session Wrap-Up: Building a Custom Claude Code Command
-
 Every session with Claude Code ends the same way. You've written code, fixed bugs, learned something new, and now you need to document it all. Update the changelog. Write the README narrative. Extract learned patterns. Clean up the config files that accumulated one-off permissions. Clean out stale transcripts. Commit across multiple repos. Push everything to GitHub.
 
 It takes 10-15 minutes. It's not hard. And that's exactly why it's dangerous - it's easy enough to do, but tedious enough to skip. And when you skip it, you lose the context. Next session, you're staring at `git log` trying to remember what you did and why.
@@ -231,13 +229,13 @@ Keep MEMORY.md under 200 lines. Be concise.
 Analyze the session for reusable patterns worth saving as learned
 skills. Look for:
 
-- Error resolutions — non-obvious fixes, silent failures, misleading
+- Error resolutions: non-obvious fixes, silent failures, misleading
   error messages
-- Debugging techniques — tool combinations, diagnostic patterns that
+- Debugging techniques: tool combinations, diagnostic patterns that
   worked
-- Workarounds — platform quirks, library gotchas, version-specific
+- Workarounds: platform quirks, library gotchas, version-specific
   fixes
-- Integration patterns — how tools/systems interact in unexpected ways
+- Integration patterns: how tools/systems interact in unexpected ways
 
 Process:
 1. Review the session for non-trivial problems that were solved
@@ -256,7 +254,7 @@ Process:
 
 **The confirmation step** is important. Claude proposes each skill and waits for approval before saving. This prevents low-quality or duplicate skills from accumulating. You're the quality gate.
 
-**Real example:** During one session, I discovered that HEREDOC commit message bodies with parentheses get captured as garbage permission entries in `settings.local.json`. That became [skill #11](https://github.com/chris2ao/claude-code-config) - a pattern I never would have documented manually but that saves time every time it's encountered.
+**Real example:** During one session, I discovered that HEREDOC commit message bodies with parentheses get captured as garbage permission entries in `settings.local.json`. That became skill #11, a pattern I never would have documented manually but that saves time every time it's encountered.
 
 **Claude Code features used:** **Read tool** to analyze session context, **Write tool** to create new skill files, and **Edit tool** to update MEMORY.md with the new skill count. The skill file format is standardized:
 
@@ -273,7 +271,7 @@ What went wrong and why it's non-obvious
 The fix or workaround
 
 ## When to Use
-Trigger conditions — how to recognize this situation
+Trigger conditions: how to recognize this situation
 ```
 
 ### Step 7: Clean Up Global State
@@ -548,4 +546,4 @@ Build the command once. Let it evolve. Run it every session. Never lose context 
 
 ---
 
-*This post is part of a series about AI-assisted development. Previous: [My First 24 Hours with Claude Code](/blog/my-first-24-hours-with-claude-code). For deeper dives on specific topics, see [Configuring Claude Code](/blog/configuring-claude-code) (rules, hooks, MCP, plugins) and [Getting Started with Claude Code](/blog/getting-started-with-claude-code) (the Ollama-to-Anthropic journey).*
+*Built with Claude Code (Opus 4.6). The wrap-up command and learning journal are at [github.com/chris2ao/CJClaude_1](https://github.com/chris2ao/CJClaude_1), and the website source is at [github.com/chris2ao/cryptoflexllc](https://github.com/chris2ao/cryptoflexllc). This post is part of a series about AI-assisted development. Previous: [My First 24 Hours with Claude Code](/blog/my-first-24-hours-with-claude-code). For deeper dives on specific topics, see [Configuring Claude Code](/blog/configuring-claude-code) (rules, hooks, MCP, plugins) and [Getting Started with Claude Code](/blog/getting-started-with-claude-code) (the Ollama-to-Anthropic journey).*
