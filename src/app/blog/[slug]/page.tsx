@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 
@@ -69,7 +70,21 @@ export default async function BlogPostPage({ params }: Props) {
 
         {/* Post content */}
         <div className="prose prose-invert prose-zinc max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-code:text-primary/90 prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-border">
-          <MDXRemote source={post.content} />
+          <MDXRemote
+            source={post.content}
+            options={{
+              mdxOptions: {
+                remarkPlugins: [remarkGfm],
+              },
+            }}
+            components={{
+              table: (props) => (
+                <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                  <table {...props} />
+                </div>
+              ),
+            }}
+          />
         </div>
       </div>
     </article>

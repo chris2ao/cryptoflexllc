@@ -91,3 +91,27 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Responsive prose tables */
+.prose table {
+  display: table;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.prose th,
+.prose td {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .prose th,
+  .prose td {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .prose table {
+    min-width: 400px;
+  }
+}
