@@ -2,14 +2,14 @@
 title: "Automating Session Wrap-Up: Building a Custom Claude Code Command"
 date: "2026-02-08T14:00:00"
 author: "Chris Johnson"
-readingTime: "16 min read"
-description: "How I built a /wrap-up slash command that automates end-of-session documentation across multiple repos - updating changelogs, cleaning up config, committing, and pushing. A step-by-step breakdown of the command, the Claude Code features it uses, and why you should build one too."
+readingTime: "20 min read"
+description: "How I built a 12-step /wrap-up slash command that automates end-of-session documentation across multiple repos - pulling latest, extracting learned skills, cleaning global state, updating changelogs, committing in Hulk Hogan's voice, and pushing. A step-by-step breakdown of every function and why it exists."
 tags: ["Claude Code", "Automation", "Commands", "Workflow"]
 ---
 
 # Automating Session Wrap-Up: Building a Custom Claude Code Command
 
-Every session with Claude Code ends the same way. You've written code, fixed bugs, learned something new, and now you need to document it all. Update the changelog. Write the README narrative. Clean up the config files that accumulated one-off permissions. Commit across multiple repos. Push everything to GitHub.
+Every session with Claude Code ends the same way. You've written code, fixed bugs, learned something new, and now you need to document it all. Update the changelog. Write the README narrative. Extract learned patterns. Clean up the config files that accumulated one-off permissions. Clean out stale transcripts. Commit across multiple repos. Push everything to GitHub.
 
 It takes 10-15 minutes. It's not hard. And that's exactly why it's dangerous - it's easy enough to do, but tedious enough to skip. And when you skip it, you lose the context. Next session, you're staring at `git log` trying to remember what you did and why.
 
@@ -19,15 +19,18 @@ So I did what any reasonable person would do: I made Claude Code do it for me.
 
 A slash command called `/wrap-up` that you type at the end of any session. It handles everything:
 
-1. Surveys all your repos for uncommitted changes
+1. Pulls latest from all repos and surveys for uncommitted changes
 2. Reviews what happened in the session
 3. Updates your changelog with a properly formatted entry
 4. Adds to your README narrative (if the session was significant)
 5. Updates your persistent memory file
-6. Cleans up accumulated permission bloat in your settings
-7. Commits everything with detailed messages
-8. Pushes to GitHub (after asking you first)
-9. Shows you a final summary table
+6. Extracts reusable patterns as learned skills
+7. Cleans up stale transcripts and todo files
+8. Cleans up accumulated permission bloat in your settings
+9. Stages changes in any affected repos
+10. Commits everything with detailed messages (in Hulk Hogan's voice)
+11. Pushes to GitHub (after asking you first)
+12. Shows you a final summary table
 
 One command. Zero things forgotten.
 
@@ -59,19 +62,21 @@ artifacts, and push all changes to GitHub.
 
 Run these in order. Do NOT skip steps. Ask the user before pushing.
 
-### Step 1: Survey All Repos
+### Step 1: Pull Latest and Survey All Repos
 ### Step 2: Review Session Context
 ### Step 3: Update CHANGELOG.md
 ### Step 4: Update README.md
 ### Step 5: Update MEMORY.md
-### Step 6: Clean Up settings.local.json
-### Step 7: Update Other Repos
-### Step 8: Commit All Changes
-### Step 9: Push to GitHub
-### Step 10: Final Report
+### Step 6: Extract Learned Skills
+### Step 7: Clean Up Global State
+### Step 8: Clean Up settings.local.json
+### Step 9: Update Other Repos
+### Step 10: Commit All Changes
+### Step 11: Push to GitHub
+### Step 12: Final Report
 ```
 
-*(I've shortened the repo paths for readability - the real file has full absolute paths.)*
+*(I've shortened the repo paths and step details for readability - the real file has full absolute paths and detailed instructions under each step.)*
 
 That's the skeleton. Now let's walk through each piece and understand what's actually happening under the hood.
 
@@ -106,17 +111,24 @@ The key insight: **you're not writing code, you're writing instructions for an a
 
 ## Step-by-Step Breakdown
 
-### Step 1: Survey All Repos
+### Step 1: Pull Latest and Survey All Repos
 
 ```markdown
-Run `git status` and `git diff --stat` on ALL four repos in parallel.
-Identify which repos have changes (staged, unstaged, or untracked files).
-Report findings to the user before proceeding.
+First, run `git pull` on ALL four repos in parallel to ensure local
+copies are in sync with GitHub. Then run `git status` and
+`git diff --stat` on all four repos. Identify which repos have
+changes (staged, unstaged, or untracked files). Report findings
+to the user before proceeding.
+
+If a pull fails due to conflicts, STOP and alert the user.
+Do not attempt to auto-resolve merge conflicts.
 ```
 
-**What's happening:** Claude uses the **Bash tool** to run `git status` and `git diff --stat` across all four repository paths. The word "in parallel" is important here - Claude Code can execute multiple independent tool calls simultaneously. Four `git status` calls that would run sequentially in ~4 seconds finish in ~1 second when parallelized.
+**What's happening:** Claude uses the **Bash tool** to first `git pull` all four repos in parallel, then runs `git status` and `git diff --stat` across all four repository paths. The word "in parallel" is important - Claude Code can execute multiple independent tool calls simultaneously. Eight commands (four pulls + four statuses) that would run sequentially in ~8 seconds finish in ~2 seconds when parallelized.
 
-**Why this matters:** You need the full picture before making changes. Maybe you forgot to commit something in one repo from an earlier session. Maybe there are staged changes you didn't mean to include. This step surfaces everything before any automated changes happen.
+**Why this matters:** You need the full picture before making changes. Maybe someone pushed to a repo since your last pull. Maybe you forgot to commit something from an earlier session. Maybe there are staged changes you didn't mean to include. The pull ensures you're not working on stale state, and the survey surfaces everything before any automated changes happen.
+
+**Why the conflict check:** Auto-resolving merge conflicts is a recipe for lost work. If a pull fails, the command stops entirely and lets you handle it manually. This was added after a session where I realized the original version didn't pull at all - it just surveyed. That meant if you'd been working across multiple sessions without pulling, you could end up pushing without the latest remote changes.
 
 **Claude Code feature used:** The **Bash tool** with parallel execution. Claude can dispatch multiple independent Bash commands in a single turn, and they execute concurrently.
 
@@ -130,6 +142,8 @@ Analyze the conversation history to identify:
 - Any new learned skills extracted
 - Any config changes made
 - Any security-relevant actions taken
+
+Compile a concise summary of the session.
 ```
 
 **What's happening:** Claude reviews the entire conversation from the current session. It has full access to every message, tool call, and result from the session. This is just analysis - no tools are called.
@@ -156,6 +170,7 @@ Rules:
 - Use bold action verbs: **Fixed**, **Added**, **Removed**...
 - Include technical details (file paths, error messages, commands)
 - Document failures and dead ends, not just successes
+- If security actions were taken, add a ### Security note subsection
 ```
 
 **What's happening:** Claude uses the **Read tool** to read the current `CHANGELOG.md`, then the **Edit tool** to insert a new entry at the top. The format template and rules ensure consistency across sessions - every entry looks the same whether it was written at 9 AM or midnight.
@@ -210,7 +225,85 @@ Keep MEMORY.md under 200 lines. Be concise.
 
 **Claude Code feature used:** **Auto-memory** (`~/.claude/projects/<project>/memory/MEMORY.md`). This is different from the MCP memory server (which stores structured entities/relations). MEMORY.md is a flat markdown file injected into the system prompt. Simple but effective.
 
-### Step 6: Clean Up settings.local.json
+### Step 6: Extract Learned Skills
+
+```markdown
+Analyze the session for reusable patterns worth saving as learned
+skills. Look for:
+
+- Error resolutions — non-obvious fixes, silent failures, misleading
+  error messages
+- Debugging techniques — tool combinations, diagnostic patterns that
+  worked
+- Workarounds — platform quirks, library gotchas, version-specific
+  fixes
+- Integration patterns — how tools/systems interact in unexpected ways
+
+Process:
+1. Review the session for non-trivial problems that were solved
+2. Skip trivial fixes (typos, simple syntax) and one-time issues
+3. For each extractable pattern, create a skill file at
+   ~/.claude/skills/learned/[pattern-name].md
+4. Ask the user to confirm before saving each skill
+5. If new skills were extracted, update the skills count in MEMORY.md
+```
+
+**What's happening:** This is the step that makes Claude Code get smarter over time. After every session, the wrap-up agent reviews what happened and looks for patterns worth preserving. Not every session produces a new skill - sometimes it's just routine work. But when you solve a tricky problem, the pattern gets extracted and saved.
+
+**Why this was added:** Originally, skill extraction was a separate step you had to remember to do. I'd run the everything-claude-code plugin's `/learn` command sometimes, but often forgot. By building it into the wrap-up flow, it happens automatically. Every session gets reviewed for extractable patterns as part of the standard cleanup.
+
+**What makes a good skill:** The instructions are specific about what qualifies. A typo fix? Not a skill. Discovering that PowerShell's `$input` variable silently returns nothing when invoked via `-File` parameter? That's a skill - it's non-obvious, platform-specific, has no error message, and will waste hours if you hit it again.
+
+**The confirmation step** is important. Claude proposes each skill and waits for approval before saving. This prevents low-quality or duplicate skills from accumulating. You're the quality gate.
+
+**Real example:** During one session, I discovered that HEREDOC commit message bodies with parentheses get captured as garbage permission entries in `settings.local.json`. That became [skill #11](https://github.com/chris2ao/claude-code-config) - a pattern I never would have documented manually but that saves time every time it's encountered.
+
+**Claude Code features used:** **Read tool** to analyze session context, **Write tool** to create new skill files, and **Edit tool** to update MEMORY.md with the new skill count. The skill file format is standardized:
+
+```markdown
+# Descriptive Pattern Name
+
+**Extracted:** 2026-02-08
+**Context:** Brief description of when this applies
+
+## Problem
+What went wrong and why it's non-obvious
+
+## Solution
+The fix or workaround
+
+## When to Use
+Trigger conditions — how to recognize this situation
+```
+
+### Step 7: Clean Up Global State
+
+```markdown
+Clean accumulated Claude Code data that causes bloat and can trigger
+interactive mode freezes:
+
+1. ~/.claude/projects/ transcripts: For each project directory under
+   ~/.claude/projects/, delete all .jsonl transcript files and session
+   subdirectories (UUIDs), keeping ONLY the memory/ directory and
+   its contents.
+
+2. ~/.claude/todos/ stale files: Delete all *.json files in
+   ~/.claude/todos/.
+
+Report what was cleaned (file counts and space freed).
+```
+
+**What's happening:** Claude Code stores full conversation transcripts as `.jsonl` files under `~/.claude/projects/`. After a few days of intensive use, this directory balloons - I had 47 transcripts totaling 34MB after just two days. Stale todo files accumulate too (67 JSON files in `~/.claude/todos/`). This step cleans both.
+
+**Why this was added:** This step exists because of a specific debugging session where Claude Code's interactive mode froze completely - it would launch but wouldn't accept keyboard input, not even Ctrl+C. The root cause turned out to be stale global state that had accumulated over many sessions. After cleaning `~/.claude/projects/` and removing stale entries from `~/.claude.json`, the freeze resolved.
+
+The key insight: **this cleanup needs to happen regularly, not just when things break.** Building it into the wrap-up flow means the state never accumulates to problematic levels.
+
+**What gets preserved:** The `memory/` directory under each project is preserved - that's where MEMORY.md lives, and losing it would mean losing cross-session context. Everything else (transcripts, session subdirectories) is expendable.
+
+**Claude Code features used:** **Bash tool** with `rm` commands. The instructions are explicit about what to keep vs. delete - the memory directory is sacrosanct, everything else can go.
+
+### Step 8: Clean Up settings.local.json
 
 ```markdown
 Read .claude/settings.local.json and remove accumulated one-off
@@ -236,9 +329,11 @@ That entry will never match again. It's dead weight. Meanwhile, a general `Bash(
 
 **Why this matters:** Permission bloat slows down Claude Code's permission matching and clutters your config. It's like never clearing your browser history - technically it still works, but it accumulates cruft. This step is the equivalent of a `settings.local.json` garbage collector.
 
+**A hard-won lesson:** This step also catches a sneaky bug I discovered - HEREDOC commit message bodies with parentheses get captured as garbage permission entries by the auto-approve system. So a commit message containing `"(like this)"` would end up as a permission entry. The cleanup step catches and removes these automatically. (This became [learned skill #11](#step-6-extract-learned-skills).)
+
 **Claude Code features used:** **Read tool** and **Edit tool** to surgically remove redundant entries. The instructions are specific about what to keep vs. remove, so Claude doesn't accidentally delete your hook configuration.
 
-### Step 7: Update Other Repos
+### Step 9: Update Other Repos
 
 ```markdown
 For each repo with changes:
@@ -251,7 +346,7 @@ For each repo with changes:
 
 **Claude Code feature used:** The **Bash tool** for build verification (`npx next build`) and git operations. Claude tracks the state from Step 1 and only processes repos that had changes.
 
-### Step 8: Commit All Changes
+### Step 10: Commit All Changes
 
 ```markdown
 For each repo with changes, create commits following conventional
@@ -270,21 +365,36 @@ Always include Co-Authored-By: Claude Opus 4.6
 And yes, the body is written in the voice of Hulk Hogan. Because if you're going to read commit history, it should at least make you smile. Here's a real example:
 
 ```
-feat: Add /wrap-up command and 3 new learned skills
+docs: Final session wrap-up - git pull safety, Sonnet routing, command discovery
 
-Well let me tell you something, brother! The Hulkster just leg-dropped
-the boring commit messages right out of this command. The subject line
-keeps it professional with conventional commits, but the body? That's
-where the 24-inch pythons do the talking, brother! Every commit is now
-a detailed technical breakdown of what changed and why, delivered with
-the power of Hulkamania running wild.
+Well let me tell you something, brother! The Hulkster just ran wild on
+this session and here's what went down. First we leg-dropped the wrap-up
+command into shape by adding git pull to Step 1 - because running wild
+without pulling latest is like entering the ring without stretching,
+brother! Then we body-slammed the Sonnet routing confusion...
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 ```
 
 **Why this matters (seriously):** Beyond the entertainment value, there's a real lesson here. **Claude Code will follow whatever persona or style instructions you give it.** This isn't just a gimmick - the same technique works for matching your team's commit message style, writing in a specific technical voice, or following corporate documentation standards. The persona is the proof of concept; the pattern is universally useful.
 
-**Claude Code features used:** **Bash tool** for `git add` and `git commit`. The HEREDOC format for commit messages is specified explicitly because multi-line strings in bash are finicky, and Claude needs to know the exact syntax.
+**The HEREDOC format** is specified explicitly because multi-line strings in bash are finicky:
 
-### Step 9: Push to GitHub
+```bash
+git commit -m "$(cat <<'EOF'
+docs: Brief description
+
+Let me tell you something, brother! The Hulkster just ran wild on
+this codebase and here's what went down...
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+EOF
+)"
+```
+
+**Claude Code features used:** **Bash tool** for `git add` and `git commit`. The single-quoted `'EOF'` is important - it prevents shell expansion of special characters in the commit message body.
+
+### Step 11: Push to GitHub
 
 ```markdown
 Ask the user for confirmation before pushing. Show them:
@@ -298,7 +408,15 @@ Then push all repos.
 
 **Why this matters:** Automating destructive or irreversible operations without a confirmation step is a recipe for disaster. The command shows you exactly what's about to be pushed so you can catch anything unexpected. This follows Claude Code's own design philosophy - it always asks before taking actions that affect shared state.
 
-### Step 10: Final Report
+**A platform note:** On Windows with Git Bash, the GitHub CLI isn't in PATH by default. The command includes a workaround:
+
+```bash
+export PATH="$PATH:/c/Program Files/GitHub CLI" && git push
+```
+
+This kind of platform-specific detail is exactly what makes custom commands valuable - you encode the workaround once and never think about it again.
+
+### Step 12: Final Report
 
 ```markdown
 Present a summary table:
@@ -306,12 +424,14 @@ Present a summary table:
 | Repo | Action | Commit | Status |
 |------|--------|--------|--------|
 | CJClaude_1 | Updated CHANGELOG, README | abc1234 | Pushed |
-| claude-code-config | Added skill #8 | def5678 | Pushed |
+| claude-code-config | Added skill #11 | def5678 | Pushed |
 | cryptoflexllc | No changes | - | Clean |
 | cryptoflex-ops | No changes | - | Clean |
 ```
 
 **What's happening:** A clean summary so you know exactly what happened. Short hash for each commit (clickable if you're in a terminal that supports it), clear status for each repo.
+
+**Why a table:** Tables are scannable. After a 2-hour session, you don't want to read paragraphs - you want to glance and confirm. The table format makes it obvious at a glance which repos were touched, what was committed, and whether the push succeeded.
 
 ## The Safety Rails
 
@@ -329,11 +449,25 @@ The command includes an "Important Notes" section that acts as a set of guardrai
 
 These aren't just nice-to-haves. Each one comes from a real mistake:
 
-- **The secrets rule** exists because I once had a GitHub PAT show up in a config file that was about to be committed to a public repo.
+- **The secrets rule** exists because I once had a GitHub PAT show up in a config file that was about to be committed to a public repo. Claude caught it because the rule told it to look.
 - **The force push rule** exists because force pushing to a public repo's main branch can overwrite other people's work.
 - **The PowerShell rule** exists because I wasted 20 minutes debugging why `$env:USERPROFILE` was empty in a PowerShell command - turns out Git Bash was eating the `$` before PowerShell ever saw it. (This is now [learned skill #8](/blog/configuring-claude-code).)
 - **The "read before editing" rule** exists because Claude's Edit tool does exact string matching. If you try to edit a file you haven't read, you're guessing at the content and the edit will fail.
 - **The "preserve history" rule** exists because the whole point of a changelog is history. Deleting old entries defeats the purpose.
+
+## How It Evolved
+
+The `/wrap-up` command didn't start as a 12-step process. It evolved through real use:
+
+**Version 1 (10 steps):** The original command covered the basics - survey repos, update docs, clean settings, commit, push, report. It worked but had gaps.
+
+**Adding git pull (Step 1):** After a session where I realized I'd been working on stale state because I hadn't pulled before making changes, I added `git pull` as the first action. The conflict check was added at the same time - if a pull fails, everything stops.
+
+**Adding Extract Learned Skills (Step 6):** I kept forgetting to run `/learn` at the end of sessions. The patterns I'd solved would be lost because I'd skip the extraction step when I was tired. Building it into the wrap-up flow means it happens automatically - every session gets reviewed for extractable patterns.
+
+**Adding Clean Up Global State (Step 7):** This was born from a crisis. Claude Code's interactive mode froze completely - it launched but wouldn't accept keyboard input. The root cause was 47 transcript files (34MB) accumulated over two days, plus 67 stale todo JSON files. After adding this cleanup step, the problem never recurred. Prevention beats debugging.
+
+**Current version (12 steps):** Pull + survey, review, changelog, readme, memory, skill extraction, global cleanup, settings cleanup, other repos, commit, push, report. Each step exists because something went wrong without it.
 
 ## Why You Should Build Your Own
 
@@ -374,33 +508,43 @@ The key principles:
 
 5. **Encode your gotchas.** Every environment has quirks. Git Bash eating PowerShell variables. PATH not being set correctly. Build commands needing specific flags. Put them in the command so Claude handles them automatically.
 
+6. **Let it evolve.** Start with the basics and add steps as you discover gaps. Every time something goes wrong that the command should have caught, add a step or a safety rail. The best commands are grown, not designed.
+
 ## What This Looks Like in Practice
 
 Here's what happens when I type `/wrap-up` at the end of a session:
 
-1. Claude immediately runs four `git status` commands in parallel and reports back: "CJClaude_1 has modified CHANGELOG.md and settings.local.json. The other three repos are clean."
+1. Claude pulls all four repos in parallel, then runs `git status` on each. It reports: "All pulls successful. CJClaude_1 has modified CHANGELOG.md and settings.local.json. claude-code-config has 2 new files in skills/learned/. The other two repos are clean."
 
 2. It reviews the session and drafts a changelog entry. I see the entry before it's written and can adjust it.
 
 3. It decides whether the session warrants a new README phase. If I disagree, I just say so.
 
-4. It cleans up my settings file - I usually see "Removed 8 one-off permission entries, kept 15 general permissions."
+4. It updates MEMORY.md with any new skills or learnings.
 
-5. It shows me what's about to be committed and pushed, and waits for my "go ahead."
+5. It analyzes the session for extractable patterns: "Found one non-trivial pattern: HEREDOC commit bodies polluting permissions. Create skill #11?" I confirm.
 
-6. It pushes and shows the summary table.
+6. It cleans global state: "Deleted 6 transcript files (124KB) from ~/.claude/projects/. Removed 4 stale todo files."
 
-Total time: about 90 seconds, versus 10-15 minutes doing it manually. And nothing gets forgotten.
+7. It cleans up my settings file: "Removed 7 one-off permission entries, kept 15 general permissions."
+
+8. It shows me what's about to be committed and pushed, and waits for my "go ahead."
+
+9. It pushes and shows the summary table.
+
+Total time: about 2 minutes, versus 10-15 minutes doing it manually. And nothing gets forgotten.
 
 ## The Bigger Picture
 
-This command is part of a broader pattern I've been building with Claude Code: **making the tedious parts automatic so I can focus on the interesting parts.** Session logging hooks capture what tools were used. The `/learn` command extracts reusable patterns. The `/wrap-up` command handles documentation and cleanup.
+This command is part of a broader pattern I've been building with Claude Code: **making the tedious parts automatic so I can focus on the interesting parts.** Session logging hooks capture what tools were used. The `/learn` command extracts reusable patterns. The `/wrap-up` command handles documentation, skill extraction, cleanup, and deployment.
 
 Each piece is simple on its own - a markdown file, a PowerShell script, a JSON config. But together, they create an environment where the boring maintenance work happens automatically and consistently.
 
-That's the real value of Claude Code's extensibility. Not that it can do things you can't do - but that it can do things you won't do. The documentation you'll skip when you're tired. The cleanup you'll forget when you're excited about the next feature. The commit message you'll shortcut to "misc fixes."
+The learned skills are the most interesting piece. After 11 skills extracted over two days, Claude Code noticeably makes fewer mistakes. It recognizes PowerShell stdin issues before hitting them. It knows to use `cmd /c` for MCP servers on Windows. It redacts tokens instead of echoing them. Each skill makes every future session slightly better.
 
-Build the command once. Run it every session. Never lose context again.
+That's the real value of Claude Code's extensibility. Not that it can do things you can't do - but that it can do things you won't do. The documentation you'll skip when you're tired. The cleanup you'll forget when you're excited about the next feature. The commit message you'll shortcut to "misc fixes." The skill extraction you'll skip because you're done for the day.
+
+Build the command once. Let it evolve. Run it every session. Never lose context again.
 
 ---
 
