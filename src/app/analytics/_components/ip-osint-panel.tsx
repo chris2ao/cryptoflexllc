@@ -27,10 +27,6 @@ const STATE_PA_LINKS: Record<string, string> = {
 
 const FALLBACK_PROPERTY_SEARCH = "https://www.realtor.com/realestateandhomes-search/";
 
-interface IpOsintPanelProps {
-  secret: string;
-}
-
 export function useIpOsintPanel() {
   const [open, setOpen] = useState(false);
   const [ip, setIp] = useState("");
@@ -38,7 +34,7 @@ export function useIpOsintPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const lookup = useCallback(async (ipAddress: string, secret: string) => {
+  const lookup = useCallback(async (ipAddress: string) => {
     setIp(ipAddress);
     setOpen(true);
     setLoading(true);
@@ -46,8 +42,9 @@ export function useIpOsintPanel() {
     setData(null);
 
     try {
+      // Cookie is sent automatically (same-origin request)
       const res = await fetch(
-        `/api/analytics/ip-intel?secret=${encodeURIComponent(secret)}&ip=${encodeURIComponent(ipAddress)}`
+        `/api/analytics/ip-intel?ip=${encodeURIComponent(ipAddress)}`
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Lookup failed" }));
@@ -67,14 +64,13 @@ export function useIpOsintPanel() {
 }
 
 export function IpOsintPanel({
-  secret,
   open,
   onOpenChange,
   ip,
   data,
   loading,
   error,
-}: IpOsintPanelProps & {
+}: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ip: string;
@@ -215,11 +211,9 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function getPropertyAppraisalLink(state: string, county: string): string | null {
   if (!state) return null;
 
-  // Check if we have a direct state link
   const stateLink = STATE_PA_LINKS[state];
   if (stateLink) return stateLink;
 
-  // Fallback to Realtor.com search with location
   const location = [county, state].filter(Boolean).join("-").replace(/\s+/g, "-");
   return location ? `${FALLBACK_PROPERTY_SEARCH}${encodeURIComponent(location)}` : null;
 }

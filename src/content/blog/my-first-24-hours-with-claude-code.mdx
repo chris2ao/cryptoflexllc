@@ -270,7 +270,7 @@ mkdir -p "$APPDATA/npm"
 3. **Git Bash mangles Windows paths.** Running `npm run build` in Git Bash produces:
 
 ```
-Error: Cannot find module 'C:\Program Files\Git\Users\chris_dnlqpqd\...'
+Error: Cannot find module 'C:\Program Files\Git\Users\<username>\...'
 ```
 
 See that `C:\Program Files\Git\` prefix? Git Bash (MSYS2) rewrites absolute paths, prepending the Git installation directory. The workaround is to use `npx` with Node.js directly in PATH:
@@ -407,7 +407,7 @@ SSL auto-provisioned. Auto-deploys on push to `main`. The site was live at [cryp
 
 ### Content
 
-I wrote three blog posts (the ones you can read on this site), added a real headshot to the About page, updated the footer with my GitHub link, and pushed everything. Then I created a private ops repo (`cryptoflex-ops`) for deployment notes that shouldn't be public.
+I wrote three blog posts (the ones you can read on this site), added a real headshot to the About page, updated the footer with my GitHub link, and pushed everything. Then I created a private repo for deployment notes that shouldn't be public.
 
 ## Hours 22-24: Backing Up and Documenting Everything
 
@@ -420,7 +420,7 @@ I initialized a git repo in `~/.claude/` and pushed it to a private GitHub repo:
 ```bash
 cd ~/.claude
 git init
-gh repo create chris2ao/claude-code-config --private --source=. --push
+gh repo create <your-username>/<your-config-repo> --private --source=. --push
 ```
 
 This backs up all my rules, learned skills, and configuration so I can replicate my environment on any machine.
@@ -445,8 +445,8 @@ By the end of 24 hours, I had four repositories:
 |------|-----------|------------------|
 | [`chris2ao/CJClaude_1`](https://github.com/chris2ao/CJClaude_1) | Public | Learning journal, hooks, changelog, session history |
 | [`chris2ao/cryptoflexllc`](https://github.com/chris2ao/cryptoflexllc) | Public | Website source code, BUILD-GUIDE.md |
-| `chris2ao/cryptoflex-ops` | Private | Deployment notes, infrastructure docs |
-| `chris2ao/claude-code-config` | Private | Rules, learned skills, COMPLETE-GUIDE.md |
+| *(private repo)* | Private | Deployment notes, infrastructure docs |
+| *(private repo)* | Private | Rules, learned skills, config backup |
 
 30 commits. 11 Claude Code sessions. One very long day.
 

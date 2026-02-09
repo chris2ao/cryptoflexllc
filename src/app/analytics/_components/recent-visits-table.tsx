@@ -5,14 +5,13 @@ import type { RecentVisit } from "@/lib/analytics-types";
 
 interface RecentVisitsTableProps {
   data: RecentVisit[];
-  secret: string;
 }
 
-export function RecentVisitsTable({ data, secret }: RecentVisitsTableProps) {
+export function RecentVisitsTable({ data }: RecentVisitsTableProps) {
   const osint = useIpOsintPanel();
 
   const handleIpClick = (ip: string) => {
-    osint.lookup(ip, secret);
+    osint.lookup(ip);
   };
 
   return (
@@ -84,7 +83,6 @@ export function RecentVisitsTable({ data, secret }: RecentVisitsTableProps) {
       </div>
 
       <IpOsintPanel
-        secret={secret}
         open={osint.open}
         onOpenChange={osint.setOpen}
         ip={osint.ip}

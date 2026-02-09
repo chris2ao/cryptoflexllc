@@ -186,7 +186,7 @@ All of this configuration lives in `~/.claude/`, which is outside any project re
 cd ~/.claude
 git init
 # .gitignore uses ignore-everything-then-whitelist pattern
-gh repo create chris2ao/claude-code-config --private --source=. --push
+gh repo create <your-username>/<your-config-repo> --private --source=. --push
 ```
 
 The `.gitignore` whitelists only the files worth tracking: `rules/`, `skills/learned/`, `.gitignore`, and `README.md`. Everything else (sessions, cache, settings with tokens) is excluded.

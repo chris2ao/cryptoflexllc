@@ -2,54 +2,26 @@
  * GET /api/analytics
  * -----------------------------------------------
  * Returns analytics data for the dashboard. Protected by
- * ANALYTICS_SECRET to prevent public access to visitor data.
- *
- * TECHNICAL NOTES (for blog post):
- * --------------------------------
- * QUERY DESIGN:
- *   We run multiple queries in parallel using Promise.all() to
- *   build the dashboard data. Each query is focused on one metric:
- *
- *   1. summary     — Total views, unique IPs, date range
- *   2. top_pages   — Most visited pages
- *   3. top_countries — Geographic breakdown
- *   4. browsers    — Browser usage stats
- *   5. devices     — Device type breakdown (Desktop/Mobile/Tablet)
- *   6. os_stats    — Operating system breakdown
- *   7. recent      — Last 50 individual visits (for the raw log view)
- *
- * WHY PARALLEL QUERIES?
- *   Each query is independent, so running them in parallel with
- *   Promise.all() is faster than running them sequentially.
- *   Neon's HTTP-based driver handles each query as a separate
- *   HTTP request, so there's no connection-sharing conflict.
- *
- * FILTERING:
- *   Supports optional ?days=N query parameter to filter visits
- *   to the last N days (default: 30).
+ * httpOnly cookie or Authorization header.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/analytics";
+import { verifyApiAuth } from "@/lib/analytics-auth";
 
 export async function GET(request: NextRequest) {
-  // ---- Auth check ----
-  const secret = request.nextUrl.searchParams.get("secret");
-  const expectedSecret = process.env.ANALYTICS_SECRET;
-
-  if (!expectedSecret || secret !== expectedSecret) {
-    return NextResponse.json(
-      { error: "Unauthorized. Pass ?secret=YOUR_ANALYTICS_SECRET" },
-      { status: 401 }
-    );
+  // ---- Auth check (cookie or Authorization header) ----
+  if (!verifyApiAuth(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const sql = getDb();
 
-    // Optional time filter: ?days=7, ?days=30, etc.
+    // Validate and clamp days parameter (1-365)
     const daysParam = request.nextUrl.searchParams.get("days");
-    const days = daysParam ? parseInt(daysParam, 10) : 30;
+    const parsedDays = daysParam ? parseInt(daysParam, 10) : 30;
+    const days = Math.max(1, Math.min(365, isNaN(parsedDays) ? 30 : parsedDays));
 
     // Run all analytics queries in parallel
     const [summary, topPages, topCountries, browsers, devices, osStats, recent, dailyViews, mapLocations] =
@@ -170,10 +142,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Analytics query error:", error);
     return NextResponse.json(
-      {
-        error: "Failed to fetch analytics",
-        details: error instanceof Error ? error.message : String(error),
-      },
+      { error: "Failed to fetch analytics" },
       { status: 500 }
     );
   }

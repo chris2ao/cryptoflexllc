@@ -53,8 +53,8 @@ artifacts, and push all changes to GitHub.
 |------|-----------|--------|---------|
 | CJClaude_1 | D:\...\CJClaude_1 | chris2ao/CJClaude_1 (public) | Learning journal |
 | cryptoflexllc | D:\...\cryptoflexllc | chris2ao/cryptoflexllc (public) | Website |
-| cryptoflex-ops | D:\...\cryptoflex-ops | chris2ao/cryptoflex-ops (private) | Ops docs |
-| claude-code-config | ~/.claude | chris2ao/claude-code-config (private) | Config |
+| (ops repo) | D:\...\(redacted) | (private) | Ops docs |
+| (config repo) | ~/.claude | (private) | Config |
 
 ## Execution Steps
 
@@ -336,8 +336,8 @@ That entry will never match again. It's dead weight. Meanwhile, a general `Bash(
 ```markdown
 For each repo with changes:
 - cryptoflexllc: If site changes were made, ensure build passes
-- cryptoflex-ops: If deployment or operational changes were documented
-- claude-code-config: If new skills were extracted or rules modified
+- (ops repo): If deployment or operational changes were documented
+- (config repo): If new skills were extracted or rules modified
 ```
 
 **What's happening:** This is conditional logic. Not every session touches every repo. The command checks which repos have changes (from Step 1) and only acts on those that need attention. For the website repo, it even verifies the build passes before committing - you don't want to push broken code just because it's end-of-session.
@@ -422,9 +422,9 @@ Present a summary table:
 | Repo | Action | Commit | Status |
 |------|--------|--------|--------|
 | CJClaude_1 | Updated CHANGELOG, README | abc1234 | Pushed |
-| claude-code-config | Added skill #11 | def5678 | Pushed |
+| (config repo) | Added skill #11 | def5678 | Pushed |
 | cryptoflexllc | No changes | - | Clean |
-| cryptoflex-ops | No changes | - | Clean |
+| (ops repo) | No changes | - | Clean |
 ```
 
 **What's happening:** A clean summary so you know exactly what happened. Short hash for each commit (clickable if you're in a terminal that supports it), clear status for each repo.
@@ -512,7 +512,7 @@ The key principles:
 
 Here's what happens when I type `/wrap-up` at the end of a session:
 
-1. Claude pulls all four repos in parallel, then runs `git status` on each. It reports: "All pulls successful. CJClaude_1 has modified CHANGELOG.md and settings.local.json. claude-code-config has 2 new files in skills/learned/. The other two repos are clean."
+1. Claude pulls all four repos in parallel, then runs `git status` on each. It reports: "All pulls successful. CJClaude_1 has modified CHANGELOG.md and settings.local.json. the config repo has 2 new files in skills/learned/. The other two repos are clean."
 
 2. It reviews the session and drafts a changelog entry. I see the entry before it's written and can adjust it.
 

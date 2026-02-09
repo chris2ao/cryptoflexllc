@@ -2,7 +2,7 @@
  * /analytics — Visitor Analytics Dashboard
  * -----------------------------------------------
  * Server-rendered dashboard with visualizations (charts, map) on top
- * and detailed data tables below. Protected by ANALYTICS_SECRET.
+ * and detailed data tables below. Protected by httpOnly cookie auth.
  *
  * DATA FLOW:
  *   Browser → Vercel Edge → Serverless Function → Neon Postgres
@@ -12,7 +12,10 @@
  */
 
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { getDb } from "@/lib/analytics";
+import { ANALYTICS_COOKIE_NAME, verifyAuthToken } from "@/lib/analytics-auth";
 import type {
   DailyViews,
   MapLocation,
@@ -42,33 +45,23 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 interface AnalyticsPageProps {
-  searchParams: Promise<{ secret?: string; days?: string }>;
+  searchParams: Promise<{ days?: string }>;
 }
 
 export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
   const params = await searchParams;
-  const secret = params.secret;
-  const expectedSecret = process.env.ANALYTICS_SECRET;
 
-  // ---- Auth gate ----
-  if (!expectedSecret || secret !== expectedSecret) {
-    return (
-      <section className="py-16 sm:py-20">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center">
-          <h1 className="text-3xl font-bold">Access Denied</h1>
-          <p className="mt-4 text-muted-foreground">
-            This page requires authentication. Append{" "}
-            <code className="rounded bg-muted px-2 py-1 text-sm">
-              ?secret=YOUR_ANALYTICS_SECRET
-            </code>{" "}
-            to the URL.
-          </p>
-        </div>
-      </section>
-    );
+  // ---- Auth gate (cookie-based) ----
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get(ANALYTICS_COOKIE_NAME)?.value;
+
+  if (!authToken || !verifyAuthToken(authToken)) {
+    redirect("/analytics/login");
   }
 
-  const days = params.days ? parseInt(params.days, 10) : 30;
+  // Validate and clamp days parameter (1-365)
+  const parsedDays = params.days ? parseInt(params.days, 10) : 30;
+  const days = Math.max(1, Math.min(365, isNaN(parsedDays) ? 30 : parsedDays));
 
   try {
     const sql = getDb();
@@ -139,7 +132,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         GROUP BY DATE(visited_at)
         ORDER BY date
       `,
-      // Map locations — aggregate by lat/lon
+      // Map locations
       sql`
         SELECT
           latitude,
@@ -191,7 +184,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
               {[7, 14, 30, 90].map((d) => (
                 <a
                   key={d}
-                  href={`/analytics?secret=${secret}&days=${d}`}
+                  href={`/analytics?days=${d}`}
                   className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
                     days === d
                       ? "bg-primary text-primary-foreground"
@@ -232,7 +225,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             />
           </div>
 
-          {/* ═══════ VISUALIZATIONS SECTION ═══════ */}
+          {/* VISUALIZATIONS SECTION */}
 
           {/* Page Views Area Chart (full width) */}
           <div className="mb-8">
@@ -244,7 +237,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             <VisitorMapDynamic data={typedMapLocations} />
           </div>
 
-          {/* Charts Grid — bar charts + donut charts */}
+          {/* Charts Grid */}
           <div className="grid lg:grid-cols-2 gap-8 mb-10">
             <TopPagesChart data={typedTopPages} />
             <CountriesChart data={typedCountries} />
@@ -253,7 +246,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             <OsChart data={typedOs} />
           </div>
 
-          {/* ═══════ TABLES SECTION ═══════ */}
+          {/* TABLES SECTION */}
 
           <div className="grid lg:grid-cols-2 gap-8 mb-10">
             <DataTable
@@ -300,26 +293,21 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             />
           </div>
 
-          {/* Recent Visits with clickable IPs → OSINT panel */}
-          <RecentVisitsTable data={typedRecent} secret={secret} />
+          {/* Recent Visits with clickable IPs */}
+          <RecentVisitsTable data={typedRecent} />
         </div>
       </section>
     );
   } catch (error) {
+    console.error("Analytics page error:", error);
     return (
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
           <h1 className="text-3xl font-bold">Analytics Error</h1>
           <p className="mt-4 text-muted-foreground">
-            Failed to load analytics data. Make sure your database is set up by
-            visiting{" "}
-            <code className="rounded bg-muted px-2 py-1 text-sm">
-              /api/analytics/setup?secret=YOUR_SECRET
-            </code>
+            Failed to load analytics data. Please check that the database is
+            configured correctly and try again.
           </p>
-          <pre className="mt-4 rounded-lg bg-muted p-4 text-sm overflow-x-auto">
-            {error instanceof Error ? error.message : String(error)}
-          </pre>
         </div>
       </section>
     );

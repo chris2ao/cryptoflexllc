@@ -1,28 +1,52 @@
 /**
- * GET /api/analytics/ip-intel?secret=X&ip=1.2.3.4
+ * GET /api/analytics/ip-intel?ip=1.2.3.4
  * -----------------------------------------------
- * On-demand IP intelligence lookup. Checks DB cache first (7-day TTL),
- * then queries free APIs: ip-api.com, RDAP, Nominatim.
+ * On-demand IP intelligence lookup. Protected by cookie/header auth.
+ * Checks DB cache first (7-day TTL), then queries free APIs:
+ * ip-api.com, RDAP, Nominatim.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/analytics";
+import { verifyApiAuth } from "@/lib/analytics-auth";
 import type { IpIntelData } from "@/lib/analytics-types";
 
-// Simple IP format validation — IPv4 or IPv6
+// IPv4 or IPv6 format validation
 const IP_REGEX = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$/;
 
-export async function GET(request: NextRequest) {
-  const secret = request.nextUrl.searchParams.get("secret");
-  const expectedSecret = process.env.ANALYTICS_SECRET;
+/**
+ * Reject private, loopback, and reserved IP ranges.
+ * Prevents SSRF by blocking lookups against internal addresses.
+ */
+function isPrivateIp(ip: string): boolean {
+  // IPv4 private/reserved ranges
+  if (/^127\./.test(ip)) return true;
+  if (/^10\./.test(ip)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return true;
+  if (/^192\.168\./.test(ip)) return true;
+  if (/^0\./.test(ip)) return true;
+  if (/^169\.254\./.test(ip)) return true;
+  // IPv6 loopback
+  if (ip === "::1" || ip === "0:0:0:0:0:0:0:1") return true;
+  // IPv6 link-local
+  if (/^fe80:/i.test(ip)) return true;
+  return false;
+}
 
-  if (!expectedSecret || secret !== expectedSecret) {
+export async function GET(request: NextRequest) {
+  // Auth check (cookie or Authorization header)
+  if (!verifyApiAuth(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const ip = request.nextUrl.searchParams.get("ip");
   if (!ip || !IP_REGEX.test(ip)) {
     return NextResponse.json({ error: "Invalid IP address" }, { status: 400 });
+  }
+
+  // Block private/loopback IPs to prevent SSRF
+  if (isPrivateIp(ip)) {
+    return NextResponse.json({ error: "Private IP addresses are not supported" }, { status: 400 });
   }
 
   try {
@@ -41,6 +65,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 1: ip-api.com — ISP, org, ASN, geo, proxy flags
+    // NOTE: ip-api.com free tier only supports HTTP, not HTTPS.
+    // The paid plan supports HTTPS. For a personal analytics dashboard
+    // this is acceptable; the data returned is public IP metadata.
     const ipApiData = await fetchIpApi(ip);
 
     // Step 2: RDAP — WHOIS registered org and address
@@ -52,7 +79,6 @@ export async function GET(request: NextRequest) {
         ? await fetchNominatim(ipApiData.lat, ipApiData.lon)
         : { address: "", county: "", state: "" };
 
-    // Build the property appraiser link (best effort)
     const result: IpIntelData = {
       ip_address: ip,
       isp: ipApiData.isp,
@@ -110,7 +136,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("IP intel lookup error:", error);
     return NextResponse.json(
-      { error: "Lookup failed", details: error instanceof Error ? error.message : String(error) },
+      { error: "Lookup failed" },
       { status: 500 }
     );
   }
@@ -142,7 +168,7 @@ async function fetchIpApi(ip: string): Promise<IpApiResult> {
   };
 
   try {
-    // ip-api.com free tier: 45 req/min, no key needed
+    // ip-api.com free tier: 45 req/min, HTTP only (HTTPS requires paid plan)
     const res = await fetch(
       `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,message,country,city,regionName,lat,lon,isp,org,as,mobile,proxy,hosting`,
       { signal: AbortSignal.timeout(5000) }
@@ -193,13 +219,11 @@ async function fetchRdap(ip: string): Promise<RdapResult> {
 
     const data = await res.json();
 
-    // Extract org name from entities
     let org = "";
     let address = "";
 
     if (data.entities && Array.isArray(data.entities)) {
       for (const entity of data.entities) {
-        // Look for the registrant or organization vcard
         if (entity.vcardArray && Array.isArray(entity.vcardArray)) {
           const vcard = entity.vcardArray[1] || [];
           for (const entry of vcard) {
@@ -207,7 +231,6 @@ async function fetchRdap(ip: string): Promise<RdapResult> {
               org = entry[3] || "";
             }
             if (entry[0] === "adr" && !address) {
-              // vCard adr: [type, params, type, [pobox, ext, street, city, state, zip, country]]
               const parts = Array.isArray(entry[3]) ? entry[3] : [];
               address = parts
                 .filter((p: string) => typeof p === "string" && p.trim())
