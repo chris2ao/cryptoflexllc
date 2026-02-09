@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const days = daysParam ? parseInt(daysParam, 10) : 30;
 
     // Run all analytics queries in parallel
-    const [summary, topPages, topCountries, browsers, devices, osStats, recent] =
+    const [summary, topPages, topCountries, browsers, devices, osStats, recent, dailyViews, mapLocations] =
       await Promise.all([
         // 1. Summary stats
         sql`
@@ -122,6 +122,37 @@ export async function GET(request: NextRequest) {
           ORDER BY visited_at DESC
           LIMIT 50
         `,
+
+        // 8. Daily views (for area chart)
+        sql`
+          SELECT
+            DATE(visited_at)::text AS date,
+            COUNT(*)::int AS views,
+            COUNT(DISTINCT ip_address)::int AS unique_visitors
+          FROM page_views
+          WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          GROUP BY DATE(visited_at)
+          ORDER BY date
+        `,
+
+        // 9. Map locations (for Leaflet map)
+        sql`
+          SELECT
+            latitude,
+            longitude,
+            COUNT(*)::int AS views,
+            MAX(city) AS city,
+            MAX(country) AS country
+          FROM page_views
+          WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+            AND latitude IS NOT NULL
+            AND latitude != ''
+            AND longitude IS NOT NULL
+            AND longitude != ''
+          GROUP BY latitude, longitude
+          ORDER BY views DESC
+          LIMIT 200
+        `,
       ]);
 
     return NextResponse.json({
@@ -133,6 +164,8 @@ export async function GET(request: NextRequest) {
       devices,
       os_stats: osStats,
       recent,
+      daily_views: dailyViews,
+      map_locations: mapLocations,
     });
   } catch (error) {
     console.error("Analytics query error:", error);

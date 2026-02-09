@@ -74,10 +74,35 @@ export async function GET(request: NextRequest) {
         ON page_views (page_path)
     `;
 
+    // IP intelligence cache table — stores OSINT lookups with 7-day TTL
+    await sql`
+      CREATE TABLE IF NOT EXISTS ip_intel (
+        ip_address       VARCHAR(45) PRIMARY KEY,
+        isp              TEXT DEFAULT '',
+        org              TEXT DEFAULT '',
+        as_number        TEXT DEFAULT '',
+        as_name          TEXT DEFAULT '',
+        is_proxy         BOOLEAN DEFAULT FALSE,
+        is_hosting       BOOLEAN DEFAULT FALSE,
+        is_mobile        BOOLEAN DEFAULT FALSE,
+        country          VARCHAR(100) DEFAULT '',
+        city             VARCHAR(100) DEFAULT '',
+        region           VARCHAR(100) DEFAULT '',
+        whois_org        TEXT DEFAULT '',
+        whois_address    TEXT DEFAULT '',
+        reverse_address  TEXT DEFAULT '',
+        reverse_county   VARCHAR(100) DEFAULT '',
+        reverse_state    VARCHAR(10) DEFAULT '',
+        latitude         VARCHAR(20) DEFAULT '',
+        longitude        VARCHAR(20) DEFAULT '',
+        cached_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+
     return NextResponse.json({
       success: true,
       message:
-        "page_views table and indexes created successfully. " +
+        "page_views and ip_intel tables created successfully. " +
         "Your analytics tracking is now ready to go!",
     });
   } catch (error) {
