@@ -267,7 +267,7 @@ export default function AboutPage() {
           {/* Sidebar */}
           <div className="space-y-8">
             <Image
-              src="/headshot.jpeg"
+              src="/headshot.png"
               alt="Chris Johnson"
               width={400}
               height={400}
