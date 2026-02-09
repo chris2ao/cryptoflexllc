@@ -1,9 +1,9 @@
 ---
-title: "Security Hardening a Custom Analytics Dashboard"
+title: "I Audited My Own Code. 19 Security Findings Later..."
 date: "2026-02-09T18:00:00"
 author: "Chris Johnson"
 readingTime: "14 min read"
-description: "A security professional audits his own code. 19 findings later, here's the journey from query-string secrets to HMAC cookie auth, SSRF prevention, and the humbling reminder that building fast and building secure are different skills."
+description: "A security professional audits his own code — blog posts leaking private repo names, query-string secrets in browser history, SSRF vectors, and error messages handing attackers the database schema. 19 findings and the journey to fix every one."
 tags: ["Claude Code", "Security", "Next.js", "Analytics", "OWASP"]
 ---
 
@@ -36,14 +36,12 @@ From a threat actor's perspective, published content is gold. Blog posts, docume
 
 Here's what I found in my own published content:
 
-| Disclosed Information | Found In | Risk |
-|----------------------|----------|------|
-| Private repository names | Blog post code examples | MEDIUM |
-| GitHub username patterns | Public repo links | LOW |
-| Internal file paths (Windows user directory structure) | Error message examples | LOW |
-| Environment variable names | Configuration walkthroughs | LOW |
-| Database provider (Neon Serverless Postgres) | Architecture post | LOW |
-| Analytics endpoint paths | Analytics post | LOW |
+- **Private repository names** — Found in blog post code examples. *Risk: MEDIUM.* An attacker now knows those repos exist and can monitor for accidental public exposure.
+- **GitHub username patterns** — Found in public repo links. *Risk: LOW.* Enables targeted social engineering and credential stuffing.
+- **Internal file paths** (Windows user directory structure) — Found in error message examples. *Risk: LOW.* Reveals OS, username conventions, and project layout.
+- **Environment variable names** — Found in configuration walkthroughs. *Risk: LOW.* Tells attackers exactly which secrets to look for if they gain partial access.
+- **Database provider** (Neon Serverless Postgres) — Found in architecture post. *Risk: LOW.* Narrows the attack surface to provider-specific vulnerabilities.
+- **Analytics endpoint paths** — Found in analytics post. *Risk: LOW.* Gives attackers a map of API routes to probe.
 
 Most of these are LOW risk individually. Knowing I use Neon Postgres doesn't give an attacker access. Seeing environment variable names doesn't reveal their values.
 
