@@ -379,6 +379,8 @@ All nine queries hit the database concurrently through Neon's HTTP driver. The d
 
 This is the security-focused feature. In the Recent Visits table, every IP address is clickable. Clicking one opens a slide-out panel that performs a three-step intelligence lookup:
 
+![IP OSINT panel showing a DigitalOcean IP flagged as VPN/Proxy and Hosting/DC, with network, WHOIS, and location data](/blog/analytics-osint-panel.png)
+
 ### Step 1: ip-api.com — Network Intelligence
 
 The first lookup hits [ip-api.com](http://ip-api.com) (free, 45 requests/minute, no API key). This returns:
