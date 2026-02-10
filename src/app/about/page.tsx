@@ -44,8 +44,8 @@ export default function AboutPage() {
         <Separator className="my-10" />
 
         <div className="grid gap-12 md:grid-cols-3">
-          {/* Main content */}
-          <div className="md:col-span-2 space-y-6 text-muted-foreground leading-relaxed">
+          {/* Main content - shows second on mobile, first on desktop */}
+          <div className="order-2 md:order-1 md:col-span-2 space-y-6 text-muted-foreground leading-relaxed">
             <p>
               I&apos;m Chris Johnson, an engineer who uses this blog as a
               playground to explore technology and share what I learn as I build.
@@ -264,10 +264,10 @@ export default function AboutPage() {
             </p>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-8">
+          {/* Sidebar - shows first on mobile, second on desktop */}
+          <div className="order-1 md:order-2 space-y-8">
             <Image
-              src="/headshot.png"
+              src="/CJOutside.jpeg"
               alt="Chris Johnson"
               width={400}
               height={400}
