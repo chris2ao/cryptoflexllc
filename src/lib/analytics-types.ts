@@ -55,6 +55,105 @@ export interface RecentVisit {
   region: string;
 }
 
+// ---- Vercel API types ----
+
+/** Firewall rule from Vercel WAF config */
+export interface VercelFirewallRule {
+  id: string;
+  name: string;
+  active: boolean;
+  conditionGroup: Array<{
+    conditions: Array<{
+      type: string;
+      op: string;
+      neg?: boolean;
+      value: string;
+    }>;
+  }>;
+  action: {
+    type: string; // "deny" | "log" | "challenge" | "bypass" | "rate_limit"
+  };
+}
+
+/** IP rule from Vercel WAF config */
+export interface VercelFirewallIpRule {
+  id: string;
+  ip: string;
+  hostname?: string;
+  action: string;
+  notes?: string;
+}
+
+/** Managed ruleset entry (e.g. OWASP categories) */
+export interface VercelManagedRuleAction {
+  action: string;
+  active: boolean;
+}
+
+/** GET /v1/security/firewall/config/active response */
+export interface VercelFirewallConfig {
+  ownerId: string;
+  projectKey: string;
+  id: string;
+  version: number;
+  firewallEnabled: boolean;
+  crs?: Record<string, VercelManagedRuleAction>;
+  rules?: VercelFirewallRule[];
+  ips?: VercelFirewallIpRule[];
+  managedRules?: Record<string, unknown>;
+}
+
+/** Anomaly alert from attack status */
+export interface VercelAnomalyAlert {
+  zscore?: number;
+  requestCount?: number;
+  stddev?: number;
+}
+
+/** DDoS alert from attack status */
+export interface VercelDdosAlert {
+  timestamp?: number;
+  totalRequests?: number;
+}
+
+/** A single attack anomaly entry */
+export interface VercelAnomaly {
+  projectId: string;
+  ownerId: string;
+  startTime: string;
+  endTime: string;
+  atMinute: string;
+  state: string;
+  affectedHostMap?: Record<
+    string,
+    {
+      anomalyAlerts?: VercelAnomalyAlert[];
+      ddosAlerts?: VercelDdosAlert[];
+    }
+  >;
+}
+
+/** GET /v1/security/firewall/attack-status response */
+export interface VercelAttackStatus {
+  anomalies: VercelAnomaly[];
+}
+
+/** A single firewall event/action */
+export interface VercelFirewallAction {
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+  action_type: string;
+  host: string;
+  public_ip: string;
+  count: number;
+}
+
+/** GET /v1/security/firewall/events response */
+export interface VercelFirewallEvents {
+  actions: VercelFirewallAction[];
+}
+
 export interface IpIntelData {
   ip_address: string;
   isp: string;

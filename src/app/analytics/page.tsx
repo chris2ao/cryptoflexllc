@@ -25,7 +25,16 @@ import type {
   DeviceRow,
   OsRow,
   RecentVisit,
+  VercelFirewallConfig,
+  VercelAttackStatus,
+  VercelFirewallEvents,
 } from "@/lib/analytics-types";
+import {
+  isVercelApiConfigured,
+  fetchFirewallConfig,
+  fetchAttackStatus,
+  fetchFirewallEvents,
+} from "@/lib/vercel-api";
 import { StatCard } from "./_components/stat-card";
 import { DataTable } from "./_components/data-table";
 import { PageViewsChart } from "./_components/page-views-chart";
@@ -36,6 +45,9 @@ import { DeviceChart } from "./_components/device-chart";
 import { OsChart } from "./_components/os-chart";
 import { VisitorMapDynamic } from "./_components/visitor-map-dynamic";
 import { RecentVisitsTable } from "./_components/recent-visits-table";
+import { VercelFirewallCard } from "./_components/vercel-firewall-card";
+import { VercelAnalyticsCard } from "./_components/vercel-analytics-card";
+import { VercelSpeedInsightsCard } from "./_components/vercel-speed-insights-card";
 
 export const metadata: Metadata = {
   title: "Analytics",
@@ -158,6 +170,31 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       first_visit: null,
       last_visit: null,
     };
+
+    // ---- Vercel API data (firewall, analytics status, speed insights) ----
+    let vercelFirewallConfig: VercelFirewallConfig | null = null;
+    let vercelAttackStatus: VercelAttackStatus | null = null;
+    let vercelFirewallEvents: VercelFirewallEvents | null = null;
+
+    if (isVercelApiConfigured()) {
+      const now = Date.now();
+      const sinceTs = now - days * 24 * 60 * 60 * 1000;
+
+      const [fwConfig, atkStatus, fwEvents] = await Promise.allSettled([
+        fetchFirewallConfig(),
+        fetchAttackStatus(days),
+        fetchFirewallEvents(sinceTs, now),
+      ]);
+
+      if (fwConfig.status === "fulfilled") vercelFirewallConfig = fwConfig.value;
+      else console.error("Vercel firewall config error:", fwConfig.reason);
+
+      if (atkStatus.status === "fulfilled") vercelAttackStatus = atkStatus.value;
+      else console.error("Vercel attack status error:", atkStatus.reason);
+
+      if (fwEvents.status === "fulfilled") vercelFirewallEvents = fwEvents.value;
+      else console.error("Vercel firewall events error:", fwEvents.reason);
+    }
 
     // Cast query results to typed arrays
     const typedDailyViews = dailyViews as unknown as DailyViews[];
@@ -295,6 +332,41 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
 
           {/* Recent Visits with clickable IPs */}
           <RecentVisitsTable data={typedRecent} />
+
+          {/* ── VERCEL PLATFORM SECTION ── */}
+          <div className="mt-14 mb-2">
+            <h2 className="text-2xl font-bold">Vercel Platform</h2>
+            <p className="mt-1 text-muted-foreground text-sm">
+              Integration status and data from Vercel&apos;s platform services
+            </p>
+          </div>
+
+          {/* Vercel Analytics + Speed Insights cards */}
+          <div className="grid lg:grid-cols-2 gap-8 mb-8">
+            <VercelAnalyticsCard />
+            <VercelSpeedInsightsCard />
+          </div>
+
+          {/* Vercel Firewall (full-width, data-rich) */}
+          {isVercelApiConfigured() ? (
+            <div className="mb-10">
+              <VercelFirewallCard
+                config={vercelFirewallConfig}
+                attackStatus={vercelAttackStatus}
+                events={vercelFirewallEvents}
+              />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-6 mb-10">
+              <h2 className="text-lg font-semibold mb-2">Vercel Firewall</h2>
+              <p className="text-sm text-muted-foreground">
+                Set <code className="text-xs bg-muted px-1.5 py-0.5 rounded">VERCEL_API_TOKEN</code> and{" "}
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">VERCEL_PROJECT_ID</code> environment
+                variables to display live firewall configuration, attack status, and event data from the
+                Vercel API.
+              </p>
+            </div>
+          )}
         </div>
       </section>
     );
