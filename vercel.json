@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rules": [
+  "routes": [
     {
-      "route": "/api/(.*)",
+      "src": "/api/(.*)",
       "has": [
         {
           "type": "header",
@@ -14,19 +14,19 @@
       }
     },
     {
-      "route": "/(\\.(env|git|svn|htaccess|htpasswd|DS_Store).*)",
+      "src": "/(\\.(env|git|svn|htaccess|htpasswd|DS_Store).*)",
       "mitigate": {
         "action": "deny"
       }
     },
     {
-      "route": "/(wp-admin|wp-login\\.php|wp-content|xmlrpc\\.php|wp-includes)(.*)",
+      "src": "/(wp-admin|wp-login\\.php|wp-content|xmlrpc\\.php|wp-includes)(.*)",
       "mitigate": {
         "action": "deny"
       }
     },
     {
-      "route": "/(phpmyadmin|pma|adminer|mysqladmin)(.*)",
+      "src": "/(phpmyadmin|pma|adminer|mysqladmin)(.*)",
       "mitigate": {
         "action": "deny"
       }
