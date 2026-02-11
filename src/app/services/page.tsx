@@ -6,7 +6,16 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 export const metadata: Metadata = {
   title: "Services",
   description:
-    "IT consulting services available through CryptoFlex LLC — security, infrastructure, and strategy.",
+    "IT consulting services from CryptoFlex LLC — cybersecurity assessments, infrastructure architecture, cloud strategy, and security engineering.",
+  alternates: {
+    canonical: "https://cryptoflexllc.com/services",
+  },
+  openGraph: {
+    title: "Consulting Services",
+    description:
+      "Cybersecurity assessments, infrastructure architecture, cloud strategy, and security engineering from CryptoFlex LLC.",
+    url: "https://cryptoflexllc.com/services",
+  },
 };
 
 const services = [
