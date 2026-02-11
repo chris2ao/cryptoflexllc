@@ -28,6 +28,7 @@ import type {
   VercelFirewallConfig,
   VercelAttackStatus,
   VercelFirewallEvents,
+  WebVitalsSummary,
 } from "@/lib/analytics-types";
 import {
   isVercelApiConfigured,
@@ -88,6 +89,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       recent,
       dailyViews,
       mapLocations,
+      webVitalsRaw,
     ] = await Promise.all([
       sql`
         SELECT
@@ -162,6 +164,22 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         ORDER BY views DESC
         LIMIT 200
       `,
+      // Web Vitals aggregated metrics (p50, p75, p95, rating counts)
+      sql`
+        SELECT
+          metric_name,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY metric_value) AS p50,
+          PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY metric_value) AS p75,
+          PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY metric_value) AS p95,
+          AVG(metric_value) AS avg,
+          COUNT(*)::int AS total_samples,
+          COUNT(*) FILTER (WHERE rating = 'good')::int AS good_count,
+          COUNT(*) FILTER (WHERE rating = 'needs-improvement')::int AS needs_improvement_count,
+          COUNT(*) FILTER (WHERE rating = 'poor')::int AS poor_count
+        FROM web_vitals
+        WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY metric_name
+      `.catch(() => []),
     ]);
 
     const stats = summary[0] || {
@@ -205,6 +223,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
     const typedDevices = devices as unknown as DeviceRow[];
     const typedOs = osStats as unknown as OsRow[];
     const typedRecent = recent as unknown as RecentVisit[];
+    const typedWebVitals = webVitalsRaw as unknown as WebVitalsSummary[];
 
     return (
       <section className="py-16 sm:py-20">
@@ -343,8 +362,13 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
 
           {/* Vercel Analytics + Speed Insights cards */}
           <div className="grid lg:grid-cols-2 gap-8 mb-8">
-            <VercelAnalyticsCard />
-            <VercelSpeedInsightsCard />
+            <VercelAnalyticsCard
+              totalViews={stats.total_views || 0}
+              uniqueVisitors={stats.unique_visitors || 0}
+              topPage={typedTopPages[0]?.page_path || null}
+              topCountry={typedCountries[0]?.country || null}
+            />
+            <VercelSpeedInsightsCard data={typedWebVitals} />
           </div>
 
           {/* Vercel Firewall (full-width, data-rich) */}

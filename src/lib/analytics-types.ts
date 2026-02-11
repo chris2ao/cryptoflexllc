@@ -154,6 +154,21 @@ export interface VercelFirewallEvents {
   actions: VercelFirewallAction[];
 }
 
+// ---- Web Vitals types ----
+
+/** Aggregated Web Vitals metric for the dashboard */
+export interface WebVitalsSummary {
+  metric_name: string;
+  p50: number;
+  p75: number;
+  p95: number;
+  avg: number;
+  total_samples: number;
+  good_count: number;
+  needs_improvement_count: number;
+  poor_count: number;
+}
+
 export interface IpIntelData {
   ip_address: string;
   isp: string;
