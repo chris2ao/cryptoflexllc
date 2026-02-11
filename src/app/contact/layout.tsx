@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Get in touch with Chris Johnson at CryptoFlex LLC.",
+  description: "Connect with Chris Johnson on LinkedIn or via email.",
 };
 
 export default function ContactLayout({

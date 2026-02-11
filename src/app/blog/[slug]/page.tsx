@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
@@ -45,9 +46,11 @@ export default async function BlogPostPage({ params }: Props) {
         <header className="mb-10">
           <div className="flex flex-wrap gap-2 mb-4">
             {post.tags.map((tag) => (
-              <Badge key={tag} variant="secondary">
-                {tag}
-              </Badge>
+              <Link key={tag} href={`/blog?tag=${encodeURIComponent(tag)}`}>
+                <Badge variant="secondary" className="hover:bg-primary/20 transition-colors">
+                  {tag}
+                </Badge>
+              </Link>
             ))}
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { BlogCard } from "@/components/blog-card";
-import { getAllPosts } from "@/lib/blog";
+import { Suspense } from "react";
+import { BlogList } from "@/components/blog-list";
+import { getAllPosts, getAllTags } from "@/lib/blog";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -9,6 +10,10 @@ export const metadata: Metadata = {
 
 export default function BlogPage() {
   const posts = getAllPosts();
+  const allTags = getAllTags();
+
+  // Strip raw MDX content before passing to client component
+  const summaries = posts.map(({ content: _, ...rest }) => rest);
 
   return (
     <section className="py-16 sm:py-20">
@@ -26,11 +31,9 @@ export default function BlogPage() {
             No posts yet. Check back soon!
           </p>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
-              <BlogCard key={post.slug} post={post} />
-            ))}
-          </div>
+          <Suspense>
+            <BlogList posts={summaries} allTags={allTags} />
+          </Suspense>
         )}
       </div>
     </section>
