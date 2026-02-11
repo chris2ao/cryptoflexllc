@@ -11,9 +11,9 @@ export function Footer() {
             <Image
               src="/CFLogo.png"
               alt="CryptoFlex LLC"
-              width={140}
-              height={35}
-              className="h-8 w-auto"
+              width={200}
+              height={60}
+              className="h-12 w-auto"
             />
             <p className="mt-2 text-sm text-muted-foreground">
               Tech blog and IT consulting based in Florida.
