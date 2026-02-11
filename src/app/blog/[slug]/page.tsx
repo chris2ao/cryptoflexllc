@@ -22,6 +22,9 @@ import {
   DeploymentFlowDiagram,
 } from "@/components/mdx";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
+import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
+
+const BASE_URL = "https://cryptoflexllc.com";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -37,16 +40,39 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = getPostBySlug(slug);
   if (!post) return {};
 
+  const postUrl = `${BASE_URL}/blog/${slug}`;
+
   return {
     title: post.title,
     description: post.description,
     authors: post.author ? [{ name: post.author }] : undefined,
+    keywords: post.tags,
+    alternates: {
+      canonical: postUrl,
+    },
     openGraph: {
       title: post.title,
       description: post.description,
+      url: postUrl,
       type: "article",
       publishedTime: post.date,
+      modifiedTime: post.date,
       authors: post.author ? [post.author] : undefined,
+      tags: post.tags,
+      images: [
+        {
+          url: "/CFLogo.png",
+          width: 512,
+          height: 512,
+          alt: post.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary",
+      title: post.title,
+      description: post.description,
+      images: ["/CFLogo.png"],
     },
   };
 }
@@ -56,8 +82,25 @@ export default async function BlogPostPage({ params }: Props) {
   const post = getPostBySlug(slug);
   if (!post) notFound();
 
+  const postUrl = `${BASE_URL}/blog/${slug}`;
+
   return (
     <article className="py-16 sm:py-20">
+      <ArticleJsonLd
+        title={post.title}
+        description={post.description}
+        url={postUrl}
+        datePublished={post.date}
+        author={post.author}
+        tags={post.tags}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", url: BASE_URL },
+          { name: "Blog", url: `${BASE_URL}/blog` },
+          { name: post.title, url: postUrl },
+        ]}
+      />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         {/* Post header */}
         <header className="mb-10">

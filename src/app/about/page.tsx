@@ -6,7 +6,17 @@ import { Separator } from "@/components/ui/separator";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Chris Johnson, combat veteran, security engineer, and defender. Welcome to the playground.",
+    "Chris Johnson — combat veteran turned cybersecurity professional. Security engineering, SOC operations, cloud architecture, and AI-assisted development.",
+  alternates: {
+    canonical: "https://cryptoflexllc.com/about",
+  },
+  openGraph: {
+    title: "About Chris Johnson",
+    description:
+      "Combat veteran turned cybersecurity professional. Security engineering, SOC operations, and AI-assisted development.",
+    url: "https://cryptoflexllc.com/about",
+    type: "profile",
+  },
 };
 
 const skills = [

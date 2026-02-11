@@ -3,7 +3,17 @@ import { ProjectCard } from "@/components/project-card";
 
 export const metadata: Metadata = {
   title: "Portfolio",
-  description: "Projects and past work by Chris Johnson.",
+  description:
+    "Projects and engineering work by Chris Johnson — cryptocurrency mining infrastructure, custom analytics dashboards, AI-assisted web development, and security tooling.",
+  alternates: {
+    canonical: "https://cryptoflexllc.com/portfolio",
+  },
+  openGraph: {
+    title: "Portfolio — Chris Johnson",
+    description:
+      "Engineering projects spanning infrastructure, security, and AI-assisted development.",
+    url: "https://cryptoflexllc.com/portfolio",
+  },
 };
 
 const projects = [
