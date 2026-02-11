@@ -28,13 +28,13 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center overflow-hidden h-12 -my-2">
+        <Link href="/" className="flex items-center">
           <Image
             src="/CFLogo.png"
             alt="CryptoFlex LLC"
-            width={400}
-            height={100}
-            className="h-24 w-auto max-w-none"
+            width={200}
+            height={60}
+            className="h-10 w-auto"
             priority
           />
         </Link>
@@ -76,13 +76,13 @@ export function Nav() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-64">
-            <SheetTitle className="mb-4 overflow-hidden h-10">
+            <SheetTitle className="mb-4">
               <Image
                 src="/CFLogo.png"
                 alt="CryptoFlex LLC"
-                width={320}
-                height={80}
-                className="h-20 w-auto max-w-none"
+                width={180}
+                height={54}
+                className="h-9 w-auto"
               />
             </SheetTitle>
             <nav className="flex flex-col gap-2">
