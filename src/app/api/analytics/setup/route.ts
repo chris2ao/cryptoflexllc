@@ -86,6 +86,29 @@ export async function GET(request: NextRequest) {
       )
     `;
 
+    // Web Vitals table for Speed Insights data
+    await sql`
+      CREATE TABLE IF NOT EXISTS web_vitals (
+        id            SERIAL PRIMARY KEY,
+        recorded_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        metric_name   VARCHAR(10) NOT NULL,
+        metric_value  DOUBLE PRECISION NOT NULL,
+        rating        VARCHAR(20) NOT NULL DEFAULT 'unknown',
+        page_path     TEXT NOT NULL DEFAULT '/',
+        navigation_type VARCHAR(30) NOT NULL DEFAULT 'navigate'
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_web_vitals_recorded_at
+        ON web_vitals (recorded_at)
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_web_vitals_metric_name
+        ON web_vitals (metric_name)
+    `;
+
     return NextResponse.json({
       success: true,
       message: "Tables created successfully. Your analytics tracking is now ready.",

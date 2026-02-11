@@ -1,25 +1,65 @@
-export function VercelAnalyticsCard() {
+export function VercelAnalyticsCard({
+  totalViews,
+  uniqueVisitors,
+  topPage,
+  topCountry,
+}: {
+  totalViews: number;
+  uniqueVisitors: number;
+  topPage: string | null;
+  topCountry: string | null;
+}) {
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Vercel Web Analytics</h2>
+        <h2 className="text-lg font-semibold">Web Analytics</h2>
         <span className="inline-block px-2.5 py-1 text-xs rounded-full font-medium bg-green-500/20 text-green-400">
           Active
         </span>
       </div>
-      <p className="text-sm text-muted-foreground mb-4">
-        Vercel Web Analytics is collecting page view and visitor data via the{" "}
-        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-          @vercel/analytics
-        </code>{" "}
-        SDK integrated in the root layout. This data includes page views,
-        unique visitors, top referrers, and demographic breakdowns.
-      </p>
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="rounded-md border border-border bg-muted/30 p-3">
+          <span className="block text-2xl font-bold">
+            {totalViews.toLocaleString()}
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            Page Views
+          </span>
+        </div>
+        <div className="rounded-md border border-border bg-muted/30 p-3">
+          <span className="block text-2xl font-bold">
+            {uniqueVisitors.toLocaleString()}
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            Unique Visitors
+          </span>
+        </div>
+        <div className="rounded-md border border-border bg-muted/30 p-3">
+          <span className="block text-sm font-semibold truncate">
+            {topPage || "—"}
+          </span>
+          <span className="block text-xs text-muted-foreground">Top Page</span>
+        </div>
+        <div className="rounded-md border border-border bg-muted/30 p-3">
+          <span className="block text-sm font-semibold truncate">
+            {topCountry || "—"}
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            Top Country
+          </span>
+        </div>
+      </div>
+
       <div className="space-y-3">
         <div className="flex items-center gap-3 text-sm">
           <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
           <span className="text-muted-foreground">
-            Client-side tracking active on all pages
+            Dual tracking: custom + Vercel{" "}
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">
+              @vercel/analytics
+            </code>
           </span>
         </div>
         <div className="flex items-center gap-3 text-sm">
@@ -28,14 +68,9 @@ export function VercelAnalyticsCard() {
             Privacy-friendly, cookie-free collection
           </span>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />
-          <span className="text-muted-foreground">
-            Detailed data viewable in Vercel Dashboard
-          </span>
-        </div>
       </div>
-      <div className="mt-5">
+
+      <div className="mt-5 pt-4 border-t border-border">
         <a
           href="https://vercel.com/dashboard/analytics"
           target="_blank"
@@ -57,9 +92,6 @@ export function VercelAnalyticsCard() {
             />
           </svg>
         </a>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Vercel does not currently expose Web Analytics data via REST API.
-        </p>
       </div>
     </div>
   );
