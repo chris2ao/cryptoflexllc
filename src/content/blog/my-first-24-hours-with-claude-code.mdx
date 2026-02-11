@@ -32,13 +32,19 @@ ollama serve
 
 Then I configured Claude Code to use it as a backend. The setup worked - technically. Qwen would respond to prompts, generate code, even attempt multi-file edits. But two problems killed it:
 
-**Problem 1: Speed.** Every response took 30-60 seconds. When you're iterating on code and asking follow-up questions, that latency is brutal. You lose your train of thought. You start second-guessing whether you should even ask for help or just write it yourself.
+<Warning title="Problem 1: Speed">
+Every response took 30-60 seconds. When you're iterating on code and asking follow-up questions, that latency is brutal. You lose your train of thought. You start second-guessing whether you should even ask for help or just write it yourself.
+</Warning>
 
-**Problem 2: Code quality.** The Qwen 3.4B model would generate code that *looked* right but had subtle bugs - wrong API signatures, deprecated patterns, logic errors that only surfaced at runtime. I'd spend 20 minutes debugging code that the AI wrote, which is worse than writing it from scratch.
+<Warning title="Problem 2: Code Quality">
+The Qwen 3.4B model would generate code that *looked* right but had subtle bugs - wrong API signatures, deprecated patterns, logic errors that only surfaced at runtime. I'd spend 20 minutes debugging code that the AI wrote, which is worse than writing it from scratch.
+</Warning>
 
 I actually built some things during this phase - early scaffolding for a project, some utility functions, configuration files. But I didn't realize how many problems were lurking in that code until later. More on that in a bit.
 
-**The takeaway:** Local models are great for privacy-sensitive work or if you have serious GPU hardware (think RTX 4090 or better). For actual development on a normal workstation? The cloud models are in a different league right now. Maybe that changes in a year. Today, it's not close.
+<Tip title="The Takeaway">
+Local models are great for privacy-sensitive work or if you have serious GPU hardware (think RTX 4090 or better). For actual development on a normal workstation? The cloud models are in a different league right now. Maybe that changes in a year. Today, it's not close.
+</Tip>
 
 ## Hour 4: Setting Up Claude Code (For Real This Time)
 
@@ -88,7 +94,9 @@ name = "claude-auto-save"
 version = "0.1.0"
 ```
 
+<Stop title="Wrong Architecture">
 This was completely wrong. A standalone binary **cannot** intercept Claude Code's internal conversation data. It's not an open pipe you can tap into - it's an internal process.
+</Stop>
 
 After some frustration, I discovered the correct approach: **Claude Code hooks**. These are shell commands that run automatically in response to session events. You configure them in `.claude/settings.local.json`:
 
@@ -130,10 +138,12 @@ The hook types are:
 
 ### The PowerShell Stdin Gotcha
 
+<Warning title="Silent Failure">
 This one cost me an hour. Hooks receive JSON data on stdin - session ID, transcript path, tool name, etc. In PowerShell, the natural way to read stdin is `$input`. But when PowerShell is invoked via `-File`, **`$input` doesn't work**. You have to:
 
 1. Use `[Console]::In.ReadToEnd()` instead of `$input`
 2. Invoke the script via `-Command ". 'script.ps1'"` (dot-sourcing) instead of `-File`
+</Warning>
 
 ```powershell
 # This DOESN'T work:
@@ -205,9 +215,13 @@ Then I copied over the rules - 8 markdown files that go in `~/.claude/rules/` an
 
 ### The Frontmatter Bug
 
-Here's where it got interesting. After installing the plugin, I noticed that 18 of the 31 slash commands weren't showing up. No error messages. They just... didn't appear in autocomplete.
+<Warning title="18 Missing Commands">
+After installing the plugin, I noticed that 18 of the 31 slash commands weren't showing up. No error messages. They just... didn't appear in autocomplete.
 
-After investigation, I found the root cause: **Claude Code requires YAML frontmatter** at the top of command files to register them. The format is:
+After investigation, I found the root cause: **Claude Code requires YAML frontmatter** at the top of command files to register them. Eighteen of the plugin's command files were missing it. This is a bug in everything-claude-code v1.2.0.
+</Warning>
+
+The format is:
 
 ```markdown
 ---
@@ -217,11 +231,11 @@ description: "Run comprehensive code review"
 ...
 ```
 
-Without that `---` block, the file is silently ignored. Eighteen of the plugin's command files were missing it. This is a bug in everything-claude-code v1.2.0.
+Without that `---` block, the file is silently ignored. I fixed all 18 files by adding frontmatter with descriptions sourced from the `.opencode/commands/` equivalents (which had them). After that, all 31 commands appeared.
 
-I fixed all 18 files by adding frontmatter with descriptions sourced from the `.opencode/commands/` equivalents (which had them). After that, all 31 commands appeared.
-
-**Lesson learned:** When something silently doesn't work in Claude Code, check for missing frontmatter. It's the most common cause of "I configured this but nothing happened." (Full details on the plugin setup and the fix in [Configuring Claude Code](/blog/configuring-claude-code).)
+<Tip title="Lesson Learned">
+When something silently doesn't work in Claude Code, check for missing frontmatter. It's the most common cause of "I configured this but nothing happened." (Full details on the plugin setup and the fix in [Configuring Claude Code](/blog/configuring-claude-code).)
+</Tip>
 
 ### Trimming the Rules
 
@@ -248,32 +262,36 @@ claude mcp add context7 @upstash/context7-mcp --scope user
 - **memory** - persistent knowledge graph that survives across sessions
 - **context7** - live documentation lookup for any library or framework
 
+<Stop title="Wrong Config File">
 But here's the gotcha that cost me 30 minutes: **`~/.claude/mcp-servers.json` is for Claude Desktop, not Claude Code.** I configured all my servers in the wrong file. Claude Code stores MCP servers in `~/.claude.json` under `"mcpServers"`. The `claude mcp add` CLI command writes to the correct location - don't try to edit the file manually. (See [Configuring Claude Code](/blog/configuring-claude-code) for the full MCP setup walkthrough.)
+</Stop>
 
 ### The Node.js PATH Nightmare
 
 Setting up MCP servers required npm, which required Node.js, which led to discovering three separate environment issues:
 
-1. **Node.js wasn't in Git Bash's PATH.** It was installed at `C:\Program Files\nodejs\` and worked in PowerShell, but Git Bash (MSYS2) didn't inherit the Windows system PATH. Fix:
+<Warning title="Three PATH Issues">
+1. **Node.js wasn't in Git Bash's PATH.** It was installed at `C:\Program Files\nodejs\` and worked in PowerShell, but Git Bash (MSYS2) didn't inherit the Windows system PATH.
+
+2. **npm's global directory didn't exist.** The Windows Node.js installer doesn't create `%APPDATA%\npm` - it's only created when you first `npm install -g` something.
+
+3. **Git Bash mangles Windows paths.** Running `npm run build` in Git Bash produces paths prefixed with `C:\Program Files\Git\` — Git Bash (MSYS2) rewrites absolute paths. The workaround is to use `npx` with Node.js directly in PATH.
+</Warning>
+
+Fix for issue 1:
 
 ```bash
 # ~/.bash_profile
 export PATH="/c/Program Files/nodejs:$PATH"
 ```
 
-2. **npm's global directory didn't exist.** The Windows Node.js installer doesn't create `%APPDATA%\npm` - it's only created when you first `npm install -g` something. But `npm doctor` and `npm ls -g` fail without it:
+Fix for issue 2:
 
 ```bash
 mkdir -p "$APPDATA/npm"
 ```
 
-3. **Git Bash mangles Windows paths.** Running `npm run build` in Git Bash produces:
-
-```
-Error: Cannot find module 'C:\Program Files\Git\Users\<username>\...'
-```
-
-See that `C:\Program Files\Git\` prefix? Git Bash (MSYS2) rewrites absolute paths, prepending the Git installation directory. The workaround is to use `npx` with Node.js directly in PATH:
+Fix for issue 3:
 
 ```bash
 export PATH="/c/Program Files/nodejs:$PATH"
@@ -288,7 +306,7 @@ With the environment finally stable, I decided to build something real. I had a 
 
 ### The Stack Decision
 
-I asked Claude to scaffold a Next.js project:
+I asked Claude to scaffold a <Nextjs>Next.js</Nextjs> project:
 
 ```bash
 npx create-next-app@latest cryptoflexllc \
@@ -317,22 +335,24 @@ Over the next few hours, Claude and I built the entire site together. I'd descri
 
 **7 pages:**
 - Homepage with hero, featured blog posts, and service teasers
-- Blog listing with card grid
-- Individual blog posts rendered from MDX
+- Blog listing with card grid, search, and tag filtering
+- Individual blog posts rendered from MDX with custom components
 - About page with career timeline
 - Services page with consulting offerings
 - Portfolio with project cards and tech badges
-- Contact form (client-side, mailto: fallback)
+- Contact page with LinkedIn CTA and email fallback
 
 **Key architecture decisions:**
 - Dark theme with OKLCH cyan accent colors (Tailwind CSS v4 - no `tailwind.config.ts`, all config lives in CSS via `@theme` blocks)
 - File-based MDX blog system using gray-matter for frontmatter and next-mdx-remote for rendering
 - Glassmorphism sticky nav with mobile hamburger menu (Sheet component from shadcn/ui)
-- Server components everywhere except where interactivity is needed (Contact form, Nav)
+- Server components everywhere except where interactivity is needed (blog search, nav)
 
 ### The Client Component Metadata Workaround
 
-Here's a Next.js gotcha I hit: the Contact page uses `"use client"` for form state (`useState`), but I also needed SEO metadata (`export const metadata`). In Next.js App Router, **you can't export metadata from a client component.** No error - it's just silently ignored.
+<Warning title="Next.js Gotcha">
+The Contact page originally used `"use client"` for form state (`useState`), but I also needed SEO metadata (`export const metadata`). In <Nextjs>Next.js</Nextjs> App Router, **you can't export metadata from a client component.** No error - it's just silently ignored.
+</Warning>
 
 The fix is a wrapper layout:
 
@@ -348,7 +368,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Get in touch with CryptoFlex LLC.",
+  description: "Get in touch with Chris Johnson at CryptoFlex LLC.",
 };
 
 export default function ContactLayout({
@@ -360,7 +380,7 @@ export default function ContactLayout({
 }
 ```
 
-The layout does nothing except provide metadata. Next.js renders the server layout wrapping the client page, and both metadata and interactivity work. (More on the component architecture in [How I Built This Site](/blog/how-i-built-this-site).)
+The layout does nothing except provide metadata. <Nextjs>Next.js</Nextjs> renders the server layout wrapping the client page, and both metadata and interactivity work. (More on the component architecture in [How I Built This Site](/blog/how-i-built-this-site).)
 
 ### Production Build
 
@@ -396,9 +416,9 @@ gh repo create chris2ao/cryptoflexllc --public \
 
 One command. Repo created, code pushed. I also wrote a 1,350-line BUILD-GUIDE.md that walks through every step of building the site - from scaffolding to deployment - so anyone could follow along and build the same thing.
 
-### Vercel
+### <Vercel />
 
-Connected the GitHub repo to Vercel, pointed the Squarespace DNS:
+Connected the GitHub repo to <Vercel />, pointed the Squarespace DNS:
 
 - **CNAME:** `www` → `cname.vercel-dns.com`
 - **A Record:** `@` → `76.76.21.21`
@@ -427,15 +447,17 @@ This backs up all my rules, learned skills, and configuration so I can replicate
 
 ### Learned Skills Extraction
 
+<Info title="Persistent Patterns">
 Claude Code has a `/learn` command that extracts reusable patterns from your session history. I ran it and it pulled out 5 skills - solutions to problems I'd solved during the day:
 
 1. **PowerShell stdin hooks** - the `$input` vs `[Console]::In.ReadToEnd()` gotcha
 2. **MCP config location** - `~/.claude/mcp-servers.json` vs `~/.claude.json`
 3. **Command YAML frontmatter** - why commands silently don't register
 4. **Git Bash npm path mangling** - MSYS2 path rewriting breaking npm
-5. **Next.js client component metadata** - the wrapper layout workaround
+5. **<Nextjs>Next.js</Nextjs> client component metadata** - the wrapper layout workaround
 
 These are now saved as markdown files that Claude can reference in future sessions. The patterns persist.
+</Info>
 
 ### The Final Repo Inventory
 
@@ -454,27 +476,45 @@ By the end of 24 hours, I had four repositories:
 
 I want to be specific about this because it's the core of the experience. Opus 4.6 didn't just write code faster than Qwen - it wrote *better* code, caught *more* bugs, and understood *context* across files in ways the local model simply couldn't.
 
-**Speed:** 2-5 second responses vs 30-60 seconds with Ollama. This sounds like a minor convenience, but it fundamentally changes how you work. With fast responses, you have a conversation. You ask follow-ups. You say "actually, change that to use a different pattern" and see results immediately. With slow responses, every question becomes a commitment - you think twice before asking anything, and you lose your flow.
+<Tip title="Speed">
+2-5 second responses vs 30-60 seconds with Ollama. This sounds like a minor convenience, but it fundamentally changes how you work. With fast responses, you have a conversation. With slow responses, every question becomes a commitment.
+</Tip>
 
-**Context awareness:** Opus could read my entire project, understand the relationships between files, and make changes that were consistent across the codebase. When I asked it to add a footer component, it automatically matched the styling patterns from the nav, used the same responsive breakpoints, and imported from the same icon library - without me specifying any of that.
+<Info title="Context Awareness">
+Opus could read my entire project, understand the relationships between files, and make changes that were consistent across the codebase. When I asked it to add a footer component, it automatically matched the styling patterns from the nav, used the same responsive breakpoints, and imported from the same icon library - without me specifying any of that.
+</Info>
 
-**Error recovery:** When something broke, Opus would read the error message, identify the root cause (not just the symptom), and fix it. The Qwen model would often "fix" errors by introducing different errors.
+<Tip title="Error Recovery">
+When something broke, Opus would read the error message, identify the root cause (not just the symptom), and fix it. The Qwen model would often "fix" errors by introducing different errors.
+</Tip>
 
-**Code review:** Opus found issues that I would have missed in manual review - silent error swallowing, path handling bugs, missing edge cases. It explained each issue clearly and fixed them all in one pass.
+<Security title="Code Review">
+Opus found issues that I would have missed in manual review - silent error swallowing, path handling bugs, missing edge cases. It explained each issue clearly and fixed them all in one pass.
+</Security>
 
 ## What I'd Do Differently
 
 If I were starting over tomorrow, here's what I'd change:
 
-1. **Skip the local model entirely** (unless you have specific privacy requirements). The time I spent debugging Qwen's output was time I could have spent building.
+<Stop title="1. Skip the local model entirely">
+Unless you have specific privacy requirements. The time I spent debugging Qwen's output was time I could have spent building.
+</Stop>
 
-2. **Start with the hooks system** instead of trying to build external tooling. Read the [Claude Code docs on hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) before writing any automation.
+<Tip title="2. Start with the hooks system">
+Instead of trying to build external tooling. Read the [Claude Code docs on hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) before writing any automation.
+</Tip>
 
-3. **Install everything-claude-code immediately.** The rules and commands save significant time. Just be ready to fix the frontmatter bug on 18 command files.
+<Tip title="3. Install everything-claude-code immediately">
+The rules and commands save significant time. Just be ready to fix the frontmatter bug on 18 command files.
+</Tip>
 
-4. **Trim rules early.** Don't blindly copy all the rules from a reference repo. Every line costs context window tokens. Trim rationale paragraphs and examples that restate things Claude already knows.
+<Info title="4. Trim rules early">
+Don't blindly copy all the rules from a reference repo. Every line costs context window tokens. Trim rationale paragraphs and examples that restate things Claude already knows.
+</Info>
 
-5. **Set up `~/.bash_profile`** with Node.js and npm paths before doing anything else on Windows with Git Bash.
+<Warning title="5. Set up ~/.bash_profile first">
+With Node.js and npm paths before doing anything else on Windows with Git Bash.
+</Warning>
 
 ## Looking Forward
 

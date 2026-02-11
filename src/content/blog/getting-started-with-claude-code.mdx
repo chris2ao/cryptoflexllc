@@ -13,9 +13,11 @@ Before I ever touched Claude Code, I tried the local route. If you're thinking a
 
 The idea was appealing: run an AI model on my own hardware, no cloud dependency, no API costs, complete privacy. I installed [Ollama](https://ollama.com/) and pulled the Qwen 3.4B model - a smaller, faster model that should theoretically run fine on consumer hardware.
 
-**The reality:** It was too slow to be useful.
+<Warning title="The Reality">
+It was too slow to be useful. Response times of 30+ seconds made it impractical for development work. When you're in the middle of writing code and you need to ask "how does this <Nextjs>Next.js</Nextjs> API work?" or "refactor this function," waiting that long kills your flow.
+</Warning>
 
-The response times made it impractical for development work. When you're in the middle of writing code and you need to ask "how does this Next.js API work?" or "refactor this function," waiting 30+ seconds for each response kills your flow. And the smaller model meant the answers weren't always accurate enough for production code - I'd spend more time verifying the output than I saved by using AI in the first place.
+And the smaller model meant the answers weren't always accurate enough for production code - I'd spend more time verifying the output than I saved by using AI in the first place.
 
 There are absolutely valid use cases for local models. Privacy-sensitive work, offline environments, or if you have serious GPU hardware. But for day-to-day development on a normal workstation? The cloud models are just better right now.
 
@@ -57,7 +59,9 @@ npm --version   # Comes with Node.js
 
 If Node.js isn't installed, download it from [nodejs.org](https://nodejs.org/).
 
-> **Windows gotcha:** After installing Node.js, you might need to restart your terminal (or VS Code) for the PATH changes to take effect. If `node --version` still doesn't work, try opening a brand new terminal window.
+<Warning title="Windows Gotcha">
+After installing Node.js, you might need to restart your terminal (or VS Code) for the PATH changes to take effect. If `node --version` still doesn't work, try opening a brand new terminal window.
+</Warning>
 
 ### Install Claude Code
 
@@ -98,10 +102,10 @@ The key difference from a chatbot: you don't copy-paste code snippets. Claude Co
 
 I asked Claude Code to build a website. Not a hello-world - a real production site with multiple pages, a blog system, responsive design, and SEO metadata. I described what I wanted in plain English:
 
-> "Build a personal tech blog and portfolio site. Dark theme with a cyan accent. Next.js with Tailwind CSS and shadcn/ui. MDX for blog posts. Pages for about, services, portfolio, and contact."
+> "Build a personal tech blog and portfolio site. Dark theme with a cyan accent. <Nextjs>Next.js</Nextjs> with Tailwind CSS and shadcn/ui. MDX for blog posts. Pages for about, services, portfolio, and contact."
 
 In one session, it:
-- Scaffolded a Next.js 15 project
+- Scaffolded a <Nextjs>Next.js 15</Nextjs> project
 - Set up shadcn/ui with the right components
 - Built 7 pages with responsive layouts
 - Created an MDX-based blog system
@@ -113,25 +117,25 @@ That's the site you're reading right now.
 
 ## Lessons Learned
 
-### 1. Be specific about what you want
-
+<Tip title="1. Be specific about what you want">
 "Make it look good" gives you generic results. "Dark background, cyan accent color, generous whitespace, Geist fonts, glassmorphism nav with backdrop blur" gives you exactly what you pictured.
+</Tip>
 
-### 2. Review everything
-
+<Info title="2. Review everything">
 AI-generated code works, but you need to understand it. Read every file. Ask "why did you do it this way?" if something looks unfamiliar. The learning happens in the review, not the generation.
+</Info>
 
-### 3. The iteration speed is the real value
-
+<Tip title="3. The iteration speed is the real value">
 The first draft is rarely perfect. But going from "add a mobile hamburger menu" to done takes seconds, not an hour. The fast feedback loop is where Claude Code shines compared to coding alone.
+</Tip>
 
-### 4. Local models aren't there yet (for most people)
-
+<Stop title="4. Local models aren't there yet (for most people)">
 If you have a 4090 or better, local models might work for you. For the rest of us, the cloud models are dramatically faster and more capable. The cost is minimal for individual use.
+</Stop>
 
-### 5. Don't fight the tooling
-
+<Info title="5. Don't fight the tooling">
 I initially tried to build custom infrastructure around Claude Code (a Rust binary to intercept conversations - it didn't work). Then I discovered Claude Code has a built-in **hooks system** for exactly that kind of automation. Use the platform's extension points instead of building around them. I cover the full hooks setup in [Configuring Claude Code](/blog/configuring-claude-code).
+</Info>
 
 ## What's Next
 

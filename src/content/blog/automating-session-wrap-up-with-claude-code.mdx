@@ -101,11 +101,11 @@ When you type `/wrap-up` in a session, Claude reads this file and follows the in
 
 That's it. No SDK, no API, no build step. Just a markdown file with clear instructions.
 
-### Why This Matters
-
+<Tip title="Why This Matters">
 This is one of Claude Code's most underappreciated features. You're essentially writing a **system prompt for a specific task**. The more precise your instructions, the more reliable the output. Think of it like writing a runbook that an extremely capable junior developer will follow to the letter.
 
 The key insight: **you're not writing code, you're writing instructions for an agent.** The quality of the output depends entirely on the quality of your instructions.
+</Tip>
 
 ## Step-by-Step Breakdown
 
@@ -126,7 +126,9 @@ Do not attempt to auto-resolve merge conflicts.
 
 **Why this matters:** You need the full picture before making changes. Maybe someone pushed to a repo since your last pull. Maybe you forgot to commit something from an earlier session. Maybe there are staged changes you didn't mean to include. The pull ensures you're not working on stale state, and the survey surfaces everything before any automated changes happen.
 
-**Why the conflict check:** Auto-resolving merge conflicts is a recipe for lost work. If a pull fails, the command stops entirely and lets you handle it manually. This was added after a session where I realized the original version didn't pull at all - it just surveyed. That meant if you'd been working across multiple sessions without pulling, you could end up pushing without the latest remote changes.
+<Stop title="Why the Conflict Check">
+Auto-resolving merge conflicts is a recipe for lost work. If a pull fails, the command stops entirely and lets you handle it manually. This was added after a session where I realized the original version didn't pull at all - it just surveyed. That meant if you'd been working across multiple sessions without pulling, you could end up pushing without the latest remote changes.
+</Stop>
 
 **Claude Code feature used:** The **Bash tool** with parallel execution. Claude can dispatch multiple independent Bash commands in a single turn, and they execute concurrently.
 
@@ -146,9 +148,11 @@ Compile a concise summary of the session.
 
 **What's happening:** Claude reviews the entire conversation from the current session. It has full access to every message, tool call, and result from the session. This is just analysis - no tools are called.
 
-**Why this matters:** This is the step that makes automated documentation possible. Claude doesn't just know what files changed (that's what `git diff` is for). It knows *why* they changed, what was tried first, what failed, and what the reasoning was. That context is gold for a changelog entry but would take you 10 minutes to write manually.
+<Info title="Full Session Context">
+This is the step that makes automated documentation possible. Claude doesn't just know what files changed (that's what `git diff` is for). It knows *why* they changed, what was tried first, what failed, and what the reasoning was. That context is gold for a changelog entry but would take you 10 minutes to write manually.
 
-**Claude Code feature used:** **Conversation context access.** Slash commands execute within the current session, so they inherit the full conversation history. This is fundamentally different from a hook (which only gets a JSON payload about a specific event) or a standalone script (which has no session context at all).
+Slash commands execute within the current session, so they inherit the full conversation history. This is fundamentally different from a hook (which only gets a JSON payload about a specific event) or a standalone script (which has no session context at all).
+</Info>
 
 ### Step 3: Update CHANGELOG.md
 
@@ -181,7 +185,9 @@ Rules:
   check OK, 4,888/5,000 remaining
 ```
 
-**The "document failures" rule** is especially important. Most changelogs only record successes. But the failed approaches are where the real learning happens. If you tried three things and only the third one worked, all three should be documented - future you will thank present you.
+<Tip title="Document Failures">
+The "document failures" rule is especially important. Most changelogs only record successes. But the failed approaches are where the real learning happens. If you tried three things and only the third one worked, all three should be documented - future you will thank present you.
+</Tip>
 
 **Claude Code features used:** **Read tool** and **Edit tool.** The Edit tool does exact string replacement, which is safer than rewriting the entire file. It finds a specific string in the file and replaces it, preserving everything else.
 
@@ -200,9 +206,11 @@ update was needed.
 
 **What's happening:** Claude makes a judgment call. Not every session deserves a new Phase in the README narrative. A quick bug fix? Skip it. Building a new feature, running a security audit, creating a new command? That gets a Phase entry.
 
-**Why this matters:** This is a good example of giving Claude decision-making authority within bounds. The instruction doesn't say "always update" or "never update" - it says "if significant." Claude has the full session context to make that call, and it's explicit about what counts as significant.
+<Tip title="Give Decision-Making Criteria">
+This is a good example of giving Claude decision-making authority within bounds. The instruction doesn't say "always update" or "never update" - it says "if significant." Claude has the full session context to make that call.
 
-**Pro tip:** If you find Claude's judgment about "significant" doesn't match yours, make the criteria more explicit. Instead of "significant new work," you could say "any session that created new files, modified architecture, or extracted learned skills."
+If you find Claude's judgment about "significant" doesn't match yours, make the criteria more explicit. Instead of "significant new work," you could say "any session that created new files, modified architecture, or extracted learned skills."
+</Tip>
 
 ### Step 5: Update MEMORY.md
 
@@ -219,9 +227,11 @@ Keep MEMORY.md under 200 lines. Be concise.
 
 **What's happening:** Claude Code has a **persistent auto-memory** system. Each project gets a `MEMORY.md` file that's automatically loaded into the system prompt at the start of every session. This is how Claude "remembers" things across sessions - it reads this file every time.
 
-**Why this matters:** MEMORY.md is your cross-session context. If you extracted a new learned skill today, future sessions need to know about it. If you created a new repo, it should be in the inventory. The 200-line limit forces conciseness - this file is loaded into every session's context window, so bloat costs you real capability.
+<Info title="Cross-Session Context">
+MEMORY.md is your cross-session context. If you extracted a new learned skill today, future sessions need to know about it. If you created a new repo, it should be in the inventory. The 200-line limit forces conciseness - this file is loaded into every session's context window, so bloat costs you real capability.
 
-**Claude Code feature used:** **Auto-memory** (`~/.claude/projects/<project>/memory/MEMORY.md`). This is different from the MCP memory server (which stores structured entities/relations). MEMORY.md is a flat markdown file injected into the system prompt. Simple but effective.
+This is different from the MCP memory server (which stores structured entities/relations). MEMORY.md is a flat markdown file injected into the system prompt. Simple but effective.
+</Info>
 
 ### Step 6: Extract Learned Skills
 
@@ -252,7 +262,9 @@ Process:
 
 **What makes a good skill:** The instructions are specific about what qualifies. A typo fix? Not a skill. Discovering that PowerShell's `$input` variable silently returns nothing when invoked via `-File` parameter? That's a skill - it's non-obvious, platform-specific, has no error message, and will waste hours if you hit it again.
 
-**The confirmation step** is important. Claude proposes each skill and waits for approval before saving. This prevents low-quality or duplicate skills from accumulating. You're the quality gate.
+<Security title="The Confirmation Step">
+The confirmation step is important. Claude proposes each skill and waits for approval before saving. This prevents low-quality or duplicate skills from accumulating. You're the quality gate.
+</Security>
 
 **Real example:** During one session, I discovered that HEREDOC commit message bodies with parentheses get captured as garbage permission entries in `settings.local.json`. That became skill #11, a pattern I never would have documented manually but that saves time every time it's encountered.
 
@@ -291,11 +303,13 @@ interactive mode freezes:
 Report what was cleaned (file counts and space freed).
 ```
 
-**What's happening:** Claude Code stores full conversation transcripts as `.jsonl` files under `~/.claude/projects/`. After a few days of intensive use, this directory balloons - I had 47 transcripts totaling 34MB after just two days. Stale todo files accumulate too (67 JSON files in `~/.claude/todos/`). This step cleans both.
-
-**Why this was added:** This step exists because of a specific debugging session where Claude Code's interactive mode froze completely - it would launch but wouldn't accept keyboard input, not even Ctrl+C. The root cause turned out to be stale global state that had accumulated over many sessions. After cleaning `~/.claude/projects/` and removing stale entries from `~/.claude.json`, the freeze resolved.
+<Warning title="Why This Cleanup Exists">
+This step exists because of a specific debugging session where Claude Code's interactive mode froze completely - it would launch but wouldn't accept keyboard input, not even Ctrl+C. The root cause turned out to be stale global state that had accumulated over many sessions. After cleaning `~/.claude/projects/` and removing stale entries from `~/.claude.json`, the freeze resolved.
 
 The key insight: **this cleanup needs to happen regularly, not just when things break.** Building it into the wrap-up flow means the state never accumulates to problematic levels.
+</Warning>
+
+**What's happening:** Claude Code stores full conversation transcripts as `.jsonl` files under `~/.claude/projects/`. After a few days of intensive use, this directory balloons - I had 47 transcripts totaling 34MB after just two days. Stale todo files accumulate too (67 JSON files in `~/.claude/todos/`). This step cleans both.
 
 **What gets preserved:** The `memory/` directory under each project is preserved - that's where MEMORY.md lives, and losing it would mean losing cross-session context. Everything else (transcripts, session subdirectories) is expendable.
 
@@ -327,7 +341,9 @@ That entry will never match again. It's dead weight. Meanwhile, a general `Bash(
 
 **Why this matters:** Permission bloat slows down Claude Code's permission matching and clutters your config. It's like never clearing your browser history - technically it still works, but it accumulates cruft. This step is the equivalent of a `settings.local.json` garbage collector.
 
-**A hard-won lesson:** This step also catches a sneaky bug I discovered - HEREDOC commit message bodies with parentheses get captured as garbage permission entries by the auto-approve system. So a commit message containing `"(like this)"` would end up as a permission entry. The cleanup step catches and removes these automatically. (This became [learned skill #11](#step-6-extract-learned-skills).)
+<Warning title="The HEREDOC Permission Bug">
+This step also catches a sneaky bug I discovered - HEREDOC commit message bodies with parentheses get captured as garbage permission entries by the auto-approve system. So a commit message containing `"(like this)"` would end up as a permission entry. The cleanup step catches and removes these automatically. (This became [learned skill #11](#step-6-extract-learned-skills).)
+</Warning>
 
 **Claude Code features used:** **Read tool** and **Edit tool** to surgically remove redundant entries. The instructions are specific about what to keep vs. remove, so Claude doesn't accidentally delete your hook configuration.
 
@@ -374,7 +390,9 @@ brother! Then we body-slammed the Sonnet routing confusion...
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 ```
 
-**Why this matters (seriously):** Beyond the entertainment value, there's a real lesson here. **Claude Code will follow whatever persona or style instructions you give it.** This isn't just a gimmick - the same technique works for matching your team's commit message style, writing in a specific technical voice, or following corporate documentation standards. The persona is the proof of concept; the pattern is universally useful.
+<Tip title="Persona as a Pattern">
+Beyond the entertainment value, there's a real lesson here. **Claude Code will follow whatever persona or style instructions you give it.** This isn't just a gimmick - the same technique works for matching your team's commit message style, writing in a specific technical voice, or following corporate documentation standards. The persona is the proof of concept; the pattern is universally useful.
+</Tip>
 
 **The HEREDOC format** is specified explicitly because multi-line strings in bash are finicky:
 
@@ -402,17 +420,21 @@ Ask the user for confirmation before pushing. Show them:
 Then push all repos.
 ```
 
-**What's happening:** This is the safety valve. Everything up to this point is local - you can review, amend, or undo it. Pushing is irreversible (for public repos especially). So the command explicitly pauses and asks for confirmation.
+<Stop title="The Safety Valve">
+Everything up to this point is local - you can review, amend, or undo it. Pushing is irreversible (for public repos especially). So the command explicitly pauses and asks for confirmation. This follows Claude Code's own design philosophy - it always asks before taking actions that affect shared state.
+</Stop>
 
-**Why this matters:** Automating destructive or irreversible operations without a confirmation step is a recipe for disaster. The command shows you exactly what's about to be pushed so you can catch anything unexpected. This follows Claude Code's own design philosophy - it always asks before taking actions that affect shared state.
+**What's happening:** The command shows you exactly what's about to be pushed so you can catch anything unexpected.
 
-**A platform note:** On Windows with Git Bash, the GitHub CLI isn't in PATH by default. The command includes a workaround:
+<Warning title="Windows PATH Note">
+On Windows with Git Bash, the GitHub CLI isn't in PATH by default. The command includes a workaround:
 
 ```bash
 export PATH="$PATH:/c/Program Files/GitHub CLI" && git push
 ```
 
 This kind of platform-specific detail is exactly what makes custom commands valuable - you encode the workaround once and never think about it again.
+</Warning>
 
 ### Step 12: Final Report
 
@@ -447,11 +469,25 @@ The command includes an "Important Notes" section that acts as a set of guardrai
 
 These aren't just nice-to-haves. Each one comes from a real mistake:
 
-- **The secrets rule** exists because I once had a GitHub PAT show up in a config file that was about to be committed to a public repo. Claude caught it because the rule told it to look.
-- **The force push rule** exists because force pushing to a public repo's main branch can overwrite other people's work.
-- **The PowerShell rule** exists because I wasted 20 minutes debugging why `$env:USERPROFILE` was empty in a PowerShell command - turns out Git Bash was eating the `$` before PowerShell ever saw it. (This is now [learned skill #8](/blog/configuring-claude-code).)
-- **The "read before editing" rule** exists because Claude's Edit tool does exact string matching. If you try to edit a file you haven't read, you're guessing at the content and the edit will fail.
-- **The "preserve history" rule** exists because the whole point of a changelog is history. Deleting old entries defeats the purpose.
+<Security title="The Secrets Rule">
+This rule exists because I once had a GitHub PAT show up in a config file that was about to be committed to a public repo. Claude caught it because the rule told it to look. Without the explicit instruction, it might have committed the file without checking.
+</Security>
+
+<Stop title="The Force Push Rule">
+Force pushing to a public repo's main branch can overwrite other people's work. This rule is non-negotiable. Regular `git push` will fail safely if there are upstream changes - that's by design.
+</Stop>
+
+<Warning title="The PowerShell Rule">
+I wasted 20 minutes debugging why `$env:USERPROFILE` was empty in a PowerShell command - turns out Git Bash was eating the `$` before PowerShell ever saw it. The workaround: write a temp `.ps1` file and execute it, instead of using inline PowerShell commands from bash. (This is now [learned skill #8](/blog/configuring-claude-code).)
+</Warning>
+
+<Info title="Read Before Editing">
+Claude's Edit tool does exact string matching. If you try to edit a file you haven't read, you're guessing at the content and the edit will fail. This rule prevents wasted tool calls and ensures edits always target the right content.
+</Info>
+
+<Tip title="Preserve History">
+The whole point of a changelog is history. Deleting old entries defeats the purpose. This rule is simple but essential - the wrap-up agent should always append, never delete.
+</Tip>
 
 ## How It Evolved
 
@@ -463,7 +499,9 @@ The `/wrap-up` command didn't start as a 12-step process. It evolved through rea
 
 **Adding Extract Learned Skills (Step 6):** I kept forgetting to run `/learn` at the end of sessions. The patterns I'd solved would be lost because I'd skip the extraction step when I was tired. Building it into the wrap-up flow means it happens automatically - every session gets reviewed for extractable patterns.
 
-**Adding Clean Up Global State (Step 7):** This was born from a crisis. Claude Code's interactive mode froze completely - it launched but wouldn't accept keyboard input. The root cause was 47 transcript files (34MB) accumulated over two days, plus 67 stale todo JSON files. After adding this cleanup step, the problem never recurred. Prevention beats debugging.
+<Warning title="The Freeze That Added Step 7">
+Step 7 (Clean Up Global State) was born from a crisis. Claude Code's interactive mode froze completely - it launched but wouldn't accept keyboard input. The root cause was 47 transcript files (34MB) accumulated over two days, plus 67 stale todo JSON files. After adding this cleanup step, the problem never recurred. Prevention beats debugging.
+</Warning>
 
 **Current version (12 steps):** Pull + survey, review, changelog, readme, memory, skill extraction, global cleanup, settings cleanup, other repos, commit, push, report. Each step exists because something went wrong without it.
 
@@ -496,17 +534,29 @@ You are a [role description]. Your job is to [primary objective].
 
 The key principles:
 
-1. **Be specific.** "Update the changelog" is vague. "Add a new dated entry at the TOP, using bold action verbs and including technical details" is actionable.
+<Tip title="1. Be Specific">
+"Update the changelog" is vague. "Add a new dated entry at the TOP, using bold action verbs and including technical details" is actionable. The more precise your instructions, the more consistent the output.
+</Tip>
 
-2. **Include the format.** Show Claude exactly what the output should look like. Templates, examples, and format rules eliminate guesswork.
+<Info title="2. Include the Format">
+Show Claude exactly what the output should look like. Templates, examples, and format rules eliminate guesswork. If you want a table, show a table. If you want bullet points with bold verbs, show that format.
+</Info>
 
-3. **Add safety rails.** Think about what could go wrong and add explicit instructions to prevent it. "Never force push" costs one line and prevents real damage.
+<Security title="3. Add Safety Rails">
+Think about what could go wrong and add explicit instructions to prevent it. "Never force push" costs one line and prevents real damage. "Never commit secrets" costs one line and prevents a breach.
+</Security>
 
-4. **Give decision-making criteria.** "Update the README if significant" is good, but "Update the README if new files were created, architecture changed, or learned skills were extracted" is better.
+<Tip title="4. Give Decision-Making Criteria">
+"Update the README if significant" is good, but "Update the README if new files were created, architecture changed, or learned skills were extracted" is better. Explicit criteria produce consistent decisions.
+</Tip>
 
-5. **Encode your gotchas.** Every environment has quirks. Git Bash eating PowerShell variables. PATH not being set correctly. Build commands needing specific flags. Put them in the command so Claude handles them automatically.
+<Warning title="5. Encode Your Gotchas">
+Every environment has quirks. Git Bash eating PowerShell variables. PATH not being set correctly. Build commands needing specific flags. Put them in the command so Claude handles them automatically.
+</Warning>
 
-6. **Let it evolve.** Start with the basics and add steps as you discover gaps. Every time something goes wrong that the command should have caught, add a step or a safety rail. The best commands are grown, not designed.
+<Info title="6. Let It Evolve">
+Start with the basics and add steps as you discover gaps. Every time something goes wrong that the command should have caught, add a step or a safety rail. The best commands are grown, not designed.
+</Info>
 
 ## What This Looks Like in Practice
 
@@ -538,7 +588,7 @@ This command is part of a broader pattern I've been building with Claude Code: *
 
 Each piece is simple on its own - a markdown file, a PowerShell script, a JSON config. But together, they create an environment where the boring maintenance work happens automatically and consistently.
 
-The learned skills are the most interesting piece. After 11 skills extracted over two days, Claude Code noticeably makes fewer mistakes. It recognizes PowerShell stdin issues before hitting them. It knows to use `cmd /c` for MCP servers on Windows. It redacts tokens instead of echoing them. Each skill makes every future session slightly better.
+The learned skills are the most interesting piece. After 14 skills extracted over four days, Claude Code noticeably makes fewer mistakes. It recognizes PowerShell stdin issues before hitting them. It knows to use `cmd /c` for MCP servers on Windows. It redacts tokens instead of echoing them. Each skill makes every future session slightly better.
 
 That's the real value of Claude Code's extensibility. Not that it can do things you can't do - but that it can do things you won't do. The documentation you'll skip when you're tired. The cleanup you'll forget when you're excited about the next feature. The commit message you'll shortcut to "misc fixes." The skill extraction you'll skip because you're done for the day.
 

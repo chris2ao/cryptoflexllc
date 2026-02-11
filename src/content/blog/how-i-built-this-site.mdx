@@ -13,7 +13,7 @@ This site - the one you're reading right now - was built in a single session wit
 
 | Technology | Why |
 |---|---|
-| **Next.js 15** | App Router with server components by default - faster pages, simpler data fetching |
+| **<Nextjs>Next.js 15</Nextjs>** | App Router with server components by default - faster pages, simpler data fetching |
 | **React 19** | Latest React with server component support |
 | **Tailwind CSS v4** | New version: all config lives in CSS via `@theme` blocks. No more `tailwind.config.ts` |
 | **shadcn/ui** | Copies real component source code into your project. You own it, you can modify it |
@@ -21,7 +21,9 @@ This site - the one you're reading right now - was built in a single session wit
 
 ## The Big Decision: Tailwind v4
 
-If you've used Tailwind before, v4 is a significant change. The configuration that used to live in `tailwind.config.ts` now lives directly in your CSS:
+<Info title="Major Change from v3">
+If you've used Tailwind before, v4 is a significant change. The configuration that used to live in `tailwind.config.ts` now lives directly in your CSS. No more JavaScript config file.
+</Info>
 
 ```css
 @import "tailwindcss";
@@ -70,7 +72,9 @@ On mobile, the nav links collapse into a hamburger menu that opens a **Sheet** (
 
 ### The `asChild` Pattern
 
-You'll see `asChild` throughout the code. This is a Radix pattern that means "don't render your default element - render my child instead." It's how you put button styling on a Next.js Link:
+<Tip title="Radix Pattern">
+You'll see `asChild` throughout the code. This is a Radix pattern that means "don't render your default element - render my child instead." It's how you put button styling on a <Nextjs>Next.js</Nextjs> Link.
+</Tip>
 
 ```tsx
 <Button asChild size="lg">
@@ -80,21 +84,30 @@ You'll see `asChild` throughout the code. This is a Radix pattern that means "do
 
 The result is a `<a>` tag with button styling, not a `<button>` wrapping an `<a>`. Semantically correct and better for accessibility.
 
-### The `group` Hover Pattern
+### Blog Card Interaction Pattern
 
-Blog cards use Tailwind's `group` pattern for coordinated hover effects. Wrap the whole card in a link with `className="group"`, then any child can react to the parent hover:
+Blog cards use a CSS pseudo-element overlay pattern for clickable cards with independently interactive elements. The title link uses `after:absolute after:inset-0` to cover the entire card, while tag badges sit above with `relative z-10` for independent clickability:
 
 ```tsx
-<Link href={`/blog/${post.slug}`} className="group">
-  <Card className="hover:border-primary/50">
-    <h3 className="group-hover:text-primary">
+<Card className="group relative h-full hover:border-primary/50">
+  <div className="relative z-10 flex flex-wrap gap-2">
+    {post.tags.map((tag) => (
+      <Link href={`/blog?tag=${encodeURIComponent(tag)}`}>
+        <Badge variant="secondary">{tag}</Badge>
+      </Link>
+    ))}
+  </div>
+  <h3 className="group-hover:text-primary">
+    <Link href={`/blog/${post.slug}`} className="after:absolute after:inset-0">
       {post.title}
-    </h3>
-  </Card>
-</Link>
+    </Link>
+  </h3>
+</Card>
 ```
 
-When you hover anywhere on the card, the title turns cyan and the border gets a subtle tint. One hover target, multiple visual responses.
+<Tip title="Why Pseudo-Elements">
+This avoids nested `<a>` tags (invalid HTML) and works as a pure server component - no `onClick` handlers needed. When you hover anywhere on the card, the title turns cyan. Tags remain independently clickable and link to filtered blog views at `/blog?tag=TagName`.
+</Tip>
 
 ## The Blog System
 
@@ -108,6 +121,14 @@ This is the part I'm most proud of. The blog is powered by MDX files - write Mar
 
 The slug comes from the filename. `my-first-post.mdx` becomes `/blog/my-first-post`.
 
+### Blog Search and Tag Filtering
+
+The blog listing page includes a search bar and clickable tag filters. Search filters posts by title, description, and tags in real time. Tags use URL query parameters (`/blog?tag=Security&tag=Claude+Code`) so filtered views are shareable and bookmarkable. Multiple tags filter with AND logic - selecting "Security" and "Next.js" shows only posts with both tags.
+
+### Custom MDX Components
+
+Blog posts support custom React components embedded directly in Markdown. This includes callout boxes (like the tips and warnings you see throughout), inline product badges for tools like <Vercel>Vercel</Vercel> and <Nextjs>Next.js</Nextjs>, and SVG architecture diagrams. All components are registered in the MDX renderer and available to every post.
+
 ### Under the Hood
 
 A utility file (`lib/blog.ts`) reads all `.mdx` files at build time, parses the frontmatter with `gray-matter`, and returns sorted post data. Because this runs in a **Server Component**, there's no client-side fetch, no loading spinner, no API call. The data is baked into the HTML at build time.
@@ -116,35 +137,15 @@ Blog posts are rendered with `next-mdx-remote`, which converts MDX to React comp
 
 ### Static Generation
 
-Every blog post is pre-built at compile time via `generateStaticParams()`. The result is static HTML - fast, cacheable, and SEO-friendly. When you add a new post, you push to GitHub and Vercel rebuilds automatically.
+Every blog post is pre-built at compile time via `generateStaticParams()`. The result is static HTML - fast, cacheable, and SEO-friendly. When you add a new post, you push to GitHub and <Vercel /> rebuilds automatically.
 
-## The Contact Page Workaround
+## The Contact Page
 
-The Contact page needed to be a client component (it uses `useState` for form state). But in Next.js 15, you can't export `metadata` from a client component.
+<Info title="Update">
+The contact page was originally a client-side form with `mailto:` fallback. It has since been redesigned as a server component with a LinkedIn CTA and email fallback - no form state needed, no `"use client"` directive.
+</Info>
 
-The solution: a separate `layout.tsx` that exports the metadata:
-
-```tsx
-// contact/layout.tsx - server component with metadata
-export const metadata: Metadata = {
-  title: "Contact",
-  description: "Get in touch with Chris Johnson at CryptoFlex LLC.",
-};
-
-export default function ContactLayout({ children }) {
-  return children; // Just passes through
-}
-```
-
-```tsx
-// contact/page.tsx - client component with form
-"use client";
-export default function ContactPage() {
-  // ... form with useState
-}
-```
-
-The layout is a server component that does nothing except provide metadata. The page is a client component with the actual form. It's a bit of a hack, but it's the official pattern.
+The current contact page features a prominent LinkedIn connect button and a secondary email option (`Chris.Johnson@cryptoflexllc.com`). Since it's now a pure server component, the metadata workaround (separate `layout.tsx` for SEO) is still in place but the page itself is simpler and more focused.
 
 ## The Sticky Footer Trick
 
@@ -166,13 +167,13 @@ A common problem: on pages with little content, the footer floats in the middle 
 
 Looking back, a few things I'd do differently:
 
-1. **Add a real contact form.** The `mailto:` approach works but isn't great UX. A service like Formspree or Resend would be better.
+1. ~~**Add a real contact form.**~~ Done! The contact page now has a LinkedIn CTA with email fallback. The `mailto:` approach was replaced with a cleaner, server-rendered design.
 
-2. **Add image optimization.** Blog post images should use Next.js `<Image>` for automatic optimization and lazy loading.
+2. **Add image optimization.** Blog post images should use <Nextjs>Next.js</Nextjs> `<Image>` for automatic optimization and lazy loading.
 
 3. **Add a table of contents.** For longer posts, auto-generating a TOC from headings would help navigation.
 
-4. **Add reading time.** A simple word count / 200 WPM calculation displayed under the post title.
+4. ~~**Add reading time.**~~ Done! Every post now displays reading time in the header, calculated from word count.
 
 ## The Full Build Guide
 
@@ -182,7 +183,7 @@ It's about 1,300 lines and walks through scaffolding, shadcn/ui setup, the dark 
 
 ## Final Thoughts
 
-Building a production website in a single session feels like it shouldn't be possible. But the combination of Next.js (which handles routing, rendering, and optimization), Tailwind (which eliminates the CSS bottleneck), shadcn/ui (which gives you accessible components), and Claude Code (which writes the code while you make the decisions) made it real.
+Building a production website in a single session feels like it shouldn't be possible. But the combination of <Nextjs>Next.js</Nextjs> (which handles routing, rendering, and optimization), Tailwind (which eliminates the CSS bottleneck), shadcn/ui (which gives you accessible components), and Claude Code (which writes the code while you make the decisions) made it real.
 
 The code is open source: [github.com/chris2ao/cryptoflexllc](https://github.com/chris2ao/cryptoflexllc). Fork it, modify it, learn from it.
 

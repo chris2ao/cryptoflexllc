@@ -15,13 +15,13 @@ When you run a publicly accessible website, understanding your audience matters 
 
 Most hosted analytics tools give you the first part (aggregate traffic data) but not the second. I wanted both: a clean dashboard with visualizations for understanding my audience, plus per-visitor detail with enough depth to spot suspicious activity. This is the story of building that system from scratch with Claude Code.
 
-## Starting with Vercel's Built-in Analytics
+## Starting with <Vercel>Vercel's</Vercel> Built-in Analytics
 
-Before building anything custom, I enabled Vercel's native analytics tools. If you're on Vercel, these are worth turning on regardless of whether you build custom tracking.
+Before building anything custom, I enabled <Vercel>Vercel's</Vercel> native analytics tools. If you're on <Vercel />, these are worth turning on regardless of whether you build custom tracking.
 
-### Vercel Web Analytics
+### <Vercel>Vercel</Vercel> Web Analytics
 
-Vercel Web Analytics gives you aggregate traffic data: page views, unique visitors, top pages, referrers, countries, browsers, and OS. It's privacy-focused by design: no cookies, no IP tracking, no per-visitor data. You add one component to your layout:
+<Vercel>Vercel Web Analytics</Vercel> gives you aggregate traffic data: page views, unique visitors, top pages, referrers, countries, browsers, and OS. It's privacy-focused by design: no cookies, no IP tracking, no per-visitor data. You add one component to your layout:
 
 ```tsx
 import { Analytics } from "@vercel/analytics/next";
@@ -38,9 +38,9 @@ export default function RootLayout({ children }) {
 }
 ```
 
-After deploying, enable it in your Vercel project dashboard under **Analytics** > **Web Analytics**. The toggle and the component are both required, and one without the other won't work.
+After deploying, enable it in your <Vercel>Vercel</Vercel> project dashboard under **Analytics** > **Web Analytics**. The toggle and the component are both required, and one without the other won't work.
 
-### Vercel Speed Insights
+### <Vercel>Vercel</Vercel> Speed Insights
 
 Speed Insights tracks Core Web Vitals: Largest Contentful Paint (LCP), First Input Delay (FID), Cumulative Layout Shift (CLS), and others. This tells you how fast your site feels for real users, broken down by route and device type. Same pattern:
 
@@ -59,19 +59,21 @@ export default function RootLayout({ children }) {
 }
 ```
 
-Enable it separately in the Vercel dashboard under **Speed Insights**. Both tools are independent toggles.
+Enable it separately in the <Vercel>Vercel</Vercel> dashboard under **Speed Insights**. Both tools are independent toggles.
 
 ### The Ad Blocker Problem
 
-Here's the catch: **ad blockers kill both of these.** uBlock Origin, Brave shields, and most privacy extensions block Vercel's analytics scripts (`/_vercel/insights/script.js` and `/_vercel/speed-insights/script.js`) the same way they block Google Analytics. In my testing, I saw `ERR_BLOCKED_BY_CLIENT` in the DevTools Network tab, and the scripts never load.
+<Warning title="Significant Blind Spot">
+Ad blockers kill both of these. uBlock Origin, Brave shields, and most privacy extensions block <Vercel>Vercel's</Vercel> analytics scripts (`/_vercel/insights/script.js` and `/_vercel/speed-insights/script.js`) the same way they block Google Analytics. In my testing, I saw `ERR_BLOCKED_BY_CLIENT` in the DevTools Network tab, and the scripts never load.
+</Warning>
 
-This means your Vercel analytics data has a blind spot. Any visitor running an ad blocker (which is a significant chunk of the tech-savvy audience that visits a dev blog) is invisible to Vercel's tools. The aggregate numbers will be lower than reality, and the demographic breakdown will be skewed toward less technical users who don't run blockers.
+This means your <Vercel>Vercel</Vercel> analytics data has a blind spot. Any visitor running an ad blocker (which is a significant chunk of the tech-savvy audience that visits a dev blog) is invisible to <Vercel>Vercel's</Vercel> tools. The aggregate numbers will be lower than reality, and the demographic breakdown will be skewed toward less technical users who don't run blockers.
 
 This is a major reason I built custom server-side tracking. A `sendBeacon()` POST to your own API route on your own domain doesn't get blocked by ad blockers. It looks like a regular same-origin request, not a third-party analytics script.
 
 ### Why Not Stop Here?
 
-Vercel Web Analytics is great for what it does, but it doesn't expose:
+<Vercel>Vercel Web Analytics</Vercel> is great for what it does, but it doesn't expose:
 
 - Individual IP addresses (needed for security analysis)
 - Per-visitor session data (needed to spot bot patterns)
@@ -94,12 +96,16 @@ Browser (page load)
                           |-- Parse User-Agent string
                           |-- INSERT INTO page_views (Neon Postgres)
                           |
-Dashboard (/analytics?secret=...)
+Dashboard (/analytics) — protected by cookie auth
   |
   |-- Server Component queries Neon directly
   |-- Renders charts, map, tables, raw visitor log
   |-- Click any IP → OSINT intelligence panel
 ```
+
+<Info title="Authentication Update">
+The analytics dashboard is now protected by httpOnly cookie authentication using HMAC-SHA256 tokens, accessed via a login page at `/analytics/login`. The original query-string secret approach (`?secret=...`) was replaced after a security audit identified it as a CRITICAL finding. See [I Audited My Own Code](/blog/security-hardening-analytics-dashboard) for the full story.
+</Info>
 
 The system has grown to include these files:
 
@@ -107,11 +113,13 @@ The system has grown to include these files:
 |------|---------|
 | `src/lib/analytics.ts` | Database connection, TypeScript types, User-Agent parser |
 | `src/lib/analytics-types.ts` | Shared TypeScript interfaces for all analytics data |
+| `src/lib/analytics-auth.ts` | HMAC-SHA256 cookie auth with `timingSafeEqual` |
 | `src/components/analytics-tracker.tsx` | Client component that fires tracking beacon |
 | `src/app/api/analytics/track/route.ts` | POST endpoint that records visits |
 | `src/app/api/analytics/setup/route.ts` | One-time table creation endpoint |
 | `src/app/api/analytics/ip-intel/route.ts` | IP OSINT lookup with caching |
 | `src/app/analytics/page.tsx` | Dashboard server component |
+| `src/app/analytics/login/page.tsx` | Cookie-based login page |
 | `src/app/analytics/_components/` | 12 chart, map, and table components |
 
 ## The Client-Side Tracker
@@ -151,17 +159,21 @@ export function AnalyticsTracker() {
 
 A few things worth noting here:
 
-**Why `sendBeacon()` instead of `fetch()`?** The `sendBeacon` API is non-blocking. The browser sends the request in the background without waiting for a response. It also survives page unloads, meaning if a user clicks a link and navigates away, the beacon still gets delivered. Regular `fetch` requests can get cancelled during navigation.
+<Tip title="Why sendBeacon()">
+The `sendBeacon` API is non-blocking. The browser sends the request in the background without waiting for a response. It also survives page unloads, meaning if a user clicks a link and navigates away, the beacon still gets delivered. Regular `fetch` requests can get cancelled during navigation.
+</Tip>
 
-**Why `usePathname()`?** Next.js App Router uses client-side navigation. When you click a link, there's no full page reload. React swaps the content. The `usePathname()` hook re-fires whenever the URL changes, so we track every navigation, not just the initial page load.
+**Why `usePathname()`?** <Nextjs>Next.js</Nextjs> App Router uses client-side navigation. When you click a link, there's no full page reload. React swaps the content. The `usePathname()` hook re-fires whenever the URL changes, so we track every navigation, not just the initial page load.
 
 **What does the client send?** Just the page path. Nothing sensitive. All the detailed data (IP, geo, user agent) gets extracted server-side from request headers. The client doesn't need to know about any of it.
 
-**Why ad blockers don't catch this:** This is a same-origin POST to your own API route. It doesn't load an external script, it doesn't hit a third-party domain, and it doesn't match the filter lists that ad blockers use. The request looks identical to any other API call your application makes.
+<Security title="Ad Blocker Resistance">
+This is a same-origin POST to your own API route. It doesn't load an external script, it doesn't hit a third-party domain, and it doesn't match the filter lists that ad blockers use. The request looks identical to any other API call your application makes.
+</Security>
 
 ## The Tracking API Route
 
-When the beacon arrives, the API route reads headers that Vercel injects into every request:
+When the beacon arrives, the API route reads headers that <Vercel /> injects into every request:
 
 ```tsx
 // Extract IP address
@@ -186,16 +198,18 @@ const latitude = request.headers.get("x-vercel-ip-latitude") || "";
 const longitude = request.headers.get("x-vercel-ip-longitude") || "";
 ```
 
-**How Vercel's geo headers work:** When a request hits Vercel's edge network, Vercel resolves the client IP to a geographic location and injects headers before forwarding to your serverless function:
+**How <Vercel>Vercel's</Vercel> geo headers work:** When a request hits <Vercel>Vercel's edge network</Vercel>, <Vercel /> resolves the client IP to a geographic location and injects headers before forwarding to your serverless function:
 
 - `x-forwarded-for`, the client's IP address (first in the comma-separated list)
-- `x-real-ip`, single client IP (Vercel-specific)
+- `x-real-ip`, single client IP (<Vercel>Vercel</Vercel>-specific)
 - `x-vercel-ip-country`, ISO country code like "US"
 - `x-vercel-ip-country-region`, state/region code like "FL"
 - `x-vercel-ip-city`, city name (URL-encoded)
 - `x-vercel-ip-latitude` and `x-vercel-ip-longitude`, coordinates
 
-These headers only exist when deployed to Vercel. In local development, you'll see `127.0.0.1` and `Unknown` for everything.
+<Warning title="Local Development">
+These headers only exist when deployed to <Vercel />. In local development, you'll see `127.0.0.1` and `Unknown` for everything.
+</Warning>
 
 ## The Lightweight User-Agent Parser
 
@@ -225,19 +239,23 @@ export function parseBrowser(ua: string): string {
 }
 ```
 
-**Why order matters:** Chrome's User-Agent string contains "Safari" (for historical compatibility reasons). If you check for Safari first, every Chrome user gets misidentified. Edge contains "Chrome" in its UA string. You have to check from most specific to least specific.
+<Tip title="Order Matters">
+Chrome's User-Agent string contains "Safari" (for historical compatibility reasons). If you check for Safari first, every Chrome user gets misidentified. Edge contains "Chrome" in its UA string. You have to check from most specific to least specific.
+</Tip>
 
 The parser also detects OS (Windows, macOS, Linux, iOS, Android), device type (Desktop, Mobile, Tablet, Bot), and version numbers. On the security side, knowing the device type helps distinguish legitimate traffic from bots. A "Desktop" visitor with a bot-like User-Agent string is worth investigating.
 
 ## The Database: Neon Serverless Postgres
 
-For storage, I went with [Neon](https://neon.tech), a serverless Postgres provider with a generous free tier (0.5 GB storage). The key feature is their serverless driver (`@neondatabase/serverless`), which sends queries over HTTP instead of maintaining a persistent TCP connection. This is perfect for Vercel's serverless functions because:
+For storage, I went with [Neon](https://neon.tech), a serverless Postgres provider with a generous free tier (0.5 GB storage). The key feature is their serverless driver (`@neondatabase/serverless`), which sends queries over HTTP instead of maintaining a persistent TCP connection. This is perfect for <Vercel>Vercel's serverless functions</Vercel> because:
 
 1. **No connection pool management.** Each function invocation creates a fresh HTTP connection
 2. **Zero cold-start penalty.** No TCP/TLS handshake to wait for
 3. **Neon handles pooling.** Connection pooling happens on Neon's infrastructure
 
-The driver uses tagged template literals for automatic parameterization (SQL injection prevention):
+<Security title="SQL Injection Prevention">
+The driver uses tagged template literals for automatic parameterization. The `${ip}` in the template literal is NOT string interpolation - it's a parameter placeholder that gets sent separately from the SQL string, preventing SQL injection.
+</Security>
 
 ```tsx
 import { neon } from "@neondatabase/serverless";
@@ -255,8 +273,6 @@ await sql`
   VALUES (${pagePath}, ${ipAddress}, ${browser})
 `;
 ```
-
-The `${ip}` in the template literal is NOT string interpolation. It's a parameter placeholder that gets sent separately from the SQL string, preventing SQL injection.
 
 ## The Dashboard: Visualizations
 
@@ -339,7 +355,9 @@ export function VisitorMap({ data }: { data: MapLocation[] }) {
 }
 ```
 
-**Important SSR note:** Leaflet accesses the browser's `window` object, which doesn't exist during server-side rendering. You must wrap the map component with `next/dynamic` and `ssr: false`:
+<Warning title="SSR Compatibility">
+Leaflet accesses the browser's `window` object, which doesn't exist during server-side rendering. You must wrap the map component with `next/dynamic` and `ssr: false`:
+</Warning>
 
 ```tsx
 const VisitorMapInner = dynamic(
@@ -390,7 +408,9 @@ The first lookup hits [ip-api.com](http://ip-api.com) (free, 45 requests/minute,
 - **Mobile flag**, is this a mobile carrier IP?
 - **Geolocation**, country, city, region, coordinates
 
+<Security title="Traffic Classification">
 The proxy and hosting flags are particularly useful from a security perspective. Legitimate visitors generally come from residential or mobile IPs. Traffic from hosting providers, datacenters, or known VPN exit nodes is more likely to be automated.
+</Security>
 
 ### Step 2: RDAP (WHOIS Registration Data)
 
@@ -461,7 +481,9 @@ Building the code was the easy part. Getting the database connected in productio
 
 ### Problem 1: The Neon Connection String
 
-When you create a Neon project, the dashboard shows your connection string. There's a handy "Copy" button. But here's the gotcha: **Neon's default copy gives you the `psql` CLI command**, not the raw connection string:
+<Warning title="Copy Button Gotcha">
+When you create a Neon project, the dashboard shows your connection string. There's a handy "Copy" button. But Neon's default copy gives you the `psql` CLI command, not the raw connection string.
+</Warning>
 
 ```
 psql 'postgresql://user:password@host/database?sslmode=require'
@@ -473,7 +495,7 @@ The `neon()` driver expects just the URL:
 postgresql://user:password@host/database?sslmode=require
 ```
 
-I pasted the full CLI command into my Vercel environment variable and got:
+I pasted the full CLI command into my <Vercel>Vercel</Vercel> environment variable and got:
 
 ```json
 {
@@ -484,7 +506,9 @@ I pasted the full CLI command into my Vercel environment variable and got:
 
 ### The Fix: Defensive Sanitization
 
-Rather than relying on users (including myself) to paste the right format, I added a sanitization step:
+<Tip title="Handle Both Formats">
+Rather than relying on users (including myself) to paste the right format, I added a sanitization step that strips the `psql` prefix and surrounding quotes if present. Now both formats work.
+</Tip>
 
 ```tsx
 export function getDb() {
@@ -502,11 +526,11 @@ export function getDb() {
 }
 ```
 
-Now both formats work, raw URL or full CLI command.
-
 ### Problem 2: Environment Variables Need a Redeploy
 
-This is a Vercel fundamental that caught me off guard: **changing an environment variable does NOT affect running deployments.** You must redeploy for the new value to take effect. The Vercel dashboard updates instantly, but your serverless functions still run with values baked in at build time.
+<Stop title="Vercel Fundamental">
+Changing an environment variable does NOT affect running deployments. You must redeploy for the new value to take effect. The <Vercel>Vercel</Vercel> dashboard updates instantly, but your serverless functions still run with values baked in at build time.
+</Stop>
 
 ## What Each Visit Captures
 
@@ -545,30 +569,28 @@ npx shadcn@latest add chart sheet badge
 
 Go to [neon.tech](https://neon.tech), sign up (free), create a project. Copy the **connection string**. Make sure you get just the URL starting with `postgresql://`.
 
-### Step 3: Add environment variables in Vercel
+### Step 3: Add environment variables in <Vercel />
 
 - `DATABASE_URL`, your Neon connection string
-- `ANALYTICS_SECRET`, a random string for dashboard access (`openssl rand -hex 32`)
+- `ANALYTICS_SECRET`, a random string for dashboard authentication (`openssl rand -hex 32`)
 
-### Step 4: Enable Vercel Analytics
+### Step 4: Enable <Vercel>Vercel</Vercel> Analytics
 
-In your Vercel project dashboard, enable **Web Analytics** and **Speed Insights** separately. Add both components to your root layout. These work alongside the custom tracking. They're complementary, not redundant.
+In your <Vercel>Vercel</Vercel> project dashboard, enable **Web Analytics** and **Speed Insights** separately. Add both components to your root layout. These work alongside the custom tracking. They're complementary, not redundant.
 
 ### Step 5: Deploy and initialize
 
-After deploying, visit your setup endpoint once:
+After deploying, visit your setup endpoint once (requires `ANALYTICS_SETUP_ENABLED=true` in environment variables):
 
 ```
-https://yoursite.com/api/analytics/setup?secret=YOUR_SECRET
+https://yoursite.com/api/analytics/setup
 ```
 
-This creates both the `page_views` table and the `ip_intel` cache table.
+This creates both the `page_views` table and the `ip_intel` cache table. Remove the `ANALYTICS_SETUP_ENABLED` variable after initialization.
 
-### Step 6: View your dashboard
+### Step 6: Access your dashboard
 
-```
-https://yoursite.com/analytics?secret=YOUR_SECRET
-```
+Visit `/analytics/login` and enter your `ANALYTICS_SECRET` to authenticate. The dashboard uses httpOnly cookie authentication — your secret is never exposed in URLs or browser history.
 
 Every page view from that point forward is tracked automatically.
 
@@ -577,8 +599,8 @@ Every page view from that point forward is tracked automatically.
 Everything in this system is free:
 
 - **Neon Postgres:** Free tier includes 0.5 GB storage and 190 hours of compute per month
-- **Vercel Serverless Functions:** Free tier includes 100 GB-hours per month
-- **Vercel Web Analytics + Speed Insights:** Free tier included with all Vercel plans
+- **<Vercel>Vercel</Vercel> Serverless Functions:** Free tier includes 100 GB-hours per month
+- **<Vercel>Vercel</Vercel> Web Analytics + Speed Insights:** Free tier included with all <Vercel>Vercel</Vercel> plans
 - **IP intelligence APIs:** ip-api.com (45 req/min), RDAP (free), Nominatim (1 req/sec), all free, no keys
 - **No external analytics services:** No Google Analytics, no Mixpanel, no monthly SaaS fees
 
@@ -590,12 +612,12 @@ The final system has three layers of analytics, each serving a different purpose
 
 | Layer | Tool | What It Shows | Blind Spot |
 |-------|------|---------------|------------|
-| **Aggregate traffic** | Vercel Web Analytics | Page views, referrers, top pages | Blocked by ad blockers |
-| **Performance** | Vercel Speed Insights | Core Web Vitals, LCP, CLS | Blocked by ad blockers |
+| **Aggregate traffic** | <Vercel>Vercel Web Analytics</Vercel> | Page views, referrers, top pages | Blocked by ad blockers |
+| **Performance** | <Vercel>Vercel Speed Insights</Vercel> | Core Web Vitals, LCP, CLS | Blocked by ad blockers |
 | **Per-visitor detail** | Custom Neon tracking | IP, geo, device, browser, referrer | None (server-side) |
 | **Security intel** | IP OSINT panel | ISP, org, proxy flags, WHOIS | On-demand only |
 
-The combination gives you complete visibility. Vercel's tools handle the aggregate view for visitors who aren't running ad blockers. The custom system catches everyone and adds the per-visitor detail that lets you actually analyze traffic patterns and spot anomalies.
+The combination gives you complete visibility. <Vercel>Vercel's</Vercel> tools handle the aggregate view for visitors who aren't running ad blockers. The custom system catches everyone and adds the per-visitor detail that lets you actually analyze traffic patterns and spot anomalies.
 
 ---
 

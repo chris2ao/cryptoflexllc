@@ -17,7 +17,9 @@ Claude Code has two levels of configuration:
 
 **User-level** (`~/.claude/rules/`, `~/.claude.json`, `~/.claude/settings.json`) - applies to every project. This is where you put universal standards like coding style, security rules, and MCP servers. Personal to your machine.
 
-This separation means you write project instructions once in `CLAUDE.md` and universal standards once in `~/.claude/rules/`. No duplication.
+<Tip title="No Duplication">
+This separation means you write project instructions once in `CLAUDE.md` and universal standards once in `~/.claude/rules/`. No duplication between layers.
+</Tip>
 
 ## Setting Up Rules
 
@@ -27,7 +29,9 @@ I started with the rules from [everything-claude-code](https://github.com/affaan
 
 ### Why Trim?
 
+<Info title="Context Window Cost">
 Every line in a rule file costs context window tokens. Rationale paragraphs, examples, and checklists that restate things Claude already knows are pure overhead. A rule like "always create new objects, never mutate existing ones" is enough - you don't need three paragraphs explaining why immutability matters.
+</Info>
 
 After trimming ~40% of the original content, I ended up with 8 concise rule files:
 
@@ -44,7 +48,9 @@ After trimming ~40% of the original content, I ended up with 8 concise rule file
 
 ### Key Lesson
 
-**Rules should work standalone.** My first versions referenced agents and commands that require a specific plugin. If someone copies just the rules without the plugin, those references are broken. I stripped agent-specific instructions from 6 of 8 files so they work for anyone.
+<Tip title="Rules Should Work Standalone">
+My first versions referenced agents and commands that require a specific plugin. If someone copies just the rules without the plugin, those references are broken. I stripped agent-specific instructions from 6 of 8 files so they work for anyone.
+</Tip>
 
 ## Building a Session Logging System with Hooks
 
@@ -52,9 +58,9 @@ This is where things got interesting - and where I made my biggest mistake befor
 
 ### The Wrong Way: Building a Rust Binary
 
-My first idea was to build a standalone Rust program that would intercept Claude Code conversations and save them. I wrote hundreds of lines of Rust, YAML configuration files, Python test scripts, and extensive documentation.
-
-**The fundamental problem:** A standalone binary cannot access Claude Code's internal conversation data. It has no API, no socket, no shared memory. It was the wrong architecture entirely.
+<Stop title="Wrong Architecture">
+My first idea was to build a standalone Rust program that would intercept Claude Code conversations and save them. I wrote hundreds of lines of Rust, YAML configuration files, Python test scripts, and extensive documentation. The fundamental problem: a standalone binary cannot access Claude Code's internal conversation data. It has no API, no socket, no shared memory. It was the wrong architecture entirely.
+</Stop>
 
 ### The Right Way: Hooks
 
@@ -92,6 +98,7 @@ Configuration in `.claude/settings.local.json`:
 
 ### Windows/PowerShell Gotchas
 
+<Warning title="Three Traps on Windows">
 If you're on Windows, there are three traps I fell into:
 
 1. **Stdin reading:** PowerShell's `$input` variable does NOT work when the script is invoked via `powershell -File`. You must use `[Console]::In.ReadToEnd()` AND invoke via `-Command ". 'script.ps1'"` (dot-sourcing) instead of `-File`.
@@ -99,6 +106,7 @@ If you're on Windows, there are three traps I fell into:
 2. **Path computation:** `.claude/hooks/` is 2 levels below the project root, not 3. I had an off-by-one error in my `Split-Path` nesting that silently wrote log files to the wrong directory.
 
 3. **Error handling:** Hooks should NEVER crash Claude Code. Set `$ErrorActionPreference = "SilentlyContinue"` so errors are swallowed gracefully.
+</Warning>
 
 These are exactly the kind of gotchas that waste hours because there are no error messages - everything just silently doesn't work.
 
@@ -112,21 +120,25 @@ MCP (Model Context Protocol) servers are background processes that give Claude n
 
 **Context7** (`@upstash/context7-mcp`) - fetches live, up-to-date documentation for any library or framework. Instead of relying on training data (which has a knowledge cutoff), Claude gets the current docs on demand.
 
-### The Three I Dropped
+### The Three I Dropped (Initially)
 
-| Server | Why I Dropped It |
-|--------|-----------------|
-| **sequential-thinking** | Claude Code's built-in extended thinking (31,999 tokens) already does this |
-| **filesystem** | Built-in Read/Write/Edit/Glob/Grep tools already handle file operations |
-| **github** | The `gh` CLI via Bash covers most GitHub operations |
+<Info title="Lesson in Minimalism">
+I initially dropped sequential-thinking, filesystem, and github MCP servers because they seemed redundant with built-in capabilities. Later, I re-added them as their unique strengths became clear in practice. The lesson: start minimal, but don't be afraid to re-evaluate as your workflow evolves.
+</Info>
 
-**The lesson:** Every MCP server adds startup overhead and context cost. Only keep servers that provide capabilities Claude Code genuinely lacks.
+| Server | Why I Initially Dropped It | Why It's Useful |
+|--------|---------------------------|-----------------|
+| **sequential-thinking** | Claude's built-in extended thinking seemed sufficient | Structured multi-step reasoning for complex debugging |
+| **filesystem** | Built-in Read/Write/Edit/Glob/Grep tools exist | Better for batch file operations and directory trees |
+| **github** | The `gh` CLI via Bash covers most operations | Richer PR/issue interaction without CLI syntax |
+
+**The lesson:** Every MCP server adds startup overhead and context cost. Only keep servers that provide capabilities Claude Code genuinely lacks. But re-evaluate periodically — your needs change as your workflow matures.
 
 ### The Config File Trap
 
-Here's the gotcha that cost me the most time: **`~/.claude/mcp-servers.json` is for Claude Desktop, not Claude Code.** Claude Code ignores that file entirely.
-
-I carefully configured all five servers in `~/.claude/mcp-servers.json`, restarted Claude Code, and... nothing. Running `/mcp` showed "No MCP servers configured."
+<Stop title="Wrong File!">
+Here's the gotcha that cost me the most time: **`~/.claude/mcp-servers.json` is for Claude Desktop, not Claude Code.** Claude Code ignores that file entirely. I carefully configured all five servers in `~/.claude/mcp-servers.json`, restarted Claude Code, and... nothing. Running `/mcp` showed "No MCP servers configured."
+</Stop>
 
 The correct location for Claude Code MCP servers is `~/.claude.json` under the `"mcpServers"` key. The easiest way to add them:
 
@@ -162,9 +174,11 @@ Restart Claude Code and the plugin loads automatically.
 
 ### The Missing Frontmatter Bug
 
+<Warning title="Silent Failure">
 After installing, I noticed that more than half the slash commands weren't appearing. Investigation revealed that 18 of 31 command files in the `commands/` directory were missing YAML frontmatter - the `---\ndescription: ...\n---` block at the top of each `.md` file.
 
 Claude Code requires this frontmatter to register commands. Without it, the files are silently ignored. No error, no warning - the commands just don't exist.
+</Warning>
 
 I fixed all 18 files manually by adding frontmatter. But since these edits are in the plugin cache (`~/.claude/plugins/cache/...`), they'll be overwritten on plugin updates. This is an upstream bug in v1.2.0.
 
@@ -191,17 +205,27 @@ gh repo create <your-username>/<your-config-repo> --private --source=. --push
 
 The `.gitignore` whitelists only the files worth tracking: `rules/`, `skills/learned/`, `.gitignore`, and `README.md`. Everything else (sessions, cache, settings with tokens) is excluded.
 
-**Key insight:** This config is portable. Clone it on a new machine, drop it into `~/.claude/`, and your full environment (rules, skills, learned patterns) is replicated instantly.
+<Tip title="Portable Config">
+This config is portable. Clone it on a new machine, drop it into `~/.claude/`, and your full environment (rules, skills, learned patterns) is replicated instantly.
+</Tip>
 
 ## What I'd Do Differently
 
-1. **Start with hooks.** I wasted time on the Rust binary. If I'd read the Claude Code docs more carefully, I would have found hooks immediately.
+<Tip title="1. Start with hooks">
+I wasted time on the Rust binary. If I'd read the Claude Code docs more carefully, I would have found hooks immediately.
+</Tip>
 
-2. **Trim rules from the start.** Don't copy verbose rules wholesale - read them, understand what they enforce, then write concise versions.
+<Info title="2. Trim rules from the start">
+Don't copy verbose rules wholesale - read them, understand what they enforce, then write concise versions.
+</Info>
 
-3. **Install MCP servers one at a time.** Installing five at once made it hard to tell which ones were actually useful.
+<Tip title="3. Install MCP servers one at a time">
+Installing five at once made it hard to tell which ones were actually useful.
+</Tip>
 
-4. **Back up config early.** I should have set up the GitHub repo before spending hours configuring things, not after.
+<Info title="4. Back up config early">
+I should have set up the GitHub repo before spending hours configuring things, not after.
+</Info>
 
 ## The Full Stack
 
@@ -210,15 +234,16 @@ Here's what my Claude Code environment looks like now:
 ```
 ~/.claude/
 ├── rules/              # 8 rule files (coding, git, testing, security, etc.)
-├── skills/learned/     # Extracted patterns from past sessions
+├── skills/learned/     # 14 extracted patterns from past sessions
+├── commands/           # Custom slash commands (/wrap-up, /blog-post)
 ├── settings.json       # Plugin config
 ├── .gitignore          # Whitelist-based (only tracks rules + skills)
 └── README.md           # Documents what's tracked
 
-~/.claude.json          # MCP servers (memory, context7)
+~/.claude.json          # MCP servers (memory, context7, + others)
 
 project/.claude/
-├── hooks/              # PowerShell scripts for logging
+├── hooks/              # PowerShell scripts for logging + notifications
 ├── session_archive/    # Archived transcripts (git-ignored)
 └── settings.local.json # Hook config + permissions
 

@@ -94,9 +94,11 @@ The oldest and simplest. In the 1970s, physical terminals had actual bells -- li
 
 When you `printf '\a'`, your terminal emulator intercepts that character and does whatever it's configured to do for "bell" events.
 
-**The key insight: this happens on the client side.** If you're SSH'd into a remote server and run `printf '\a'`, the BEL character travels through the SSH stream back to your local terminal, which then plays the sound *on your machine*. The server doesn't need speakers. The server doesn't even need to know what a sound is.
+<Info title="Client-Side Magic">
+The key insight: **this happens on the client side.** If you're SSH'd into a remote server and run `printf '\a'`, the BEL character travels through the SSH stream back to your local terminal, which then plays the sound *on your machine*. The server doesn't need speakers. The server doesn't even need to know what a sound is.
 
 This is why terminal bell works in web-based terminals, over SSH, in tmux sessions -- the character just flows through the stream until it reaches something that can interpret it.
+</Info>
 
 ### OSC Sequences (Operating System Command)
 
@@ -124,7 +126,9 @@ printf '\e]777;notify;Title;Message\a'
 
 Same idea, different syntax.
 
+<Warning title="Terminal Compatibility">
 The bash script sends all of them because **terminal compatibility is a mess**. Some terminals support OSC 9, some support OSC 777, some only support BEL, and some support none of them. Sending all three maximizes the chance that *something* will work.
+</Warning>
 
 ### Why Write to `/dev/tty`?
 
@@ -135,14 +139,17 @@ printf '\a'                          # To stdout
 printf '\a' > /dev/tty 2>/dev/null   # To /dev/tty
 ```
 
-**What's happening:** `/dev/tty` is a special file that always refers to the **controlling terminal of the current process**, even if stdout has been redirected. Writing to `/dev/tty` bypasses any intermediate buffering or redirection and sends the character directly to the terminal device.
+<Tip title="Insurance Against Redirection">
+`/dev/tty` is a special file that always refers to the **controlling terminal of the current process**, even if stdout has been redirected. Writing to `/dev/tty` bypasses any intermediate buffering or redirection and sends the character directly to the terminal device.
 
-**Why this matters:** In theory, hook output should reach the terminal. But if Claude Code's hook system captures stdout for logging or error handling, the `\a` might never reach your terminal. `/dev/tty` is insurance.
+If Claude Code's hook system captures stdout for logging or error handling, the `\a` might never reach your terminal. `/dev/tty` is insurance.
 
 The `2>/dev/null || true` suppresses errors if the process doesn't have a controlling terminal (rare, but possible in some environments).
+</Tip>
 
 ## The Windows Gotcha
 
+<Warning title="Bash Not in PATH">
 Here's the hook configuration from the first attempt:
 
 ```json
@@ -166,6 +173,7 @@ as an internal or external command, operable program or batch file.
 ```
 
 **The problem:** I was running Claude Code in PowerShell on Windows. Git Bash wasn't in the PATH that Claude Code's hook system uses. The hook tried to run `bash`, couldn't find it, and failed.
+</Warning>
 
 I could have added Git Bash to PATH. But that felt fragile -- it would break if I moved the Git Bash install, used a different terminal, or shared the config with someone.
 
@@ -225,7 +233,9 @@ Three hooks, three different event types:
 | `log-activity.ps1` | PostToolUse | Logs file edits and shell commands | Yes |
 | `prompt-notify.ps1` | Stop | Plays notification sound | No |
 
+<Info title="Async Matters">
 Notice the PostToolUse hook uses `"async": true` because logging shouldn't block Claude Code while it's working. The Stop hook doesn't need async -- it fires *after* Claude is done, so a brief sound delay doesn't matter.
+</Info>
 
 ## Customizing the Sound
 
@@ -246,15 +256,25 @@ On Windows with the PowerShell version, you can change the system sound through 
 
 ## What I Learned
 
-1. **Platform consistency matters.** Using PowerShell for all hooks -- not mixing bash and PowerShell -- eliminated an entire class of PATH and environment issues.
+<Tip title="1. Platform Consistency Matters">
+Using PowerShell for all hooks -- not mixing bash and PowerShell -- eliminated an entire class of PATH and environment issues. Pick one shell and stick with it.
+</Tip>
 
-2. **Terminal bell is client-side magic.** The BEL character travels through SSH, tmux, even web terminals, and gets interpreted by the final terminal emulator on the user's machine. That's surprisingly elegant for a protocol from the 1970s.
+<Info title="2. Terminal Bell Is Client-Side Magic">
+The BEL character travels through SSH, tmux, even web terminals, and gets interpreted by the final terminal emulator on the user's machine. That's surprisingly elegant for a protocol from the 1970s.
+</Info>
 
-3. **Escape sequences are not portable.** OSC 9 works in some terminals, OSC 777 works in others, and some support neither. Sending multiple protocols is the only way to maximize compatibility.
+<Warning title="3. Escape Sequences Are Not Portable">
+OSC 9 works in some terminals, OSC 777 works in others, and some support neither. Sending multiple protocols is the only way to maximize compatibility. Don't assume your terminal supports any specific escape sequence.
+</Warning>
 
-4. **`/dev/tty` is insurance.** Even if you think stdout will reach the terminal, writing to `/dev/tty` guarantees the notification gets through.
+<Tip title="4. /dev/tty Is Insurance">
+Even if you think stdout will reach the terminal, writing to `/dev/tty` guarantees the notification gets through. It costs one extra line and eliminates an entire class of "it works here but not there" bugs.
+</Tip>
 
-5. **The Windows API is simpler.** `[System.Media.SystemSounds]::Asterisk.Play()` is three lines of PowerShell. No escape codes, no protocol negotiation, no terminal compatibility matrix. Just a function call that plays a sound.
+<Info title="5. The Windows API Is Simpler">
+`[System.Media.SystemSounds]::Asterisk.Play()` is three lines of PowerShell. No escape codes, no protocol negotiation, no terminal compatibility matrix. Just a function call that plays a sound. Sometimes the platform-native approach wins.
+</Info>
 
 ## Why This Matters
 
