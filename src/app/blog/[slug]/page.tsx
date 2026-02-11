@@ -16,6 +16,10 @@ import {
   CloudflareDoubleHop,
   VercelNativeWAF,
   TwoLayerWAF,
+  OldVsNewStack,
+  SiteArchitectureDiagram,
+  MDXPipelineDiagram,
+  DeploymentFlowDiagram,
 } from "@/components/mdx";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 
@@ -110,6 +114,10 @@ export default async function BlogPostPage({ params }: Props) {
               CloudflareDoubleHop,
               VercelNativeWAF,
               TwoLayerWAF,
+              OldVsNewStack,
+              SiteArchitectureDiagram,
+              MDXPipelineDiagram,
+              DeploymentFlowDiagram,
             }}
           />
         </div>

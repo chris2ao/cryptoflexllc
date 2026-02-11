@@ -4,4 +4,8 @@ export {
   CloudflareDoubleHop,
   VercelNativeWAF,
   TwoLayerWAF,
+  OldVsNewStack,
+  SiteArchitectureDiagram,
+  MDXPipelineDiagram,
+  DeploymentFlowDiagram,
 } from "./diagrams";
