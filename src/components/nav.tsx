@@ -32,9 +32,9 @@ export function Nav() {
           <Image
             src="/CFLogo.png"
             alt="CryptoFlex LLC"
-            width={160}
-            height={40}
-            className="h-9 w-auto"
+            width={240}
+            height={60}
+            className="h-14 w-auto"
             priority
           />
         </Link>
@@ -80,9 +80,9 @@ export function Nav() {
               <Image
                 src="/CFLogo.png"
                 alt="CryptoFlex LLC"
-                width={140}
-                height={35}
-                className="h-8 w-auto"
+                width={200}
+                height={50}
+                className="h-12 w-auto"
               />
             </SheetTitle>
             <nav className="flex flex-col gap-2">
