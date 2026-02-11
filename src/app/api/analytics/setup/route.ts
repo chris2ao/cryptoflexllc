@@ -109,6 +109,21 @@ export async function GET(request: NextRequest) {
         ON web_vitals (metric_name)
     `;
 
+    // Subscribers table for blog newsletter
+    await sql`
+      CREATE TABLE IF NOT EXISTS subscribers (
+        id            SERIAL PRIMARY KEY,
+        email         VARCHAR(320) NOT NULL UNIQUE,
+        subscribed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        active        BOOLEAN NOT NULL DEFAULT TRUE
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_subscribers_active
+        ON subscribers (active) WHERE active = TRUE
+    `;
+
     return NextResponse.json({
       success: true,
       message: "Tables created successfully. Your analytics tracking is now ready.",
