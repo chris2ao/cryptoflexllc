@@ -72,10 +72,10 @@ export default function ContactPage() {
                 <p className="text-sm text-muted-foreground">
                   Prefer email? You can also reach me at{" "}
                   <a
-                    href="mailto:chris@cryptoflexllc.com"
+                    href="mailto:Chris.Johnson@cryptoflexllc.com"
                     className="text-primary hover:underline"
                   >
-                    chris@cryptoflexllc.com
+                    Chris.Johnson@cryptoflexllc.com
                   </a>
                 </p>
               </div>

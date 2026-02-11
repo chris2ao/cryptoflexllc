@@ -43,6 +43,17 @@ const services = [
       "Technical project management",
     ],
   },
+  {
+    title: "Web Development & Management",
+    description:
+      "Professional website creation and ongoing management for businesses. Modern, fast, and secure sites built with the latest technologies.",
+    items: [
+      "Custom website design & development",
+      "Website hosting & maintenance",
+      "Performance optimization & SEO",
+      "Content updates & ongoing management",
+    ],
+  },
 ];
 
 export default function ServicesPage() {
