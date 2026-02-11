@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 
@@ -7,9 +8,13 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
           <div>
-            <h3 className="text-lg font-bold">
-              <span className="text-primary">Crypto</span>Flex LLC
-            </h3>
+            <Image
+              src="/CFLogo.png"
+              alt="CryptoFlex LLC"
+              width={140}
+              height={35}
+              className="h-8 w-auto"
+            />
             <p className="mt-2 text-sm text-muted-foreground">
               Tech blog and IT consulting based in Florida.
             </p>

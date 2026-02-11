@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -28,9 +29,14 @@ export function Nav() {
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold tracking-tight">
-            <span className="text-primary">Crypto</span>Flex
-          </span>
+          <Image
+            src="/CFLogo.png"
+            alt="CryptoFlex LLC"
+            width={160}
+            height={40}
+            className="h-9 w-auto"
+            priority
+          />
         </Link>
 
         {/* Desktop nav */}
@@ -70,8 +76,14 @@ export function Nav() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-64">
-            <SheetTitle className="text-lg font-bold mb-4">
-              <span className="text-primary">Crypto</span>Flex
+            <SheetTitle className="mb-4">
+              <Image
+                src="/CFLogo.png"
+                alt="CryptoFlex LLC"
+                width={140}
+                height={35}
+                className="h-8 w-auto"
+              />
             </SheetTitle>
             <nav className="flex flex-col gap-2">
               {links.map((link) => (

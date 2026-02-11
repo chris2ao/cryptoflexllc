@@ -4,6 +4,19 @@ import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
+import {
+  Warning,
+  Stop,
+  Info,
+  Tip,
+  Security,
+  Vercel,
+  Cloudflare,
+  Nextjs,
+  CloudflareDoubleHop,
+  VercelNativeWAF,
+  TwoLayerWAF,
+} from "@/components/mdx";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 
 interface Props {
@@ -86,6 +99,17 @@ export default async function BlogPostPage({ params }: Props) {
                   <table {...props} />
                 </div>
               ),
+              Warning,
+              Stop,
+              Info,
+              Tip,
+              Security,
+              Vercel,
+              Cloudflare,
+              Nextjs,
+              CloudflareDoubleHop,
+              VercelNativeWAF,
+              TwoLayerWAF,
             }}
           />
         </div>

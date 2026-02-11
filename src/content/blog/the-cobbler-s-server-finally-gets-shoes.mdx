@@ -13,31 +13,27 @@ So when I stood up cryptoflexllc.com, one of the first things on my list was WAF
 
 The question wasn't *whether* to add a WAF. It was *which one*.
 
-## Evaluating the Options: Cloudflare vs Vercel
+## Evaluating the Options: <Cloudflare /> vs <Vercel />
 
-My site runs on Vercel's Hobby plan. The first candidate was the obvious one: **Cloudflare**. I've configured Cloudflare WAFs for clients more times than I can count. Their free tier includes WAF capabilities, their edge network is massive, and the setup is well-documented. Proxy your DNS through Cloudflare, enable the WAF, move on.
+My site runs on <Vercel>Vercel's Hobby plan</Vercel>. The first candidate was the obvious one: <Cloudflare />. I've configured Cloudflare WAFs for clients more times than I can count. Their free tier includes WAF capabilities, their edge network is massive, and the setup is well-documented. Proxy your DNS through Cloudflare, enable the WAF, move on.
 
 But before committing to any solution, I have a rule from years of firewall management: **read the vendor docs from both sides**. Not blog posts. Not Stack Overflow. The actual documentation from each vendor about interoperability.
 
-So I checked what Vercel says about putting Cloudflare in front of their platform.
+So I checked what <Vercel /> says about putting <Cloudflare /> in front of their platform.
 
-Vercel says: **don't do it.**
+<Stop title="Vercel says: don't do it.">
+From their [official knowledge base](https://vercel.com/kb/guide/cloudflare-with-vercel): "Using Cloudflare's proxy mode in front of Vercel deployments is **not recommended** and may cause SSL certificate renewal conflicts, degraded performance (double edge hop), broken bot protection, and cache invalidation issues."
+</Stop>
 
-From their [official knowledge base](https://vercel.com/kb/guide/cloudflare-with-vercel):
+This is the kind of thing you only discover if you read documentation from both sides of the integration. <Cloudflare>Cloudflare's</Cloudflare> free WAF requires proxy mode. <Vercel /> explicitly warns against proxy mode. That's not a compatibility concern, that's a fundamental architecture conflict.
 
-> "Using Cloudflare's proxy mode in front of Vercel deployments is **not recommended** and may cause the following issues:
-> - SSL certificate renewal conflicts
-> - Degraded performance (double edge hop)
-> - Broken bot protection
-> - Cache invalidation issues"
+The performance issue sealed it. My site already runs on <Vercel>Vercel's edge network</Vercel>, which handles TLS termination, caching, and global distribution. Adding <Cloudflare /> in front means every request traverses two edge networks before reaching origin. In firewall terms, that's like putting a second perimeter firewall in front of the first one with no DMZ between them. You're not adding defense in depth. You're adding latency and failure modes.
 
-This is the kind of thing you only discover if you read documentation from both sides of the integration. Cloudflare's free WAF requires proxy mode. Vercel explicitly warns against proxy mode. That's not a compatibility concern, that's a fundamental architecture conflict.
-
-The performance issue sealed it. My site already runs on Vercel's edge network, which handles TLS termination, caching, and global distribution. Adding Cloudflare in front means every request traverses two edge networks before reaching origin. In firewall terms, that's like putting a second perimeter firewall in front of the first one with no DMZ between them. You're not adding defense in depth. You're adding latency and failure modes.
+<CloudflareDoubleHop />
 
 Here's how the two free tiers compare:
 
-| Feature | Cloudflare (Free) | Vercel (Hobby) |
+| Feature | <Cloudflare>Cloudflare (Free)</Cloudflare> | <Vercel>Vercel (Hobby)</Vercel> |
 |---------|-------------------|----------------|
 | **WAF Custom Rules** | 5 rules | 3 dashboard rules + unlimited `vercel.json` rules |
 | **DDoS Mitigation** | Included | Included (automatic) |
@@ -49,11 +45,13 @@ Here's how the two free tiers compare:
 | **Code-Level Rules** | No | Yes (`vercel.json` with `mitigate` actions) |
 | **Attack Challenge Mode** | Under Attack Mode | Attack Challenge Mode |
 
-On paper, Cloudflare gives you more custom rules. In practice, the proxy mode requirement makes it a non-starter for Vercel-hosted sites. And the ability to define deny rules directly in `vercel.json` (version-controlled, deployed with your app) is something Cloudflare's free tier doesn't offer at all.
+On paper, <Cloudflare /> gives you more custom rules. In practice, the proxy mode requirement makes it a non-starter for Vercel-hosted sites. And the ability to define deny rules directly in `vercel.json` (version-controlled, deployed with your app) is something <Cloudflare>Cloudflare's</Cloudflare> free tier doesn't offer at all.
 
-**The decision:** Vercel's native WAF. Zero infrastructure changes. Zero DNS migration. Zero risk of breaking SSL or bot protection. And it was already there, waiting to be configured.
+<Tip title="The Decision">
+<Vercel>Vercel's native WAF</Vercel>. Zero infrastructure changes. Zero DNS migration. Zero risk of breaking SSL or bot protection. And it was already there, waiting to be configured.
+</Tip>
 
-## What Vercel's Free WAF Includes
+## What <Vercel>Vercel's</Vercel> Free WAF Includes
 
 Here's what comes included on the Hobby plan, no upgrade required:
 
@@ -69,9 +67,11 @@ The free tier gives you up to 3 dashboard-configured custom rules, plus unlimite
 
 ## The Implementation: Two Layers
 
-Vercel's WAF works in two places: **code-level rules** in `vercel.json`, and **dashboard rules** configured through the Vercel web UI.
+<Vercel>Vercel's WAF</Vercel> works in two places: **code-level rules** in `vercel.json`, and **dashboard rules** configured through the Vercel web UI.
 
 Code-level rules are version-controlled, deployed with your application, and apply the same protections across all environments. Dashboard rules are configured per-project and give you a point-and-click interface for common patterns.
+
+<TwoLayerWAF />
 
 I started with code-level rules.
 
@@ -106,15 +106,12 @@ Here's the `vercel.json` I created:
 }
 ```
 
-**What each rule does:**
-
-1. **Host header injection protection.** If a request to `/api/*` contains the `x-forwarded-host` header, deny it. This header is used in cache poisoning and SSRF attacks. Legitimate requests from browsers don't send it. Attackers probing for vulnerabilities do.
-
-2. **Dotfile access blocking.** Deny requests for `.env`, `.git`, `.svn`, `.htaccess`, `.htpasswd`, and `.DS_Store`. These files contain sensitive configuration data, version control history, and server directives. They should never be accessible over HTTP, but misconfigurations happen. This rule ensures they're blocked even if the server config is wrong.
-
-3. **WordPress probe blocking.** Deny requests for `wp-admin`, `wp-login.php`, `wp-content`, `xmlrpc.php`, and `wp-includes`. My site doesn't use WordPress. These requests are 100% noise from automated scanners looking for vulnerable WordPress installs. Block them.
-
-4. **Database admin panel blocking.** Deny requests for `phpmyadmin`, `pma`, `adminer`, and `mysqladmin`. Same logic as WordPress. My site doesn't have a database admin panel exposed to the web. Any request for these paths is a probe.
+<Security title="What each rule protects against">
+1. **Host header injection** — Blocks `x-forwarded-host` on API routes. Used in cache poisoning and SSRF attacks.
+2. **Dotfile access** — Blocks `.env`, `.git`, `.svn`, `.htaccess`, `.htpasswd`, `.DS_Store`. These contain secrets and server config.
+3. **WordPress probes** — Blocks `wp-admin`, `wp-login.php`, `xmlrpc.php`. 100% scanner noise on a non-WordPress site.
+4. **Database admin panels** — Blocks `phpmyadmin`, `pma`, `adminer`, `mysqladmin`. Same logic — if it doesn't exist, block it.
+</Security>
 
 Each rule uses a regular expression in the `"src"` field to match request paths, and `"mitigate": { "action": "deny" }` to block matching requests.
 
@@ -122,7 +119,7 @@ Each rule uses a regular expression in the `"src"` field to match request paths,
 
 This is where things got interesting.
 
-My first attempt at `vercel.json` used a different structure. I'd found an example in Vercel's documentation that used `"rules"` as the top-level key and `"route"` as a property inside each rule:
+My first attempt at `vercel.json` used a different structure. I'd found an example in <Vercel>Vercel's</Vercel> documentation that used `"rules"` as the top-level key and `"route"` as a property inside each rule:
 
 ```json
 {
@@ -136,7 +133,7 @@ My first attempt at `vercel.json` used a different structure. I'd found an examp
 }
 ```
 
-This looked right. The syntax made sense. I committed it, pushed to GitHub, and Vercel started building.
+This looked right. The syntax made sense. I committed it, pushed to GitHub, and <Vercel /> started building.
 
 The build failed.
 
@@ -145,7 +142,9 @@ Error: vercel.json validation failed
   - should NOT have additional property 'rules'
 ```
 
-**The actual schema expects `"routes"`, not `"rules"`.** And inside each route object, the path goes in `"src"`, not `"route"`. The documentation example I'd found was either outdated or wrong. The official schema (referenced at the top of `vercel.json` via `"$schema": "https://openapi.vercel.sh/vercel.json"`) is the source of truth.
+<Warning title="Schema Mismatch">
+The actual schema expects `"routes"`, not `"rules"`. And inside each route object, the path goes in `"src"`, not `"route"`. The documentation example was either outdated or wrong. The official schema (referenced via `"$schema": "https://openapi.vercel.sh/vercel.json"`) is the source of truth.
+</Warning>
 
 I fixed it:
 - Changed `"rules"` to `"routes"`
@@ -154,7 +153,9 @@ I fixed it:
 
 Pushed again. Build succeeded.
 
-**Why this matters:** Schema validation errors can be cryptic when you're following documentation that's slightly off. Always check the schema directly if a config file has a `"$schema"` reference. That's your ground truth.
+<Tip>
+Schema validation errors can be cryptic when you're following documentation that's slightly off. Always check the schema directly if a config file has a `"$schema"` reference. That's your ground truth.
+</Tip>
 
 ### Layer 2: Dashboard Rules
 
@@ -182,7 +183,9 @@ Legitimate browsers have full User-Agent strings. Scrapers and bots often use ge
 
 Only create this if I see targeted traffic from specific regions. Geo-blocking is a blunt instrument. Use it sparingly.
 
-The recommended approach for new dashboard rules: start with **Log** action for 24-48 hours, monitor what gets matched, then upgrade to Deny or Challenge after confirming the rule doesn't block legitimate traffic.
+<Info title="Dashboard Rule Rollout Strategy">
+Start with **Log** action for 24-48 hours, monitor what gets matched, then upgrade to Deny or Challenge after confirming the rule doesn't block legitimate traffic. Never go straight to Deny on a new rule.
+</Info>
 
 ## Testing: Curl Until You Get Blocked
 
@@ -201,7 +204,7 @@ HTTP/1.1 403 Forbidden
 X-Vercel-Mitigated: challenge
 ```
 
-Blocked. The `.env` request hit the WAF, got denied, and returned 403. The `X-Vercel-Mitigated: challenge` header confirms Vercel's WAF intercepted the request. Browsers would see a JS challenge. `curl` sees 403.
+Blocked. The `.env` request hit the WAF, got denied, and returned 403. The `X-Vercel-Mitigated: challenge` header confirms <Vercel>Vercel's WAF</Vercel> intercepted the request. Browsers would see a JS challenge. `curl` sees 403.
 
 **Test 2: WordPress admin probe**
 
@@ -249,13 +252,15 @@ All four rules worked exactly as expected. The WAF was live, active, and blockin
 
 Here's where it got fun. After running about a dozen curl tests in quick succession, I tried to load the homepage in my browser. And it challenged me.
 
-Vercel's WAF has **persistent action** logic. If an IP sends multiple suspicious requests in a short period, the WAF escalates from per-request blocking to IP-level challenges. My test IP (my home connection) had triggered enough deny rules that Vercel started challenging *all* requests from my IP, even legitimate browser traffic.
+<Vercel>Vercel's WAF</Vercel> has **persistent action** logic. If an IP sends multiple suspicious requests in a short period, the WAF escalates from per-request blocking to IP-level challenges. My test IP (my home connection) had triggered enough deny rules that Vercel started challenging *all* requests from my IP, even legitimate browser traffic.
 
 I solved the CAPTCHA, and the challenge went away. But the behavior confirmed something important: **the WAF adapts**. It's not just static regex matching. It's learning patterns and escalating defenses when it sees repeated suspicious activity from the same source.
 
-This is exactly what you want from a WAF. Bots don't solve CAPTCHAs. Humans do. The WAF let me prove I was human, then stopped challenging me.
+<Security title="Adaptive Defense">
+This is exactly what you want from a WAF. Bots don't solve CAPTCHAs. Humans do. The persistent action feature means repeated malicious probes from the same IP automatically trigger escalated challenges — without any manual rule creation.
+</Security>
 
-## What Vercel Provides for Free
+## What <Vercel /> Provides for Free
 
 Here's the full list of protections now active on cryptoflexllc.com, all on the Hobby (free) plan:
 
@@ -276,7 +281,7 @@ The paid features (Pro plan at $20/month, Enterprise custom pricing) add managed
 
 ## What's Still at the Application Layer
 
-The WAF handles perimeter defense, but it doesn't replace application-level security. These protections are already implemented in my Next.js code and stay there:
+The WAF handles perimeter defense, but it doesn't replace application-level security. These protections are already implemented in my <Nextjs /> code and stay there:
 
 - **Rate limiting** — IP and path deduplication on the analytics tracking endpoint (1-hour window, Postgres-backed)
 - **Input validation** — `pagePath` must be under 500 characters and start with `/`, days parameter clamped to 1-365 range
@@ -284,21 +289,35 @@ The WAF handles perimeter defense, but it doesn't replace application-level secu
 - **Error message sanitization** — generic client messages, detailed server-side logging only
 - **Cookie-based authentication** — httpOnly HMAC-SHA256 tokens for the analytics dashboard (no query-string secrets)
 
+<VercelNativeWAF caption="The complete picture: WAF at the edge filters noise, clean traffic reaches the Next.js application layer with its own security controls" />
+
 The WAF and the application-layer protections are complementary. The WAF stops noise at the edge. The application code validates trusted traffic that makes it through.
 
 ## Lessons Learned
 
-1. **Check what your existing infrastructure provides before adding a new service.** I almost migrated DNS to Cloudflare for a feature Vercel already had. Reading both vendors' docs saved me a migration and improved performance.
+<Tip title="1. Check what your infrastructure already provides">
+I almost migrated DNS to <Cloudflare /> for a feature <Vercel /> already had. Reading both vendors' docs saved me a migration and improved performance.
+</Tip>
 
-2. **Vendor recommendations matter.** When Vercel explicitly says "don't proxy through Cloudflare," that's not a suggestion. It's based on real observed issues: SSL conflicts, degraded performance, broken features. Trust the people who built the platform.
+<Stop title="2. Vendor recommendations matter">
+When <Vercel /> explicitly says "don't proxy through <Cloudflare />," that's not a suggestion. It's based on real observed issues: SSL conflicts, degraded performance, broken features. Trust the people who built the platform.
+</Stop>
 
-3. **Schema validation errors are your friend.** When a build fails with "should NOT have additional properties," that's the schema telling you the docs are wrong (or outdated). Check the `$schema` reference for ground truth.
+<Info title="3. Schema validation errors are your friend">
+When a build fails with "should NOT have additional properties," that's the schema telling you the docs are wrong (or outdated). Check the `$schema` reference for ground truth.
+</Info>
 
-4. **Test with the tools attackers use.** `curl` is how bots and scanners interact with your site. If your WAF doesn't block malicious curl requests, it won't block real attacks either. Test with realistic payloads.
+<Security title="4. Test with the tools attackers use">
+`curl` is how bots and scanners interact with your site. If your WAF doesn't block malicious curl requests, it won't block real attacks either. Test with realistic payloads.
+</Security>
 
-5. **Persistent action is a feature, not a bug.** When the WAF started challenging my browser after I ran too many curl tests, that was exactly the behavior I wanted. Adaptive defenses that escalate when they see patterns are better than static rules.
+<Warning title="5. Persistent action is a feature, not a bug">
+When the WAF started challenging my browser after I ran too many curl tests, that was exactly the behavior I wanted. Adaptive defenses that escalate when they see patterns are better than static rules.
+</Warning>
 
-6. **Free doesn't mean weak.** Vercel's free WAF is production-grade. DDoS mitigation, bot detection, custom rules, and attack challenge mode are all included. You don't need an enterprise contract to have real perimeter defense.
+<Tip title="6. Free doesn't mean weak">
+<Vercel>Vercel's</Vercel> free WAF is production-grade. DDoS mitigation, bot detection, custom rules, and attack challenge mode are all included. You don't need an enterprise contract to have real perimeter defense.
+</Tip>
 
 ## What's Next
 
@@ -307,7 +326,7 @@ The WAF is live. The rules are deployed. The edge network is blocking probes.
 But security isn't a checkbox. It's a posture. Future work includes:
 
 - **Creating the 3 dashboard rules** (Protect Analytics API, Challenge Suspicious Bots, optional Geo-Blocking)
-- **Monitoring Vercel's Security Events dashboard** for patterns in blocked traffic
+- **Monitoring <Vercel>Vercel's</Vercel> Security Events dashboard** for patterns in blocked traffic
 - **Adding dependency scanning** to catch vulnerable packages before they deploy
 - **WAF-level rate limiting** when the traffic profile justifies upgrading to Pro
 
