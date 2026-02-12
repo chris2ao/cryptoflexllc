@@ -115,13 +115,26 @@ export async function GET(request: NextRequest) {
         id            SERIAL PRIMARY KEY,
         email         VARCHAR(320) NOT NULL UNIQUE,
         subscribed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        active        BOOLEAN NOT NULL DEFAULT TRUE
+        active        BOOLEAN NOT NULL DEFAULT TRUE,
+        ip_address    VARCHAR(45) NOT NULL DEFAULT '',
+        country       VARCHAR(100) NOT NULL DEFAULT 'Unknown',
+        city          VARCHAR(100) NOT NULL DEFAULT 'Unknown',
+        region        VARCHAR(100) NOT NULL DEFAULT 'Unknown'
       )
     `;
 
     await sql`
       CREATE INDEX IF NOT EXISTS idx_subscribers_active
         ON subscribers (active) WHERE active = TRUE
+    `;
+
+    // Add columns to existing subscribers table if they don't exist
+    await sql`
+      ALTER TABLE subscribers
+        ADD COLUMN IF NOT EXISTS ip_address VARCHAR(45) NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS country VARCHAR(100) NOT NULL DEFAULT 'Unknown',
+        ADD COLUMN IF NOT EXISTS city VARCHAR(100) NOT NULL DEFAULT 'Unknown',
+        ADD COLUMN IF NOT EXISTS region VARCHAR(100) NOT NULL DEFAULT 'Unknown'
     `;
 
     return NextResponse.json({

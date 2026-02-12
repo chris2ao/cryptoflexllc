@@ -169,6 +169,17 @@ export interface WebVitalsSummary {
   poor_count: number;
 }
 
+export interface SubscriberRow {
+  id: number;
+  email: string;
+  subscribed_at: string;
+  active: boolean;
+  ip_address: string;
+  country: string;
+  city: string;
+  region: string;
+}
+
 export interface IpIntelData {
   ip_address: string;
   isp: string;
