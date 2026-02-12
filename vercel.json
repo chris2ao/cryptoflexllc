@@ -8,18 +8,6 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "has": [
-        {
-          "type": "header",
-          "key": "x-forwarded-host"
-        }
-      ],
-      "mitigate": {
-        "action": "deny"
-      }
-    },
-    {
       "src": "/(\\.(env|git|svn|htaccess|htpasswd|DS_Store).*)",
       "mitigate": {
         "action": "deny"
