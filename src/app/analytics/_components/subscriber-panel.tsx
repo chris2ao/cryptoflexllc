@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { Trash2, Loader2 } from "lucide-react";
 import { IpOsintPanel, useIpOsintPanel } from "./ip-osint-panel";
 import type { SubscriberRow } from "@/lib/analytics-types";
 
@@ -14,9 +16,27 @@ export function SubscriberPanel({
   totalCount,
   activeCount,
   inactiveCount,
-  subscribers,
+  subscribers: initialSubscribers,
 }: SubscriberPanelProps) {
   const osint = useIpOsintPanel();
+  const [subscribers, setSubscribers] = useState(initialSubscribers);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  async function handleRemove(sub: SubscriberRow) {
+    if (!confirm(`Remove subscriber ${sub.email}? This cannot be undone.`)) return;
+
+    setDeletingId(sub.id);
+    try {
+      const res = await fetch(`/api/subscribers/${sub.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setSubscribers((prev) => prev.filter((s) => s.id !== sub.id));
+      }
+    } catch {
+      // Network error — silently fail
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <>
@@ -69,13 +89,14 @@ export function SubscriberPanel({
                 <th className="px-4 py-3 font-medium">Subscribed</th>
                 <th className="px-4 py-3 font-medium">IP</th>
                 <th className="px-4 py-3 font-medium">Location</th>
+                <th className="px-4 py-3 font-medium w-20"></th>
               </tr>
             </thead>
             <tbody>
               {subscribers.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     No subscribers yet.
@@ -121,6 +142,21 @@ export function SubscriberPanel({
                       {[sub.city, sub.region, sub.country]
                         .filter((v) => v && v !== "Unknown")
                         .join(", ") || "Unknown"}
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(sub)}
+                        disabled={deletingId === sub.id}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                        title="Remove subscriber"
+                      >
+                        {deletingId === sub.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </button>
                     </td>
                   </tr>
                 ))

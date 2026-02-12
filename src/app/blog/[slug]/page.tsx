@@ -28,6 +28,8 @@ import {
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
 import { SubscribeForm } from "@/components/subscribe-form";
+import { BlogPostThumbsUp } from "@/components/blog-post-engagement";
+import { BlogComments } from "@/components/blog-comments";
 
 const BASE_URL = "https://cryptoflexllc.com";
 
@@ -133,6 +135,7 @@ export default async function BlogPostPage({ params }: Props) {
             </span>
             {post.readingTime && <span>&middot;</span>}
             {post.readingTime && <span>{post.readingTime}</span>}
+            <BlogPostThumbsUp slug={slug} />
           </div>
         </header>
 
@@ -174,10 +177,13 @@ export default async function BlogPostPage({ params }: Props) {
           />
         </div>
 
-        {/* Subscribe CTA at end of post */}
+        {/* Subscribe CTA */}
         <div className="mt-16">
           <SubscribeForm />
         </div>
+
+        {/* Comments section (subscriber-only) */}
+        <BlogComments slug={slug} />
       </div>
     </article>
   );
