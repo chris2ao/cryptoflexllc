@@ -25,6 +25,7 @@ import type {
   DeviceRow,
   OsRow,
   RecentVisit,
+  SubscriberRow,
   VercelFirewallConfig,
   VercelAttackStatus,
   VercelFirewallEvents,
@@ -49,6 +50,7 @@ import { RecentVisitsTable } from "./_components/recent-visits-table";
 import { VercelFirewallCard } from "./_components/vercel-firewall-card";
 import { VercelAnalyticsCard } from "./_components/vercel-analytics-card";
 import { VercelSpeedInsightsCard } from "./_components/vercel-speed-insights-card";
+import { SubscriberPanel } from "./_components/subscriber-panel";
 
 export const metadata: Metadata = {
   title: "Analytics",
@@ -90,6 +92,8 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       dailyViews,
       mapLocations,
       webVitalsRaw,
+      subscriberSummary,
+      subscriberList,
     ] = await Promise.all([
       sql`
         SELECT
@@ -180,6 +184,20 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY metric_name
       `.catch(() => []),
+      // Subscriber summary counts
+      sql`
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE active = TRUE)::int AS active,
+          COUNT(*) FILTER (WHERE active = FALSE)::int AS inactive
+        FROM subscribers
+      `.catch(() => [{ total: 0, active: 0, inactive: 0 }]),
+      // Full subscriber list
+      sql`
+        SELECT id, email, subscribed_at, active, ip_address, country, city, region
+        FROM subscribers
+        ORDER BY subscribed_at DESC
+      `.catch(() => []),
     ]);
 
     const stats = summary[0] || {
@@ -224,6 +242,8 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
     const typedOs = osStats as unknown as OsRow[];
     const typedRecent = recent as unknown as RecentVisit[];
     const typedWebVitals = webVitalsRaw as unknown as WebVitalsSummary[];
+    const subStats = (subscriberSummary as unknown as { total: number; active: number; inactive: number }[])[0] || { total: 0, active: 0, inactive: 0 };
+    const typedSubscribers = subscriberList as unknown as SubscriberRow[];
 
     return (
       <section className="py-16 sm:py-20">
@@ -351,6 +371,23 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
 
           {/* Recent Visits with clickable IPs */}
           <RecentVisitsTable data={typedRecent} />
+
+          {/* ── SUBSCRIBERS SECTION ── */}
+          <div className="mt-14 mb-4">
+            <h2 className="text-2xl font-bold">Newsletter</h2>
+            <p className="mt-1 text-muted-foreground text-sm">
+              Blog subscriber data and engagement
+            </p>
+          </div>
+
+          <div className="mb-10">
+            <SubscriberPanel
+              totalCount={subStats.total}
+              activeCount={subStats.active}
+              inactiveCount={subStats.inactive}
+              subscribers={typedSubscribers}
+            />
+          </div>
 
           {/* ── VERCEL PLATFORM SECTION ── */}
           <div className="mt-14 mb-2">
