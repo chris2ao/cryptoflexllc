@@ -5,6 +5,7 @@ import { Footer } from "@/components/footer";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { WebVitalsReporter } from "@/components/web-vitals-reporter";
 import { WebsiteJsonLd, PersonJsonLd } from "@/components/json-ld";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -118,6 +119,7 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
         <Footer />
       </body>
+      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID!} />
     </html>
   );
 }
