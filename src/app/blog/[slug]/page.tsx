@@ -20,6 +20,10 @@ import {
   SiteArchitectureDiagram,
   MDXPipelineDiagram,
   DeploymentFlowDiagram,
+  SEOStackDiagram,
+  GoogleCrawlFlowDiagram,
+  MetadataFlowDiagram,
+  SEOBeforeAfterDiagram,
 } from "@/components/mdx";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
@@ -161,6 +165,10 @@ export default async function BlogPostPage({ params }: Props) {
               SiteArchitectureDiagram,
               MDXPipelineDiagram,
               DeploymentFlowDiagram,
+              SEOStackDiagram,
+              GoogleCrawlFlowDiagram,
+              MetadataFlowDiagram,
+              SEOBeforeAfterDiagram,
             }}
           />
         </div>
