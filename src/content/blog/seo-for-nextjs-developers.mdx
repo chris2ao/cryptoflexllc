@@ -3,17 +3,17 @@ title: "SEO for Developers Who'd Rather Write Code Than Meta Tags"
 date: "2026-02-12T08:00:00"
 author: "Chris Johnson"
 readingTime: "22 min read"
-description: "A technical deep-dive into implementing production-grade SEO for a Next.js site - dynamic sitemaps, JSON-LD structured data, OpenGraph, Twitter Cards, RSS feeds, canonical URLs, and everything Google needs to actually find your website."
+description: "A technical deep-dive into implementing production-grade SEO for a Next.js site, covering dynamic sitemaps, JSON-LD structured data, OpenGraph, Twitter Cards, RSS feeds, canonical URLs, and everything Google needs to actually find your website."
 tags: ["SEO", "Next.js", "Web Development", "Claude Code", "Tutorial"]
 ---
 
-I built a website. It looked great. It loaded fast. It had blog posts, a portfolio, proper dark theme - the whole nine yards.
+I built a website. It looked great. It loaded fast. It had blog posts, a portfolio, proper dark theme, the whole nine yards.
 
 Nobody could find it.
 
 Not because the content was bad. Not because the design was off. Because I'd done what most developers do: I built a technically sound website and completely forgot to tell Google it existed. The site was basically a beautifully decorated house on an unmapped road with no street signs.
 
-This post covers every SEO optimization I implemented on CryptoFlex LLC - the *why* behind each technique, the exact code, and how it all fits together. If you're running a Next.js site and wondering why Google hasn't noticed you yet, this is your playbook.
+This post covers every SEO optimization I implemented on CryptoFlex LLC, the *why* behind each technique, the exact code, and how it all fits together. If you're running a Next.js site and wondering why Google hasn't noticed you yet, this is your playbook.
 
 ## The Audit: What Was Missing
 
@@ -21,7 +21,7 @@ Before diving into code, I did an inventory of what the site had versus what Goo
 
 <SEOBeforeAfterDiagram />
 
-That's a lot of red X marks. The site had exactly one thing going for it: a `<title>` tag. Everything else - sitemaps, structured data, social cards, canonical URLs - was missing entirely. Google was treating my carefully crafted blog posts the same way it treats a random HTML file uploaded to a shared hosting account in 2004.
+That's a lot of red X marks. The site had exactly one thing going for it: a `<title>` tag. Everything else (sitemaps, structured data, social cards, canonical URLs) was missing entirely. Google was treating my carefully crafted blog posts the same way it treats a random HTML file uploaded to a shared hosting account in 2004.
 
 Time to fix that.
 
@@ -35,11 +35,11 @@ Let's walk through each layer, bottom to top.
 
 ## Layer 1: Technical SEO Foundation
 
-This is the infrastructure layer - the files that tell search engines *how* to crawl your site before they look at any content.
+This is the infrastructure layer, the files that tell search engines *how* to crawl your site before they look at any content.
 
-### robots.txt - The Bouncer at the Door
+### robots.txt: The Bouncer at the Door
 
-`robots.txt` is the first file Googlebot checks when it visits your domain. It's a set of rules that say "crawl this, skip that." Without it, Google crawls *everything* - including your API routes, analytics dashboard, and any other page you'd rather keep out of search results.
+`robots.txt` is the first file Googlebot checks when it visits your domain. It's a set of rules that say "crawl this, skip that." Without it, Google crawls *everything*, including your API routes, analytics dashboard, and any other page you'd rather keep out of search results.
 
 ```ts
 // src/app/robots.ts
@@ -60,14 +60,14 @@ export default function robots(): MetadataRoute.Robots {
 ```
 
 <Info title="Why This Matters">
-Google allocates a **crawl budget** to each site - how many pages it'll visit per session. If Googlebot wastes time on `/api/analytics/track` or `/analytics/login`, that's crawl budget *not* spent on your actual blog posts. The `robots.txt` focuses 100% of Google's attention on content that should rank.
+Google allocates a **crawl budget** to each site, meaning how many pages it'll visit per session. If Googlebot wastes time on `/api/analytics/track` or `/analytics/login`, that's crawl budget *not* spent on your actual blog posts. The `robots.txt` focuses 100% of Google's attention on content that should rank.
 </Info>
 
-In Next.js App Router, creating `robots.ts` in the `app/` directory automatically generates `/robots.txt` at build time. No configuration needed - it just works via the `MetadataRoute.Robots` type.
+In Next.js App Router, creating `robots.ts` in the `app/` directory automatically generates `/robots.txt` at build time. No configuration needed. It just works via the `MetadataRoute.Robots` type.
 
 The `sitemap` field at the bottom is crucial: it tells every crawler where to find your sitemap without them having to guess.
 
-### sitemap.xml - The Page Directory
+### sitemap.xml: The Page Directory
 
 If `robots.txt` is the bouncer, `sitemap.xml` is the floor plan. It lists every page on your site, how important each one is, and when it was last updated.
 
@@ -113,13 +113,13 @@ This sitemap is **generated at build time** by calling `getAllPosts()`, which re
 </Tip>
 
 The `priority` values tell Google what to crawl most aggressively:
-- `1.0` - Homepage (crawl this first)
-- `0.9` - Blog listing (changes frequently, new posts appear here)
-- `0.8` - About/Services (important but stable)
-- `0.7` - Individual blog posts and portfolio
-- `0.5` - Contact (rarely changes)
+- `1.0`: Homepage (crawl this first)
+- `0.9`: Blog listing (changes frequently, new posts appear here)
+- `0.8`: About/Services (important but stable)
+- `0.7`: Individual blog posts and portfolio
+- `0.5`: Contact (rarely changes)
 
-### Canonical URLs - One True URL Per Page
+### Canonical URLs: One True URL Per Page
 
 Here's a problem you might not realize you have: Google sees `https://cryptoflexllc.com/blog/post` and `https://www.cryptoflexllc.com/blog/post` as *two different pages* with the same content. Same with query-string variations like `?tag=seo`. This is called **duplicate content**, and it *dilutes* your ranking across all the duplicates.
 
@@ -140,7 +140,7 @@ Next.js renders this as:
 
 Now Google consolidates all ranking signals onto a single URL. No dilution.
 
-### metadataBase - The Unsung Hero
+### metadataBase: The Unsung Hero
 
 This single line in `layout.tsx` affects every URL in your metadata:
 
@@ -148,7 +148,7 @@ This single line in `layout.tsx` affects every URL in your metadata:
 metadataBase: new URL("https://cryptoflexllc.com"),
 ```
 
-Without `metadataBase`, your OpenGraph images resolve to `/CFLogo.png` instead of `https://cryptoflexllc.com/CFLogo.png`. Social platforms can't follow relative paths - they need full URLs. This one setting ensures every image, canonical link, and RSS reference resolves correctly.
+Without `metadataBase`, your OpenGraph images resolve to `/CFLogo.png` instead of `https://cryptoflexllc.com/CFLogo.png`. Social platforms can't follow relative paths, so they need full URLs. This one setting ensures every image, canonical link, and RSS reference resolves correctly.
 
 ## Layer 2: Structured Data (JSON-LD)
 
@@ -156,9 +156,9 @@ This is where SEO goes from "Google can find your pages" to "Google *understands
 
 <GoogleCrawlFlowDiagram />
 
-When Googlebot crawls a page with JSON-LD, it doesn't just see text - it sees structured objects it can reason about. An `Article` schema tells Google "this page is a blog post by Chris Johnson, published on February 12, 2026, about SEO." That context enables rich search results: author names, publish dates, breadcrumb trails, and more.
+When Googlebot crawls a page with JSON-LD, it doesn't just see text. It sees structured objects it can reason about. An `Article` schema tells Google "this page is a blog post by Chris Johnson, published on February 12, 2026, about SEO." That context enables rich search results: author names, publish dates, breadcrumb trails, and more.
 
-### WebSite + Person Schemas - Global Identity
+### WebSite + Person Schemas: Global Identity
 
 These go in the root layout and appear on every page:
 
@@ -199,7 +199,7 @@ export function WebsiteJsonLd({ url, name, description }: WebsiteJsonLdProps) {
 }
 ```
 
-The `SearchAction` is interesting - it tells Google that your site has an internal search feature. If Google decides your site is authoritative enough, it'll show a **sitelinks search box** directly in search results, letting users search your content without even visiting your homepage first.
+The `SearchAction` is interesting. It tells Google that your site has an internal search feature. If Google decides your site is authoritative enough, it'll show a **sitelinks search box** directly in search results, letting users search your content without even visiting your homepage first.
 
 The `PersonJsonLd` component establishes author identity:
 
@@ -250,7 +250,7 @@ Both components are injected in the root layout's `<body>`:
 </body>
 ```
 
-### Article Schema - Per-Post Rich Snippets
+### Article Schema: Per-Post Rich Snippets
 
 Every blog post gets its own Article schema with headline, author, publisher, keywords, and publish date:
 
@@ -301,7 +301,7 @@ Instead of just:
 
 The difference in click-through rate is massive.
 
-### BreadcrumbList - Navigation Context
+### BreadcrumbList: Navigation Context
 
 Breadcrumbs tell Google where a page sits in your site hierarchy:
 
@@ -325,7 +325,7 @@ This takes up more visual space in search results (good for you) and gives users
 
 SEO isn't just about Google. Every time someone shares a link on LinkedIn, Twitter, Slack, or Discord, those platforms read your page's metadata to generate a preview card. No metadata = blank card = nobody clicks.
 
-### OpenGraph - The Social Media Standard
+### OpenGraph: The Social Media Standard
 
 OpenGraph is a protocol created by Facebook that's now used by virtually every social platform. It controls what appears when someone shares your URL.
 
@@ -367,7 +367,7 @@ openGraph: {
 ```
 
 <Warning title="Images Must Be Absolute URLs">
-Social platforms fetch images from their own servers - they can't resolve relative paths. The `metadataBase` setting in `layout.tsx` handles this automatically, but if you ever hardcode an image path, make sure it's a full `https://` URL.
+Social platforms fetch images from their own servers and can't resolve relative paths. The `metadataBase` setting in `layout.tsx` handles this automatically, but if you ever hardcode an image path, make sure it's a full `https://` URL.
 </Warning>
 
 ### Twitter Cards
@@ -383,9 +383,9 @@ twitter: {
 },
 ```
 
-The `card: "summary"` type shows a small square image with title and description. For blog posts with hero images, you could use `"summary_large_image"` to get a wider preview - but since we're using a logo rather than post-specific images, `summary` keeps things clean.
+The `card: "summary"` type shows a small square image with title and description. For blog posts with hero images, you could use `"summary_large_image"` to get a wider preview, but since we're using a logo rather than post-specific images, `summary` keeps things clean.
 
-### googleBot Directives - Controlling the Preview
+### googleBot Directives: Controlling the Preview
 
 These directives tell Google exactly how much of your content to show in search result previews:
 
@@ -413,7 +413,7 @@ Setting these to their maximum values means Google shows the richest possible pr
 
 ## Layer 4: Distribution & Discovery
 
-### RSS Feed - Your Syndication Channel
+### RSS Feed: Your Syndication Channel
 
 RSS (Really Simple Syndication) is a decades-old technology that's still relevant for SEO. Feed readers, aggregator sites, and some search engines use RSS to discover new content automatically.
 
@@ -493,10 +493,10 @@ alternates: {
 This renders as `<link rel="alternate" type="application/rss+xml" href="/feed.xml">` in the HTML head. RSS readers and aggregators auto-discover this link when scanning your site.
 
 <Tip title="The SEO Backlink Angle">
-When aggregator sites syndicate your RSS content, they create **backlinks** - links from external sites pointing to yours. Backlinks are one of the strongest Google ranking signals. Every RSS subscriber is a potential source of organic backlinks.
+When aggregator sites syndicate your RSS content, they create **backlinks**, links from external sites pointing to yours. Backlinks are one of the strongest Google ranking signals. Every RSS subscriber is a potential source of organic backlinks.
 </Tip>
 
-### PWA Manifest - The Finishing Touch
+### PWA Manifest: The Finishing Touch
 
 The web app manifest isn't strictly SEO, but it contributes to the overall signal quality Google looks for:
 
@@ -529,11 +529,11 @@ This enables the "Add to Home Screen" prompt on mobile browsers and provides Goo
 
 ## Tying It All Together: The Metadata API
 
-Here's where Next.js really shines. All of the above - OpenGraph, Twitter Cards, canonicals, robots directives, keywords - is configured through a single TypeScript `Metadata` object that Next.js renders into the correct HTML tags at build time.
+Here's where Next.js really shines. All of the above (OpenGraph, Twitter Cards, canonicals, robots directives, keywords) is configured through a single TypeScript `Metadata` object that Next.js renders into the correct HTML tags at build time.
 
 <MetadataFlowDiagram />
 
-The root layout defines global defaults. Individual pages override specific fields. Next.js deep-merges them automatically - you never write raw `<meta>` tags.
+The root layout defines global defaults. Individual pages override specific fields. Next.js deep-merges them automatically, so you never write raw `<meta>` tags.
 
 Here's the complete metadata configuration from the root layout:
 
@@ -620,7 +620,7 @@ And the About page uses `type: "profile"` for the OpenGraph type:
 ```ts
 openGraph: {
   title: "About | CryptoFlex LLC",
-  description: "Chris Johnson - veteran, cybersecurity professional...",
+  description: "Chris Johnson, veteran, cybersecurity professional...",
   url: `${BASE_URL}/about`,
   type: "profile",
 },
@@ -640,12 +640,12 @@ After implementing all of this, here's how to verify it's working:
 | `/manifest.webmanifest` | JSON with app name, icons, and theme colors |
 
 For structured data, use Google's [Rich Results Test](https://search.google.com/test/rich-results):
-- Test your homepage - should detect **WebSite** and **Person** schemas
-- Test a blog post - should detect **Article** and **BreadcrumbList** schemas
+- Test your homepage, which should detect **WebSite** and **Person** schemas
+- Test a blog post, which should detect **Article** and **BreadcrumbList** schemas
 
 For social previews:
-- [OpenGraph Debugger](https://www.opengraph.xyz/) - Test how your site appears on LinkedIn/Facebook
-- Share a link in a draft tweet - verify the Twitter Card renders correctly
+- [OpenGraph Debugger](https://www.opengraph.xyz/): Test how your site appears on LinkedIn/Facebook
+- Share a link in a draft tweet and verify the Twitter Card renders correctly
 
 For the sitemap specifically:
 1. Go to [Google Search Console](https://search.google.com/search-console)
@@ -682,6 +682,6 @@ SEO doesn't have to be mysterious. At its core, you're answering three questions
 
 If you're building with Next.js, the Metadata API makes this almost pleasant. You write TypeScript objects, and Next.js handles the messy HTML output. Add a few JSON-LD components, set `metadataBase`, and you've covered 90% of what matters for search visibility.
 
-The remaining 10% is content quality and backlinks - and no amount of meta tags can fake those. But at least now Google knows your site exists, understands what it's about, and can show it to people who are looking for exactly what you've written.
+The remaining 10% is content quality and backlinks, and no amount of meta tags can fake those. But at least now Google knows your site exists, understands what it's about, and can show it to people who are looking for exactly what you've written.
 
 That unmapped road? It's got street signs now.
