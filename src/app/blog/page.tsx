@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BlogList } from "@/components/blog-list";
+import { SubscribeForm } from "@/components/subscribe-form";
 import { getAllPosts, getAllTags } from "@/lib/blog";
 
 export const metadata: Metadata = {
@@ -34,6 +35,11 @@ export default function BlogPage() {
             Thoughts on tech projects, cybersecurity, infrastructure, and
             things I&apos;m learning.
           </p>
+        </div>
+
+        {/* Subscribe form */}
+        <div className="mb-12 max-w-xl">
+          <SubscribeForm />
         </div>
 
         {posts.length === 0 ? (

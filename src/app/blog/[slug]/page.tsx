@@ -27,6 +27,7 @@ import {
 } from "@/components/mdx";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
+import { SubscribeForm } from "@/components/subscribe-form";
 
 const BASE_URL = "https://cryptoflexllc.com";
 
@@ -171,6 +172,11 @@ export default async function BlogPostPage({ params }: Props) {
               SEOBeforeAfterDiagram,
             }}
           />
+        </div>
+
+        {/* Subscribe CTA at end of post */}
+        <div className="mt-16">
+          <SubscribeForm />
         </div>
       </div>
     </article>
