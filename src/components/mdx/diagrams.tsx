@@ -572,6 +572,408 @@ export function DeploymentFlowDiagram({ caption }: DiagramProps) {
   );
 }
 
+/** Shows the full SEO stack — layers of optimization from technical to distribution */
+export function SEOStackDiagram({ caption }: DiagramProps) {
+  return (
+    <DiagramWrapper
+      caption={
+        caption ??
+        "The four layers of SEO implemented on this site — from technical foundation to content distribution"
+      }
+    >
+      <svg
+        viewBox="0 0 720 420"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full max-w-2xl mx-auto"
+      >
+        {/* Title */}
+        <text x="360" y="20" textAnchor="middle" className="fill-foreground text-[14px] font-bold">SEO Optimization Stack</text>
+
+        {/* === Layer 1: Technical Foundation === */}
+        <rect x="60" y="38" width="600" height="80" rx="8" className="stroke-primary" strokeWidth="2" />
+        <text x="80" y="60" className="fill-primary text-[16px]">&#x2699;&#xFE0F;</text>
+        <text x="360" y="60" textAnchor="middle" className="fill-primary text-[12px] font-semibold">Layer 1: Technical SEO Foundation</text>
+
+        {/* Sub-items */}
+        <rect x="80" y="72" width="120" height="36" rx="4" className="fill-primary/10" />
+        <text x="140" y="88" textAnchor="middle" className="fill-primary text-[9px] font-medium">robots.txt</text>
+        <text x="140" y="100" textAnchor="middle" className="fill-muted-foreground text-[8px]">Crawl directives</text>
+
+        <rect x="215" y="72" width="120" height="36" rx="4" className="fill-primary/10" />
+        <text x="275" y="88" textAnchor="middle" className="fill-primary text-[9px] font-medium">sitemap.xml</text>
+        <text x="275" y="100" textAnchor="middle" className="fill-muted-foreground text-[8px]">Page discovery</text>
+
+        <rect x="350" y="72" width="120" height="36" rx="4" className="fill-primary/10" />
+        <text x="410" y="88" textAnchor="middle" className="fill-primary text-[9px] font-medium">Canonical URLs</text>
+        <text x="410" y="100" textAnchor="middle" className="fill-muted-foreground text-[8px]">Duplicate prevention</text>
+
+        <rect x="485" y="72" width="155" height="36" rx="4" className="fill-primary/10" />
+        <text x="562" y="88" textAnchor="middle" className="fill-primary text-[9px] font-medium">metadataBase</text>
+        <text x="562" y="100" textAnchor="middle" className="fill-muted-foreground text-[8px]">Absolute URL resolution</text>
+
+        {/* Arrow down */}
+        <line x1="360" y1="118" x2="360" y2="138" className="stroke-emerald-500" strokeWidth="1.5" markerEnd="url(#seoDown1)" />
+
+        {/* === Layer 2: Structured Data === */}
+        <rect x="60" y="140" width="600" height="80" rx="8" className="stroke-emerald-500" strokeWidth="2" />
+        <text x="80" y="162" className="fill-emerald-500 text-[16px]">&#x1F4CA;</text>
+        <text x="360" y="162" textAnchor="middle" className="fill-emerald-500 text-[12px] font-semibold">Layer 2: Structured Data (JSON-LD)</text>
+
+        <rect x="80" y="174" width="120" height="36" rx="4" className="fill-emerald-500/10" />
+        <text x="140" y="190" textAnchor="middle" className="fill-emerald-500 text-[9px] font-medium">WebSite</text>
+        <text x="140" y="202" textAnchor="middle" className="fill-muted-foreground text-[8px]">Sitelinks + search</text>
+
+        <rect x="215" y="174" width="120" height="36" rx="4" className="fill-emerald-500/10" />
+        <text x="275" y="190" textAnchor="middle" className="fill-emerald-500 text-[9px] font-medium">Person</text>
+        <text x="275" y="202" textAnchor="middle" className="fill-muted-foreground text-[8px]">Author identity</text>
+
+        <rect x="350" y="174" width="120" height="36" rx="4" className="fill-emerald-500/10" />
+        <text x="410" y="190" textAnchor="middle" className="fill-emerald-500 text-[9px] font-medium">Article</text>
+        <text x="410" y="202" textAnchor="middle" className="fill-muted-foreground text-[8px]">Rich snippets</text>
+
+        <rect x="485" y="174" width="155" height="36" rx="4" className="fill-emerald-500/10" />
+        <text x="562" y="190" textAnchor="middle" className="fill-emerald-500 text-[9px] font-medium">BreadcrumbList</text>
+        <text x="562" y="202" textAnchor="middle" className="fill-muted-foreground text-[8px]">Navigation hierarchy</text>
+
+        {/* Arrow down */}
+        <line x1="360" y1="220" x2="360" y2="240" className="stroke-amber-500" strokeWidth="1.5" markerEnd="url(#seoDown2)" />
+
+        {/* === Layer 3: Social & Preview === */}
+        <rect x="60" y="242" width="600" height="80" rx="8" className="stroke-amber-500" strokeWidth="2" />
+        <text x="80" y="264" className="fill-amber-500 text-[16px]">&#x1F4F1;</text>
+        <text x="360" y="264" textAnchor="middle" className="fill-amber-500 text-[12px] font-semibold">Layer 3: Social &amp; Preview Optimization</text>
+
+        <rect x="80" y="276" width="145" height="36" rx="4" className="fill-amber-500/10" />
+        <text x="152" y="292" textAnchor="middle" className="fill-amber-500 text-[9px] font-medium">OpenGraph</text>
+        <text x="152" y="304" textAnchor="middle" className="fill-muted-foreground text-[8px]">LinkedIn / Facebook cards</text>
+
+        <rect x="240" y="276" width="145" height="36" rx="4" className="fill-amber-500/10" />
+        <text x="312" y="292" textAnchor="middle" className="fill-amber-500 text-[9px] font-medium">Twitter Cards</text>
+        <text x="312" y="304" textAnchor="middle" className="fill-muted-foreground text-[8px]">X / Twitter previews</text>
+
+        <rect x="400" y="276" width="120" height="36" rx="4" className="fill-amber-500/10" />
+        <text x="460" y="292" textAnchor="middle" className="fill-amber-500 text-[9px] font-medium">googleBot</text>
+        <text x="460" y="304" textAnchor="middle" className="fill-muted-foreground text-[8px]">Preview directives</text>
+
+        <rect x="535" y="276" width="105" height="36" rx="4" className="fill-amber-500/10" />
+        <text x="587" y="292" textAnchor="middle" className="fill-amber-500 text-[9px] font-medium">manifest</text>
+        <text x="587" y="304" textAnchor="middle" className="fill-muted-foreground text-[8px]">PWA metadata</text>
+
+        {/* Arrow down */}
+        <line x1="360" y1="322" x2="360" y2="342" className="stroke-foreground/50" strokeWidth="1.5" markerEnd="url(#seoDown3)" />
+
+        {/* === Layer 4: Distribution === */}
+        <rect x="60" y="344" width="600" height="65" rx="8" className="stroke-foreground/50" strokeWidth="1.5" />
+        <text x="80" y="368" className="fill-foreground text-[16px]">&#x1F4E1;</text>
+        <text x="360" y="368" textAnchor="middle" className="fill-foreground text-[12px] font-semibold">Layer 4: Distribution &amp; Discovery</text>
+
+        <rect x="130" y="380" width="130" height="22" rx="4" className="fill-foreground/10" />
+        <text x="195" y="395" textAnchor="middle" className="fill-muted-foreground text-[9px]">RSS Feed (/feed.xml)</text>
+
+        <rect x="280" y="380" width="160" height="22" rx="4" className="fill-foreground/10" />
+        <text x="360" y="395" textAnchor="middle" className="fill-muted-foreground text-[9px]">Google Search Console</text>
+
+        <rect x="460" y="380" width="150" height="22" rx="4" className="fill-foreground/10" />
+        <text x="535" y="395" textAnchor="middle" className="fill-muted-foreground text-[9px]">Per-page keywords</text>
+
+        <defs>
+          <marker id="seoDown1" viewBox="0 0 10 7" refX="5" refY="7" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 0, 5 7" className="fill-emerald-500" />
+          </marker>
+          <marker id="seoDown2" viewBox="0 0 10 7" refX="5" refY="7" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 0, 5 7" className="fill-amber-500" />
+          </marker>
+          <marker id="seoDown3" viewBox="0 0 10 7" refX="5" refY="7" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 0, 5 7" className="fill-foreground/50" />
+          </marker>
+        </defs>
+      </svg>
+    </DiagramWrapper>
+  );
+}
+
+/** Shows how Googlebot discovers and indexes a page through the SEO pipeline */
+export function GoogleCrawlFlowDiagram({ caption }: DiagramProps) {
+  return (
+    <DiagramWrapper
+      caption={
+        caption ??
+        "How Googlebot discovers, crawls, and indexes your pages — each SEO component feeds a different stage"
+      }
+    >
+      <svg
+        viewBox="0 0 820 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full max-w-3xl mx-auto"
+      >
+        {/* Step 1: Discovery */}
+        <rect x="5" y="40" width="120" height="90" rx="8" className="stroke-primary" strokeWidth="1.5" />
+        <text x="25" y="65" className="fill-primary text-[16px]">&#x1F50D;</text>
+        <text x="65" y="68" textAnchor="middle" className="fill-primary text-[10px] font-semibold">Discovery</text>
+        <text x="65" y="85" textAnchor="middle" className="fill-muted-foreground text-[8px]">robots.txt checked</text>
+        <text x="65" y="97" textAnchor="middle" className="fill-muted-foreground text-[8px]">sitemap.xml parsed</text>
+        <text x="65" y="109" textAnchor="middle" className="fill-muted-foreground text-[8px]">URLs queued</text>
+        <text x="65" y="121" textAnchor="middle" className="fill-primary text-[8px] font-medium">16 pages found</text>
+
+        {/* Arrow */}
+        <line x1="125" y1="85" x2="168" y2="85" className="stroke-primary" strokeWidth="2" markerEnd="url(#crawlRight1)" />
+
+        {/* Step 2: Crawl */}
+        <rect x="170" y="40" width="120" height="90" rx="8" className="stroke-primary" strokeWidth="1.5" />
+        <text x="190" y="65" className="fill-primary text-[16px]">&#x1F577;&#xFE0F;</text>
+        <text x="230" y="68" textAnchor="middle" className="fill-primary text-[10px] font-semibold">Crawl</text>
+        <text x="230" y="85" textAnchor="middle" className="fill-muted-foreground text-[8px]">Fetch HTML</text>
+        <text x="230" y="97" textAnchor="middle" className="fill-muted-foreground text-[8px]">Follow canonicals</text>
+        <text x="230" y="109" textAnchor="middle" className="fill-muted-foreground text-[8px]">Respect googleBot</text>
+        <text x="230" y="121" textAnchor="middle" className="fill-muted-foreground text-[8px]">directives</text>
+
+        {/* Arrow */}
+        <line x1="290" y1="85" x2="333" y2="85" className="stroke-emerald-500" strokeWidth="2" markerEnd="url(#crawlRight2)" />
+
+        {/* Step 3: Parse */}
+        <rect x="335" y="28" width="140" height="114" rx="8" className="stroke-emerald-500" strokeWidth="2" />
+        <text x="355" y="53" className="fill-emerald-500 text-[16px]">&#x1F9E0;</text>
+        <text x="405" y="56" textAnchor="middle" className="fill-emerald-500 text-[10px] font-bold">Parse &amp; Extract</text>
+        <text x="405" y="74" textAnchor="middle" className="fill-muted-foreground text-[8px]">JSON-LD schemas</text>
+        <text x="405" y="86" textAnchor="middle" className="fill-muted-foreground text-[8px]">OpenGraph tags</text>
+        <text x="405" y="98" textAnchor="middle" className="fill-muted-foreground text-[8px]">Meta descriptions</text>
+        <text x="405" y="110" textAnchor="middle" className="fill-muted-foreground text-[8px]">Heading hierarchy</text>
+        <text x="405" y="122" textAnchor="middle" className="fill-muted-foreground text-[8px]">Breadcrumbs</text>
+        <text x="405" y="134" textAnchor="middle" className="fill-muted-foreground text-[8px]">Keywords</text>
+
+        {/* Arrow */}
+        <line x1="475" y1="85" x2="518" y2="85" className="stroke-emerald-500" strokeWidth="2" markerEnd="url(#crawlRight3)" />
+
+        {/* Step 4: Index */}
+        <rect x="520" y="40" width="120" height="90" rx="8" className="stroke-emerald-500" strokeWidth="1.5" />
+        <text x="540" y="65" className="fill-emerald-500 text-[16px]">&#x1F4BE;</text>
+        <text x="580" y="68" textAnchor="middle" className="fill-emerald-500 text-[10px] font-semibold">Index</text>
+        <text x="580" y="85" textAnchor="middle" className="fill-muted-foreground text-[8px]">Store in search DB</text>
+        <text x="580" y="97" textAnchor="middle" className="fill-muted-foreground text-[8px]">Assign relevance</text>
+        <text x="580" y="109" textAnchor="middle" className="fill-muted-foreground text-[8px]">E-E-A-T signals</text>
+        <text x="580" y="121" textAnchor="middle" className="fill-muted-foreground text-[8px]">Rich result eligible</text>
+
+        {/* Arrow */}
+        <line x1="640" y1="85" x2="683" y2="85" className="stroke-foreground/50" strokeWidth="2" markerEnd="url(#crawlRight4)" />
+
+        {/* Step 5: Rank */}
+        <rect x="685" y="40" width="120" height="90" rx="8" className="stroke-foreground/60" strokeWidth="1.5" />
+        <text x="705" y="65" className="fill-foreground text-[16px]">&#x1F3C6;</text>
+        <text x="745" y="68" textAnchor="middle" className="fill-foreground text-[10px] font-semibold">Rank</text>
+        <text x="745" y="85" textAnchor="middle" className="fill-muted-foreground text-[8px]">Search results</text>
+        <text x="745" y="97" textAnchor="middle" className="fill-muted-foreground text-[8px]">Rich snippets</text>
+        <text x="745" y="109" textAnchor="middle" className="fill-muted-foreground text-[8px]">Breadcrumb trails</text>
+        <text x="745" y="121" textAnchor="middle" className="fill-muted-foreground text-[8px]">Knowledge panel</text>
+
+        {/* E-E-A-T badge */}
+        <rect x="250" y="155" width="320" height="28" rx="4" className="fill-emerald-500/10" />
+        <text x="410" y="174" textAnchor="middle" className="fill-emerald-500 text-[10px] font-medium">Every layer feeds Google&apos;s E-E-A-T ranking signals</text>
+
+        <defs>
+          <marker id="crawlRight1" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-primary" />
+          </marker>
+          <marker id="crawlRight2" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-emerald-500" />
+          </marker>
+          <marker id="crawlRight3" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-emerald-500" />
+          </marker>
+          <marker id="crawlRight4" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-foreground/50" />
+          </marker>
+        </defs>
+      </svg>
+    </DiagramWrapper>
+  );
+}
+
+/** Shows how Next.js Metadata API generates the actual HTML tags for SEO */
+export function MetadataFlowDiagram({ caption }: DiagramProps) {
+  return (
+    <DiagramWrapper
+      caption={
+        caption ??
+        "How the Next.js Metadata API transforms your TypeScript config into the HTML tags that Google and social platforms read"
+      }
+    >
+      <svg
+        viewBox="0 0 820 280"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full max-w-3xl mx-auto"
+      >
+        {/* === Left: Source (Next.js code) === */}
+        <rect x="5" y="10" width="260" height="260" rx="8" className="stroke-primary" strokeWidth="2" />
+        <text x="135" y="34" textAnchor="middle" className="fill-primary text-[12px] font-bold">Next.js Metadata API</text>
+        <text x="135" y="48" textAnchor="middle" className="fill-muted-foreground text-[9px]">TypeScript objects in layout.tsx / page.tsx</text>
+
+        {/* Sub-boxes */}
+        <rect x="18" y="58" width="108" height="40" rx="4" className="fill-primary/10" />
+        <text x="72" y="76" textAnchor="middle" className="fill-primary text-[9px] font-medium">title</text>
+        <text x="72" y="90" textAnchor="middle" className="fill-muted-foreground text-[7px]">template: %s | Site</text>
+
+        <rect x="140" y="58" width="115" height="40" rx="4" className="fill-primary/10" />
+        <text x="197" y="76" textAnchor="middle" className="fill-primary text-[9px] font-medium">description</text>
+        <text x="197" y="90" textAnchor="middle" className="fill-muted-foreground text-[7px]">per-page descriptions</text>
+
+        <rect x="18" y="106" width="108" height="40" rx="4" className="fill-primary/10" />
+        <text x="72" y="124" textAnchor="middle" className="fill-primary text-[9px] font-medium">openGraph</text>
+        <text x="72" y="138" textAnchor="middle" className="fill-muted-foreground text-[7px]">images, type, locale</text>
+
+        <rect x="140" y="106" width="115" height="40" rx="4" className="fill-primary/10" />
+        <text x="197" y="124" textAnchor="middle" className="fill-primary text-[9px] font-medium">twitter</text>
+        <text x="197" y="138" textAnchor="middle" className="fill-muted-foreground text-[7px]">card, title, images</text>
+
+        <rect x="18" y="154" width="108" height="40" rx="4" className="fill-primary/10" />
+        <text x="72" y="172" textAnchor="middle" className="fill-primary text-[9px] font-medium">alternates</text>
+        <text x="72" y="186" textAnchor="middle" className="fill-muted-foreground text-[7px]">canonical + RSS</text>
+
+        <rect x="140" y="154" width="115" height="40" rx="4" className="fill-primary/10" />
+        <text x="197" y="172" textAnchor="middle" className="fill-primary text-[9px] font-medium">robots</text>
+        <text x="197" y="186" textAnchor="middle" className="fill-muted-foreground text-[7px]">googleBot directives</text>
+
+        <rect x="18" y="202" width="108" height="40" rx="4" className="fill-primary/10" />
+        <text x="72" y="220" textAnchor="middle" className="fill-primary text-[9px] font-medium">keywords</text>
+        <text x="72" y="234" textAnchor="middle" className="fill-muted-foreground text-[7px]">topic signals</text>
+
+        <rect x="140" y="202" width="115" height="40" rx="4" className="fill-primary/10" />
+        <text x="197" y="220" textAnchor="middle" className="fill-primary text-[9px] font-medium">metadataBase</text>
+        <text x="197" y="234" textAnchor="middle" className="fill-muted-foreground text-[7px]">absolute URL root</text>
+
+        {/* === Arrow === */}
+        <line x1="265" y1="140" x2="320" y2="140" className="stroke-emerald-500" strokeWidth="2" markerEnd="url(#metaRight)" />
+        <text x="292" y="132" textAnchor="middle" className="fill-emerald-500 text-[8px] font-medium">build</text>
+
+        {/* === Right: Output (HTML head) === */}
+        <rect x="322" y="10" width="490" height="260" rx="8" className="stroke-emerald-500" strokeWidth="2" />
+        <text x="567" y="34" textAnchor="middle" className="fill-emerald-500 text-[12px] font-bold">Rendered HTML &lt;head&gt;</text>
+        <text x="567" y="48" textAnchor="middle" className="fill-muted-foreground text-[9px]">What Google, Twitter, LinkedIn, and browsers actually see</text>
+
+        {/* Output items */}
+        <rect x="335" y="58" width="225" height="28" rx="4" className="fill-emerald-500/10" />
+        <text x="345" y="76" className="fill-emerald-500 text-[8px] font-mono">&lt;title&gt;Post Title | CryptoFlex LLC&lt;/title&gt;</text>
+
+        <rect x="335" y="92" width="225" height="28" rx="4" className="fill-emerald-500/10" />
+        <text x="345" y="110" className="fill-emerald-500 text-[8px] font-mono">&lt;meta name=&quot;description&quot; content=&quot;...&quot;&gt;</text>
+
+        <rect x="335" y="126" width="225" height="28" rx="4" className="fill-emerald-500/10" />
+        <text x="345" y="144" className="fill-emerald-500 text-[8px] font-mono">&lt;meta property=&quot;og:title&quot; content=&quot;...&quot;&gt;</text>
+
+        <rect x="335" y="160" width="225" height="28" rx="4" className="fill-emerald-500/10" />
+        <text x="345" y="178" className="fill-emerald-500 text-[8px] font-mono">&lt;meta name=&quot;twitter:card&quot; content=&quot;...&quot;&gt;</text>
+
+        <rect x="335" y="194" width="225" height="28" rx="4" className="fill-emerald-500/10" />
+        <text x="345" y="212" className="fill-emerald-500 text-[8px] font-mono">&lt;link rel=&quot;canonical&quot; href=&quot;...&quot;&gt;</text>
+
+        <rect x="335" y="228" width="225" height="28" rx="4" className="fill-emerald-500/10" />
+        <text x="345" y="246" className="fill-emerald-500 text-[8px] font-mono">&lt;link rel=&quot;alternate&quot; type=&quot;rss+xml&quot;&gt;</text>
+
+        {/* Right column - consumers */}
+        <rect x="575" y="58" width="225" height="56" rx="6" className="stroke-foreground/30" strokeWidth="1" />
+        <text x="595" y="78" className="fill-foreground text-[12px]">&#x1F50D;</text>
+        <text x="687" y="80" textAnchor="middle" className="fill-foreground text-[9px] font-medium">Google / Bing</text>
+        <text x="687" y="96" textAnchor="middle" className="fill-muted-foreground text-[8px]">Reads title, description, JSON-LD, canonical</text>
+
+        <rect x="575" y="122" width="225" height="56" rx="6" className="stroke-foreground/30" strokeWidth="1" />
+        <text x="595" y="142" className="fill-foreground text-[12px]">&#x1F4F1;</text>
+        <text x="687" y="144" textAnchor="middle" className="fill-foreground text-[9px] font-medium">Social Platforms</text>
+        <text x="687" y="160" textAnchor="middle" className="fill-muted-foreground text-[8px]">Reads og:title, og:image, twitter:card</text>
+
+        <rect x="575" y="186" width="225" height="56" rx="6" className="stroke-foreground/30" strokeWidth="1" />
+        <text x="595" y="206" className="fill-foreground text-[12px]">&#x1F4E1;</text>
+        <text x="687" y="208" textAnchor="middle" className="fill-foreground text-[9px] font-medium">RSS Readers</text>
+        <text x="687" y="224" textAnchor="middle" className="fill-muted-foreground text-[8px]">Reads alternate link to /feed.xml</text>
+
+        <defs>
+          <marker id="metaRight" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-emerald-500" />
+          </marker>
+        </defs>
+      </svg>
+    </DiagramWrapper>
+  );
+}
+
+/** Before/after comparison of what Google sees without vs with SEO optimization */
+export function SEOBeforeAfterDiagram({ caption }: DiagramProps) {
+  return (
+    <DiagramWrapper
+      caption={
+        caption ??
+        "What Google sees before and after SEO optimization — from a mystery site to a rich, structured presence"
+      }
+    >
+      <svg
+        viewBox="0 0 820 320"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full max-w-3xl mx-auto"
+      >
+        {/* === LEFT: Before === */}
+        <text x="190" y="22" textAnchor="middle" className="fill-red-500 text-[14px] font-bold">Before SEO</text>
+        <text x="190" y="38" textAnchor="middle" className="fill-muted-foreground text-[10px]">What Google saw</text>
+
+        {/* Search result mockup - bare */}
+        <rect x="30" y="50" width="320" height="100" rx="8" className="stroke-red-500/40" strokeWidth="1.5" />
+        <text x="50" y="72" className="fill-primary text-[11px]">cryptoflexllc.com</text>
+        <text x="50" y="90" className="fill-foreground text-[13px] font-medium">CryptoFlex LLC | Chris Johnson</text>
+        <text x="50" y="108" className="fill-muted-foreground text-[10px]">No description provided</text>
+        <text x="50" y="123" className="fill-red-500/60 text-[9px]">No rich snippets. No author. No dates.</text>
+        <text x="50" y="138" className="fill-red-500/60 text-[9px]">Generic site — nothing to differentiate it.</text>
+
+        {/* Signals missing */}
+        <rect x="30" y="160" width="320" height="150" rx="8" className="fill-red-500/10" />
+        <text x="190" y="182" textAnchor="middle" className="fill-red-500 text-[10px] font-semibold">Missing Signals</text>
+
+        <text x="50" y="200" className="fill-red-500/80 text-[9px]">&#x2717; No sitemap — Google guesses what pages exist</text>
+        <text x="50" y="215" className="fill-red-500/80 text-[9px]">&#x2717; No robots.txt — crawl budget wasted on /api/</text>
+        <text x="50" y="230" className="fill-red-500/80 text-[9px]">&#x2717; No JSON-LD — no structured data for rich results</text>
+        <text x="50" y="245" className="fill-red-500/80 text-[9px]">&#x2717; No OpenGraph — blank cards when shared</text>
+        <text x="50" y="260" className="fill-red-500/80 text-[9px]">&#x2717; No canonical URLs — duplicate content risk</text>
+        <text x="50" y="275" className="fill-red-500/80 text-[9px]">&#x2717; No RSS feed — no syndication channel</text>
+        <text x="50" y="290" className="fill-red-500/80 text-[9px]">&#x2717; No keywords — Google infers topic poorly</text>
+        <text x="50" y="305" className="fill-red-500/80 text-[9px]">&#x2717; No author metadata — no E-E-A-T signals</text>
+
+        {/* === DIVIDER === */}
+        <line x1="400" y1="12" x2="400" y2="315" className="stroke-border" strokeWidth="1" strokeDasharray="6 4" />
+        <rect x="383" y="145" width="34" height="24" rx="4" className="fill-background" />
+        <text x="400" y="162" textAnchor="middle" className="fill-primary text-[14px] font-bold">vs</text>
+
+        {/* === RIGHT: After === */}
+        <text x="620" y="22" textAnchor="middle" className="fill-emerald-500 text-[14px] font-bold">After SEO</text>
+        <text x="620" y="38" textAnchor="middle" className="fill-muted-foreground text-[10px]">What Google sees now</text>
+
+        {/* Search result mockup - rich */}
+        <rect x="460" y="50" width="340" height="100" rx="8" className="stroke-emerald-500/60" strokeWidth="1.5" />
+        <text x="480" y="68" className="fill-muted-foreground text-[8px]">Home &gt; Blog &gt; Building This Site...</text>
+        <text x="480" y="82" className="fill-primary text-[11px]">cryptoflexllc.com &gt; blog</text>
+        <text x="480" y="98" className="fill-foreground text-[13px] font-medium">Building This Site with Claude Code</text>
+        <text x="480" y="113" className="fill-muted-foreground text-[10px]">Chris Johnson · Feb 7, 2026 · 25 min read</text>
+        <text x="480" y="128" className="fill-muted-foreground text-[9px]">A step-by-step guide to vibe coding a production website...</text>
+        <text x="480" y="141" className="fill-emerald-500/60 text-[9px]">Rich snippet with author, date, breadcrumbs</text>
+
+        {/* Signals present */}
+        <rect x="460" y="160" width="340" height="150" rx="8" className="fill-emerald-500/10" />
+        <text x="630" y="182" textAnchor="middle" className="fill-emerald-500 text-[10px] font-semibold">Active Signals</text>
+
+        <text x="480" y="200" className="fill-emerald-500 text-[9px]">&#x2713; Dynamic sitemap — 16 pages submitted</text>
+        <text x="480" y="215" className="fill-emerald-500 text-[9px]">&#x2713; robots.txt — crawl focused on content</text>
+        <text x="480" y="230" className="fill-emerald-500 text-[9px]">&#x2713; 4 JSON-LD schemas — rich results eligible</text>
+        <text x="480" y="245" className="fill-emerald-500 text-[9px]">&#x2713; OpenGraph + Twitter — rich preview cards</text>
+        <text x="480" y="260" className="fill-emerald-500 text-[9px]">&#x2713; Canonical URLs — no duplicate dilution</text>
+        <text x="480" y="275" className="fill-emerald-500 text-[9px]">&#x2713; RSS feed — syndication &amp; backlink channel</text>
+        <text x="480" y="290" className="fill-emerald-500 text-[9px]">&#x2713; 10 targeted keywords per page</text>
+        <text x="480" y="305" className="fill-emerald-500 text-[9px]">&#x2713; Person + Article schemas — full E-E-A-T</text>
+
+        <defs />
+      </svg>
+    </DiagramWrapper>
+  );
+}
+
 /** Shows the two-layer WAF implementation (vercel.json + dashboard rules) */
 export function TwoLayerWAF({ caption }: DiagramProps) {
   return (
