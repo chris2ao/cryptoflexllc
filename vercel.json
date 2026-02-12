@@ -24,6 +24,12 @@
       "mitigate": {
         "action": "deny"
       }
+    },
+    {
+      "src": "/api/(?!analytics|subscribe|unsubscribe|cron/weekly-digest)(.*)",
+      "mitigate": {
+        "action": "deny"
+      }
     }
   ]
 }
