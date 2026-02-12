@@ -137,6 +137,23 @@ export async function GET(request: NextRequest) {
         ADD COLUMN IF NOT EXISTS region VARCHAR(100) NOT NULL DEFAULT 'Unknown'
     `;
 
+    // Blog comments table
+    await sql`
+      CREATE TABLE IF NOT EXISTS blog_comments (
+        id            SERIAL PRIMARY KEY,
+        slug          VARCHAR(255) NOT NULL,
+        comment       TEXT NOT NULL,
+        reaction      VARCHAR(10) NOT NULL DEFAULT 'up',
+        email         VARCHAR(320) NOT NULL,
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_blog_comments_slug
+        ON blog_comments (slug)
+    `;
+
     return NextResponse.json({
       success: true,
       message: "Tables created successfully. Your analytics tracking is now ready.",

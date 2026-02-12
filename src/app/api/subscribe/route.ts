@@ -4,11 +4,16 @@
  * Adds an email address to the subscribers table.
  * Validates format and handles duplicates gracefully.
  * Captures IP address and Vercel geolocation headers.
+ * Sends a confirmation email with the latest 5 blog posts.
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 import { getDb } from "@/lib/analytics";
-import { isValidEmail } from "@/lib/subscribers";
+import { isValidEmail, unsubscribeUrl } from "@/lib/subscribers";
+import { getAllPosts } from "@/lib/blog";
+
+const BASE_URL = "https://cryptoflexllc.com";
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,6 +58,11 @@ export async function POST(request: NextRequest) {
         city = ${city}, region = ${region}
     `;
 
+    // Send confirmation email (fire-and-forget, don't block the response)
+    sendConfirmationEmail(email).catch((err) =>
+      console.error("Confirmation email error:", err)
+    );
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Subscribe error:", error);
@@ -61,4 +71,151 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// ---------------------------------------------------------------
+// Confirmation email
+// ---------------------------------------------------------------
+
+async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+  // Skip if email credentials aren't configured
+  if (!gmailUser || !gmailPass) return;
+
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: { user: gmailUser, pass: gmailPass },
+  });
+
+  const latestPosts = getAllPosts().slice(0, 5);
+  const unsubLink = unsubscribeUrl(recipientEmail);
+
+  const postRows = latestPosts
+    .map(
+      (p) => `
+      <tr>
+        <td style="padding:0 0 20px 0">
+          <a href="${BASE_URL}/blog/${p.slug}" style="color:#4dd0e1;font-size:16px;font-weight:600;text-decoration:none">${escapeHtml(p.title)}</a>
+          <p style="margin:4px 0 0;color:#b0b0b0;font-size:13px">${formatDate(p.date)}${p.readingTime ? ` &middot; ${escapeHtml(p.readingTime)}` : ""}</p>
+          <p style="margin:4px 0 0;color:#d4d4d4;font-size:14px;line-height:1.4">${escapeHtml(p.description)}</p>
+        </td>
+      </tr>`
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to CryptoFlex!</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0a0a0f;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#0a0a0f">
+    <tr>
+      <td align="center" style="padding:32px 16px">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background-color:#141419;border-radius:12px;border:1px solid #23232d">
+
+          <!-- Header with logo -->
+          <tr>
+            <td align="center" style="padding:32px 32px 20px;border-bottom:1px solid #23232d">
+              <img src="${BASE_URL}/CFLogo.png" alt="CryptoFlex LLC" width="200" style="display:block;max-width:200px;height:auto" />
+            </td>
+          </tr>
+
+          <!-- Welcome message -->
+          <tr>
+            <td style="padding:28px 32px 0">
+              <h1 style="margin:0 0 16px;font-size:24px;font-weight:700;color:#f0f0f0">
+                Welcome to CryptoFlex!
+              </h1>
+              <p style="font-size:16px;line-height:1.7;color:#d4d4d4;margin:0 0 16px">
+                Thank you so much for subscribing &mdash; I&rsquo;m really excited to have you here! I&rsquo;m Chris, and I started CryptoFlex to share everything I&rsquo;m learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building along the way.
+              </p>
+              <p style="font-size:16px;line-height:1.7;color:#d4d4d4;margin:0 0 16px">
+                I look forward to sharing what I learn with you, and I&rsquo;m always open to feedback, ideas, or just saying hello. You can reach me anytime at <a href="mailto:Chris.Johnson@cryptoflexllc.com" style="color:#4dd0e1;text-decoration:none">Chris.Johnson@cryptoflexllc.com</a>.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Newsletter schedule -->
+          <tr>
+            <td style="padding:0 32px 20px">
+              <div style="background:#1a1a22;border:1px solid #23232d;border-radius:8px;padding:16px 20px;margin:8px 0">
+                <p style="margin:0;font-size:15px;color:#d4d4d4;line-height:1.6">
+                  <strong style="color:#f0f0f0">Your weekly newsletter</strong> arrives every <strong style="color:#4dd0e1">Monday at 9:00 AM Eastern</strong> with summaries of new posts, what I&rsquo;ve been learning, and direct links to everything new.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Latest posts -->
+          <tr>
+            <td style="padding:0 32px 8px">
+              <h2 style="margin:0 0 16px;font-size:18px;font-weight:600;color:#f0f0f0">
+                Here are the latest posts to get you started:
+              </h2>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                ${postRows}
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td align="center" style="padding:0 32px 28px">
+              <a href="${BASE_URL}/blog" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Explore the Blog</a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 32px 28px;border-top:1px solid #23232d">
+              <p style="margin:0;font-size:13px;color:#6b6b78;line-height:1.5;text-align:center">
+                You&rsquo;re receiving this because you subscribed to the CryptoFlex blog newsletter.<br />
+                <a href="${unsubLink}" style="color:#6b6b78;text-decoration:underline">Unsubscribe</a>
+              </p>
+              <p style="margin:12px 0 0;font-size:12px;color:#44444d;text-align:center">
+                &copy; ${new Date().getFullYear()} CryptoFlex LLC &mdash; cryptoflexllc.com
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: `"CryptoFlex LLC" <${gmailUser}>`,
+    to: recipientEmail,
+    subject: "Welcome to CryptoFlex! Thanks for Subscribing",
+    html,
+    headers: {
+      "List-Unsubscribe": `<${unsubLink}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+  });
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
