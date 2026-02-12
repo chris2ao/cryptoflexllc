@@ -49,7 +49,7 @@ export function Footer() {
             </h4>
             <nav className="mt-3 flex flex-col gap-2">
               <a
-                href="https://linkedin.com/in/"
+                href="https://www.linkedin.com/in/chris-johnson-secops/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
