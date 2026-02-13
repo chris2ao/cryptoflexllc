@@ -7,11 +7,14 @@
  * via Gmail SMTP (Google Workspace).
  *
  * Required env vars:
- *   CRON_SECRET       – Vercel cron secret for auth
- *   GMAIL_USER        – e.g. Chris.Johnson@cryptoflexllc.com
- *   GMAIL_APP_PASSWORD – Google Workspace App Password
- *   SUBSCRIBER_SECRET  – HMAC secret for unsubscribe tokens
- *   DATABASE_URL       – Neon Postgres connection string
+ *   CRON_SECRET        - Vercel cron secret for auth
+ *   GMAIL_USER         - e.g. Chris.Johnson@cryptoflexllc.com
+ *   GMAIL_APP_PASSWORD - Google Workspace App Password
+ *   SUBSCRIBER_SECRET  - HMAC secret for unsubscribe tokens
+ *   DATABASE_URL       - Neon Postgres connection string
+ *
+ * Optional env vars:
+ *   ANTHROPIC_API_KEY  - Enables AI-generated newsletter intros via Claude Haiku
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -19,6 +22,9 @@ import nodemailer from "nodemailer";
 import { getDb } from "@/lib/analytics";
 import { getAllPosts } from "@/lib/blog";
 import { unsubscribeUrl } from "@/lib/subscribers";
+import { generateDigestIntro, type DigestIntro } from "@/lib/newsletter-intro";
+
+export const maxDuration = 30;
 
 const BASE_URL = "https://cryptoflexllc.com";
 
@@ -52,7 +58,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, sent: 0, reason: "no subscribers" });
     }
 
-    // ---- 3. Configure Gmail SMTP transport ----
+    // ---- 3. Generate AI intro (only when there are new posts) ----
+    let intro: DigestIntro | undefined;
+    if (hasNewPosts) {
+      intro = await generateDigestIntro(recentPosts, new Date());
+    }
+
+    // ---- 4a. Configure Gmail SMTP transport ----
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
@@ -63,11 +75,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // ---- 4. Send to each subscriber ----
+    // ---- 5. Send to each subscriber ----
     let sent = 0;
     for (const row of rows) {
       const email = row.email as string;
-      const html = buildEmailHtml(recentPosts, hasNewPosts, email);
+      const html = buildEmailHtml(recentPosts, hasNewPosts, email, intro);
 
       await transporter.sendMail({
         from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
@@ -84,7 +96,12 @@ export async function GET(request: NextRequest) {
       sent++;
     }
 
-    return NextResponse.json({ ok: true, sent, posts: recentPosts.length });
+    return NextResponse.json({
+      ok: true,
+      sent,
+      posts: recentPosts.length,
+      aiIntro: intro?.fromAi ?? false,
+    });
   } catch (error) {
     console.error("Weekly digest error:", error);
     return NextResponse.json(
@@ -110,7 +127,8 @@ interface PostSummary {
 function buildEmailHtml(
   posts: PostSummary[],
   hasNewPosts: boolean,
-  recipientEmail: string
+  recipientEmail: string,
+  intro?: DigestIntro
 ): string {
   const unsubLink = unsubscribeUrl(recipientEmail);
 
@@ -140,7 +158,7 @@ function buildEmailHtml(
   const contentSection = hasNewPosts
     ? `
       <p style="font-size:16px;line-height:1.6;color:#d4d4d4;margin:0 0 8px">
-        Here&rsquo;s what I learned and wrote about this week:
+        ${intro?.contentIntro ?? "Here&rsquo;s what I learned and wrote about this week:"}
       </p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:20px">
         ${postRows}
@@ -196,7 +214,7 @@ function buildEmailHtml(
                 ${hasNewPosts ? "This Week at CryptoFlex" : "Hey from CryptoFlex!"}
               </h1>
               <p style="font-size:16px;line-height:1.6;color:#d4d4d4;margin:0 0 20px">
-                Thanks for being a subscriber &mdash; it means a lot! Every week I share what I&rsquo;ve been learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building.
+                ${intro?.greeting ?? "Thanks for being a subscriber &mdash; it means a lot! Every week I share what I&rsquo;ve been learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building."}
               </p>
             </td>
           </tr>

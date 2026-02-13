@@ -42,3 +42,6 @@ next-env.d.ts
 
 # backup assets
 CFLogo-original.png
+
+# Terminal Paste Image folder
+.cp-images/

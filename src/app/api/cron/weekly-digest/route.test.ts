@@ -9,6 +9,7 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/analytics");
 vi.mock("@/lib/blog");
 vi.mock("@/lib/subscribers");
+vi.mock("@/lib/newsletter-intro");
 vi.mock("nodemailer");
 
 describe("GET /api/cron/weekly-digest", () => {
@@ -61,6 +62,14 @@ describe("GET /api/cron/weekly-digest", () => {
       (email) => `https://cryptoflexllc.com/api/unsubscribe?email=${email}&token=test`
     );
 
+    // Mock generateDigestIntro
+    const { generateDigestIntro } = await import("@/lib/newsletter-intro");
+    vi.mocked(generateDigestIntro).mockResolvedValue({
+      greeting: "AI-generated greeting for this week.",
+      contentIntro: "AI-generated content intro about the posts.",
+      fromAi: true,
+    });
+
     // Set required env vars
     process.env.CRON_SECRET = "test-cron-secret";
     process.env.GMAIL_USER = "test@cryptoflexllc.com";
@@ -95,6 +104,7 @@ describe("GET /api/cron/weekly-digest", () => {
       ok: true,
       sent: 2,
       posts: 1, // Only 1 recent post from the last 7 days
+      aiIntro: true,
     });
 
     expect(mockTransporter.sendMail).toHaveBeenCalledTimes(2);
@@ -186,6 +196,7 @@ describe("GET /api/cron/weekly-digest", () => {
       ok: true,
       sent: 1,
       posts: 0,
+      aiIntro: false,
     });
 
     expect(mockTransporter.sendMail).toHaveBeenCalledWith(
@@ -364,5 +375,73 @@ describe("GET /api/cron/weekly-digest", () => {
         pass: "test-password",
       },
     });
+  });
+
+  it("should include AI-generated intro in email HTML", async () => {
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    await GET(request);
+
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining("AI-generated greeting for this week."),
+      })
+    );
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining("AI-generated content intro about the posts."),
+      })
+    );
+  });
+
+  it("should include aiIntro flag in response JSON", async () => {
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(data.aiIntro).toBe(true);
+  });
+
+  it("should still send email when AI intro falls back to static text", async () => {
+    const { generateDigestIntro } = await import("@/lib/newsletter-intro");
+    vi.mocked(generateDigestIntro).mockResolvedValueOnce({
+      greeting:
+        "Thanks for being a subscriber &mdash; it means a lot! Every week I share what I&rsquo;ve been learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building.",
+      contentIntro: "Here&rsquo;s what I learned and wrote about this week:",
+      fromAi: false,
+    });
+
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.aiIntro).toBe(false);
+    expect(data.sent).toBe(1);
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining("Thanks for being a subscriber"),
+      })
+    );
   });
 });
