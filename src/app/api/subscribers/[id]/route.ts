@@ -43,7 +43,18 @@ export async function DELETE(request: NextRequest, { params }: Props) {
       );
     }
 
-    return NextResponse.json({ ok: true, deleted: result[0] });
+    // Cascade: remove all comments by this subscriber
+    const email = result[0].email as string;
+    const deleted_comments = await sql`
+      DELETE FROM blog_comments WHERE email = ${email}
+      RETURNING id
+    `;
+
+    return NextResponse.json({
+      ok: true,
+      deleted: result[0],
+      commentsRemoved: deleted_comments.length,
+    });
   } catch (error) {
     console.error("Delete subscriber error:", error);
     return NextResponse.json(

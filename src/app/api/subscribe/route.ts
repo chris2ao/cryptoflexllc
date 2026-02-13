@@ -58,10 +58,12 @@ export async function POST(request: NextRequest) {
         city = ${city}, region = ${region}
     `;
 
-    // Send confirmation email (fire-and-forget, don't block the response)
-    sendConfirmationEmail(email).catch((err) =>
-      console.error("Confirmation email error:", err)
-    );
+    // Send confirmation email before responding (must await on serverless)
+    try {
+      await sendConfirmationEmail(email);
+    } catch (err) {
+      console.error("Confirmation email error:", err);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
