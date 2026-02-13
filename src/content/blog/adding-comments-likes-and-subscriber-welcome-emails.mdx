@@ -3,7 +3,7 @@ title: "Adding Blog Comments, Likes, and a Belated Welcome Email"
 date: "2026-02-13T12:00:00"
 author: "Chris Johnson"
 readingTime: "22 min read"
-description: "How I built a subscriber-gated comment system with thumbs up/down reactions, admin moderation, and a one-time welcome email blast — including the PowerShell quirks and Vercel WAF rules that nearly blocked everything."
+description: "How I built a subscriber-gated comment system with thumbs up/down reactions, admin moderation, and a one-time welcome email blast, including the PowerShell quirks and Vercel WAF rules that nearly blocked everything."
 tags: ["Claude Code", "Next.js", "Comments", "Email", "Security", "Neon Postgres", "Vercel"]
 ---
 
@@ -27,14 +27,14 @@ Here's the full system at a glance:
 
 The design has three layers:
 
-1. **Client-side form** — React component with email, comment text, and reaction toggle
-2. **API route** — validates input, verifies subscriber status, inserts into Postgres
-3. **Admin moderation** — delete endpoint protected by the analytics dashboard's HMAC cookie auth
+1. **Client-side form**: React component with email, comment text, and reaction toggle
+2. **API route**: validates input, verifies subscriber status, inserts into Postgres
+3. **Admin moderation**: delete endpoint protected by the analytics dashboard's HMAC cookie auth
 
-The critical design decision: **comments require a subscriber email**. This isn't a typical username/password comment system. Instead of building a full auth flow, I reuse the subscriber list as the identity layer. If your email is in the `subscribers` table with `active = TRUE`, you can comment. If not, you get a 403.
+The critical design decision: **comments require a subscriber email**. This isn't a typical username/password comment system. Instead of building a full auth flow, I reuse the subscriber list as the identity layer. If your email is in the `subscribers` table with `active = TRUE`, you can comment; if not, you get a 403.
 
 <Security title="Why Subscriber-Gated?">
-Anonymous comments invite spam bots, trolls, and SEO spam. Requiring a subscriber email creates a natural friction that filters out drive-by abuse without requiring users to create yet another account. The email isn't displayed publicly — it's masked to `ch***@domain.com` in the comment display. And since the subscribe form already validates emails and stores them in the database, the subscriber check is just a single SQL query.
+Anonymous comments invite spam bots, trolls, and SEO spam. Requiring a subscriber email creates a natural friction that filters out drive-by abuse without requiring users to create yet another account. The email isn't displayed publicly; it's masked to `ch***@domain.com` in the comment display. And since the subscribe form already validates emails and stores them in the database, the subscriber check is just a single SQL query.
 </Security>
 
 ## Step 1: The Database Schema
@@ -57,9 +57,9 @@ CREATE INDEX IF NOT EXISTS idx_blog_comments_slug
 
 <Info title="Schema Design">
 - **slug** ties each comment to a specific blog post via its URL slug
-- **reaction** is either `'up'` or `'down'` — a simple thumbs up/thumbs down signal alongside the comment text
+- **reaction** is either `'up'` or `'down'`, a simple thumbs up/thumbs down signal alongside the comment text
 - **email** stores the commenter's subscriber email for the identity check and display masking
-- The **slug index** makes fetching comments for a specific post efficient — no full table scan
+- The **slug index** makes fetching comments for a specific post efficient (no full table scan)
 </Info>
 
 ## Step 2: The Comments API
@@ -187,7 +187,7 @@ Every field that crosses the trust boundary gets validated before any database i
 | email | Format check + 320-char limit | Prevent malformed input |
 | email | Subscriber lookup | Gate access to active subscribers only |
 
-All SQL uses parameterized queries (tagged template literals). The `${email}` in the template is NOT string interpolation — it's a parameter placeholder. SQL injection is prevented at the driver level.
+All SQL uses parameterized queries (tagged template literals). The `${email}` in the template is NOT string interpolation; it's a parameter placeholder. SQL injection is prevented at the driver level.
 </Security>
 
 ### DELETE /api/comments/:id (Admin Only)
@@ -259,9 +259,9 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
 
 The component manages a lot of state because it handles three concerns:
 
-1. **Comment display** — fetches and renders the existing comment list
-2. **Comment creation** — form with textarea, reaction toggle, email input, and submit button
-3. **Thumbs-up count** — passes the aggregate count up to the parent via `onThumbsUpCount` callback
+1. **Comment display**: fetches and renders the existing comment list
+2. **Comment creation**: form with textarea, reaction toggle, email input, and submit button
+3. **Thumbs-up count**: passes the aggregate count up to the parent via `onThumbsUpCount` callback
 
 <Tip title="Reaction Toggle UX">
 The reaction toggle uses two buttons styled with conditional classes. The selected reaction gets a colored ring and tinted background (`bg-green-500/20` for thumbs up, `bg-red-500/20` for thumbs down). The unselected option stays muted. This makes it obvious which reaction is active without needing a radio button or dropdown.
@@ -312,7 +312,7 @@ export function BlogPostThumbsUp({ slug }: BlogPostThumbsUpProps) {
 ```
 
 <Info title="Progressive Enhancement">
-The likes counter fetches client-side. If the API is down or the fetch fails, the component returns `null` — the rest of the page renders fine. The counter only appears when there's at least one thumbs up, so new posts don't show an awkward "0 likes" badge. This is a progressive enhancement: the blog post is a static page that works without JavaScript, and the counter layers on top.
+The likes counter fetches client-side. If the API is down or the fetch fails, the component returns `null`; the rest of the page renders fine. The counter only appears when there's at least one thumbs up, so new posts don't show an awkward "0 likes" badge. This is a progressive enhancement: the blog post is a static page that works without JavaScript, and the counter layers on top.
 </Info>
 
 ## The Welcome Email Blast
@@ -335,17 +335,17 @@ The email follows the same branded dark theme as the weekly digest and welcome c
 
 ```typescript
 const html = `
-  <h1>A Belated Welcome — and a Thank You</h1>
+  <h1>A Belated Welcome - and a Thank You</h1>
   <p>
     Hey! I'm Chris, and I owe you a proper welcome. When you first
     subscribed to CryptoFlex, you should have received a welcome
-    email — but that didn't happen, and I'm sorry about that.
+    email, but that didn't happen, and I'm sorry about that.
   </p>
   <p>
     I'm still learning and building this site as I go, and I heard
     the feedback. The welcome email is now set up properly for new
     subscribers, but I didn't want to leave you hanging without one.
-    So here it is — better late than never!
+    So here it is - better late than never!
   </p>
   ...
 `;
@@ -388,7 +388,7 @@ In PowerShell, `curl` is an alias for `Invoke-WebRequest`, which has completely 
 <Warning title="PowerShell Gotcha #2: Dollar Signs Are Variables">
 The `$` character in the token value (`$d2030c...`) was being interpreted as a PowerShell variable reference. Since no variable named `$d2030c...` existed, it resolved to an empty string. The Authorization header was sent with a mangled token.
 
-**Fix:** Use single quotes instead of double quotes. Single quotes in PowerShell are literal strings — no variable interpolation.
+**Fix:** Use single quotes instead of double quotes. Single quotes in PowerShell are literal strings; no variable interpolation.
 </Warning>
 
 The corrected command:
@@ -400,7 +400,7 @@ curl.exe -L https://cryptoflexllc.com/api/send-welcome-blast `
 
 ### Problem 2: POST Requests Blocked at the Edge
 
-Even with the correct curl syntax, the endpoint returned **403 Forbidden**. But not from the application — from <Vercel>Vercel's</Vercel> edge network. The response body was plain text "Forbidden" with a <Vercel>Vercel</Vercel> request ID, not JSON from the route handler.
+Even with the correct curl syntax, the endpoint returned **403 Forbidden**. But not from the application; from <Vercel>Vercel's</Vercel> edge network. The response body was plain text "Forbidden" with a <Vercel>Vercel</Vercel> request ID, not JSON from the route handler.
 
 The fix was to change the endpoint from POST to GET. The weekly digest cron already uses GET, and <Vercel>Vercel's</Vercel> edge network handles GET requests more permissively for API routes.
 
@@ -505,7 +505,7 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
 }
 ```
 
-The confirmation email is fire-and-forget — it doesn't block the subscribe response:
+The confirmation email is fire-and-forget; it doesn't block the subscribe response:
 
 ```typescript
 sendConfirmationEmail(email).catch((err) =>

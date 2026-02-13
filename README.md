@@ -1,6 +1,6 @@
 # CryptoFlex LLC
 
-Personal tech blog and professional portfolio for Chris Johnson — veteran, cybersecurity professional, and lifelong tinkerer.
+Personal tech blog and professional portfolio for Chris Johnson: veteran, cybersecurity professional, and lifelong tinkerer.
 
 **Live site:** [cryptoflexllc.com](https://cryptoflexllc.com)
 
@@ -12,11 +12,11 @@ Personal tech blog and professional portfolio for Chris Johnson — veteran, cyb
 |---|---|---|
 | [Next.js](https://nextjs.org) | 16.1.6 | React framework (App Router, SSR, static generation) |
 | [React](https://react.dev) | 19.2.3 | UI library |
-| [Tailwind CSS](https://tailwindcss.com) | 4.x | Utility-first CSS (v4 — config-in-CSS via `@theme`) |
+| [Tailwind CSS](https://tailwindcss.com) | 4.x | Utility-first CSS (v4, config-in-CSS via `@theme`) |
 | [shadcn/ui](https://ui.shadcn.com) | New York style | UI components (Button, Card, Badge, Sheet, Separator) |
 | [MDX](https://mdxjs.com) | via next-mdx-remote | Blog posts in Markdown + JSX |
 | [TypeScript](https://typescriptlang.org) | 5.x | Type safety |
-| [Vercel](https://vercel.com) | — | Hosting & deployment |
+| [Vercel](https://vercel.com) | - | Hosting & deployment |
 
 ## Getting Started
 
@@ -95,7 +95,7 @@ Your post content goes here. Standard Markdown works.
 
 3. The post appears automatically at `/blog/my-new-post`
 
-No database, no CMS — posts are files in the repo, version-controlled with Git.
+No database, no CMS. Posts are files in the repo, version-controlled with Git.
 
 ### Frontmatter Fields
 
@@ -109,11 +109,11 @@ No database, no CMS — posts are files in the repo, version-controlled with Git
 
 ## Design
 
-- **Dark-first** — always dark mode, no toggle
-- **Cyan accent** — OKLCH `(0.75, 0.15, 195)` for primary color
-- **Geist fonts** — Sans + Mono, loaded via `next/font`
-- **Glassmorphism nav** — sticky header with backdrop blur
-- **Responsive** — mobile-first with hamburger drawer
+- **Dark-first** - always dark mode, no toggle
+- **Cyan accent** - OKLCH `(0.75, 0.15, 195)` for primary color
+- **Geist fonts** - Sans + Mono, loaded via `next/font`
+- **Glassmorphism nav** - sticky header with backdrop blur
+- **Responsive** - mobile-first with hamburger drawer
 
 ## Deployment
 

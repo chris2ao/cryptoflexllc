@@ -3,21 +3,21 @@ title: "Building This Site with Claude Code"
 date: "2026-02-07T08:00:00"
 author: "Chris Johnson"
 readingTime: "25 min read"
-description: "A detailed, step-by-step guide to vibe coding a production website from the ground up using Claude Code — from someone whose last website ran on Apache with hand-written HTML. Every service, every config, every command."
+description: "A detailed, step-by-step guide to vibe coding a production website from the ground up using Claude Code, from someone whose last website ran on Apache with hand-written HTML. Every service, every config, every command."
 tags: ["Claude Code", "AI", "Web Development", "Next.js", "Tutorial"]
 ---
 
-I'm going to tell you how I built this website — the one you're reading right now — using nothing but a terminal and a conversation with an AI. But first, some context about where I'm coming from, because it matters.
+I'm going to tell you how I built this website (the one you're reading right now) using nothing but a terminal and a conversation with an AI. But first, some context about where I'm coming from, because it matters.
 
 ## My Web Development Credentials (Such As They Are)
 
-My last website was hand-written HTML and JavaScript. Deployed on an Apache server I managed myself. Edited in a text editor — not an IDE, not VS Code, not anything with autocomplete or syntax highlighting. Just a guy, some angle brackets, and an FTP client. The CSS lived in a single `style.css` file. "Version control" was a folder called `backup_old_FINAL_v2`. The SSL certificate was something I renewed manually once a year while muttering profanity.
+My last website was hand-written HTML and JavaScript. Deployed on an Apache server I managed myself. Edited in a text editor, not an IDE, not VS Code, not anything with autocomplete or syntax highlighting. Just a guy, some angle brackets, and an FTP client. The CSS lived in a single `style.css` file. "Version control" was a folder called `backup_old_FINAL_v2`. The SSL certificate was something I renewed manually once a year while muttering profanity.
 
 That was my world. And honestly? It worked. For a while.
 
-Then I started hearing about "vibe coding" — this idea that you could describe what you want to an AI and it would write the code for you. Not copy-paste from Stack Overflow. Not autocomplete suggestions. Actually *building* things from a conversation. I was skeptical. I was also curious. And I had a domain name doing nothing.
+Then I started hearing about "vibe coding": this idea that you could describe what you want to an AI and it would write the code for you. Not copy-paste from Stack Overflow. Not autocomplete suggestions. Actually *building* things from a conversation. I was skeptical. I was also curious. And I had a domain name doing nothing.
 
-So I thought: what better way to test this than to vibe code a website from scratch? A real one, not a tutorial toy. And do it as cheaply as possible — ideally free.
+So I thought: what better way to test this than to vibe code a website from scratch? A real one, not a tutorial toy. And do it as cheaply as possible, ideally free.
 
 <Tip title="What is Vibe Coding?">
 Vibe coding is a development approach where you describe what you want in natural language and an AI agent writes the code. You guide the direction, review the output, and iterate through conversation. Think of it less like "programming" and more like "directing a very fast, very literal junior developer who never gets tired."
@@ -27,7 +27,7 @@ Vibe coding is a development approach where you describe what you want in natura
 
 I opened my terminal, launched Claude Code, and typed something along the lines of:
 
-> *"I want to build a personal website and tech blog. Dark theme, modern, professional but not boring. I need a homepage, blog with markdown posts, about page, services page, portfolio, and contact page. I want it deployed for free and I want it to look like I paid someone a lot of money to build it. I'm a cybersecurity professional, not a web designer, so make the design decisions for me — just make them good ones. Let's start from absolute zero."*
+> *"I want to build a personal website and tech blog. Dark theme, modern, professional but not boring. I need a homepage, blog with markdown posts, about page, services page, portfolio, and contact page. I want it deployed for free and I want it to look like I paid someone a lot of money to build it. I'm a cybersecurity professional, not a web designer, so make the design decisions for me, just make them good ones. Let's start from absolute zero."*
 
 And then Claude started building.
 
@@ -35,11 +35,11 @@ What follows is everything that happened, step by step, in the exact order you'd
 
 ## The Old World vs. The New World
 
-Before we dive in, let's acknowledge the paradigm shift. This isn't just a different framework — it's a fundamentally different architecture:
+Before we dive in, let's acknowledge the paradigm shift. This isn't just a different framework; it's a fundamentally different architecture:
 
 <OldVsNewStack />
 
-Everything that used to be manual — SSL certificates, deployments, CDN configuration, build optimization — is now automated. The price of entry? $0 and a GitHub account.
+Everything that used to be manual (SSL certificates, deployments, CDN configuration, build optimization) is now automated. The price of entry? $0 and a GitHub account.
 
 ---
 
@@ -49,7 +49,7 @@ Before touching any code, you need four things installed on your machine:
 
 ### Node.js (v18 or higher)
 
-Node.js is the JavaScript runtime that powers everything in modern web development. If you're coming from the Apache world, think of it as the engine that replaces your server-side scripting. It also ships with **npm** (Node Package Manager), which is how you install every dependency.
+Node.js is the JavaScript runtime that powers everything in modern web development. If you're coming from the Apache world, think of it as the engine that replaces your server-side scripting. It also ships with **npm** (Node Package Manager): the tool you use to install every dependency.
 
 ```bash
 # Check if you have it
@@ -71,7 +71,7 @@ If not installed, get it from [git-scm.com](https://git-scm.com).
 
 ### GitHub Account (Free)
 
-[github.com](https://github.com) — create a free account if you don't have one. This is where your code lives, and it's the bridge between your local machine and the deployment platform.
+[github.com](https://github.com): create a free account if you don't have one. This is where your code lives, and it's the bridge between your local machine and the deployment platform.
 
 ### GitHub CLI (Optional but Recommended)
 
@@ -109,7 +109,7 @@ Here's what each flag does:
 
 | Flag | What It Does | Apache Equivalent |
 |---|---|---|
-| `--typescript` | Enables TypeScript (`.tsx` files) | Like adding JSDoc to every file, but enforced |
+| `--typescript` | Enables TypeScript (`.tsx` files) | Like adding JSDoc to every file but enforced |
 | `--tailwind` | Sets up Tailwind CSS framework | Like linking a smarter `style.css` |
 | `--app` | Uses the App Router (modern routing) | Like `mod_rewrite` but in code |
 | `--src-dir` | Puts code under `src/` | Like separating `htdocs/` from config |
@@ -125,7 +125,7 @@ npm run dev
 Open `http://localhost:3000`. You should see the default Next.js welcome page. That's your blank canvas.
 
 <Info title="What is Next.js?">
-Next.js is a React framework that handles routing, server-side rendering, and optimization. If Apache was your web server, Next.js is the entire web application framework. Your folder structure *becomes* your URL structure — `src/app/about/page.tsx` automatically becomes `yoursite.com/about`. No rewrite rules needed.
+Next.js is a React framework that handles routing, server-side rendering, and optimization. If Apache was your web server, Next.js is the entire web application framework. Your folder structure *becomes* your URL structure: `src/app/about/page.tsx` automatically becomes `yoursite.com/about`. No rewrite rules needed.
 </Info>
 
 ### What You Just Created
@@ -134,26 +134,26 @@ Next.js is a React framework that handles routing, server-side rendering, and op
 cryptoflexllc/
 ├── src/
 │   └── app/
-│       ├── globals.css       ← All your styling lives here (replaces style.css)
-│       ├── layout.tsx        ← Root template (like a header/footer include)
-│       ├── page.tsx          ← Homepage (index.html equivalent)
+│       ├── globals.css       # All your styling lives here (replaces style.css)
+│       ├── layout.tsx        # Root template (like a header/footer include)
+│       ├── page.tsx          # Homepage (index.html equivalent)
 │       └── favicon.ico
 ├── public/                   ← Static files (images, etc.)
-├── package.json              ← Project manifest + dependency list
-├── tsconfig.json             ← TypeScript configuration
-├── next.config.ts            ← Framework configuration
-├── postcss.config.mjs        ← CSS processing pipeline
-├── eslint.config.mjs         ← Code quality rules
-└── .gitignore                ← Files Git should ignore
+├── package.json              # Project manifest + dependency list
+├── tsconfig.json             # TypeScript configuration
+├── next.config.ts            # Framework configuration
+├── postcss.config.mjs        # CSS processing pipeline
+├── eslint.config.mjs         # Code quality rules
+└── .gitignore                # Files Git should ignore
 ```
 
 ---
 
 ## Step 2: Install the UI Component Library
 
-In the old days, you styled everything by hand — writing CSS classes, centering divs (poorly), and testing in every browser. The modern approach is to use a component library.
+In the old days, you styled everything by hand: writing CSS classes, centering divs (poorly), and testing in every browser. The modern approach is to use a component library.
 
-I chose [shadcn/ui](https://ui.shadcn.com). Here's why it's different from what you might expect: **it's not a dependency you install.** It copies actual component source code into your project. You own the code. You can read it, modify it, rip it apart. Nothing hidden in `node_modules`.
+I chose [shadcn/ui](https://ui.shadcn.com). Here's why it's different from what you might expect. **It's not a dependency you install.** It copies actual component source code into your project. You own the code. You can read it, modify it, rip it apart. Nothing hidden in `node_modules`.
 
 ```bash
 npx shadcn init
@@ -164,7 +164,7 @@ When prompted:
 - **Base color:** `zinc` (neutral grays)
 - **CSS variables:** `yes`
 
-This creates a `components.json` config file and a utility at `src/lib/utils.ts` with a `cn()` function — a smart class-merging utility you'll see everywhere.
+This creates a `components.json` config file and a utility at `src/lib/utils.ts` with a `cn()` function, a smart class-merging utility you'll see everywhere.
 
 Now add the specific components we need:
 
@@ -182,7 +182,7 @@ This copies five component files into `src/components/ui/`:
 | `separator.tsx` | `<hr>` | Clean horizontal dividers |
 | `sheet.tsx` | Custom hamburger menu JS | Mobile drawer menu (fully accessible) |
 
-Under the hood, these components are built on [Radix Primitives](https://www.radix-ui.com/) — headless, accessible UI components. That means keyboard navigation, screen reader support, and focus management are built in. In the Apache/HTML days, we'd just... not do that.
+Under the hood, these components are built on [Radix Primitives](https://www.radix-ui.com/): headless, accessible UI components. That means keyboard navigation, screen reader support, and focus management are built in. In the Apache/HTML days, we'd just... not do that.
 
 ---
 
@@ -198,8 +198,8 @@ npm install gray-matter next-mdx-remote @mdx-js/loader @mdx-js/react @next/mdx
 
 | Package | Purpose | Old-School Equivalent |
 |---|---|---|
-| `gray-matter` | Parses YAML metadata from blog post files | Like reading `<meta>` tags, but structured |
-| `next-mdx-remote` | Renders Markdown + JSX on the server | Like a PHP Markdown parser, but for React |
+| `gray-matter` | Parses YAML metadata from blog post files | Like reading `<meta>` tags but structured |
+| `next-mdx-remote` | Renders Markdown + JSX on the server | Like a PHP Markdown parser but for React |
 | `@mdx-js/loader` | Webpack loader for MDX files | Build-step processing |
 | `@mdx-js/react` | React provider for MDX components | Connects MDX to React |
 | `@next/mdx` | Next.js official MDX integration | Framework glue |
@@ -214,7 +214,7 @@ npm install rehype-pretty-code shiki remark-gfm
 |---|---|
 | `rehype-pretty-code` | Makes code blocks in blog posts look beautiful |
 | `shiki` | The actual syntax highlighting engine (uses VS Code's grammars) |
-| `remark-gfm` | GitHub Flavored Markdown — tables, strikethrough, task lists |
+| `remark-gfm` | GitHub Flavored Markdown: tables, strikethrough, task lists |
 
 ### Typography
 
@@ -222,7 +222,7 @@ npm install rehype-pretty-code shiki remark-gfm
 npm install @tailwindcss/typography
 ```
 
-This gives you `prose` classes that make long-form text (blog posts) look good without styling every individual element. Headings, paragraphs, lists, code blocks, blockquotes — all handled.
+This gives you `prose` classes that make long-form text (blog posts) look good without styling every individual element. Headings, paragraphs, lists, code blocks, blockquotes: all handled.
 
 ### One-Liner if You Prefer
 
@@ -251,7 +251,7 @@ Open `src/app/globals.css` and set up the imports:
 @custom-variant dark (&:is(.dark *));
 ```
 
-Then define the theme bridge — this connects CSS variables to Tailwind's utility classes:
+Then define the theme bridge. This connects CSS variables to Tailwind's utility classes:
 
 ```css
 @theme inline {
@@ -291,7 +291,7 @@ Here's where it gets interesting. All colors use the **OKLCH color space** inste
 ```
 
 <Tip title="Why OKLCH Instead of Hex?">
-OKLCH is a **perceptually uniform** color space. Two colors with the same lightness value actually *look* equally bright to human eyes. Hex/RGB doesn't have this property — `#808080` and `#808000` have the same "brightness" mathematically but look wildly different. OKLCH has three components: **L** (lightness, 0-1), **C** (chroma/saturation), **H** (hue angle — 195 = cyan).
+OKLCH is a **perceptually uniform** color space. Two colors with the same lightness value actually *look* equally bright to human eyes. Hex/RGB doesn't have this property: `#808080` and `#808000` have the same "brightness" mathematically but look wildly different. OKLCH has three components: **L** (lightness, 0-1), **C** (chroma/saturation), **H** (hue angle, 195 = cyan).
 </Tip>
 
 ### The Base Layer
@@ -307,7 +307,7 @@ OKLCH is a **perceptually uniform** color space. Two colors with the same lightn
 }
 ```
 
-This sets sensible defaults for every element. In the HTML/CSS world, this is like a reset stylesheet but smarter — it applies your design tokens globally.
+This sets sensible defaults for every element. In the HTML/CSS world, this is like a reset stylesheet but smarter: it applies your design tokens globally.
 
 ---
 
@@ -361,10 +361,10 @@ export default function RootLayout({
 
 Key things to notice:
 
-1. **`className="dark"` on `<html>`** — forces dark mode site-wide. No toggle, no JavaScript, no `prefers-color-scheme` media query. Just dark. Always dark.
-2. **Geist fonts** — loaded via `next/font/google` which self-hosts them automatically. No FOUT (Flash of Unstyled Text), no layout shift, no external font requests.
-3. **The sticky footer trick** — `min-h-screen flex flex-col` on body + `flex-1` on main. This ensures the footer sits at the bottom even on short pages. In the old days, this required a CSS hack involving `calc(100vh - header - footer)`.
-4. **Metadata API** — the `title.template` means any child page that exports `title: "About"` will render as "About | CryptoFlex LLC" in the browser tab. No manual `<title>` tags.
+1. **`className="dark"` on `<html>`**: forces dark mode site-wide. No toggle, no JavaScript, no `prefers-color-scheme` media query. Just dark. Always dark.
+2. **Geist fonts**: loaded via `next/font/google` which self-hosts them automatically. No FOUT (Flash of Unstyled Text), no layout shift, no external font requests.
+3. **The sticky footer trick**: `min-h-screen flex flex-col` on body + `flex-1` on main. This ensures the footer sits at the bottom even on short pages. In the old days, this required a CSS hack involving `calc(100vh - header - footer)`.
+4. **Metadata API**: the `title.template` means any child page that exports `title: "About"` will render as "About | CryptoFlex LLC" in the browser tab. No manual `<title>` tags.
 
 ---
 
@@ -372,7 +372,7 @@ Key things to notice:
 
 The nav needs to work on desktop (horizontal links) and mobile (hamburger menu). In the HTML/CSS days, this was 200 lines of CSS and a jQuery plugin. Now it's a single component.
 
-`src/components/nav.tsx` is a **client component** — it needs browser APIs for the current URL and menu state:
+`src/components/nav.tsx` is a **client component**. It needs browser APIs for the current URL and menu state:
 
 ```tsx
 "use client";
@@ -393,24 +393,24 @@ const links = [
 ];
 ```
 
-The header uses a **glassmorphism effect** — a semi-transparent background with a backdrop blur:
+The header uses a **glassmorphism effect**: a semi-transparent background with a backdrop blur:
 
 ```tsx
 <header className="sticky top-0 z-50 border-b border-border/40
   bg-background/80 backdrop-blur-md">
 ```
 
-- `sticky top-0` — stays visible while scrolling (no JavaScript scroll listeners)
-- `bg-background/80` — 80% opacity background
-- `backdrop-blur-md` — blurs content behind it, creating the glass effect
+- `sticky top-0`: stays visible while scrolling (no JavaScript scroll listeners)
+- `bg-background/80`: 80% opacity background
+- `backdrop-blur-md`: blurs content behind it, creating the glass effect
 
-Desktop shows horizontal links. Mobile shows a **Sheet** (drawer) from shadcn/ui that handles focus trapping, escape key, click-outside dismissal, and screen reader announcements — all automatically. In the jQuery days, you'd write all of that by hand. And you'd get it wrong.
+Desktop shows horizontal links. Mobile shows a **Sheet** (drawer) from shadcn/ui that handles focus trapping, escape key, click-outside dismissal, and screen reader announcements, all automatically. In the jQuery days, you'd write all of that by hand. And you'd get it wrong.
 
 ---
 
 ## Step 7: Build the Footer
 
-`src/components/footer.tsx` is a **server component** — no interactivity, so no JavaScript sent to the browser:
+`src/components/footer.tsx` is a **server component**. No interactivity means no JavaScript sent to the browser:
 
 ```tsx
 import Link from "next/link";
@@ -445,7 +445,7 @@ Let's pause and look at what we've built before adding content:
 
 <SiteArchitectureDiagram />
 
-Every layer in this stack has a specific job. The browser never talks directly to your code files — it goes through Vercel's CDN, which serves pre-built static HTML. This is fundamentally different from Apache, where every request hit your server directly.
+Every layer in this stack has a specific job. The browser never talks directly to your code files. It goes through Vercel's CDN, which serves pre-built static HTML. This is fundamentally different from Apache, where every request hit your server directly.
 
 ---
 
@@ -455,7 +455,7 @@ This is the crown jewel. A file-based blog where adding a new post means creatin
 
 ### The Blog Utility
 
-Create `src/lib/blog.ts` — this reads your MDX files and returns structured data:
+Create `src/lib/blog.ts`. This reads your MDX files and returns structured data:
 
 ```typescript
 import fs from "fs";
@@ -510,7 +510,7 @@ How it works:
 3. Derives the URL slug from the filename (`my-post.mdx` → `/blog/my-post`)
 4. Sorts by date, newest first
 
-This runs on the server at **build time** — not on every request. No database queries. No API calls. Your blog posts are just files in Git.
+This runs on the server at **build time**, not on every request. No database queries. No API calls. Your blog posts are just files in Git.
 
 <Info title="Apache Comparison">
 In the Apache world, each blog post would be a separate HTML file you'd manually create, style, and link to. Or you'd use WordPress (PHP + MySQL + constant security patches). This approach gives you the simplicity of static HTML files with the power of a templating system and zero infrastructure to maintain.
@@ -518,7 +518,7 @@ In the Apache world, each blog post would be a separate HTML file you'd manually
 
 ### The Blog Post Page
 
-`src/app/blog/[slug]/page.tsx` — the `[slug]` in brackets means this is a **dynamic route**. Next.js creates one page for every blog post automatically:
+`src/app/blog/[slug]/page.tsx`: the `[slug]` in brackets means this is a **dynamic route**. Next.js creates one page for every blog post automatically:
 
 ```tsx
 import { MDXRemote } from "next-mdx-remote/rsc";
@@ -560,7 +560,7 @@ Key concepts:
 
 - **`generateStaticParams()`** tells Next.js which slugs to pre-build at compile time. Every `.mdx` file becomes a static HTML page.
 - **`MDXRemote`** renders Markdown into React components on the server. Zero client-side JavaScript for the blog post body.
-- **`prose prose-invert`** from Tailwind Typography handles all the text styling. Headings, paragraphs, lists, code blocks — all looking good without writing a single CSS rule.
+- **`prose prose-invert`** from Tailwind Typography handles all the text styling. Headings, paragraphs, lists, code blocks: all looking good without writing a single CSS rule.
 
 ### How the MDX Pipeline Works
 
@@ -602,7 +602,7 @@ That's it. Push to GitHub. The post appears on your site.
 | Frontmatter Field | Required | Purpose |
 |---|---|---|
 | `title` | Yes | Displayed on cards and the post page |
-| `date` | Yes | ISO format — determines sort order |
+| `date` | Yes | ISO format, determines sort order |
 | `description` | Yes | Shows on the blog listing card |
 | `tags` | Yes | Rendered as filterable badges |
 | `author` | Yes | Displayed in the post header |
@@ -635,7 +635,7 @@ export default function BlogPage() {
 }
 ```
 
-The `BlogList` component is a **client component** (`"use client"`) because it needs interactivity — search input and tag filter clicks. It uses URL query parameters (`/blog?tag=Security&tag=Claude+Code`) so filtered views are shareable and bookmarkable. Multiple tags use AND logic.
+The `BlogList` component is a **client component** (`"use client"`) because it needs interactivity: search input and tag filter clicks. It uses URL query parameters (`/blog?tag=Security&tag=Claude+Code`) so filtered views are shareable and bookmarkable. Multiple tags use AND logic.
 
 Each blog card is a `<Card>` component from shadcn/ui with hover effects: the border gets a cyan tint, the title turns cyan, and the whole card is clickable. Tags sit above the link overlay and are independently clickable to filter the blog.
 
@@ -647,20 +647,20 @@ Each blog card is a `<Card>` component from shadcn/ui with hover effects: the bo
 
 Four sections:
 
-1. **Hero** — your name, tagline, and two CTA buttons. Uses a subtle gradient glow effect with `blur-3xl` for ambient lighting.
-2. **Latest Posts** — fetches the three newest posts with `getAllPosts().slice(0, 3)`. Because it's a server component, this runs at build time with no loading state.
-3. **About Teaser** — brief bio with a link to the full About page.
-4. **Services Teaser** — short pitch with a link to Services.
+1. **Hero**: your name, tagline, and two CTA buttons. Uses a subtle gradient glow effect with `blur-3xl` for ambient lighting.
+2. **Latest Posts**: fetches the three newest posts with `getAllPosts().slice(0, 3)`. Because it's a server component, this runs at build time with no loading state.
+3. **About Teaser**: brief bio with a link to the full About page.
+4. **Services Teaser**: short pitch with a link to Services.
 
 ### About Page (`src/app/about/page.tsx`)
 
 Two-column layout (2/3 + 1/3 on desktop):
-- Left: bio text and a career timeline (vertical line with cyan dots at each career stage — built with pure Tailwind, no library)
+- Left: bio text and a career timeline (vertical line with cyan dots at each career stage, built with pure Tailwind, no library)
 - Right: photo and skill badges rendered as `<Badge variant="secondary">` components
 
 ### Services Page (`src/app/services/page.tsx`)
 
-Three service cards in a responsive grid. Data lives as a const array at the top of the file — easy to add, remove, or reorder:
+Three service cards in a responsive grid. Data lives as a const array at the top of the file: easy to add, remove, or reorder:
 
 ```typescript
 const services = [
@@ -686,13 +686,13 @@ const Wrapper = project.link ? "a" : "div";
 Features a LinkedIn CTA button and an email fallback. Originally used `useState` for form handling (making it a client component), which created a Next.js gotcha:
 
 <Warning title="Client Component Metadata Gotcha">
-In Next.js App Router, you **cannot export metadata** from a client component. It's silently ignored — no error, no warning. The fix: create a separate `layout.tsx` in the contact directory that exports the metadata (as a server component), wrapping the client page.
+In Next.js App Router, you **cannot export metadata** from a client component. It's silently ignored (no error, no warning). The fix: create a separate `layout.tsx` in the contact directory that exports the metadata (as a server component), wrapping the client page.
 </Warning>
 
 ```
 src/app/contact/
-  layout.tsx   ← Server component: exports metadata
-  page.tsx     ← Client component: handles interactivity
+  layout.tsx   # Server component: exports metadata
+  page.tsx     # Client component: handles interactivity
 ```
 
 ---
@@ -701,10 +701,10 @@ src/app/contact/
 
 ### Metadata API
 
-Next.js handles SEO declaratively. The root layout sets defaults, and each page can override:
+Next.js handles SEO declaratively. The root layout sets defaults and each page can override:
 
 ```typescript
-// Root layout — sets the template
+// Root layout: sets the template
 export const metadata: Metadata = {
   title: {
     default: "CryptoFlex LLC | Chris Johnson",
@@ -712,7 +712,7 @@ export const metadata: Metadata = {
   },
 };
 
-// About page — overrides with specific title
+// About page: overrides with specific title
 export const metadata: Metadata = {
   title: "About",  // Renders as "About | CryptoFlex LLC"
 };
@@ -724,7 +724,7 @@ In the Apache world, this was manually adding `<meta>` tags to every HTML file. 
 
 ### Custom 404 Page
 
-`src/app/not-found.tsx` — a clean, on-brand 404 with a "Go Home" button. In Apache, this was a one-line `ErrorDocument 404` directive pointing to a page you probably never styled to match your site.
+`src/app/not-found.tsx`: a clean, on-brand 404 with a "Go Home" button. In Apache, this was a one-line `ErrorDocument 404` directive pointing to a page you probably never styled to match your site.
 
 ### The Sticky Footer
 
@@ -767,7 +767,7 @@ Route (app)                     Size     First Load JS
 ●  (SSG)      static generation with dynamic params
 ```
 
-Every route is either **○** (static) or **●** (SSG — Static Site Generation). If you see **λ** (server-rendered on every request), something is forcing dynamic rendering that shouldn't be.
+Every route is either **○** (static) or **●** (SSG, Static Site Generation). If you see **λ** (server-rendered on every request), something is forcing dynamic rendering that shouldn't be.
 
 Test locally with `npm run dev` and verify:
 1. Homepage loads with hero, blog cards, teasers
@@ -806,21 +806,21 @@ git push -u origin main
 1. Go to [vercel.com](https://vercel.com) and sign up with your GitHub account (free)
 2. Click **"Add New Project"**
 3. Import your GitHub repository
-4. <Vercel /> auto-detects Next.js — accept all defaults
+4. <Vercel /> auto-detects Next.js: accept all defaults
 5. Click **Deploy**
 
 That's it. <Vercel /> handles:
-- **Build:** Runs `npm install` and `next build` automatically
-- **CDN:** Distributes your static files to edge locations worldwide
-- **SSL:** Auto-provisions a free certificate via Let's Encrypt
-- **Domains:** Gives you a `.vercel.app` subdomain immediately
-- **Auto-deploy:** Every push to `main` triggers a new deployment
+- **Build**: Runs `npm install` and `next build` automatically
+- **CDN**: Distributes your static files to edge locations worldwide
+- **SSL**: Auto-provisions a free certificate via Let's Encrypt
+- **Domains**: Gives you a `.vercel.app` subdomain immediately
+- **Auto-deploy**: Every push to `main` triggers a new deployment
 
 <DeploymentFlowDiagram />
 
 ### Custom Domain (Manual Configuration Required)
 
-If you own a domain, you need to do this part yourself — it's the one thing that can't be fully automated:
+If you own a domain, you need to do this part yourself. It's the one thing that can't be fully automated:
 
 1. In your <Vercel /> project: **Settings → Domains → Add your domain**
 2. At your domain registrar (Squarespace, Namecheap, GoDaddy, etc.), add DNS records:
@@ -833,7 +833,7 @@ If you own a domain, you need to do this part yourself — it's the one thing th
 3. <Vercel /> automatically provisions an SSL certificate once DNS propagates
 
 <Warning title="DNS Propagation">
-DNS changes can take anywhere from 5 minutes to 48 hours to propagate globally. Most registrars update within 30 minutes. If your site doesn't resolve immediately, wait — don't keep changing DNS records.
+DNS changes can take anywhere from 5 minutes to 48 hours to propagate globally. Most registrars update within 30 minutes. If your site doesn't resolve immediately, wait. Don't keep changing DNS records.
 </Warning>
 
 <Tip title="Why Vercel Instead of Apache?">
@@ -868,9 +868,9 @@ Since my background is cybersecurity, I couldn't deploy without adding some prot
 
 This blocks:
 - **Host header injection** on API routes
-- **Config file access** (`.env`, `.git`, `.htaccess`)
-- **WordPress scanner probes** (`/wp-admin`, `/wp-login.php`)
-- **Database admin panel probes** (`/phpmyadmin`, `/adminer`)
+- **Config file access** such as `.env`, `.git`, `.htaccess`
+- **WordPress scanner probes** like `/wp-admin` and `/wp-login.php`
+- **Database admin panel probes** like `/phpmyadmin` and `/adminer`
 
 In the Apache world, this was `.htaccess` rules. Same idea, different syntax, and version-controlled in Git instead of sitting on a server you hope doesn't get misconfigured.
 
@@ -931,29 +931,29 @@ cryptoflexllc/
 |---|---|---|
 | **GitHub** | Free | Unlimited public repos, version control, webhook triggers |
 | **Vercel (Hobby)** | Free | 100GB bandwidth, unlimited deploys, global CDN, auto SSL, analytics |
-| **Domain** | ~$12/year | Your custom domain (optional — `.vercel.app` works fine) |
+| **Domain** | ~$12/year | Your custom domain (optional, `.vercel.app` works fine) |
 | **Claude Code** | Pay-as-you-go | AI-assisted development (the vibe coding part) |
 | **Node.js** | Free | JavaScript runtime |
-| **Everything else** | Free | All npm packages, Tailwind, shadcn/ui, MDX — all open source |
+| **Everything else** | Free | All npm packages, Tailwind, shadcn/ui, MDX: all open source |
 
 Total for ongoing hosting: **$0/month** (or ~$1/month if you amortize the domain).
 
-Compare that to Apache hosting: VPS ($5-20/month), domain ($12/year), SSL certificate management (free with Certbot, but manual), CDN (extra cost), DDoS protection (extra cost). The modern stack is not only better — it's cheaper.
+Compare that to Apache hosting: VPS ($5-20/month), domain ($12/year), SSL certificate management (free with Certbot but manual), CDN (extra cost), DDoS protection (extra cost). The modern stack is not only better, it's cheaper.
 
 ---
 
 ## What I Learned (From an Apache Guy's Perspective)
 
 <Tip title="1. The Build Step Changes Everything">
-In the Apache world, what you wrote was what got served. HTML file → browser. No transformation. Modern sites have a **build step** where your source code is compiled, optimized, and pre-rendered into static HTML. The result is faster than hand-written HTML because the build process optimizes things no human would bother with — code splitting, tree shaking, image optimization, CSS purging.
+In the Apache world, what you wrote was what got served. HTML file to browser. No transformation. Modern sites have a **build step** where your source code is compiled, optimized, and pre-rendered into static HTML. The result is faster than hand-written HTML because the build process optimizes things no human would bother with: code splitting, tree shaking, image optimization, CSS purging.
 </Tip>
 
 <Info title="2. Components Beat Copy-Paste">
-I used to copy-paste my header and footer into every HTML file. One change meant editing every page. Components solve this permanently. Write the nav once, import it everywhere. Change it in one place, and every page updates. This alone is worth the learning curve.
+I used to copy-paste my header and footer into every HTML file. One change meant editing every page. Components solve this permanently. Write the nav once and import it everywhere. Change it in one place and every page updates. This alone is worth the learning curve.
 </Info>
 
 <Tip title="3. Git + Auto-Deploy = No More FTP">
-The old workflow: edit file → open FTP client → upload → refresh browser → hope nothing broke. The new workflow: edit file → `git push` → site updates automatically in under 60 seconds. If something breaks, `git revert` and push again. No downtime, no partial uploads, no "which version is on the server?"
+The old workflow: edit file, open FTP client, upload, refresh browser, hope nothing broke. The new workflow: edit file, `git push`, site updates automatically in under 60 seconds. If something breaks, `git revert` and push again. No downtime, no partial uploads, no "which version is on the server?"
 </Tip>
 
 <Info title="4. CSS Has Gotten Unrecognizably Better">
@@ -961,26 +961,26 @@ Tailwind CSS means you almost never write a CSS file. Styles are utility classes
 </Info>
 
 <Warning title="5. Review Everything the AI Writes">
-Vibe coding is not "AI writes, you ship." It's "AI writes, you review, you iterate." Claude Code wrote excellent code for this site, but I still reviewed every component, questioned design decisions, and caught a few things I wanted done differently. The AI is the engine. You're the driver.
+Vibe coding is not "AI writes, you ship." It's "AI writes, you review, you iterate." Claude Code wrote excellent code for this site, but I still reviewed every component, questioned design decisions, and caught a few things I wanted done differently. The AI is the engine and you're the driver.
 </Warning>
 
 ---
 
 ## What's Next
 
-This post covers the foundation. The site has grown significantly since launch — custom analytics, security hardening, MDX callout components, architecture diagrams — and each addition is documented in its own post:
+This post covers the foundation. The site has grown significantly since launch (custom analytics, security hardening, MDX callout components, architecture diagrams) and each addition is documented in its own post:
 
-- **[Getting Started with Claude Code](/blog/getting-started-with-claude-code)** — installation, first launch, choosing a model
-- **[My First 24 Hours with Claude Code](/blog/my-first-24-hours-with-claude-code)** — the full day-one narrative, including the Ollama detour
-- **[Configuring Claude Code](/blog/configuring-claude-code)** — rules, hooks, MCP servers, and plugin setup
-- **[How I Built This Site](/blog/how-i-built-this-site)** — deeper technical walkthrough of the component architecture
+- **[Getting Started with Claude Code](/blog/getting-started-with-claude-code)**: installation, first launch, choosing a model
+- **[My First 24 Hours with Claude Code](/blog/my-first-24-hours-with-claude-code)**: the full day-one narrative, including the Ollama detour
+- **[Configuring Claude Code](/blog/configuring-claude-code)**: rules, hooks, MCP servers, and plugin setup
+- **[How I Built This Site](/blog/how-i-built-this-site)**: deeper technical walkthrough of the component architecture
 
 The full build guide with every line of code is also available at **[BUILD-GUIDE.md](https://github.com/chris2ao/cryptoflexllc/blob/main/BUILD-GUIDE.md)** on GitHub (~1,300 lines).
 
-If you're still running Apache with hand-written HTML — I get it. I was there. It works. But this stack is faster to build, cheaper to host, easier to maintain, and results in a better site. The learning curve is real, but with an AI copilot, it's more of a learning *slope*.
+If you're still running Apache with hand-written HTML, I get it. I was there. It works. But this stack is faster to build, cheaper to host, easier to maintain, and results in a better site. The learning curve is real, but with an AI copilot, it's more of a learning *slope*.
 
 Open a terminal. Type `claude`. Start building.
 
 ---
 
-*Built with Claude Code (Opus 4.6). The source code is at [github.com/chris2ao/cryptoflexllc](https://github.com/chris2ao/cryptoflexllc). This post is part of a series about AI-assisted development. Next up: [Getting Started with Claude Code](/blog/getting-started-with-claude-code) - installation, first launch, and first impressions.*
+*Built with Claude Code (Opus 4.6). The source code is at [github.com/chris2ao/cryptoflexllc](https://github.com/chris2ao/cryptoflexllc). This post is part of a series about AI-assisted development. Next up: [Getting Started with Claude Code](/blog/getting-started-with-claude-code), covering installation, first launch, and first impressions.*

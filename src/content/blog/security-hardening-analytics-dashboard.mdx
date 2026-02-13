@@ -3,7 +3,7 @@ title: "I Audited My Own Code. 19 Security Findings Later..."
 date: "2026-02-09T18:00:00"
 author: "Chris Johnson"
 readingTime: "14 min read"
-description: "A security professional audits his own code — blog posts leaking private repo names, query-string secrets in browser history, SSRF vectors, and error messages handing attackers the database schema. 19 findings and the journey to fix every one."
+description: "A security professional audits his own code: blog posts leaking private repo names, query-string secrets in browser history, SSRF vectors, and error messages handing attackers the database schema. 19 findings and the journey to fix every one."
 tags: ["Claude Code", "Security", "Next.js", "Analytics", "OWASP"]
 ---
 
@@ -35,12 +35,12 @@ The goal was to map what an adversary knows before they even send their first re
 From a threat actor's perspective, published content is gold. Blog posts, documentation, and example code reveal patterns, dependencies, and internal structure.
 
 <Security title="What I Found in My Own Content">
-- **Private repository names** — Found in blog post code examples. *Risk: MEDIUM.* An attacker now knows those repos exist and can monitor for accidental public exposure.
-- **GitHub username patterns** — Found in public repo links. *Risk: LOW.* Enables targeted social engineering and credential stuffing.
-- **Internal file paths** (Windows user directory structure) — Found in error message examples. *Risk: LOW.* Reveals OS, username conventions, and project layout.
-- **Environment variable names** — Found in configuration walkthroughs. *Risk: LOW.* Tells attackers exactly which secrets to look for if they gain partial access.
-- **Database provider** (Neon Serverless Postgres) — Found in architecture post. *Risk: LOW.* Narrows the attack surface to provider-specific vulnerabilities.
-- **Analytics endpoint paths** — Found in analytics post. *Risk: LOW.* Gives attackers a map of API routes to probe.
+- **Private repository names** - Found in blog post code examples. *Risk: MEDIUM.* An attacker now knows those repos exist and can monitor for accidental public exposure.
+- **GitHub username patterns** - Found in public repo links. *Risk: LOW.* Enables targeted social engineering and credential stuffing.
+- **Internal file paths** (Windows user directory structure) - Found in error message examples. *Risk: LOW.* Reveals OS, username conventions, and project layout.
+- **Environment variable names** - Found in configuration walkthroughs. *Risk: LOW.* Tells attackers exactly which secrets to look for if they gain partial access.
+- **Database provider** (Neon Serverless Postgres) - Found in architecture post. *Risk: LOW.* Narrows the attack surface to provider-specific vulnerabilities.
+- **Analytics endpoint paths** - Found in analytics post. *Risk: LOW.* Gives attackers a map of API routes to probe.
 </Security>
 
 Most of these are LOW risk individually. Knowing I use Neon Postgres doesn't give an attacker access. Seeing environment variable names doesn't reveal their values.
@@ -176,7 +176,7 @@ if (existing.length > 0) {
 ```
 
 <Info title="Deduplication Strategy">
-If a matching record exists within the last hour, the request succeeds (204 No Content) but doesn't insert a duplicate row. Silent success means legitimate tracking scripts don't need to handle errors. This isn't comprehensive rate limiting — a sophisticated attacker could rotate IPs or vary paths — but it handles the most common abuse patterns.
+If a matching record exists within the last hour, the request succeeds (204 No Content) but doesn't insert a duplicate row. Silent success means legitimate tracking scripts don't need to handle errors. This isn't comprehensive rate limiting (a sophisticated attacker could rotate IPs or vary paths), but it handles the most common abuse patterns.
 </Info>
 
 ## Phase 4: SSRF Prevention
@@ -205,7 +205,7 @@ function isPrivateIp(ip: string): boolean {
 ```
 
 <Security title="Defense in Depth">
-Any attempt to query internal IP ranges is now rejected with a 400 before the external API call is made. The full implementation covers all RFC 1918 ranges, link-local addresses, and IPv6 equivalents. SSRF vulnerabilities are subtle — the endpoint "worked" for its intended use case, but security isn't about what works, it's about what *can be abused*.
+Any attempt to query internal IP ranges is now rejected with a 400 before the external API call is made. The full implementation covers all RFC 1918 ranges, link-local addresses, and IPv6 equivalents. SSRF vulnerabilities are subtle: the endpoint "worked" for its intended use case, but security isn't about what works, it's about what *can be abused*.
 </Security>
 
 ## Phase 5: Error Message Sanitization
@@ -304,7 +304,7 @@ Blog posts, documentation, and example code reveal patterns, dependencies, and i
 </Warning>
 
 <Tip title="8. Even security professionals ship insecure code when moving fast">
-The difference isn't perfection — it's recognizing the gap and closing it. The audit step exists because the build step is inherently imperfect.
+The difference isn't perfection; it's recognizing the gap and closing it. The audit step exists because the build step is inherently imperfect.
 </Tip>
 
 ## What's Next

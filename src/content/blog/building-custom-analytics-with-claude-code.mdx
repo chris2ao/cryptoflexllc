@@ -96,7 +96,7 @@ Browser (page load)
                           |-- Parse User-Agent string
                           |-- INSERT INTO page_views (Neon Postgres)
                           |
-Dashboard (/analytics) — protected by cookie auth
+Dashboard (/analytics), protected by cookie auth
   |
   |-- Server Component queries Neon directly
   |-- Renders charts, map, tables, raw visitor log
@@ -590,7 +590,7 @@ This creates both the `page_views` table and the `ip_intel` cache table. Remove 
 
 ### Step 6: Access your dashboard
 
-Visit `/analytics/login` and enter your `ANALYTICS_SECRET` to authenticate. The dashboard uses httpOnly cookie authentication — your secret is never exposed in URLs or browser history.
+Visit `/analytics/login` and enter your `ANALYTICS_SECRET` to authenticate. The dashboard uses httpOnly cookie authentication, so your secret is never exposed in URLs or browser history.
 
 Every page view from that point forward is tracked automatically.
 

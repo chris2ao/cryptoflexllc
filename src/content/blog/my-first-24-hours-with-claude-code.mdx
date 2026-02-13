@@ -275,7 +275,7 @@ Setting up MCP servers required npm, which required Node.js, which led to discov
 
 2. **npm's global directory didn't exist.** The Windows Node.js installer doesn't create `%APPDATA%\npm` - it's only created when you first `npm install -g` something.
 
-3. **Git Bash mangles Windows paths.** Running `npm run build` in Git Bash produces paths prefixed with `C:\Program Files\Git\` — Git Bash (MSYS2) rewrites absolute paths. The workaround is to use `npx` with Node.js directly in PATH.
+3. **Git Bash mangles Windows paths.** Running `npm run build` in Git Bash produces paths prefixed with `C:\Program Files\Git\`. Git Bash (MSYS2) rewrites absolute paths. The workaround is to use `npx` with Node.js directly in PATH.
 </Warning>
 
 Fix for issue 1:

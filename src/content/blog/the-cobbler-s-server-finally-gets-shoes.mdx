@@ -7,7 +7,7 @@ description: "I've managed firewalls for years. When it came time to add WAF pro
 tags: ["Security", "WAF", "Vercel", "Cloudflare", "Infrastructure"]
 ---
 
-I've spent a good chunk of my career behind firewalls. Not the fun kind where you're breaking in. The other kind, where you're writing rules, tuning policies, reviewing logs, and explaining to stakeholders why that one rule they want disabled is the only thing standing between their application and a very bad day.
+I've spent a good chunk of my career behind firewalls. Not the fun kind where you're breaking in. The other kind: writing rules, tuning policies, reviewing logs, and explaining to stakeholders why that one rule they want disabled is the only thing standing between their application and a very bad day.
 
 So when I stood up cryptoflexllc.com, one of the first things on my list was WAF protection. Not because I'm hosting anything particularly sensitive. It's a portfolio site with a blog and a custom analytics dashboard. But I've seen what happens to unprotected sites. Automated scanners find them within hours. WordPress probes, `.env` file harvesting, SQL injection attempts against paths that don't even exist. The internet is noisy, and anything without a firewall is just absorbing that noise at the application layer.
 
@@ -107,10 +107,10 @@ Here's the `vercel.json` I created:
 ```
 
 <Security title="What each rule protects against">
-1. **Host header injection** — Blocks `x-forwarded-host` on API routes. Used in cache poisoning and SSRF attacks.
-2. **Dotfile access** — Blocks `.env`, `.git`, `.svn`, `.htaccess`, `.htpasswd`, `.DS_Store`. These contain secrets and server config.
-3. **WordPress probes** — Blocks `wp-admin`, `wp-login.php`, `xmlrpc.php`. 100% scanner noise on a non-WordPress site.
-4. **Database admin panels** — Blocks `phpmyadmin`, `pma`, `adminer`, `mysqladmin`. Same logic — if it doesn't exist, block it.
+1. **Host header injection** - Blocks `x-forwarded-host` on API routes. Used in cache poisoning and SSRF attacks.
+2. **Dotfile access** - Blocks `.env`, `.git`, `.svn`, `.htaccess`, `.htpasswd`, `.DS_Store`. These contain secrets and server config.
+3. **WordPress probes** - Blocks `wp-admin`, `wp-login.php`, `xmlrpc.php`. 100% scanner noise on a non-WordPress site.
+4. **Database admin panels** - Blocks `phpmyadmin`, `pma`, `adminer`, `mysqladmin`. Same logic: if it doesn't exist, block it.
 </Security>
 
 Each rule uses a regular expression in the `"src"` field to match request paths, and `"mitigate": { "action": "deny" }` to block matching requests.
@@ -257,7 +257,7 @@ Here's where it got fun. After running about a dozen curl tests in quick success
 I solved the CAPTCHA, and the challenge went away. But the behavior confirmed something important: **the WAF adapts**. It's not just static regex matching. It's learning patterns and escalating defenses when it sees repeated suspicious activity from the same source.
 
 <Security title="Adaptive Defense">
-This is exactly what you want from a WAF. Bots don't solve CAPTCHAs. Humans do. The persistent action feature means repeated malicious probes from the same IP automatically trigger escalated challenges — without any manual rule creation.
+This is exactly what you want from a WAF. Bots don't solve CAPTCHAs. Humans do. The persistent action feature means repeated malicious probes from the same IP automatically trigger escalated challenges, without any manual rule creation.
 </Security>
 
 ## What <Vercel /> Provides for Free
@@ -283,11 +283,11 @@ The paid features (Pro plan at $20/month, Enterprise custom pricing) add managed
 
 The WAF handles perimeter defense, but it doesn't replace application-level security. These protections are already implemented in my <Nextjs /> code and stay there:
 
-- **Rate limiting** — IP and path deduplication on the analytics tracking endpoint (1-hour window, Postgres-backed)
-- **Input validation** — `pagePath` must be under 500 characters and start with `/`, days parameter clamped to 1-365 range
-- **SSRF prevention** — `isPrivateIp()` guard blocks private IP ranges before making external API calls
-- **Error message sanitization** — generic client messages, detailed server-side logging only
-- **Cookie-based authentication** — httpOnly HMAC-SHA256 tokens for the analytics dashboard (no query-string secrets)
+- **Rate limiting** - IP and path deduplication on the analytics tracking endpoint (1-hour window, Postgres-backed)
+- **Input validation** - `pagePath` must be under 500 characters and start with `/`, days parameter clamped to 1-365 range
+- **SSRF prevention** - `isPrivateIp()` guard blocks private IP ranges before making external API calls
+- **Error message sanitization** - generic client messages, detailed server-side logging only
+- **Cookie-based authentication** - httpOnly HMAC-SHA256 tokens for the analytics dashboard (no query-string secrets)
 
 <VercelNativeWAF caption="The complete picture: WAF at the edge filters noise, clean traffic reaches the Next.js application layer with its own security controls" />
 
@@ -332,4 +332,4 @@ But security isn't a checkbox. It's a posture. Future work includes:
 
 The foundation is solid. Every `wp-login.php` probe, every `.env` harvester, every phpMyAdmin scanner is now eating a 403 at the edge before it ever touches my application code. That's how a firewall should work.
 
-*Built with Claude Code (Opus 4.6). The full source code is at [github.com/chris2ao/cryptoflexllc](https://github.com/chris2ao/cryptoflexllc). The infrastructure documentation (including the complete WAF setup guide) is in a separate private repo. This post is part of a series about AI-assisted development and security. Previous: [Making Claude Code Talk: Terminal Bells and the Stop Hook](/blog/making-claude-code-talk-terminal-bells-and-the-stop-hook). Next: [Building a Blog Newsletter from Scratch](/blog/adding-blog-subscriptions-and-weekly-digest).*
+*Built with Claude Code (Opus 4.6). The full source code is at [github.com/chris2ao/cryptoflexllc](https://github.com/chris2ao/cryptoflexllc). The infrastructure documentation, including the complete WAF setup guide, is in a separate private repo. This post is part of a series about AI-assisted development and security. Previous: [Making Claude Code Talk: Terminal Bells and the Stop Hook](/blog/making-claude-code-talk-terminal-bells-and-the-stop-hook). Next: [Building a Blog Newsletter from Scratch](/blog/adding-blog-subscriptions-and-weekly-digest).*

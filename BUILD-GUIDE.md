@@ -1,6 +1,6 @@
 # How I Built CryptoFlexLLC.com with Claude Code & Next.js
 
-A step-by-step guide to building a personal tech blog and portfolio site from scratch using Next.js 15, Tailwind CSS v4, shadcn/ui, and MDX — with an AI copilot along for the ride.
+A step-by-step guide to building a personal tech blog and portfolio site from scratch using Next.js 15, Tailwind CSS v4, shadcn/ui, and MDX, with an AI copilot along for the ride.
 
 ---
 
@@ -28,12 +28,12 @@ A step-by-step guide to building a personal tech blog and portfolio site from sc
 
 ### What We're Building
 
-This guide walks through every step of building [cryptoflexllc.com](https://cryptoflexllc.com) — a personal tech blog and professional portfolio for a cybersecurity professional. It's a real production site, not a tutorial toy.
+This guide walks through every step of building [cryptoflexllc.com](https://cryptoflexllc.com), a personal tech blog and professional portfolio for a cybersecurity professional. It's a real production site, not a tutorial toy.
 
 By the end, you'll have:
 
 - A dark-themed, responsive website with a sticky glassmorphism navbar
-- A blog system powered by MDX files (Markdown + JSX) — just drop in a `.mdx` file and it shows up on the site
+- A blog system powered by MDX files (Markdown + JSX) - just drop in a `.mdx` file and it shows up on the site
 - Pages for About, Services, Portfolio, and Contact
 - SEO metadata, Open Graph tags, and a custom 404 page
 - A production build ready to deploy to Vercel
@@ -42,15 +42,15 @@ By the end, you'll have:
 
 | Technology | Why I Chose It |
 |---|---|
-| **Next.js 15** | App Router gives you server components by default — better performance, simpler data fetching, and the file-based routing means your folder structure *is* your URL structure. |
+| **Next.js 15** | App Router gives you server components by default: better performance, simpler data fetching, and the file-based routing means your folder structure *is* your URL structure. |
 | **React 19** | Latest React with Server Components support. No need for `useEffect` to fetch data anymore. |
-| **Tailwind CSS v4** | The new version moves all configuration into CSS via `@theme` blocks — no more `tailwind.config.ts`. Faster builds, less config. |
-| **shadcn/ui** | Not a component library you install — it copies real component source code into your project. You own the code and can modify anything. Built on Radix primitives (accessible by default). |
-| **MDX** | Write blog posts in Markdown with the ability to embed React components. Posts are just files in your repo — no database, no CMS. |
+| **Tailwind CSS v4** | The new version moves all configuration into CSS via `@theme` blocks (no more `tailwind.config.ts`). Faster builds, less config. |
+| **shadcn/ui** | Not a component library you install, it copies real component source code into your project. You own the code and can modify anything. Built on Radix primitives (accessible by default). |
+| **MDX** | Write blog posts in Markdown with the ability to embed React components. Posts are just files in your repo (no database, no CMS). |
 
 ### The Claude Code Factor
 
-I built this site with the help of [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Anthropic's CLI tool for AI-assisted development. You absolutely don't need Claude Code to follow this guide — every command and every line of code is right here. But if you do use it, the iteration loop is remarkably fast: describe what you want, review the code, tweak, repeat.
+I built this site with the help of [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Anthropic's CLI tool for AI-assisted development. You absolutely don't need Claude Code to follow this guide (every command and every line of code is right here). But if you do use it, the iteration loop is remarkably fast: describe what you want, review the code, tweak, repeat.
 
 ---
 
@@ -59,12 +59,12 @@ I built this site with the help of [Claude Code](https://docs.anthropic.com/en/d
 Before starting, make sure you have:
 
 - **Node.js 18+** (check with `node --version`)
-- **npm** (comes with Node.js — check with `npm --version`)
+- **npm** (comes with Node.js, check with `npm --version`)
 - **Git** (check with `git --version`)
-- **GitHub CLI** (optional, for deployment — `gh --version`)
+- **GitHub CLI** (optional, for deployment: `gh --version`)
 - A code editor (VS Code, Cursor, etc.)
 
-> **Windows users:** If you're on Windows, all commands work in PowerShell, Git Bash, or Windows Terminal. I used Windows for this entire build. Watch out for path separator issues in a few places — I'll call them out when they come up.
+> **Windows users:** If you're on Windows, all commands work in PowerShell, Git Bash, or Windows Terminal. I used Windows for this entire build. Watch out for path separator issues in a few places (I'll call them out when they come up).
 
 ---
 
@@ -83,7 +83,7 @@ Here's what each flag does:
 | Flag | What It Does |
 |---|---|
 | `--typescript` | Enables TypeScript (`.tsx` files instead of `.jsx`) |
-| `--tailwind` | Sets up Tailwind CSS — in v4, this means PostCSS integration via `@tailwindcss/postcss` |
+| `--tailwind` | Sets up Tailwind CSS (in v4, this means PostCSS integration via `@tailwindcss/postcss`) |
 | `--app` | Uses the App Router (not the older Pages Router) |
 | `--src-dir` | Puts your code under `src/` to keep the root directory clean |
 | `--eslint` | Adds ESLint with Next.js-specific rules |
@@ -99,10 +99,10 @@ cryptoflexllc/
 ├── src/
 │   └── app/
 │       ├── globals.css
-│       ├── layout.tsx      ← Root layout (wraps every page)
-│       ├── page.tsx         ← Homepage (/)
+│       ├── layout.tsx      # Root layout (wraps every page)
+│       ├── page.tsx         # Homepage (/)
 │       └── favicon.ico
-├── public/                  ← Static assets
+├── public/                  # Static assets
 ├── package.json
 ├── tsconfig.json
 ├── next.config.ts
@@ -128,9 +128,9 @@ Open `http://localhost:3000`. You should see the default Next.js welcome page. T
 
 ### What is shadcn/ui?
 
-[shadcn/ui](https://ui.shadcn.com) is not a typical component library. Instead of `npm install some-library`, it copies actual component source code into your project under `src/components/ui/`. You own the code. You can read it, modify it, or restyle it however you want.
+[shadcn/ui](https://ui.shadcn.com) is not a typical component library. Instead of `npm install some-library`, it copies actual component source code into your project under `src/components/ui/`. You own the code and can read it, modify it, or restyle it however you want.
 
-Under the hood, the components are built on [Radix Primitives](https://www.radix-ui.com/) — headless, accessible UI components. shadcn/ui wraps them with good defaults, Tailwind styling, and a consistent design system.
+Under the hood, the components are built on [Radix Primitives](https://www.radix-ui.com/), headless, accessible UI components. shadcn/ui wraps them with good defaults, Tailwind styling, and a consistent design system.
 
 ### Initialize
 
@@ -141,7 +141,7 @@ npx shadcn init
 When prompted:
 
 - **Style:** `new-york` (cleaner, more modern look than the default)
-- **Base color:** `zinc` (neutral grays — we'll customize the accent color ourselves)
+- **Base color:** `zinc` (neutral grays, we'll customize the accent color ourselves)
 - **CSS variables:** `yes` (this is how we'll theme the whole site from one place)
 
 This creates a `components.json` config file and sets up the path aliases:
@@ -180,7 +180,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 ```
 
-This `cn()` function is the secret sauce that lets you combine Tailwind classes without conflicts. You'll see it everywhere in shadcn/ui components.
+This `cn()` function is the secret sauce that lets you combine Tailwind classes without conflicts (you'll see it everywhere in shadcn/ui components).
 
 ### Add the Components We Need
 
@@ -215,7 +215,7 @@ Here's what each one does:
 | Package | Purpose |
 |---|---|
 | `gray-matter` | Parses YAML frontmatter from `.mdx` files (title, date, tags, etc.) |
-| `next-mdx-remote` | Renders MDX content on the server — this is what turns your Markdown into React components |
+| `next-mdx-remote` | Renders MDX content on the server (this is what turns your Markdown into React components) |
 | `@mdx-js/loader` | Webpack loader for MDX files |
 | `@mdx-js/react` | React provider for MDX component resolution |
 | `@next/mdx` | Next.js official MDX integration |
@@ -231,7 +231,7 @@ npm install rehype-pretty-code shiki remark-gfm
 | Package | Purpose |
 |---|---|
 | `rehype-pretty-code` | Transforms code blocks in MDX into beautifully highlighted HTML |
-| `shiki` | The syntax highlighting engine — uses VS Code's TextMate grammars for accurate coloring |
+| `shiki` | The syntax highlighting engine (uses VS Code's TextMate grammars for accurate coloring) |
 | `remark-gfm` | GitHub Flavored Markdown support (tables, strikethrough, task lists) |
 
 ### Typography
@@ -240,7 +240,7 @@ npm install rehype-pretty-code shiki remark-gfm
 npm install @tailwindcss/typography
 ```
 
-This Tailwind plugin provides the `prose` classes that make long-form text (blog posts) look great without styling every element individually. It handles headings, paragraphs, lists, links, code blocks, blockquotes — the whole nine yards.
+This Tailwind plugin provides the `prose` classes that make long-form text (blog posts) look great without styling every element individually. It handles headings, paragraphs, lists, links, code blocks, blockquotes, and more.
 
 ### All at Once
 
@@ -258,7 +258,7 @@ This is where the site gets its identity. We're going all-in on dark mode with a
 
 ### Understanding Tailwind CSS v4
 
-If you've used Tailwind before, v4 is a paradigm shift. There's **no `tailwind.config.ts` file**. All configuration lives directly in CSS using `@theme` blocks. It's actually simpler once you get used to it.
+If you've used Tailwind before, v4 is a paradigm shift. There's **no `tailwind.config.ts` file**. All configuration lives directly in CSS using `@theme` blocks (it's actually simpler once you get used to it).
 
 Here's the import structure at the top of `globals.css`:
 
@@ -271,11 +271,11 @@ Here's the import structure at the top of `globals.css`:
 @custom-variant dark (&:is(.dark *));
 ```
 
-- `@import "tailwindcss"` — loads all of Tailwind's utility classes
-- `@import "tw-animate-css"` — animation utilities (used by shadcn/ui transitions)
-- `@import "shadcn/tailwind.css"` — shadcn's base configuration
-- `@plugin "@tailwindcss/typography"` — enables `prose` classes for blog content
-- `@custom-variant dark` — defines how dark mode selectors work (class-based)
+- `@import "tailwindcss"` - loads all of Tailwind's utility classes
+- `@import "tw-animate-css"` - animation utilities (used by shadcn/ui transitions)
+- `@import "shadcn/tailwind.css"` - shadcn's base configuration
+- `@plugin "@tailwindcss/typography"` - enables `prose` classes for blog content
+- `@custom-variant dark` - defines how dark mode selectors work (class-based)
 
 ### The Theme Block
 
@@ -311,7 +311,7 @@ Here's where it gets interesting. All colors use the **OKLCH color space**:
   --radius: 0.625rem;
   --background: oklch(0.141 0.005 285.823);    /* Near-black with a blue tint */
   --foreground: oklch(0.985 0 0);               /* Almost white */
-  --primary: oklch(0.75 0.15 195);              /* Cyan — the accent */
+  --primary: oklch(0.75 0.15 195);              /* Cyan (the accent) */
   --primary-foreground: oklch(0.141 0.005 285.823); /* Dark text on cyan buttons */
   --card: oklch(0.178 0.005 285.823);           /* Slightly lighter than bg */
   --card-foreground: oklch(0.985 0 0);
@@ -323,7 +323,7 @@ Here's where it gets interesting. All colors use the **OKLCH color space**:
 }
 ```
 
-**Why OKLCH?** It's a perceptually uniform color space — meaning two colors with the same "lightness" value actually *look* equally bright to human eyes. Traditional hex/RGB doesn't have this property. OKLCH has three components:
+**Why OKLCH?** It's a perceptually uniform color space, meaning two colors with the same "lightness" value actually *look* equally bright to human eyes. Traditional hex/RGB doesn't have this property. OKLCH has three components:
 
 - **L** (lightness): 0 = black, 1 = white
 - **C** (chroma): How saturated the color is
@@ -344,7 +344,7 @@ The key design decision: we only define one set of variables (dark mode) because
 }
 ```
 
-This sets sensible defaults: all borders use the border color, focus outlines use the ring color, and the body gets the background and text colors. Every component inherits these automatically.
+This sets sensible defaults: all borders use the border color, focus outlines use the ring color, and the body gets the background and text colors (every component inherits these automatically).
 
 ---
 
@@ -352,7 +352,7 @@ This sets sensible defaults: all borders use the border color, focus outlines us
 
 ### Root Layout
 
-The root layout in Next.js wraps every page. Here's `src/app/layout.tsx`:
+The root layout in Next.js wraps every page. Here's the code from `src/app/layout.tsx`:
 
 ```tsx
 import type { Metadata } from "next";
@@ -410,10 +410,10 @@ export default function RootLayout({
 
 Key things to notice:
 
-1. **`className="dark"` on `<html>`** — forces dark mode site-wide. No toggle needed.
-2. **Geist fonts** — loaded via `next/font/google` which automatically optimizes them (self-hosted, no layout shift).
-3. **`flex flex-col` + `flex-1`** — this is the sticky footer trick. The body is a flex column, and `<main>` grows to fill available space, pushing the footer to the bottom even on short pages.
-4. **`title.template`** — any page that exports `title: "About"` in its metadata will render as "About | CryptoFlex LLC" in the browser tab.
+1. **`className="dark"` on `<html>`** - forces dark mode site-wide. No toggle needed.
+2. **Geist fonts** - loaded via `next/font/google` which automatically optimizes them (self-hosted, no layout shift).
+3. **`flex flex-col` + `flex-1`** - this is the sticky footer trick. The body is a flex column, and `<main>` grows to fill available space, pushing the footer to the bottom even on short pages.
+4. **`title.template`** - any page that exports `title: "About"` in its metadata will render as "About | CryptoFlex LLC" in the browser tab.
 
 ### Navigation Component
 
@@ -465,7 +465,7 @@ The nav has two modes:
 </nav>
 ```
 
-**Mobile (below md):** A hamburger menu that opens a Sheet (drawer) from the right side. The Sheet component comes from shadcn/ui — it's built on Radix Dialog, so it handles focus trapping, escape key, click-outside, and screen reader announcements automatically.
+**Mobile (below md):** A hamburger menu that opens a Sheet (drawer) from the right side. The Sheet component comes from shadcn/ui, built on Radix Dialog, so it handles focus trapping, escape key, click-outside, and screen reader announcements automatically.
 
 The header itself uses a glassmorphism effect:
 
@@ -559,7 +559,7 @@ export function Hero() {
 
 The gradient background creates a subtle glow effect without being distracting. The `blur-3xl` on the radial gradient softens it into a smooth ambient light.
 
-The `asChild` prop on `Button` is a Radix pattern — it means "don't render a `<button>`, render whatever child component I pass" (in this case, a `<Link>`). This gives you the button's styling on a Next.js link.
+The `asChild` prop on `Button` is a Radix pattern that means "don't render a `<button>`, render whatever child component I pass" (in this case, a `<Link>`). This gives you the button's styling on a Next.js link.
 
 ### 2. Latest Blog Posts
 
@@ -577,7 +577,7 @@ const posts = getAllPosts().slice(0, 3);
 </div>
 ```
 
-Because this is a **Server Component** (no `"use client"` directive), `getAllPosts()` runs on the server at build time. No API calls, no loading states — the data is already there when the HTML is generated.
+Because this is a **Server Component** (no `"use client"` directive), `getAllPosts()` runs on the server at build time. No API calls, no loading states: the data is already there when the HTML is generated.
 
 ### 3. About Teaser
 
@@ -665,10 +665,10 @@ How it works:
 
 1. Reads all `.mdx` files from `src/content/blog/`
 2. Uses `gray-matter` to split each file into **frontmatter** (YAML metadata at the top) and **content** (the actual Markdown)
-3. Derives the URL slug from the filename (`my-post.mdx` → `/blog/my-post`)
+3. Derives the URL slug from the filename (`my-post.mdx` becomes `/blog/my-post`)
 4. Sorts by date (newest first) for the listing page
 
-This runs on the server at build time — no database, no API, no CMS. Your blog posts are version-controlled in Git alongside your code.
+This runs on the server at build time with no database, no API, no CMS. Your blog posts are version-controlled in Git alongside your code.
 
 ### Blog Listing Page: `src/app/blog/page.tsx`
 
@@ -745,13 +745,13 @@ export function BlogCard({ post }: { post: BlogPost }) {
 }
 ```
 
-The `group` / `group-hover:` pattern is a Tailwind trick — wrapping the whole card in a Link with `className="group"` means any child can react to the parent being hovered. The title turns cyan on card hover, and the border gets a subtle cyan tint.
+The `group` / `group-hover:` pattern is a Tailwind trick: wrapping the whole card in a Link with `className="group"` means any child can react to the parent being hovered. The title turns cyan on card hover, and the border gets a subtle cyan tint.
 
-`line-clamp-3` truncates the description to 3 lines with an ellipsis — clean and consistent regardless of description length.
+`line-clamp-3` truncates the description to 3 lines with an ellipsis (clean and consistent regardless of description length).
 
 ### Blog Post Page: `src/app/blog/[slug]/page.tsx`
 
-This is a **dynamic route** — the `[slug]` folder means Next.js creates a page for each blog post. Here's the full implementation:
+This is a **dynamic route**. The `[slug]` folder means Next.js creates a page for each blog post. Here's the full implementation:
 
 ```tsx
 import type { Metadata } from "next";
@@ -825,15 +825,15 @@ export default async function BlogPostPage({ params }: Props) {
 
 Key concepts:
 
-1. **`generateStaticParams()`** — tells Next.js which slugs to pre-build at compile time. Every `.mdx` file becomes a static HTML page.
+1. **`generateStaticParams()`** - tells Next.js which slugs to pre-build at compile time. Every `.mdx` file becomes a static HTML page.
 
-2. **`generateMetadata()`** — each blog post gets its own `<title>` and Open Graph tags, so links shared on social media show the correct title and description.
+2. **`generateMetadata()`** - each blog post gets its own `<title>` and Open Graph tags, so links shared on social media show the correct title and description.
 
-3. **`MDXRemote`** from `next-mdx-remote/rsc` — renders the MDX content as React components on the server. No client-side JavaScript needed for the blog post body.
+3. **`MDXRemote`** from `next-mdx-remote/rsc` - renders the MDX content as React components on the server. No client-side JavaScript needed for the blog post body.
 
-4. **The prose classes** — `prose-invert` makes the typography work on dark backgrounds. The customizations after it (`prose-a:text-primary`, `prose-pre:bg-zinc-900`, etc.) override specific elements to match our design system.
+4. **The prose classes** - `prose-invert` makes the typography work on dark backgrounds. The customizations after it (`prose-a:text-primary`, `prose-pre:bg-zinc-900`, etc.) override specific elements to match our design system.
 
-5. **`notFound()`** — if someone visits `/blog/nonexistent-slug`, Next.js serves the 404 page automatically.
+5. **`notFound()`** - if someone visits `/blog/nonexistent-slug`, Next.js serves the 404 page automatically.
 
 ### Writing a Blog Post
 
@@ -867,9 +867,9 @@ The frontmatter fields:
 | Field | Required | Description |
 |---|---|---|
 | `title` | Yes | Post title (shown on cards and the post page) |
-| `date` | Yes | ISO date string — determines sort order |
+| `date` | Yes | ISO date string (determines sort order) |
 | `description` | Yes | Shows on the blog listing card (keep it under 160 chars for SEO) |
-| `tags` | Yes | Array of strings — rendered as badges |
+| `tags` | Yes | Array of strings (rendered as badges) |
 | `image` | No | Cover image URL (not currently displayed, but the field is ready) |
 
 ---
@@ -880,10 +880,10 @@ The frontmatter fields:
 
 The About page uses a 2/3 + 1/3 grid layout:
 
-- **Left (2 columns):** Bio text and a career timeline
-- **Right (1 column):** Photo placeholder and skills badges
+- **Left (2 columns):** bio text and a career timeline
+- **Right (1 column):** photo placeholder and skills badges
 
-The career timeline is a custom component built with Tailwind — a vertical line with dots at each career stage:
+The career timeline is a custom component built with Tailwind: a vertical line with dots at each career stage.
 
 ```tsx
 <div className="flex gap-4">
@@ -893,7 +893,7 @@ The career timeline is a custom component built with Tailwind — a vertical lin
   </div>
   <div className="pb-6">
     <p className="font-medium text-foreground">Military Service</p>
-    <p className="text-sm">Intelligence analyst — learned to think like an adversary...</p>
+    <p className="text-sm">Intelligence analyst, learned to think like an adversary...</p>
   </div>
 </div>
 ```
@@ -920,13 +920,13 @@ const services = [
 ];
 ```
 
-This pattern — data as a const array, rendered with `.map()` — keeps the component clean and makes it easy to add, remove, or reorder services.
+This pattern (data as a const array, rendered with `.map()`) keeps the component clean and makes it easy to add, remove, or reorder services.
 
 ### Portfolio Page (`src/app/portfolio/page.tsx`)
 
 Same pattern as Services but using the `ProjectCard` component. Each project has a title, description, and array of tech tags displayed as badges.
 
-`ProjectCard` has a nice touch — if the project has a `link` property, the entire card becomes a clickable `<a>` tag. If not, it's a static `<div>`:
+`ProjectCard` has a nice touch: if the project has a `link` property, the entire card becomes a clickable `<a>` tag. If not, it's a static `<div>`.
 
 ```tsx
 const Wrapper = project.link ? "a" : "div";
@@ -961,7 +961,7 @@ function handleSubmit(e: FormEvent<HTMLFormElement>) {
 }
 ```
 
-This is a pragmatic choice — no backend needed, no spam concerns, and it works everywhere. The form fields use native `<input>` and `<textarea>` elements styled with Tailwind to match the shadcn/ui design system.
+This is a pragmatic choice with no backend needed, no spam concerns, and it works everywhere. The form fields use native `<input>` and `<textarea>` elements styled with Tailwind to match the shadcn/ui design system.
 
 > **Why a separate layout?** The Contact page has its own `layout.tsx` with metadata. This is necessary because `page.tsx` is a client component (uses `useState`), and you can't export `metadata` from a client component in Next.js. The solution: put the metadata in a server component layout that wraps the client page.
 
@@ -1055,8 +1055,8 @@ Route (app)                              Size     First Load JS
 ```
 
 Legend:
-- **○** = Static (pre-rendered at build time)
-- **●** = SSG (static generation with dynamic params)
+- **○** - Static (pre-rendered at build time)
+- **●** - SSG (static generation with dynamic params)
 
 Every route should be either ○ or ●. If you see **λ** (server-rendered on every request), something is forcing dynamic rendering that shouldn't be.
 
@@ -1097,7 +1097,7 @@ gh repo create chris2ao/cryptoflexllc --public --source=. --push
 4. Vercel auto-detects Next.js — accept all defaults
 5. Click Deploy
 
-That's it. Vercel handles the build, CDN, SSL, and deployment. Every push to `main` triggers a new deployment automatically.
+That's it. Vercel handles the build, CDN, SSL, and deployment (every push to `main` triggers a new deployment automatically).
 
 ### Custom Domain (Optional)
 
@@ -1109,7 +1109,7 @@ If you have a domain (like `cryptoflexllc.com`):
    - **Value:** `cname.vercel-dns.com`
 3. Vercel automatically provisions an SSL certificate
 
-> **DNS propagation** can take a few minutes to a few hours. Be patient — if it doesn't work immediately, give it time.
+> **DNS propagation** can take a few minutes to a few hours. Be patient, and if it doesn't work immediately, give it time.
 
 ---
 
@@ -1200,7 +1200,7 @@ This is a solid foundation. Here are some directions to take it:
 
 ### More Blog Posts
 
-The easiest way to grow the site — just drop `.mdx` files into `src/content/blog/`. No code changes needed. Write about what you know, what you're learning, what you're building.
+The easiest way to grow the site: just drop `.mdx` files into `src/content/blog/`. No code changes needed. Write about what you know, what you're learning, what you're building.
 
 ### Replace Placeholder Content
 
@@ -1211,19 +1211,19 @@ The easiest way to grow the site — just drop `.mdx` files into `src/content/bl
 
 ### Possible Enhancements
 
-- **RSS feed** — generate an XML feed from your MDX posts
-- **Search** — client-side search across blog posts (Fuse.js or similar)
-- **Analytics** — Vercel Analytics, Plausible, or Umami for privacy-friendly tracking
-- **Real contact form** — replace `mailto:` with a form service (Formspree, Resend)
-- **Image optimization** — use Next.js `<Image>` component for blog post images
-- **Code copy button** — add a "copy to clipboard" button on code blocks
-- **Table of contents** — auto-generate a TOC from blog post headings
-- **Reading time** — calculate and display estimated reading time
-- **Related posts** — suggest posts with matching tags at the bottom of each post
+- **RSS feed** - generate an XML feed from your MDX posts
+- **Search** - client-side search across blog posts (Fuse.js or similar)
+- **Analytics** - Vercel Analytics, Plausible, or Umami for privacy-friendly tracking
+- **Real contact form** - replace `mailto:` with a form service (Formspree, Resend)
+- **Image optimization** - use Next.js `<Image>` component for blog post images
+- **Code copy button** - add a "copy to clipboard" button on code blocks
+- **Table of contents** - auto-generate a TOC from blog post headings
+- **Reading time** - calculate and display estimated reading time
+- **Related posts** - suggest posts with matching tags at the bottom of each post
 
 ### The Bigger Picture
 
-This site is a living project. Every new blog post, every tweak to the design, every feature addition is an opportunity to learn more about Next.js, React, and modern web development. The code is open source — fork it, modify it, make it yours.
+This site is a living project. Every new blog post, every tweak to the design, every feature addition is an opportunity to learn more about Next.js, React, and modern web development. The code is open source, so fork it, modify it, and make it yours.
 
 ---
 

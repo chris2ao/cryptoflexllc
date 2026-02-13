@@ -11,7 +11,7 @@ I spent three hours today restructuring my entire Claude Code configuration arou
 
 By the end of the session, I'd created 7 custom agents, reorganized 9 rules into a coherent directory structure, built a PreToolUse hook that guards sensitive files, cleaned up redundant MCP servers, and established an agentic workflow that automatically fans out tasks to specialized agents running in parallel. No more serial execution. No more "one thing at a time" when three agents could handle it simultaneously.
 
-This post is about that transformation — the philosophy, the implementation, the mistakes, and why you should adopt agentic-first principles too.
+This post is about that transformation: the philosophy, the implementation, the mistakes, and why you should adopt agentic-first principles too.
 
 ## The Problem: Organic Growth Without Structure
 
@@ -53,19 +53,19 @@ SERIAL EXECUTION (before):
   User Request
        │
        ▼
-  Research repos ──────────── 3 min
+  Research repos (3 min)
        │
        ▼
-  Analyze patterns ────────── 2 min
+  Analyze patterns (2 min)
        │
        ▼
-  Write code ──────────────── 4 min
+  Write code (4 min)
        │
        ▼
-  Review code ─────────────── 2 min
+  Review code (2 min)
        │
        ▼
-  Update docs ─────────────── 1 min
+  Update docs (1 min)
        │
        ▼
      Done                    12 min total
@@ -79,9 +79,9 @@ PARALLEL AGENTIC (after):
        ├──→ [Analysis Agent]  ──┤  2 min (parallel)
        └──→ [Pattern Agent]   ──┘
                                 │
-                           Synthesize ─── 1 min
+                           Synthesize (1 min)
                                 │
-                           Write code ─── 4 min
+                           Write code (4 min)
                                 │
                        ┌────────┴────────┐
                        ▼                 ▼
@@ -133,7 +133,7 @@ The three subdirectories map to three levels of priority:
 Claude Code recursively loads rules from `~/.claude/rules/`. By using subdirectories, you create a natural hierarchy that reflects priority. Core rules get seen first. Operational details stay out of the way until needed. And when your rules grow from 8 to 20 files, the organization scales.
 </Info>
 
-The `agents.md` file stayed at the root for maximum visibility — it's the quick-reference routing table for "which task gets which agent."
+The `agents.md` file stayed at the root for maximum visibility. It's the quick-reference routing table for "which task gets which agent."
 
 ## The Agentic Workflow Rule: The Primary Deliverable
 
@@ -158,7 +158,7 @@ The rule includes a routing table that maps task types to specialized agents and
 | Research, web search | `general-purpose` | Haiku | Read-only, cheap |
 
 <Tip title="Model Selection Is Cost Optimization">
-Haiku 4.5 delivers 90% of Sonnet's capability at one-third the cost. If an agent is just reading files and searching code, Haiku is the right choice. Reserve Opus for tasks that genuinely need deep reasoning — architecture decisions and security analysis. Sonnet handles the sweet spot of code generation. Match the model to the task, not the other way around.
+Haiku 4.5 delivers 90% of Sonnet's capability at one-third the cost. If an agent is just reading files and searching code, Haiku is the right choice. Reserve Opus for tasks that genuinely need deep reasoning: architecture decisions and security analysis. Sonnet handles the sweet spot of code generation. Match the model to the task, not the other way around.
 </Tip>
 
 ### Automatic Triggers
@@ -178,7 +178,7 @@ This means I don't have to remember to request a code review. The moment code is
 
 The rule codifies three reusable patterns:
 
-**Research Fan-Out** — when exploring unfamiliar code, launch 2-3 Explore agents simultaneously. One searches for the specific files, one finds related tests, one checks configuration:
+**Research Fan-Out**: when exploring unfamiliar code, launch 2-3 Explore agents simultaneously. One searches for the specific files, one finds related tests, one checks configuration:
 
 ```
 "How does authentication work across our repos?"
@@ -190,7 +190,7 @@ The rule codifies three reusable patterns:
        └──→ Synthesize findings → Answer
 ```
 
-**Write-Then-Review Pipeline** — write code, then immediately launch parallel reviewers:
+**Write-Then-Review Pipeline**: write code, then immediately launch parallel reviewers:
 
 ```
 "Add rate limiting to the analytics API"
@@ -204,7 +204,7 @@ The rule codifies three reusable patterns:
             └──→ Apply fixes → Commit
 ```
 
-**Multi-File Changes** — when modifying 3+ files, plan first, then parallelize:
+**Multi-File Changes**: when modifying 3+ files, plan first, then parallelize:
 
 ```
 "Update the footer across all blog posts"
@@ -222,7 +222,7 @@ The rule codifies three reusable patterns:
 
 The [everything-claude-code](https://github.com/affaan-m/everything-claude-code) plugin provides 9 agents (planner, architect, tdd-guide, code-reviewer, security-reviewer, build-error-resolver, e2e-runner, refactor-cleaner, doc-updater). But I needed 7 more for workflows specific to my environment.
 
-Each agent is a markdown file in `~/.claude/agents/` with YAML frontmatter specifying the model, available tools, and a detailed prompt. Here's what I built and why:
+Each agent is a markdown file in `~/.claude/agents/` with YAML frontmatter specifying the model, available tools, and a detailed prompt. Here's what I built and why.
 
 ### Agent Ecosystem Overview
 
@@ -248,7 +248,7 @@ Every session ends with updates to `CHANGELOG.md`. This agent reads git diffs, r
 
 ### multi-repo-orchestrator (Haiku)
 
-I work across 4 repos: the learning journal, the website, ops docs, and the config repo. This agent runs parallel git operations across all 4 — status, pull, push, diff — and returns a unified table. One command, four repos, instant overview.
+I work across 4 repos: the learning journal, the website, ops docs, and the config repo. This agent runs parallel git operations across all 4 (status, pull, push, diff) and returns a unified table. One command, four repos, instant overview.
 
 ```yaml
 ---
@@ -260,7 +260,7 @@ tools: [Bash, Read]
 
 ### session-analyzer (Sonnet)
 
-My `~/.claude/projects/` directory accumulates session transcripts. The analyzer mines them for repeated patterns, common errors, tool usage frequency, and approaches that were tried and abandoned. It's how I discovered I was spending disproportionate time on file permission issues — which led to creating the file-guard hook.
+My `~/.claude/projects/` directory accumulates session transcripts. The analyzer mines them for repeated patterns, common errors, tool usage frequency, and approaches that were tried and abandoned. It's how I discovered I was spending disproportionate time on file permission issues, which led to creating the file-guard hook.
 
 ### deploy-verifier (Haiku)
 
@@ -272,14 +272,14 @@ My config lives in two places: `~/.claude/` (where Claude Code reads it) and a g
 
 ### context-health (Haiku)
 
-Claude Code's context window is finite. This agent monitors conversation length and suggests strategic compaction points — after completing a major milestone, before switching task domains, or when exploration is done and implementation is about to begin. Prevents those awkward mid-task compactions that lose critical context.
+Claude Code's context window is finite. This agent monitors conversation length and suggests strategic compaction points: after completing a major milestone, before switching task domains, or when exploration is done and implementation is about to begin. Prevents those awkward mid-task compactions that lose critical context.
 
 ### skill-extractor (Sonnet)
 
 When I solve a non-obvious problem, I want to capture the solution as a learned skill. This agent reads session transcripts, identifies problem-solution pairs (silent failures, platform quirks, integration patterns), drafts markdown skill files in the standard format, and suggests categorization into one of 4 domains.
 
 <Info title="Why These 7 Agents">
-Each agent addresses a specific pain point I hit repeatedly:
+Each agent addresses a specific pain point I hit repeatedly.
 - changelog-writer: I was writing the same format manually every session
 - multi-repo-orchestrator: Running git status on 4 repos individually was tedious
 - session-analyzer: Patterns were hiding in transcripts I never re-read
@@ -309,10 +309,10 @@ BEFORE:                              AFTER:
                                          └── SKILL.md        ← NEW
 ```
 
-The old command files stay for backward compatibility, but skills take priority when invoked. The two new skills fill gaps:
+The old command files stay for backward compatibility, but skills take priority when invoked. The two new skills fill gaps.
 
-- **multi-repo-status**: Quick dashboard showing git status across all 4 repos with a formatted table — a lightweight version of the multi-repo-orchestrator agent
-- **skill-catalog**: Lists all available agents (16), skills (4), and hooks (4) with descriptions — no more "what was that command called?"
+- **multi-repo-status**: Quick dashboard showing git status across all 4 repos with a formatted table (a lightweight version of the multi-repo-orchestrator agent)
+- **skill-catalog**: Lists all available agents (16), skills (4), and hooks (4) with descriptions. No more "what was that command called?"
 
 <Tip title="Skills Auto-Discover Immediately">
 Unlike commands (which require a session restart to discover), skills are picked up as soon as the SKILL.md file is written. No restart needed. This makes iteration much faster during development.
@@ -320,7 +320,7 @@ Unlike commands (which require a session restart to discover), skills are picked
 
 ## Learned Skills Taxonomy: From Flat to Organized
 
-I had 16 learned skills scattered in flat files. These are non-obvious patterns extracted from past sessions — things like "Git Bash strips `$` from PowerShell commands" or "vercel.json uses `routes` not `rules` for WAF config." I organized them into 4 domains:
+I had 16 learned skills scattered in flat files. These are non-obvious patterns extracted from past sessions, things like "Git Bash strips `$` from PowerShell commands" or "vercel.json uses `routes` not `rules` for WAF config." I organized them into 4 domains:
 
 ```
 ~/.claude/skills/learned/
@@ -357,7 +357,7 @@ Original files remain at the `learned/` root for backward compatibility. The sub
 
 ## PreToolUse File Protection: The file-guard Hook
 
-One of my biggest concerns: Claude accidentally editing `.env` files, private keys, or certificate files. I built a PreToolUse hook that intercepts every Edit and Write operation and blocks it if the target is a sensitive file.
+One of my biggest concerns was Claude accidentally editing `.env` files, private keys, or certificate files. I built a PreToolUse hook that intercepts every Edit and Write operation and blocks it if the target is a sensitive file.
 
 Here's the hook configuration in `settings.local.json`:
 
@@ -428,10 +428,10 @@ try {
 Claude Code hook exit codes have specific meanings: **0** = allow the operation, **1** = error occurred but allow anyway, **2** = block the operation. For security hooks, always use exit code 2 to prevent the operation from proceeding. The error message written to stderr gets displayed to the user explaining why the operation was blocked.
 </Security>
 
-The hook intercepts the JSON payload that Claude Code sends on stdin (containing the tool name and parameters), extracts the target file path, and checks it against blocklists. The `catch` block exits with 0 (allow) so that hook errors never accidentally block legitimate operations.
+The hook intercepts the JSON payload that Claude Code sends on stdin, which contains the tool name and parameters. It extracts the target file path and checks it against blocklists. The `catch` block exits with 0 (allow) so that hook errors never accidentally block legitimate operations.
 
 <Warning title="Fail Open, Not Closed">
-Notice the `catch { exit 0 }` at the end. A security hook that crashes and blocks all file operations would be worse than no hook at all. The hook should fail open — if something unexpected happens, allow the operation and let the user decide. Only block when you're confident the target is sensitive.
+Notice the `catch { exit 0 }` at the end. A security hook that crashes and blocks all file operations would be worse than no hook at all. The hook should fail open. If something unexpected happens, allow the operation and let the user decide. Only block when you're confident the target is sensitive.
 </Warning>
 
 ## MCP Server Cleanup: Removing Redundancy
@@ -449,7 +449,7 @@ BEFORE (5 servers):                AFTER (4 servers):
 └──────────────────────┘           └──────────────────────┘
 ```
 
-The filesystem MCP provided tools for reading, writing, and listing files. But Claude Code already has built-in Read, Write, Edit, Glob, and Grep tools that work better — they integrate with the permission sandbox, handle Windows paths correctly, and don't require MCP overhead.
+The filesystem MCP provided tools for reading, writing, and listing files. But Claude Code already has built-in Read, Write, Edit, Glob, and Grep tools that work better. They integrate with the permission sandbox, handle Windows paths correctly, and don't require MCP overhead.
 
 Every MCP server adds startup latency and injects its tool descriptions into the context window. Removing a redundant server saves tokens every single session.
 
@@ -461,7 +461,7 @@ Before adding an MCP server, check if Claude Code already has built-in tools for
 
 ### The Sandbox Limitation
 
-My plan was to parallelize the file writing by spawning 3 background agents — one for core rules, one for development rules, one for operations rules. All three would write simultaneously and the restructure would be done in one-third the time.
+My plan was to parallelize the file writing by spawning 3 background agents: one for core rules, one for development rules, one for operations rules. All three would write simultaneously and the restructure would be done in one-third the time.
 
 All three failed with the same error. Subagents are sandboxed to the current project directory:
 
@@ -478,7 +478,7 @@ SUBAGENT SESSION:
 ```
 
 <Stop title="Subagents Can't Write Outside the Project">
-Background agents spawned via the Task tool are sandboxed to the current project directory. They cannot modify global config (`~/.claude/`), other repos, or system files. This is a security feature — but it means you can't parallelize cross-directory writes. Use the main session for those operations instead.
+Background agents spawned via the Task tool are sandboxed to the current project directory. They cannot modify global config (`~/.claude/`), other repos, or system files. This is a security feature, but it means you can't parallelize cross-directory writes. Use the main session for those operations instead.
 </Stop>
 
 The workaround: write all 42 config files from the main session, sequentially. Slower, but it worked.
@@ -504,7 +504,7 @@ This is the third time I've documented this gotcha. Git Bash (MSYS2) rewrites co
 
 ### The "Modified Since Read" Race Condition
 
-Throughout the session, `~/.claude.json` kept throwing "file modified since read" errors when I tried to edit it. The cause: Claude Code itself modifies this file (updating MCP state, session metadata), creating a race condition between my edits and its internal writes. The solution: use `claude mcp add/remove` commands instead of manual JSON editing, and let Claude Code manage its own config file.
+Throughout the session, `~/.claude.json` kept throwing "file modified since read" errors when I tried to edit it. The cause was Claude Code itself modifying this file (updating MCP state, session metadata), creating a race condition between my edits and its internal writes. The solution: use `claude mcp add/remove` commands instead of manual JSON editing, and let Claude Code manage its own config file.
 
 ## Why You Should Go Agentic-First
 
@@ -512,7 +512,7 @@ Here's my case for why every Claude Code user should adopt agentic-first princip
 
 ### 1. Parallel Execution Saves Real Time
 
-If you have 3 independent research tasks that each take 2 minutes, serial execution takes 6 minutes. Parallel execution takes 2 minutes. Do that 10 times in a session and you've saved 40 minutes. That's not theoretical — it's the difference between an 8-minute task and a 12-minute task, multiplied across every complex operation in your workflow.
+If you have 3 independent research tasks that each take 2 minutes, serial execution takes 6 minutes. Parallel execution takes 2 minutes. Do that 10 times in a session and you've saved 40 minutes. That's not theoretical. It's the difference between an 8-minute task and a 12-minute task, multiplied across every complex operation in your workflow.
 
 ### 2. Specialized Agents Produce Better Results
 
@@ -524,11 +524,11 @@ How many times have you written code, committed it, then realized you forgot to 
 
 ### 4. Cost Optimization Through Model Routing
 
-Opus costs significantly more than Haiku. If you use Opus for everything — including file searches and documentation updates — you're paying premium prices for commodity tasks. Agentic-first means routing each task to the cheapest capable model. Research and docs use Haiku. Code generation uses Sonnet. Architecture and security use Opus. Better quality at lower cost.
+Opus costs significantly more than Haiku. If you use Opus for everything, including file searches and documentation updates, you're paying premium prices for commodity tasks. Agentic-first means routing each task to the cheapest capable model. Research and docs use Haiku. Code generation uses Sonnet. Architecture and security use Opus. Better quality at lower cost.
 
 ### 5. It's Just Markdown Files
 
-This entire system — 16 agents, 9 rules, 4 skills, 16 learned patterns — is built from markdown files in `~/.claude/`. No SDK. No compilation. No deployment pipeline. You write a markdown file, save it, and Claude Code picks it up on the next session. The barrier to entry is zero.
+This entire system (16 agents, 9 rules, 4 skills, 16 learned patterns) is built from markdown files in `~/.claude/`. No SDK. No compilation. No deployment pipeline. You write a markdown file, save it, and Claude Code picks it up on the next session. The barrier to entry is zero.
 
 <Tip title="Start Small, Then Expand">
 You don't need 7 custom agents on day one. Start with one rule: `agentic-workflow.md`. Add the mandatory decomposition principle. Feel the difference when research tasks fan out in parallel. Then add your first custom agent. Then a second. Build incrementally. The configuration grows with your understanding.
@@ -557,10 +557,10 @@ Three hours of work. A fundamentally different workflow.
 
 The agentic-first restructure is the foundation. Next steps:
 
-- **Agent performance metrics** — Track how long each agent takes, how often it's invoked, and token cost per agent
-- **Automatic skill extraction** — Run the skill-extractor agent at end of every session via the wrap-up flow
-- **Multi-repo change coordination** — Teach the orchestrator to make related changes across repos atomically
-- **Context window optimization** — Use the context-health agent to suggest proactive compaction points before context gets too full
+- **Agent performance metrics**: Track how long each agent takes, how often it's invoked, and token cost per agent
+- **Automatic skill extraction**: Run the skill-extractor agent at end of every session via the wrap-up flow
+- **Multi-repo change coordination**: Teach the orchestrator to make related changes across repos atomically
+- **Context window optimization**: Use the context-health agent to suggest proactive compaction points before context gets too full
 
 But for now, I'm going to enjoy watching 3 research agents run simultaneously. Parallel execution never gets old.
 

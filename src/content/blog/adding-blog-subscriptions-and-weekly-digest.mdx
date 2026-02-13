@@ -434,8 +434,8 @@ export async function GET(request: NextRequest) {
         from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
         to: email,
         subject: hasNewPosts
-          ? `This Week at CryptoFlex — ${recentPosts.length} New Post${recentPosts.length > 1 ? "s" : ""}!`
-          : "This Week at CryptoFlex — Quick Update",
+          ? `This Week at CryptoFlex - ${recentPosts.length} New Post${recentPosts.length > 1 ? "s" : ""}!`
+          : "This Week at CryptoFlex - Quick Update",
         html,
         headers: {
           "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
@@ -501,8 +501,8 @@ for (const row of rows) {
     from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
     to: email,
     subject: hasNewPosts
-      ? `This Week at CryptoFlex — ${recentPosts.length} New Post${recentPosts.length > 1 ? "s" : ""}!`
-      : "This Week at CryptoFlex — Quick Update",
+      ? `This Week at CryptoFlex - ${recentPosts.length} New Post${recentPosts.length > 1 ? "s" : ""}!`
+      : "This Week at CryptoFlex - Quick Update",
     html,
     headers: {
       "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
