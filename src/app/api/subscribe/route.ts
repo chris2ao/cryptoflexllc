@@ -15,6 +15,9 @@ import { getAllPosts } from "@/lib/blog";
 
 const BASE_URL = "https://cryptoflexllc.com";
 
+// Allow up to 30 seconds for DB insert + SMTP send
+export const maxDuration = 30;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -60,9 +63,12 @@ export async function POST(request: NextRequest) {
 
     // Send confirmation email before responding (must await on serverless)
     try {
+      console.log(`[subscribe] Sending welcome email to ${email}...`);
+      const emailStart = Date.now();
       await sendConfirmationEmail(email);
+      console.log(`[subscribe] Welcome email sent in ${Date.now() - emailStart}ms`);
     } catch (err) {
-      console.error("Confirmation email error:", err);
+      console.error("[subscribe] Welcome email FAILED:", err);
     }
 
     return NextResponse.json({ ok: true });
@@ -84,8 +90,14 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
   const gmailPass = process.env.GMAIL_APP_PASSWORD;
 
   // Skip if email credentials aren't configured
-  if (!gmailUser || !gmailPass) return;
+  if (!gmailUser || !gmailPass) {
+    console.warn(
+      `[welcome-email] SKIPPED: GMAIL_USER=${!!gmailUser}, GMAIL_APP_PASSWORD=${!!gmailPass}`
+    );
+    return;
+  }
 
+  console.log(`[welcome-email] Credentials present, creating SMTP transport...`);
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
@@ -93,8 +105,11 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
     auth: { user: gmailUser, pass: gmailPass },
   });
 
+  console.log(`[welcome-email] Loading blog posts...`);
   const latestPosts = getAllPosts().slice(0, 5);
+  console.log(`[welcome-email] Found ${latestPosts.length} posts, generating unsubscribe URL...`);
   const unsubLink = unsubscribeUrl(recipientEmail);
+  console.log(`[welcome-email] Building HTML and sending to ${recipientEmail}...`);
 
   const postRows = latestPosts
     .map(
@@ -194,7 +209,7 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
 </body>
 </html>`;
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: `"CryptoFlex LLC" <${gmailUser}>`,
     to: recipientEmail,
     subject: "Welcome to CryptoFlex! Thanks for Subscribing",
@@ -204,6 +219,7 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     },
   });
+  console.log(`[welcome-email] SUCCESS: messageId=${info.messageId}, response=${info.response}`);
 }
 
 function escapeHtml(str: string): string {
