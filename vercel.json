@@ -26,7 +26,7 @@
       }
     },
     {
-      "src": "/api/(?!analytics|subscribe|unsubscribe|cron/weekly-digest|comments|subscribers)(.*)",
+      "src": "/api/(?!analytics|subscribe|unsubscribe|cron/weekly-digest|comments|subscribers|send-welcome-blast)(.*)",
       "mitigate": {
         "action": "deny"
       }
