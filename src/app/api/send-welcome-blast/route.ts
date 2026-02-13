@@ -1,12 +1,12 @@
 /**
- * POST /api/send-welcome-blast
+ * GET /api/send-welcome-blast
  * -----------------------------------------------
  * One-time endpoint to send a belated welcome email to all
  * existing active subscribers who missed the original welcome.
  * Protected by CRON_SECRET.
  *
  * Trigger with:
- *   curl -X POST https://cryptoflexllc.com/api/send-welcome-blast \
+ *   curl https://cryptoflexllc.com/api/send-welcome-blast \
  *     -H "Authorization: Bearer $CRON_SECRET"
  */
 
@@ -18,7 +18,7 @@ import { unsubscribeUrl } from "@/lib/subscribers";
 
 const BASE_URL = "https://cryptoflexllc.com";
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
