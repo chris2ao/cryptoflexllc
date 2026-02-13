@@ -1,0 +1,368 @@
+/**
+ * Integration tests for GET /api/cron/weekly-digest
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { GET } from "./route";
+import { NextRequest } from "next/server";
+
+vi.mock("@/lib/analytics");
+vi.mock("@/lib/blog");
+vi.mock("@/lib/subscribers");
+vi.mock("nodemailer");
+
+describe("GET /api/cron/weekly-digest", () => {
+  let mockSql: any;
+  let mockTransporter: any;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+
+    // Mock getDb
+    const { getDb } = await import("@/lib/analytics");
+    mockSql = vi.fn();
+    vi.mocked(getDb).mockReturnValue(mockSql);
+
+    // Mock nodemailer
+    const nodemailer = await import("nodemailer");
+    mockTransporter = {
+      sendMail: vi.fn().mockResolvedValue({ messageId: "test-id" }),
+    };
+    vi.mocked(nodemailer.default.createTransport).mockReturnValue(
+      mockTransporter as any
+    );
+
+    // Mock getAllPosts
+    const { getAllPosts } = await import("@/lib/blog");
+    vi.mocked(getAllPosts).mockReturnValue([
+      {
+        slug: "recent-post",
+        title: "Recent Post",
+        date: new Date().toISOString(),
+        description: "A recent post",
+        tags: ["test"],
+        readingTime: "5 min",
+        content: "",
+      },
+      {
+        slug: "old-post",
+        title: "Old Post",
+        date: "2025-01-01",
+        description: "An old post",
+        tags: [],
+        readingTime: "3 min",
+        content: "",
+      },
+    ]);
+
+    // Mock unsubscribeUrl
+    const { unsubscribeUrl } = await import("@/lib/subscribers");
+    vi.mocked(unsubscribeUrl).mockImplementation(
+      (email) => `https://cryptoflexllc.com/api/unsubscribe?email=${email}&token=test`
+    );
+
+    // Set required env vars
+    process.env.CRON_SECRET = "test-cron-secret";
+    process.env.GMAIL_USER = "test@cryptoflexllc.com";
+    process.env.GMAIL_APP_PASSWORD = "test-password";
+    process.env.SUBSCRIBER_SECRET = "test-secret";
+  });
+
+  afterEach(() => {
+    delete process.env.CRON_SECRET;
+    delete process.env.GMAIL_USER;
+    delete process.env.GMAIL_APP_PASSWORD;
+    delete process.env.SUBSCRIBER_SECRET;
+  });
+
+  it("should send digest to all active subscribers with recent posts", async () => {
+    mockSql.mockResolvedValueOnce([
+      { email: "user1@example.com" },
+      { email: "user2@example.com" },
+    ]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({
+      ok: true,
+      sent: 2,
+      posts: 1, // Only 1 recent post from the last 7 days
+    });
+
+    expect(mockTransporter.sendMail).toHaveBeenCalledTimes(2);
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: '"CryptoFlex LLC" <test@cryptoflexllc.com>',
+        to: "user1@example.com",
+        subject: expect.stringContaining("New Post"),
+        html: expect.stringContaining("Recent Post"),
+      })
+    );
+  });
+
+  it("should return 401 when authorization header is missing", async () => {
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest");
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe("Unauthorized");
+    expect(mockSql).not.toHaveBeenCalled();
+  });
+
+  it("should return 401 when cron secret is incorrect", async () => {
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer wrong-secret",
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe("Unauthorized");
+  });
+
+  it("should handle zero active subscribers", async () => {
+    mockSql.mockResolvedValueOnce([]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({
+      ok: true,
+      sent: 0,
+      reason: "no subscribers",
+    });
+
+    expect(mockTransporter.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("should send 'no new posts' email when no recent posts", async () => {
+    // Mock getAllPosts to return only old posts
+    const { getAllPosts } = await import("@/lib/blog");
+    vi.mocked(getAllPosts).mockReturnValue([
+      {
+        slug: "old-post",
+        title: "Old Post",
+        date: "2025-01-01",
+        description: "An old post",
+        tags: [],
+        readingTime: "3 min",
+        content: "",
+      },
+    ]);
+
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({
+      ok: true,
+      sent: 1,
+      posts: 0,
+    });
+
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: expect.stringContaining("Quick Update"),
+        html: expect.stringContaining("No new posts this week"),
+      })
+    );
+  });
+
+  it("should include unsubscribe link in email headers", async () => {
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    await GET(request);
+
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "List-Unsubscribe": expect.stringContaining("/api/unsubscribe"),
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        }),
+      })
+    );
+  });
+
+  it("should send personalized emails to each subscriber", async () => {
+    mockSql.mockResolvedValueOnce([
+      { email: "user1@example.com" },
+      { email: "user2@example.com" },
+      { email: "user3@example.com" },
+    ]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    await GET(request);
+
+    expect(mockTransporter.sendMail).toHaveBeenCalledTimes(3);
+
+    // Verify each email was sent to correct recipient
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "user1@example.com" })
+    );
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "user2@example.com" })
+    );
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "user3@example.com" })
+    );
+  });
+
+  it("should use plural 'Posts' in subject when multiple recent posts", async () => {
+    // Mock getAllPosts to return multiple recent posts
+    const { getAllPosts } = await import("@/lib/blog");
+    const recentDate = new Date();
+    vi.mocked(getAllPosts).mockReturnValue([
+      {
+        slug: "post1",
+        title: "Post 1",
+        date: recentDate.toISOString(),
+        description: "Post 1",
+        tags: [],
+        readingTime: "5 min",
+        content: "",
+      },
+      {
+        slug: "post2",
+        title: "Post 2",
+        date: recentDate.toISOString(),
+        description: "Post 2",
+        tags: [],
+        readingTime: "3 min",
+        content: "",
+      },
+    ]);
+
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    await GET(request);
+
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: expect.stringMatching(/2 New Posts/),
+      })
+    );
+  });
+
+  it("should use singular 'Post' in subject when one recent post", async () => {
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    await GET(request);
+
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: expect.stringMatching(/1 New Post!/),
+      })
+    );
+  });
+
+  it("should return 500 when database query fails", async () => {
+    mockSql.mockRejectedValueOnce(new Error("Database error"));
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe("Failed to send weekly digest");
+  });
+
+  it("should return 500 when email sending fails", async () => {
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+    mockTransporter.sendMail.mockRejectedValueOnce(
+      new Error("SMTP connection failed")
+    );
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe("Failed to send weekly digest");
+  });
+
+  it("should configure Gmail SMTP with correct settings", async () => {
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+
+    const nodemailer = await import("nodemailer");
+    const createTransportSpy = vi.mocked(nodemailer.default.createTransport);
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    await GET(request);
+
+    expect(createTransportSpy).toHaveBeenCalledWith({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "test@cryptoflexllc.com",
+        pass: "test-password",
+      },
+    });
+  });
+});

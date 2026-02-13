@@ -26,10 +26,17 @@ export function getAllPosts(): BlogPost[] {
     const fileContents = fs.readFileSync(filePath, "utf8");
     const { data, content } = matter(fileContents);
 
+    // gray-matter auto-parses YAML dates into Date objects; normalize to string
+    const rawDate = data.date;
+    const date =
+      rawDate instanceof Date
+        ? rawDate.toISOString().split("T")[0]
+        : (rawDate ?? "1970-01-01");
+
     return {
       slug,
       title: data.title ?? slug,
-      date: data.date ?? "1970-01-01",
+      date,
       author: data.author ?? "",
       readingTime: data.readingTime ?? "",
       description: data.description ?? "",
@@ -67,10 +74,16 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
   const fileContents = fs.readFileSync(filePath, "utf8");
   const { data, content } = matter(fileContents);
 
+  const rawDate = data.date;
+  const date =
+    rawDate instanceof Date
+      ? rawDate.toISOString().split("T")[0]
+      : (rawDate ?? "1970-01-01");
+
   return {
     slug,
     title: data.title ?? slug,
-    date: data.date ?? "1970-01-01",
+    date,
     author: data.author ?? "",
     readingTime: data.readingTime ?? "",
     description: data.description ?? "",
