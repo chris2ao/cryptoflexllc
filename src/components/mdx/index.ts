@@ -12,4 +12,6 @@ export {
   GoogleCrawlFlowDiagram,
   MetadataFlowDiagram,
   SEOBeforeAfterDiagram,
+  CommentSystemDiagram,
+  WelcomeBlastTroubleshootDiagram,
 } from "./diagrams";

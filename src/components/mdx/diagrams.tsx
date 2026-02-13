@@ -974,6 +974,194 @@ export function SEOBeforeAfterDiagram({ caption }: DiagramProps) {
   );
 }
 
+/** Shows the comment system architecture from browser to database */
+export function CommentSystemDiagram({ caption }: DiagramProps) {
+  return (
+    <DiagramWrapper
+      caption={
+        caption ??
+        "Comment system architecture — subscriber-gated comments with admin moderation via the analytics dashboard"
+      }
+    >
+      <svg
+        viewBox="0 0 820 260"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full max-w-3xl mx-auto"
+      >
+        {/* Step 1: Reader */}
+        <rect x="5" y="60" width="120" height="90" rx="8" className="stroke-foreground/60" strokeWidth="1.5" />
+        <text x="25" y="88" className="fill-foreground text-[16px]">&#x1F464;</text>
+        <text x="65" y="90" textAnchor="middle" className="fill-foreground text-[10px] font-semibold">Reader</text>
+        <text x="65" y="107" textAnchor="middle" className="fill-muted-foreground text-[8px]">Types comment</text>
+        <text x="65" y="119" textAnchor="middle" className="fill-muted-foreground text-[8px]">Selects reaction</text>
+        <text x="65" y="131" textAnchor="middle" className="fill-muted-foreground text-[8px]">Enters email</text>
+
+        {/* Arrow */}
+        <line x1="125" y1="105" x2="170" y2="105" className="stroke-primary" strokeWidth="2" markerEnd="url(#commentRight1)" />
+        <text x="147" y="97" textAnchor="middle" className="fill-primary text-[8px] font-medium">POST</text>
+
+        {/* Step 2: API Route */}
+        <rect x="172" y="40" width="140" height="130" rx="8" className="stroke-primary" strokeWidth="2" />
+        <text x="192" y="68" className="fill-primary text-[16px]">&#x2699;&#xFE0F;</text>
+        <text x="242" y="68" textAnchor="middle" className="fill-primary text-[10px] font-bold">/api/comments</text>
+        <text x="242" y="86" textAnchor="middle" className="fill-muted-foreground text-[8px]">Validate input</text>
+        <text x="242" y="98" textAnchor="middle" className="fill-muted-foreground text-[8px]">Length check (2-2000)</text>
+        <text x="242" y="110" textAnchor="middle" className="fill-muted-foreground text-[8px]">Email format check</text>
+        <text x="242" y="122" textAnchor="middle" className="fill-emerald-500 text-[8px] font-medium">Subscriber lookup</text>
+        <text x="242" y="134" textAnchor="middle" className="fill-muted-foreground text-[8px]">SQL parameterized</text>
+        <text x="242" y="146" textAnchor="middle" className="fill-muted-foreground text-[8px]">Generic errors</text>
+
+        {/* Gate badge */}
+        <rect x="188" y="155" width="108" height="18" rx="4" className="fill-amber-500/15" />
+        <text x="242" y="168" textAnchor="middle" className="fill-amber-500 text-[8px] font-medium">403 if not subscriber</text>
+
+        {/* Arrow to DB */}
+        <line x1="312" y1="105" x2="360" y2="105" className="stroke-emerald-500" strokeWidth="2" markerEnd="url(#commentRight2)" />
+        <text x="336" y="97" textAnchor="middle" className="fill-emerald-500 text-[8px] font-medium">INSERT</text>
+
+        {/* Step 3: Database */}
+        <rect x="362" y="50" width="130" height="110" rx="8" className="stroke-emerald-500" strokeWidth="1.5" />
+        <text x="382" y="78" className="fill-emerald-500 text-[16px]">&#x1F4BE;</text>
+        <text x="427" y="80" textAnchor="middle" className="fill-emerald-500 text-[10px] font-semibold">Neon Postgres</text>
+        <text x="427" y="98" textAnchor="middle" className="fill-muted-foreground text-[8px]">blog_comments table</text>
+        <text x="427" y="110" textAnchor="middle" className="fill-muted-foreground text-[8px]">slug, comment,</text>
+        <text x="427" y="122" textAnchor="middle" className="fill-muted-foreground text-[8px]">reaction, email</text>
+        <text x="427" y="134" textAnchor="middle" className="fill-muted-foreground text-[8px]">subscribers table</text>
+        <text x="427" y="146" textAnchor="middle" className="fill-muted-foreground text-[8px]">(subscriber check)</text>
+
+        {/* Admin flow */}
+        <rect x="555" y="50" width="130" height="110" rx="8" className="stroke-amber-500" strokeWidth="1.5" />
+        <text x="575" y="78" className="fill-amber-500 text-[16px]">&#x1F6E1;&#xFE0F;</text>
+        <text x="620" y="80" textAnchor="middle" className="fill-amber-500 text-[10px] font-semibold">Admin Panel</text>
+        <text x="620" y="98" textAnchor="middle" className="fill-muted-foreground text-[8px]">/analytics dashboard</text>
+        <text x="620" y="110" textAnchor="middle" className="fill-muted-foreground text-[8px]">Cookie auth required</text>
+        <text x="620" y="122" textAnchor="middle" className="fill-muted-foreground text-[8px]">DELETE /api/comments/:id</text>
+        <text x="620" y="134" textAnchor="middle" className="fill-muted-foreground text-[8px]">verifyApiAuth() check</text>
+        <text x="620" y="146" textAnchor="middle" className="fill-muted-foreground text-[8px]">Moderation control</text>
+
+        {/* Arrow from DB to Admin */}
+        <line x1="492" y1="105" x2="555" y2="105" className="stroke-amber-500" strokeWidth="1.5" markerEnd="url(#commentRight3)" />
+
+        {/* Email masking note */}
+        <rect x="172" y="195" width="523" height="45" rx="6" className="fill-primary/10" />
+        <text x="433" y="212" textAnchor="middle" className="fill-primary text-[9px] font-medium">Security: Emails masked in display (ch***@domain.com) | Parameterized SQL | Generic error messages</text>
+        <text x="433" y="228" textAnchor="middle" className="fill-primary text-[9px] font-medium">Subscriber gate prevents anonymous spam | Admin delete requires HMAC cookie auth</text>
+
+        <defs>
+          <marker id="commentRight1" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-primary" />
+          </marker>
+          <marker id="commentRight2" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-emerald-500" />
+          </marker>
+          <marker id="commentRight3" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-amber-500" />
+          </marker>
+        </defs>
+      </svg>
+    </DiagramWrapper>
+  );
+}
+
+/** Shows the welcome email blast troubleshooting flow */
+export function WelcomeBlastTroubleshootDiagram({ caption }: DiagramProps) {
+  return (
+    <DiagramWrapper
+      caption={
+        caption ??
+        "The troubleshooting journey — from 403 Forbidden to successful delivery to all 12 subscribers"
+      }
+    >
+      <svg
+        viewBox="0 0 820 300"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full max-w-3xl mx-auto"
+      >
+        {/* Step 1: Initial attempt */}
+        <rect x="5" y="30" width="140" height="70" rx="8" className="stroke-foreground/60" strokeWidth="1.5" />
+        <text x="25" y="58" className="fill-foreground text-[14px]">&#x1F468;&#x200D;&#x1F4BB;</text>
+        <text x="75" y="60" textAnchor="middle" className="fill-foreground text-[10px] font-semibold">curl POST</text>
+        <text x="75" y="78" textAnchor="middle" className="fill-muted-foreground text-[8px]">/api/send-welcome-blast</text>
+        <text x="75" y="90" textAnchor="middle" className="fill-muted-foreground text-[8px]">+ Bearer token</text>
+
+        {/* Arrow */}
+        <line x1="145" y1="65" x2="185" y2="65" className="stroke-red-500" strokeWidth="2" markerEnd="url(#blastRight1)" />
+
+        {/* Problem 1: PowerShell */}
+        <rect x="187" y="20" width="140" height="90" rx="8" className="stroke-red-500" strokeWidth="1.5" />
+        <text x="207" y="44" className="fill-red-500 text-[14px]">&#x274C;</text>
+        <text x="257" y="46" textAnchor="middle" className="fill-red-500 text-[10px] font-semibold">PowerShell</text>
+        <text x="257" y="62" textAnchor="middle" className="fill-muted-foreground text-[8px]">curl = Invoke-WebRequest</text>
+        <text x="257" y="74" textAnchor="middle" className="fill-muted-foreground text-[8px]">$ = variable prefix</text>
+        <text x="257" y="86" textAnchor="middle" className="fill-red-500/80 text-[8px] font-medium">Token mangled</text>
+        <text x="257" y="98" textAnchor="middle" className="fill-emerald-500 text-[8px]">Fix: curl.exe + single quotes</text>
+
+        {/* Arrow */}
+        <line x1="327" y1="65" x2="367" y2="65" className="stroke-red-500" strokeWidth="2" markerEnd="url(#blastRight2)" />
+
+        {/* Problem 2: POST blocked */}
+        <rect x="369" y="20" width="140" height="90" rx="8" className="stroke-red-500" strokeWidth="1.5" />
+        <text x="389" y="44" className="fill-red-500 text-[14px]">&#x274C;</text>
+        <text x="439" y="46" textAnchor="middle" className="fill-red-500 text-[10px] font-semibold">POST Blocked</text>
+        <text x="439" y="62" textAnchor="middle" className="fill-muted-foreground text-[8px]">Vercel edge returned 403</text>
+        <text x="439" y="74" textAnchor="middle" className="fill-muted-foreground text-[8px]">before reaching app</text>
+        <text x="439" y="86" textAnchor="middle" className="fill-red-500/80 text-[8px] font-medium">POST → edge firewall</text>
+        <text x="439" y="98" textAnchor="middle" className="fill-emerald-500 text-[8px]">Fix: Switch to GET</text>
+
+        {/* Arrow */}
+        <line x1="509" y1="65" x2="549" y2="65" className="stroke-red-500" strokeWidth="2" markerEnd="url(#blastRight3)" />
+
+        {/* Problem 3: WAF deny */}
+        <rect x="551" y="20" width="140" height="90" rx="8" className="stroke-red-500" strokeWidth="1.5" />
+        <text x="571" y="44" className="fill-red-500 text-[14px]">&#x274C;</text>
+        <text x="621" y="46" textAnchor="middle" className="fill-red-500 text-[10px] font-semibold">WAF Deny Rule</text>
+        <text x="621" y="62" textAnchor="middle" className="fill-muted-foreground text-[8px]">vercel.json allowlist</text>
+        <text x="621" y="74" textAnchor="middle" className="fill-muted-foreground text-[8px]">didn&apos;t include new path</text>
+        <text x="621" y="86" textAnchor="middle" className="fill-red-500/80 text-[8px] font-medium">x-vercel-mitigated: deny</text>
+        <text x="621" y="98" textAnchor="middle" className="fill-emerald-500 text-[8px]">Fix: Move under /api/subscribers/</text>
+
+        {/* Arrow down to solution */}
+        <line x1="621" y1="110" x2="621" y2="140" className="stroke-emerald-500" strokeWidth="2" markerEnd="url(#blastDown1)" />
+
+        {/* Solution */}
+        <rect x="460" y="142" width="320" height="70" rx="8" className="stroke-emerald-500" strokeWidth="2" />
+        <text x="480" y="168" className="fill-emerald-500 text-[16px]">&#x2705;</text>
+        <text x="620" y="168" textAnchor="middle" className="fill-emerald-500 text-[11px] font-bold">Success!</text>
+        <text x="620" y="185" textAnchor="middle" className="fill-muted-foreground text-[9px]">/api/subscribers/send-welcome-blast</text>
+        <text x="620" y="200" textAnchor="middle" className="fill-emerald-500 text-[9px] font-medium">12 sent, 0 errors — all subscribers received</text>
+
+        {/* Lesson learned box */}
+        <rect x="5" y="140" width="430" height="70" rx="8" className="fill-primary/10" />
+        <text x="220" y="162" textAnchor="middle" className="fill-primary text-[10px] font-semibold">Key Insight: The Regex Negative Lookahead</text>
+        <text x="220" y="178" textAnchor="middle" className="fill-muted-foreground text-[9px]">/api/(?!analytics|subscribe|...subscribers)(.*)  →  deny</text>
+        <text x="220" y="194" textAnchor="middle" className="fill-muted-foreground text-[9px]">/api/subscribers/* already passes the allowlist — no deploy needed</text>
+
+        {/* Cleanup note */}
+        <rect x="5" y="230" width="775" height="50" rx="6" className="fill-amber-500/10" />
+        <text x="400" y="250" textAnchor="middle" className="fill-amber-500 text-[10px] font-semibold">Post-Send Cleanup</text>
+        <text x="400" y="266" textAnchor="middle" className="fill-muted-foreground text-[9px]">One-time endpoint deleted after successful send — attack surface stays minimal, vercel.json allowlist unchanged</text>
+
+        <defs>
+          <marker id="blastRight1" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-red-500" />
+          </marker>
+          <marker id="blastRight2" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-red-500" />
+          </marker>
+          <marker id="blastRight3" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-red-500" />
+          </marker>
+          <marker id="blastDown1" viewBox="0 0 10 7" refX="5" refY="7" markerWidth="8" markerHeight="6" orient="auto">
+            <polygon points="0 0, 10 0, 5 7" className="fill-emerald-500" />
+          </marker>
+        </defs>
+      </svg>
+    </DiagramWrapper>
+  );
+}
+
 /** Shows the two-layer WAF implementation (vercel.json + dashboard rules) */
 export function TwoLayerWAF({ caption }: DiagramProps) {
   return (
