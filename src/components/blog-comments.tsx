@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { sendGAEvent } from "@next/third-parties/google";
 import { ThumbsUp, ThumbsDown, Loader2, MessageSquare, Send } from "lucide-react";
 
 interface Comment {
@@ -74,6 +75,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
 
       setSubmitStatus("success");
       setSubmitMessage("Comment posted!");
+      sendGAEvent("event", "blog_comment", { post_slug: slug, reaction });
       setComment("");
       setReaction("up");
       setEmail("");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { sendGAEvent } from "@next/third-parties/google";
 import { Mail, CheckCircle, Loader2 } from "lucide-react";
 
 export function SubscribeForm() {
@@ -31,6 +32,7 @@ export function SubscribeForm() {
       setStatus("success");
       setMessage("You're subscribed! Check your inbox on Mondays.");
       setEmail("");
+      sendGAEvent("event", "subscribe", { method: "email" });
     } catch {
       setStatus("error");
       setMessage("Network error. Please try again.");

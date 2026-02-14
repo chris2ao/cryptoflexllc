@@ -7,6 +7,7 @@ import {
   type HTMLAttributes,
   type ReactNode,
 } from "react";
+import { sendGAEvent } from "@next/third-parties/google";
 
 interface CodeBlockProps extends HTMLAttributes<HTMLPreElement> {
   children: ReactNode;
@@ -28,6 +29,7 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      sendGAEvent("event", "copy_code", { content_length: text.length });
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
