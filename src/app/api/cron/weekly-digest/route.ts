@@ -48,14 +48,21 @@ export async function GET(request: NextRequest) {
     // If no new posts this week, still send a short "catch you next week" note
     const hasNewPosts = recentPosts.length > 0;
 
-    // ---- 2. Fetch active subscribers ----
-    const sql = getDb();
-    const rows = await sql`
-      SELECT email FROM subscribers WHERE active = TRUE
-    `;
+    // ---- 2. Fetch active subscribers (or use testEmail override) ----
+    const testEmail = request.nextUrl.searchParams.get("testEmail");
+    let recipients: { email: string }[];
 
-    if (rows.length === 0) {
-      return NextResponse.json({ ok: true, sent: 0, reason: "no subscribers" });
+    if (testEmail) {
+      recipients = [{ email: testEmail }];
+    } else {
+      const sql = getDb();
+      const rows = await sql`
+        SELECT email FROM subscribers WHERE active = TRUE
+      `;
+      if (rows.length === 0) {
+        return NextResponse.json({ ok: true, sent: 0, reason: "no subscribers" });
+      }
+      recipients = rows.map((r) => ({ email: r.email as string }));
     }
 
     // ---- 3. Generate AI intro (only when there are new posts) ----
@@ -77,8 +84,7 @@ export async function GET(request: NextRequest) {
 
     // ---- 5. Send to each subscriber ----
     let sent = 0;
-    for (const row of rows) {
-      const email = row.email as string;
+    for (const { email } of recipients) {
       const html = buildEmailHtml(recentPosts, hasNewPosts, email, intro);
 
       await transporter.sendMail({
