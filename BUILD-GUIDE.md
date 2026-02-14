@@ -1078,6 +1078,378 @@ Open `http://localhost:3000` and check:
 
 ---
 
+## Step 10.5: Testing
+
+This project uses [Vitest](https://vitest.dev/) for fast, modern unit and integration testing. The test setup is configured for Next.js with React 19 and requires 80% minimum code coverage.
+
+### Vitest Setup
+
+Vitest is configured in `vitest.config.ts`:
+
+```typescript
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import path from "path";
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: "jsdom",           // Browser-like environment
+    globals: true,                  // Global test functions (describe, it, expect)
+    setupFiles: ["./src/__tests__/setup.ts"],  // Runs before tests
+    include: ["src/**/*.test.{ts,tsx}"],  // Find tests in src/
+    coverage: {
+      provider: "v8",               // Coverage provider
+      reporter: ["text", "text-summary"],
+      include: ["src/lib/**", "src/app/api/**", "src/components/**"],
+      exclude: [
+        "src/__tests__/setup.ts",
+        "src/**/*.test.*",
+        "src/components/ui/**",     // shadcn/ui components excluded
+        "src/components/mdx/**",    // MDX wrapper components excluded
+        "src/lib/analytics-types.ts",
+      ],
+      thresholds: {
+        statements: 80,  // Minimum coverage requirements
+        branches: 80,
+        functions: 80,
+        lines: 80,
+      },
+    },
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),  // Use @ import alias
+    },
+  },
+});
+```
+
+Key settings:
+- **jsdom environment**: Simulates a browser DOM for component testing
+- **globals: true**: No need to import `describe`, `it`, `expect` in each test
+- **coverage thresholds**: Tests fail if coverage drops below 80%
+
+### Test Scripts
+
+Add these to your `package.json` scripts:
+
+```json
+{
+  "scripts": {
+    "test": "vitest",           // Run tests once
+    "test:watch": "vitest --watch",  // Watch mode: re-run on file changes
+    "test:coverage": "vitest --coverage",  // Generate coverage report
+    "test:ui": "vitest --ui"    // (Optional) Visual test dashboard
+  }
+}
+```
+
+Usage:
+
+```bash
+# Run all tests once
+npm test
+
+# Run tests in watch mode (great for development)
+npm run test:watch
+
+# Generate and display coverage report
+npm run test:coverage
+
+# Watch mode with visual UI (if vitest UI package installed)
+npm run test:ui
+```
+
+### Test File Conventions
+
+Tests are colocated with their source files for easier navigation. Each file has a corresponding `.test.ts` or `.test.tsx`:
+
+```
+src/
+├── lib/
+│   ├── blog.ts           # Source file
+│   └── blog.test.ts      # Tests for blog.ts
+│   ├── utils.ts          # Source file
+│   └── utils.test.ts     # Tests for utils.ts
+├── components/
+│   ├── hero.tsx          # Source file
+│   └── hero.test.tsx     # Tests for hero.tsx
+│   ├── blog-card.tsx     # Source file
+│   └── blog-card.test.tsx # Tests for blog-card.tsx
+└── app/
+    └── api/
+        ├── route.ts      # API endpoint
+        └── route.test.ts # API tests
+```
+
+Colocating tests makes them easy to find and encourages keeping tests up to date as code changes. When a file moves, its test moves with it.
+
+### Mocking Patterns
+
+Vitest provides powerful mocking utilities for dependencies, modules, and asynchronous operations:
+
+#### Module Mocking with `vi.mock()`
+
+Mock an entire module before it's imported:
+
+```typescript
+import { describe, it, expect, vi } from "vitest";
+import * as fs from "fs";
+
+vi.mock("fs");
+
+describe("blog utility", () => {
+  it("reads files from the correct directory", () => {
+    const mockRead = vi.mocked(fs.readFileSync);
+    mockRead.mockReturnValue("---\ntitle: Test\n---\n# Content");
+
+    // Test code that uses fs.readFileSync
+    expect(mockRead).toHaveBeenCalled();
+  });
+});
+```
+
+#### Mocking with `vi.mocked()`
+
+After mocking a module, use `vi.mocked()` to get a fully typed mock:
+
+```typescript
+vi.mock("@/lib/blog");
+import { getAllPosts } from "@/lib/blog";
+
+const mockGetAllPosts = vi.mocked(getAllPosts);
+mockGetAllPosts.mockReturnValue([
+  { slug: "test", title: "Test Post", content: "..." },
+]);
+```
+
+This is safer than manual type casting and preserves TypeScript types.
+
+#### Mocking with Tagged Template Literals
+
+For complex mock data, use tagged template literals to keep tests readable:
+
+```typescript
+const mockPost = (content: string): BlogPost => ({
+  slug: "test-post",
+  title: "Test Post",
+  date: "2026-02-14",
+  description: "A test post",
+  tags: ["test"],
+  content,
+});
+
+it("parses blog post frontmatter", () => {
+  const post = mockPost(`
+    # Heading
+    Some paragraph text.
+  `);
+
+  expect(post.content).toContain("Heading");
+});
+```
+
+#### Mocking Async Operations
+
+Mock async functions to avoid real API calls:
+
+```typescript
+vi.mock("@/lib/api");
+import { fetchData } from "@/lib/api";
+
+describe("data fetching", () => {
+  it("handles successful responses", async () => {
+    vi.mocked(fetchData).mockResolvedValue({ id: 1, name: "Test" });
+
+    const result = await fetchData();
+    expect(result.name).toBe("Test");
+  });
+
+  it("handles errors", async () => {
+    vi.mocked(fetchData).mockRejectedValue(new Error("Network error"));
+
+    await expect(fetchData()).rejects.toThrow("Network error");
+  });
+});
+```
+
+#### Spy on Implementation Without Mocking
+
+Use `vi.spyOn()` to track calls without replacing the function:
+
+```typescript
+import * as math from "@/lib/math";
+
+describe("calculations", () => {
+  it("calls add correctly", () => {
+    const spy = vi.spyOn(math, "add");
+
+    math.add(2, 3);
+
+    expect(spy).toHaveBeenCalledWith(2, 3);
+    expect(spy).toHaveReturnedWith(5);  // Spy doesn't block execution
+  });
+});
+```
+
+### Coverage Thresholds
+
+The project requires **80% minimum coverage** across statements, branches, functions, and lines. When you run tests:
+
+```bash
+npm run test:coverage
+```
+
+You'll see output like:
+
+```
+File                           | % Stmts | % Branches | % Funcs | % Lines
+---------|---------|-----------|---------|-----------|
+All files|    82.5 |      75.2 |     88.3 |      82.5
+src/lib/blog.ts                   95.2       100       100       95.2
+src/components/hero.tsx           76.3        60        75       76.3
+```
+
+If coverage drops below 80%, the test run fails. To achieve and maintain good coverage:
+
+1. Test happy paths (main user flows)
+2. Test error cases (invalid input, API failures)
+3. Test edge cases (empty lists, null values, boundary conditions)
+4. Test user interactions (clicks, form submissions)
+
+### Example Test Files
+
+#### Testing a Utility: `src/lib/blog.test.ts`
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { getAllPosts, getPostBySlug } from "./blog";
+
+describe("blog utility", () => {
+  describe("getAllPosts", () => {
+    it("returns posts sorted by date (newest first)", () => {
+      const posts = getAllPosts();
+      const dates = posts.map(p => new Date(p.date).getTime());
+
+      for (let i = 1; i < dates.length; i++) {
+        expect(dates[i - 1]).toBeGreaterThanOrEqual(dates[i]);
+      }
+    });
+
+    it("returns empty array if no posts exist", () => {
+      const posts = getAllPosts();
+      expect(Array.isArray(posts)).toBe(true);
+    });
+  });
+
+  describe("getPostBySlug", () => {
+    it("returns post by slug", () => {
+      const post = getPostBySlug("example-post");
+
+      expect(post).toBeDefined();
+      if (post) {
+        expect(post.slug).toBe("example-post");
+      }
+    });
+
+    it("returns undefined for nonexistent slug", () => {
+      const post = getPostBySlug("nonexistent");
+      expect(post).toBeUndefined();
+    });
+  });
+});
+```
+
+#### Testing a Component: `src/components/blog-card.test.tsx`
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { BlogCard } from "./blog-card";
+import type { BlogPost } from "@/lib/blog";
+
+describe("BlogCard", () => {
+  const mockPost: BlogPost = {
+    slug: "test-post",
+    title: "Test Post Title",
+    date: "2026-02-14",
+    description: "This is a test post description.",
+    tags: ["testing", "vitest"],
+    content: "# Content",
+  };
+
+  it("renders post title", () => {
+    render(<BlogCard post={mockPost} />);
+    expect(screen.getByText("Test Post Title")).toBeInTheDocument();
+  });
+
+  it("renders formatted date", () => {
+    render(<BlogCard post={mockPost} />);
+    expect(screen.getByText(/February 14, 2026/)).toBeInTheDocument();
+  });
+
+  it("renders tags as badges", () => {
+    render(<BlogCard post={mockPost} />);
+    expect(screen.getByText("testing")).toBeInTheDocument();
+    expect(screen.getByText("vitest")).toBeInTheDocument();
+  });
+
+  it("links to the blog post", () => {
+    render(<BlogCard post={mockPost} />);
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/blog/test-post");
+  });
+});
+```
+
+#### Testing an API Route: `src/app/api/example/route.test.ts`
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { GET } from "./route";
+
+describe("GET /api/example", () => {
+  it("returns 200 and data", async () => {
+    const request = new Request("http://localhost:3000/api/example");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+
+    const data = await response.json();
+    expect(data).toHaveProperty("message");
+  });
+});
+```
+
+### Best Practices
+
+1. **Test behavior, not implementation**: Write tests that verify "what the code does," not "how it does it." This makes tests more resilient to refactoring.
+
+2. **Use descriptive test names**: `it("sorts posts by date newest first")` is clearer than `it("works")`.
+
+3. **Arrange-Act-Assert (AAA) pattern**:
+   ```typescript
+   it("calculates total price", () => {
+     // Arrange
+     const items = [{ price: 10 }, { price: 20 }];
+
+     // Act
+     const total = calculateTotal(items);
+
+     // Assert
+     expect(total).toBe(30);
+   });
+   ```
+
+4. **Keep mocks simple**: Only mock what the test needs. Leave other dependencies real when possible.
+
+5. **Test error paths**: Don't just test the happy path. What happens when data is missing or invalid?
+
+6. **Use `vi.mocked()` for type safety**: It's better than manual casting and catches type errors at compile time.
+
+---
+
 ## Step 11: Deploy
 
 ### Push to GitHub
