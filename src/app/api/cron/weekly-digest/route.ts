@@ -30,6 +30,11 @@ export const maxDuration = 30;
 
 const BASE_URL = "https://cryptoflexllc.com";
 
+function utm(campaign: string, content?: string): string {
+  const params = `utm_source=newsletter&utm_medium=email&utm_campaign=${campaign}`;
+  return content ? `${params}&utm_content=${encodeURIComponent(content)}` : params;
+}
+
 /**
  * Mask email address for logging to prevent PII exposure.
  * Example: user@domain.com -> u***@domain.com
@@ -201,7 +206,7 @@ function buildEmailHtml(
       (p) => `
       <tr>
         <td style="padding:0 0 24px 0">
-          <a href="${BASE_URL}/blog/${p.slug}" style="color:#4dd0e1;font-size:18px;font-weight:600;text-decoration:none">${escapeHtml(p.title)}</a>
+          <a href="${BASE_URL}/blog/${p.slug}?${utm("weekly-digest", p.slug)}" style="color:#4dd0e1;font-size:18px;font-weight:600;text-decoration:none">${escapeHtml(p.title)}</a>
           <p style="margin:6px 0 4px;color:#b0b0b0;font-size:13px">${formatDate(p.date)}${p.readingTime ? ` · ${escapeHtml(p.readingTime)}` : ""}</p>
           <p style="margin:0;color:#d4d4d4;font-size:15px;line-height:1.5">${escapeHtml(p.description)}</p>
           ${
@@ -230,7 +235,7 @@ function buildEmailHtml(
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
           <td align="center" style="padding:8px 0 0">
-            <a href="${BASE_URL}/blog" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Read the Blog</a>
+            <a href="${BASE_URL}/blog?${utm("weekly-digest", "cta-read-blog")}" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Read the Blog</a>
           </td>
         </tr>
       </table>`
@@ -244,7 +249,7 @@ function buildEmailHtml(
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:12px">
         <tr>
           <td align="center">
-            <a href="${BASE_URL}/blog" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Visit the Blog</a>
+            <a href="${BASE_URL}/blog?${utm("weekly-digest", "cta-visit-blog")}" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Visit the Blog</a>
           </td>
         </tr>
       </table>`;

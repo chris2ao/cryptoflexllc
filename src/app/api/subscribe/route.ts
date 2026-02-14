@@ -18,6 +18,11 @@ import { withRetry } from "@/lib/email-retry";
 
 const BASE_URL = "https://cryptoflexllc.com";
 
+function utm(campaign: string, content?: string): string {
+  const params = `utm_source=newsletter&utm_medium=email&utm_campaign=${campaign}`;
+  return content ? `${params}&utm_content=${encodeURIComponent(content)}` : params;
+}
+
 // Allow up to 30 seconds for DB insert + SMTP send
 export const maxDuration = 30;
 
@@ -169,7 +174,7 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
       (p) => `
       <tr>
         <td style="padding:0 0 20px 0">
-          <a href="${BASE_URL}/blog/${p.slug}" style="color:#4dd0e1;font-size:16px;font-weight:600;text-decoration:none">${escapeHtml(p.title)}</a>
+          <a href="${BASE_URL}/blog/${p.slug}?${utm("welcome", p.slug)}" style="color:#4dd0e1;font-size:16px;font-weight:600;text-decoration:none">${escapeHtml(p.title)}</a>
           <p style="margin:4px 0 0;color:#b0b0b0;font-size:13px">${formatDate(p.date)}${p.readingTime ? ` &middot; ${escapeHtml(p.readingTime)}` : ""}</p>
           <p style="margin:4px 0 0;color:#d4d4d4;font-size:14px;line-height:1.4">${escapeHtml(p.description)}</p>
         </td>
@@ -238,7 +243,7 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
           <!-- CTA -->
           <tr>
             <td align="center" style="padding:0 32px 28px">
-              <a href="${BASE_URL}/blog" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Explore the Blog</a>
+              <a href="${BASE_URL}/blog?${utm("welcome", "cta-explore-blog")}" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Explore the Blog</a>
             </td>
           </tr>
 
