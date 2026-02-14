@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // Only return masked emails to prevent PII exposure on this public endpoint
     const comments = await sql`
       SELECT id, slug, comment, reaction,
-        CONCAT(LEFT(email, 1), '***@', SPLIT_PART(email, '@', 2)) AS email_masked,
+        CONCAT(LEFT(email, 1), '***@', SPLIT_PART(email, '@', 2)) AS email,
         created_at
       FROM blog_comments
       WHERE slug = ${slug}
