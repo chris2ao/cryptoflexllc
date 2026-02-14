@@ -30,6 +30,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# temp test output files
+*-test.txt
+*-test-output.txt
+test-output.txt
+test-results.json
+_ul
+
 # env files (can opt-in for committing if needed)
 .env*
 
