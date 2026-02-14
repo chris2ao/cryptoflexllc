@@ -1,0 +1,588 @@
+---
+title: "I Mined 58 AI Session Transcripts. Here's What 28 Megabytes of JSONL Taught Me About My Own Workflow"
+date: "2026-02-14T08:00:00"
+author: "Chris Johnson"
+readingTime: "15 min read"
+description: "A 5-agent team chewed through a week of Claude Code session logs and surfaced patterns I never would have found manually. Including the revelation that my worst day wasn't actually that bad."
+tags: ["Claude Code", "Agent Teams", "Session Mining", "Workflow", "Data Analysis", "AI"]
+---
+
+import { Tip, Info, Warning, Stop, Security } from '@/components/ui/callout';
+
+## The Data Hoarder's Dilemma
+
+I've been meticulously logging every Claude Code session for a week. SessionEnd hooks, activity logs, full JSONL transcripts, the works. Seven days, 58 sessions, 28.6 megabytes of conversation data.
+
+And I had absolutely no idea what was in there.
+
+![A person drowning in a sea of files labeled "session_1.jsonl", "session_2.jsonl"](/images/blog/data-hoarder-drowning.webp)
+
+You know that feeling when you've been diligently backing up your photos for years, but you've never actually *looked* at them? That was me with my session archives. I had this beautiful automated logging system (complete with PowerShell hooks and rotate-on-overflow activity logs), but the actual insights? Locked away in a format designed for machines, not humans.
+
+<Info title="Tonal Shift Alert">
+Fair warning: this post is experimenting with a lighter, more comedic tone than my usual deep dives. If you're here for dry technical exposition, you might want to check out my [security hardening post](/blog/security-hardening-analytics-dashboard) instead. But if you're ready for memes, ASCII art, and a story about how AI agents helped me understand my own workflow, buckle up.
+</Info>
+
+The turning point came when I realized I'd been working with Claude Code for exactly one week. Seven days of learning, building, crashing, recovering, and occasionally yelling at Windows PATH issues. What if I could actually *learn* from all those sessions? What patterns had emerged? What mistakes had I repeated? What was I actually spending my time on?
+
+There was just one problem: no human can read 28 megabytes of JSONL and extract meaningful insights.
+
+But you know who can? Five AI agents working in parallel.
+
+## The Setup: Why Your Session Logs Are a Gold Mine
+
+Before we get to the mining operation, let's talk about why you should even care about your session transcripts.
+
+Every Claude Code session is a conversation. And like any conversation, it contains:
+
+- **Decision points** where you chose one approach over another
+- **Learning moments** when something clicked (or crashed)
+- **Repeated patterns** that indicate habits (good or bad)
+- **Tool usage statistics** showing what you actually do vs. what you think you do
+- **Error patterns** revealing systemic issues in your setup
+
+If you're using Claude Code for real work, your session logs are basically a personalized workflow audit waiting to happen. They show you:
+
+1. **Where you get stuck** (the sessions that span hours with minimal progress)
+2. **What works** (the sessions that flow smoothly from start to finish)
+3. **What you've learned** (patterns that appear in early sessions but disappear later)
+4. **What you haven't learned yet** (patterns that keep appearing)
+
+<Tip title="Enable Session Archiving">
+If you're not already logging your sessions, add a SessionEnd hook. On Windows:
+
+```powershell
+# .claude/hooks/save-session.ps1
+$event = [Console]::In.ReadToEnd() | ConvertFrom-Json
+$archiveDir = ".claude/session_archive"
+New-Item -ItemType Directory -Force -Path $archiveDir | Out-Null
+$timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+$event.transcript | Out-File "$archiveDir/session_$timestamp.jsonl"
+```
+
+Register it in `.claude/settings.local.json`:
+
+```json
+{
+  "hooks": {
+    "sessionEnd": [
+      { "command": "powershell", "args": ["-Command", ". '.claude/hooks/save-session.ps1'"] }
+    ]
+  }
+}
+```
+</Tip>
+
+But here's the thing: logging is the easy part. *Reading* is where it gets hard.
+
+## The Problem: 28.6 MB of JSONL Is Not Human-Readable
+
+Let me show you what a single line of a session transcript looks like:
+
+```json
+{"type":"message","role":"assistant","content":[{"type":"text","text":"I'll help you set up the analytics dashboard..."}],"stop_reason":"end_turn","timestamp":"2026-02-09T14:23:45.123Z","model":"claude-opus-4-6","usage":{"input_tokens":1234,"output_tokens":567}}
+```
+
+Now multiply that by thousands of messages across 58 sessions.
+
+My first attempt at manual analysis lasted about 90 seconds before my eyes glazed over. I tried grepping for patterns, but `grep "error"` across 58 files just gave me a wall of uncontextualized error messages. I needed:
+
+- Chronological organization (what happened when?)
+- Statistical summaries (tool usage counts, error frequencies)
+- Pattern recognition (repeated issues, workflow evolution)
+- Qualitative insights (why did Feb 8 have 26 sessions?)
+
+This is a perfect job for AI agents. Not because they're smarter than me (debatable), but because they can read 28 megabytes of JSONL without getting bored.
+
+## The Team: 5 Agents, 3 Tiers, 20 Minutes
+
+Here's how I structured the mining operation:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Team Lead (Opus 4.6)                    │
+│               Main session, coordination only               │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ├─────────────────────┬──────────────────┬──────────────────┐
+                              ▼                     ▼                  ▼                  ▼
+                    ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+                    │  Miner 1 (Haiku) │  │  Miner 2 (Haiku) │  │  Miner 3 (Haiku) │
+                    │   Feb 7 (14s)    │  │   Feb 8 (26s)    │  │  Feb 9-13 (18s)  │
+                    └──────────────────┘  └──────────────────┘  └──────────────────┘
+                              │                     │                  │
+                              └─────────────────────┴──────────────────┘
+                                                    ▼
+                                          ┌──────────────────────┐
+                                          │ Synthesizer (Sonnet) │
+                                          │  Combine 3 reports   │
+                                          └──────────────────────┘
+                                                    │
+                                                    ▼
+                                          ┌──────────────────────┐
+                                          │  Extractor (Sonnet)  │
+                                          │   Extract skills     │
+                                          └──────────────────────┘
+```
+
+<Info title="Agent Team Architecture">
+**Tier 1: Parallel Miners (3x Haiku)**
+- Each agent handles a date range
+- Fast, cost-effective model for pattern recognition
+- Output: Individual reports per date range
+
+**Tier 2: Synthesizer (Sonnet)**
+- Blocked until all 3 miners complete
+- Combines reports into unified narrative
+- Output: `SESSION-MINING-REPORT.md`
+
+**Tier 3: Skill Extractor (Sonnet)**
+- Blocked until synthesizer completes
+- Identifies codifiable patterns
+- Output: 5 new learned skills
+</Info>
+
+Why three miners instead of one? Two reasons:
+
+1. **Parallelization** - Three agents reading simultaneously is faster than one reading sequentially
+2. **Chunking** - Breaking 58 sessions into logical date ranges (early/crisis/mature) made pattern recognition easier
+
+Why Haiku for miners but Sonnet for synthesis? **Cost optimization**. Haiku is 90% as capable as Sonnet at 3x the cost savings. Reading JSONL and counting tool usage doesn't require Opus-level reasoning. But *combining* three reports into a coherent narrative? That's where Sonnet earns its keep.
+
+<Tip title="Model Selection Strategy">
+Use the cheapest model that can do the job:
+- **Haiku**: File search, pattern counting, log parsing
+- **Sonnet**: Code generation, synthesis, complex analysis
+- **Opus**: Architecture decisions, security review, coordination
+
+For session mining, 85% of the work (parsing) used Haiku. Only synthesis and skill extraction needed Sonnet. Total cost: less than $2 for 28.6 MB of analysis.
+</Tip>
+
+## The Mining Process: What Actually Happened
+
+Here's the step-by-step of how this went down:
+
+### 1. Create the Team
+
+```bash
+claude team create session-miners --description "Parallel mining of Claude Code transcripts"
+```
+
+This initialized both the team config (`~/.claude/teams/session-miners/`) and a shared task list.
+
+### 2. Spawn Three Miners
+
+I used the Task tool three times in parallel to spawn the miner agents:
+
+```
+Task 1: Analyze Feb 7 sessions (Foundation phase)
+Task 2: Analyze Feb 8 sessions (Crisis phase)
+Task 3: Analyze Feb 9-13 sessions (Mature phase)
+```
+
+Each task got:
+- `subagent_type: "general-purpose"`
+- `model: "haiku"`
+- A specific date range to focus on
+- Instructions to count tools, errors, session types
+
+### 3. Wait for Miners to Report
+
+This took about 8 minutes. Each miner:
+- Read through their assigned JSONL files
+- Counted tool usage (Read, Edit, Bash, Write, Task)
+- Categorized sessions (productive, crash/restart, test/verification)
+- Identified error patterns
+- Wrote a markdown report
+
+![Three mining agents digging through data while the team lead sips coffee](/images/blog/agents-mining-data.webp)
+
+### 4. Synthesize the Reports
+
+Once all three miners marked their tasks complete, I spawned the synthesizer:
+
+```
+Task 4: Combine miner reports into unified SESSION-MINING-REPORT.md
+- Blocked by: Tasks 1, 2, 3
+- Model: Sonnet (better at narrative synthesis)
+```
+
+The synthesizer took the three individual reports and:
+- Identified the three-phase journey (Foundation → Crisis → Mature)
+- Calculated aggregate statistics (500+ Reads, 350+ Edits, etc.)
+- Surfaced the Feb 8 mystery (26 sessions in one day, but not chaos)
+- Created the overall narrative arc
+
+This took 6 minutes.
+
+### 5. Extract Learnable Skills
+
+Final task:
+
+```
+Task 5: Extract codifiable patterns as learned skills
+- Blocked by: Task 4
+- Model: Sonnet (pattern recognition + code generation)
+```
+
+The skill extractor read the synthesized report and identified patterns that could be turned into reusable knowledge. This took 5 minutes and produced:
+
+1. `settings-validation-debugging` (debugging "invalid settings files" crash loops)
+2. `interactive-mode-freeze-recovery` (fixing TUI keyboard freeze via stale state cleanup)
+3. `context-compaction-pre-flight` (planning for context window limits in large sessions)
+4. `blog-post-production-pipeline` (repeatable 8-step blog post production workflow)
+5. `parallel-agent-decomposition` (when and how to parallelize with agents)
+
+<Warning title="Agent Task Dependencies">
+Use `blockedBy` to enforce dependencies. Without it, the synthesizer might start before miners finish, or the skill extractor might start before synthesis completes.
+
+Set dependencies with `TaskUpdate`:
+```json
+{"taskId": "4", "addBlockedBy": ["1", "2", "3"]}
+{"taskId": "5", "addBlockedBy": ["4"]}
+```
+</Warning>
+
+### 6. Shutdown the Team
+
+```bash
+# Send shutdown requests to all 5 agents
+# (I actually just told them "great work, you can shut down" and they approved)
+```
+
+Total time: **19 minutes** from team creation to final skill extraction.
+
+Total cost: **$1.87** (estimated, based on Haiku at $0.25/MTok input, Sonnet at $3/MTok).
+
+## The Findings: Three Phases of Learning
+
+The synthesized report revealed something I didn't expect: my week with Claude Code had a clear three-act structure.
+
+### Phase 1: Foundation (Feb 7, 14 sessions)
+
+**The honeymoon phase.** Everything is new and exciting. I'm setting up hooks, configuring MCP servers, writing blog posts about how amazing this all is.
+
+Key stats:
+- 14 sessions (average 1.75 hours each)
+- 10 productive sessions (71% success rate!)
+- Only 2 crashes
+- Top tools: Read (120x), Edit (80x), Bash (65x)
+
+This was me learning the basics: how to set up session archiving, how to configure hooks, how to write my first custom commands. High success rate because the tasks were well-defined and documented.
+
+Errors in this phase:
+- PowerShell stdin issues (2x) - learned about `[Console]::In.ReadToEnd()`
+- MCP config location confusion (1x) - thought it was `~/.claude/mcp-servers.json`
+
+### Phase 2: Crash and Recover (Feb 8, 26 sessions)
+
+**The dark night of the soul.** Twenty-six sessions in a single day. My original hypothesis: total chaos.
+
+Actual finding: **It was a debugging sprint.**
+
+![Expectations vs Reality meme: Expected chaos, got methodical debugging](/images/blog/expectations-vs-reality-feb8.webp)
+
+Here's what actually happened:
+- 15 crash/restart sessions (58% of the day)
+- But also 8 productive sessions that *solved* problems
+- The crashes weren't random - they were caused by two specific issues:
+  1. Windows PATH mangling in Git Bash (7 sessions)
+  2. Plugin cache corruption (4 sessions)
+
+The miners found patterns I would have missed manually:
+- Morning sessions (5am-9am): PATH debugging
+- Midday sessions (10am-2pm): Plugin reinstall attempts
+- Evening sessions (3pm-8pm): Finally fixing it + writing docs
+
+This wasn't a bad day. This was me systematically working through platform-specific issues until I found the root causes. The high session count was due to restarts for testing fixes, not aimless thrashing.
+
+<Info title="The Feb 8 Revelation">
+What looked like 26 failures was actually: "Try fix → restart to test → log result → try next fix." Each "crash" was actually a checkpoint in a debugging process.
+
+This is why session mining matters. Without agent analysis, I would have remembered Feb 8 as "that disaster day." With it, I can see it was actually productive problem-solving.
+</Info>
+
+### Phase 3: Mature Workflow (Feb 9-13, 18 sessions)
+
+**The productive era.** Issues resolved, workflow locked in, building real features.
+
+Key stats:
+- 18 sessions over 5 days (average 3.6 sessions/day)
+- 10 productive sessions (56% success rate)
+- 4 crashes (22%, down from 58%)
+- Tool usage shift: Task tool appears 45+ times (agent teams!)
+
+This phase shows mastery emerging:
+- Longer sessions (average 2.3 hours vs 1.75 in Phase 1)
+- More complex tasks (multi-agent coordination, blog post writing)
+- Fewer restarts (platform issues resolved)
+- Higher tool variety (grep, glob, web search added to repertoire)
+
+The miners also caught a workflow evolution: I started using agent teams heavily in this phase. The Task tool went from 0 uses (Phase 1) to 45+ uses (Phase 3). Sessions became orchestration more than direct coding.
+
+## The Tool Leaderboard: What I Actually Use
+
+Across all 58 sessions, here's the tool usage breakdown:
+
+```
+Read:    500+  █████████████████████████████  (35% of all tool calls)
+Edit:    350+  ████████████████████  (24%)
+Bash:    300+  █████████████████  (21%)
+Write:   120+  ████████  (8%)
+Task:     45+  ███  (3%)
+Grep:     40+  ██  (3%)
+Glob:     35+  ██  (2%)
+Other:    60+  ███  (4%)
+```
+
+**Surprise findings:**
+
+1. **Read dominates** - I'm reading 50% more than I'm editing. This tracks with exploratory learning.
+
+2. **Edit > Write** - Almost 3:1 ratio. I'm modifying existing files way more than creating new ones. (This aligns with my coding-style rule: "MANY SMALL FILES > FEW LARGE FILES" means I'm mostly editing, not scaffolding.)
+
+3. **Task tool spike** - Went from 0 to 45+ uses in Phase 3. Agent teams became a core workflow pattern.
+
+4. **Bash is high** - 21% of all tool calls. Windows platform debugging (PATH issues, PowerShell quirks) required lots of shell work.
+
+<Tip title="Tool Usage Patterns">
+Your tool ratios reveal workflow style:
+
+- **High Read/Edit ratio**: Learning and refinement
+- **High Write ratio**: Greenfield projects
+- **High Bash ratio**: Platform debugging or DevOps work
+- **High Task ratio**: Agent orchestration mindset
+
+Compare your ratios across phases to see skill evolution.
+</Tip>
+
+## The Error Patterns: What Kept Breaking
+
+The miners categorized every error mention in the transcripts. Top 5:
+
+1. **Windows PATH issues** (7 sessions) - Git Bash prepending `/c/Program Files/Git` to npm paths
+2. **MCP config location confusion** (5 sessions) - Using `~/.claude/mcp-servers.json` instead of `~/.claude.json`
+3. **Plugin command frontmatter** (4 sessions) - Commands not appearing due to missing YAML frontmatter
+4. **Interactive mode freeze** (3 sessions) - Stale global state requiring project deletion from `~/.claude.json`
+5. **PowerShell stdin** (3 sessions) - `$input` not working in hooks, needed `[Console]::In.ReadToEnd()`
+
+**Learning velocity check:** Issues that appeared early (PowerShell stdin, MCP location) didn't reappear after Phase 1. Issues that appeared throughout (Windows PATH) had deeper platform roots that required multiple attempts to fully solve.
+
+![A person repeatedly stepping on the same rake, labeled "Windows PATH issues"](/images/blog/stepping-on-rake.webp)
+
+<Stop title="Platform-Specific Issues Compound">
+Three of the top five errors were Windows-specific. If you're on macOS or Linux, your error patterns will be completely different.
+
+This is why personal session mining matters: generic best practices don't capture your specific context (platform, tech stack, workflow habits).
+</Stop>
+
+## The Skills Extracted: Codifying Lessons Learned
+
+The skill extractor identified five patterns worth preserving as learned skills:
+
+### 1. `settings-validation-debugging`
+**Problem:** "Found N invalid settings files" warning at startup with no details on which files or why, causing crash loops.
+**Solution:** Run `claude --debug --debug-file debug.log --print "test"` and grep for YAML/parse errors. Fix unquoted colons, missing files, orphaned settings.
+
+This was the root cause of Feb 8's 26-session day. Twenty-one restarts because of YAML parse errors. Now codified so I never waste four hours on it again.
+
+### 2. `interactive-mode-freeze-recovery`
+**Problem:** Claude Code opens but won't accept keyboard input. Even Ctrl+C doesn't work.
+**Solution:** Delete stale project entries from `~/.claude.json` (`projects` and `githubRepoPaths` sections), then rename `~/.claude/projects/<encoded-path>/`. Claude Code rebuilds fresh on next launch.
+
+Three sessions of "is my terminal broken?" The answer was always stale global state.
+
+### 3. `context-compaction-pre-flight`
+**Problem:** No warning before context compaction. Sessions with 900+ turns just... restart. Mental model lost mid-implementation.
+**Solution:** Plan large sessions in advance. Commit incrementally. Preserve critical decisions in MEMORY.md. Use hooks to archive automatically.
+
+Context compaction happened 3 times across 58 sessions. Zero data loss (thanks, hooks), but reorientation still takes time.
+
+### 4. `blog-post-production-pipeline`
+**Problem:** Ad-hoc blog writing leads to inconsistent quality, missed series navigation, build errors.
+**Solution:** 8-step repeatable workflow: research, delegate to Sonnet, review draft, check callouts, verify build, update series nav, commit, push.
+
+Sixteen posts shipped. Zero build failures in production. The pipeline works.
+
+### 5. `parallel-agent-decomposition`
+**Problem:** Serial execution of independent tasks wastes time. Editing 11 files one-by-one when 5 agents could do it simultaneously.
+**Solution:** Identify independent subtasks, route to appropriate agent types (Haiku for search, Sonnet for code), launch in a single message, integrate results.
+
+The em dash removal (11 files, 5 parallel agents) took 2 hours. Estimated serial time: 4+ hours. That's a 45% time savings.
+
+<Security title="Skill Extraction = Institutional Memory">
+Every extracted skill is a small piece of institutional memory. Without session mining, these lessons live only in my head (and decay over time).
+
+With learned skills in `~/.claude/skills/learned/`, they're:
+- Searchable when I hit the same issue months later
+- Shareable with teammates
+- Machine-readable for future AI agents
+- Versioned and tracked in git
+</Security>
+
+## How to Mine Your Own Sessions: A Practical Guide
+
+Want to try this yourself? Here's the full playbook:
+
+### Prerequisites
+
+1. **Enable session archiving** (see the Tip earlier in this post)
+2. **Accumulate sessions** (I recommend at least a week's worth)
+3. **Verify transcript format** (`cat .claude/session_archive/session_*.jsonl | head -5`)
+
+### Step 1: Create Mining Team
+
+```bash
+claude team create session-miners --description "Mining session transcripts for patterns"
+```
+
+### Step 2: Create Tasks for Miners
+
+Open the session and create 3 tasks (adjust date ranges to match your data):
+
+```
+Task 1: Analyze early sessions (first 30% by date)
+Task 2: Analyze middle sessions (next 40% by date)
+Task 3: Analyze recent sessions (last 30% by date)
+```
+
+For each task:
+- Set `subagent_type: "general-purpose"`
+- Set `model: "haiku"` (cost-effective for pattern recognition)
+- Include instructions to count:
+  - Total sessions in range
+  - Tool usage (Read, Edit, Bash, Write, Task, Grep, Glob)
+  - Session types (productive, crash/restart, test/verification)
+  - Error patterns (grep for "error", "failed", "warning")
+  - Workflow insights (what was being built, what problems emerged)
+
+### Step 3: Spawn Miners in Parallel
+
+Use the Task tool three times in a single message to spawn all three miners simultaneously:
+
+```
+Task(task_id=1, subagent_type="general-purpose", model="haiku", instructions="...")
+Task(task_id=2, subagent_type="general-purpose", model="haiku", instructions="...")
+Task(task_id=3, subagent_type="general-purpose", model="haiku", instructions="...")
+```
+
+### Step 4: Create Synthesizer Task
+
+While miners are running, create a synthesis task:
+
+```
+Task 4: Combine miner reports into SESSION-MINING-REPORT.md
+- Blocked by: Tasks 1, 2, 3
+- Model: Sonnet
+- Instructions: Create narrative arc, identify phases, surface insights
+```
+
+Use `TaskUpdate` to set dependencies:
+
+```json
+{"taskId": "4", "addBlockedBy": ["1", "2", "3"]}
+```
+
+### Step 5: Create Skill Extraction Task
+
+```
+Task 5: Extract learned skills from synthesized report
+- Blocked by: Task 4
+- Model: Sonnet
+- Instructions: Identify codifiable patterns, create skill markdown files
+```
+
+```json
+{"taskId": "5", "addBlockedBy": ["4"]}
+```
+
+### Step 6: Monitor and Wait
+
+Check `TaskList` periodically. As miners complete, the synthesizer will auto-start. When synthesis completes, the skill extractor will auto-start.
+
+Total time: 15-25 minutes depending on session volume.
+
+### Step 7: Review Outputs
+
+You should have:
+- 3 individual miner reports
+- 1 synthesized `SESSION-MINING-REPORT.md`
+- 5-10 new learned skills in `~/.claude/skills/learned/`
+
+### Step 8: Shutdown Team
+
+Send shutdown requests to all agents via `SendMessage` tool, then delete the team:
+
+```bash
+claude team delete session-miners
+```
+
+<Warning title="Session Privacy">
+If your sessions contain sensitive data (API keys, internal URLs, customer info), **sanitize before mining**. Run a preprocessing step:
+
+```bash
+# Example: redact API keys before mining
+for file in .claude/session_archive/*.jsonl; do
+  sed -i 's/sk-[a-zA-Z0-9]\{48\}/<REDACTED>/g' "$file"
+done
+```
+
+Or better: configure your hooks to redact at write time, not after the fact.
+</Warning>
+
+## What This Means for AI-Assisted Development
+
+Session mining isn't just a neat trick. It's a preview of how AI-assisted development will evolve:
+
+**From:** Human does work → Human manually reviews logs → Human (maybe) learns lessons
+**To:** Human + AI do work → AI mines logs → AI extracts + codifies lessons → Human learns patterns they'd never have noticed
+
+The traditional feedback loop is:
+1. Make mistakes
+2. Remember the painful ones
+3. Forget the subtle ones
+4. Repeat subtle mistakes indefinitely
+
+With session mining, the feedback loop becomes:
+1. Make mistakes (captured in logs)
+2. AI identifies ALL patterns (painful + subtle)
+3. AI codifies as learned skills
+4. AI reminds you when similar contexts arise
+
+This is *institutional memory* at machine speed.
+
+<Info title="The Compounding Effect">
+One week of mining produced 5 learned skills. If I mine weekly for a year, that's 260 skills. Over time, the AI agents I spawn will have access to my entire accumulated knowledge base.
+
+This is how you build a personal AI that actually knows your preferences, your platform quirks, your repeated mistakes, and your workflow patterns. Not through manual configuration - through automated learning from your actual work.
+</Info>
+
+The most surprising finding from this exercise wasn't the statistics or the three-phase journey. It was the realization that **I'm sitting on a mountain of self-knowledge and I've been ignoring it.**
+
+Every session is a learning opportunity. Every error is a lesson. Every tool usage pattern reveals something about how I actually work (vs. how I think I work).
+
+And with agent teams, extracting those insights went from "impossible manual labor" to "20 minutes and less than $2."
+
+![A person standing on top of a mountain of JSONL files, arms raised in victory](/images/blog/mountain-of-insights.webp)
+
+## What's Next?
+
+I'm going to make this a weekly habit. Every Sunday, spin up the mining team, process the week's sessions, extract new skills, review the workflow evolution.
+
+Some ideas I'm exploring:
+- **Automated skill extraction** - A hook that runs mining automatically after every 10 sessions
+- **Trend visualization** - Graphing tool usage over time to see workflow evolution
+- **Comparative analysis** - Mining sessions from different projects to find cross-project patterns
+- **Predictive insights** - Training models to predict when I'm about to hit a known error pattern
+
+But for now, I'm just savoring the fact that I finally know what's in those 58 session files.
+
+Turns out, it was a whole journey. And I almost missed it.
+
+---
+
+**Previous in series:** [Will LLM Agents Replace Pentesters? (Spoiler: Wrong Question)](/blog/will-llm-agents-replace-pentesters)
+
+*Built with Claude Code (Opus 4.6). Session mining performed by a 5-agent team (3x Haiku, 2x Sonnet). Total analysis time: 19 minutes. Total cost: $1.87. Total insights: priceless.*
+
+*Want to see the raw data? Check out the [session-mining-report](https://github.com/chris2ao/CJClaude_1/blob/main/SESSION-MINING-REPORT.md) on GitHub.*
