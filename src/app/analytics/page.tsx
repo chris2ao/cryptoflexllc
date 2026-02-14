@@ -15,7 +15,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/analytics";
-import { ANALYTICS_COOKIE_NAME, verifyAuthToken } from "@/lib/analytics-auth";
+import { getAnalyticsCookieName, verifyAuthToken } from "@/lib/analytics-auth";
 import type {
   DailyViews,
   MapLocation,
@@ -68,7 +68,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
 
   // ---- Auth gate (cookie-based) ----
   const cookieStore = await cookies();
-  const authToken = cookieStore.get(ANALYTICS_COOKIE_NAME)?.value;
+  const authToken = cookieStore.get(getAnalyticsCookieName())?.value;
 
   if (!authToken || !verifyAuthToken(authToken)) {
     redirect("/analytics/login");

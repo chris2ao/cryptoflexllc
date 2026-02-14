@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ANALYTICS_COOKIE_NAME, verifyAuthToken } from "@/lib/analytics-auth";
+import { getAnalyticsCookieName, verifyAuthToken } from "@/lib/analytics-auth";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default async function AnalyticsLoginPage() {
   // If already authenticated, redirect to dashboard
   const cookieStore = await cookies();
-  const authToken = cookieStore.get(ANALYTICS_COOKIE_NAME)?.value;
+  const authToken = cookieStore.get(getAnalyticsCookieName())?.value;
   if (authToken && verifyAuthToken(authToken)) {
     redirect("/analytics");
   }
