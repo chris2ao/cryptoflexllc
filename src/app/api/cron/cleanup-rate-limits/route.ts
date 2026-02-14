@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       WHERE window_start < EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours') * 1000
     `;
 
-    const deleted = result.count ?? 0;
+    const deleted = (result as unknown as { count: number }).count ?? 0;
     console.log(`Rate limit cleanup: purged ${deleted} expired entries`);
 
     return NextResponse.json({ ok: true, deleted });
