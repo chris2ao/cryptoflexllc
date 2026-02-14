@@ -58,3 +58,4 @@ CFLogo-original.png
 
 # Windows artifacts
 nul
+.env*.local
