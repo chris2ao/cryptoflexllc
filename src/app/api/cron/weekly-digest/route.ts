@@ -107,7 +107,6 @@ export async function GET(request: NextRequest) {
       sent,
       posts: recentPosts.length,
       aiIntro: intro?.fromAi ?? false,
-      ...(testEmail && intro?.debugError ? { debugError: intro.debugError } : {}),
     });
   } catch (error) {
     console.error("Weekly digest error:", error);

@@ -21,7 +21,6 @@ export interface DigestIntro {
   greeting: string;
   contentIntro: string;
   fromAi: boolean;
-  debugError?: string;
 }
 
 const STATIC_GREETING =
@@ -44,7 +43,7 @@ export async function generateDigestIntro(
   sendDate: Date
 ): Promise<DigestIntro> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, fromAi: false, debugError: "ANTHROPIC_API_KEY not set" };
+    return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, fromAi: false };
   }
 
   const weekOf = sendDate.toLocaleDateString("en-US", {
@@ -101,8 +100,7 @@ export async function generateDigestIntro(
 
     return { greeting, contentIntro, fromAi: true };
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error("Newsletter intro generation failed:", msg);
-    return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, fromAi: false, debugError: msg };
+    console.error("Newsletter intro generation failed:", error);
+    return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, fromAi: false };
   }
 }
