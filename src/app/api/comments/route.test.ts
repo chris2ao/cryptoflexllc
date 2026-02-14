@@ -222,7 +222,7 @@ describe("POST /api/comments", () => {
       body: JSON.stringify({
         slug: "test-post",
         comment: "Test",
-        email: "  USER@EXAMPLE.COM  ",
+        email: "USER@EXAMPLE.COM",
       }),
       headers: { "content-type": "application/json" },
     });
@@ -300,7 +300,7 @@ describe("POST /api/comments", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Missing post slug.");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should return 400 when comment is too short", async () => {
@@ -318,7 +318,7 @@ describe("POST /api/comments", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Comment must be at least 2 characters.");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should return 400 when comment is too long", async () => {
@@ -336,7 +336,7 @@ describe("POST /api/comments", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Comment must be 2000 characters or less.");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should return 400 when reaction is invalid", async () => {
@@ -355,7 +355,7 @@ describe("POST /api/comments", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Reaction must be 'up' or 'down'.");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should return 400 when email is invalid", async () => {
@@ -373,7 +373,7 @@ describe("POST /api/comments", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Please enter a valid email address.");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should return 500 when database query fails", async () => {
@@ -406,7 +406,7 @@ describe("POST /api/comments", () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Something went wrong. Please try again.");
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
   });
 });

@@ -12,6 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import {
   getDb,
   parseBrowser,
@@ -19,38 +20,60 @@ import {
   parseDeviceType,
 } from "@/lib/analytics";
 
+// Zod schema for input validation
+const trackSchema = z.object({
+  path: z.string().min(1).max(500).optional().default("/"),
+  referrer: z.string().max(2000).optional().default(""),
+});
+
 export async function POST(request: NextRequest) {
   try {
-    // ---- 1. Parse the request body ----
-    const body = await request.json();
-    const pagePath: string = body.path || "/";
-
-    // ---- 2. Validate page path ----
-    if (
-      typeof pagePath !== "string" ||
-      pagePath.length > 500 ||
-      !pagePath.startsWith("/")
-    ) {
-      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    // ---- 1. Content-Type validation ----
+    const contentType = request.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      return NextResponse.json(
+        { error: "Content-Type must be application/json" },
+        { status: 415 }
+      );
     }
 
-    // ---- 3. Extract IP address ----
+    // ---- 2. Parse and validate the request body ----
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
+
+    const parsed = trackSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
+
+    const pagePath = parsed.data.path;
+
+    // ---- 3. Additional path validation ----
+    if (!pagePath.startsWith("/")) {
+      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
+
+    // ---- 4. Extract IP address ----
     const forwardedFor = request.headers.get("x-forwarded-for");
     const realIp = request.headers.get("x-real-ip");
     const ipAddress = forwardedFor
       ? forwardedFor.split(",")[0].trim()
       : realIp || "127.0.0.1";
 
-    // ---- 4. Extract User-Agent and parse it ----
+    // ---- 5. Extract User-Agent and parse it ----
     const userAgent = request.headers.get("user-agent") || "";
     const browser = parseBrowser(userAgent);
     const os = parseOS(userAgent);
     const deviceType = parseDeviceType(userAgent);
 
-    // ---- 5. Extract referrer ----
+    // ---- 6. Extract referrer ----
     const referrer = request.headers.get("referer") || "(direct)";
 
-    // ---- 6. Extract Vercel geolocation headers ----
+    // ---- 7. Extract Vercel geolocation headers ----
     const country = decodeURIComponent(
       request.headers.get("x-vercel-ip-country") || "Unknown"
     );
@@ -63,7 +86,7 @@ export async function POST(request: NextRequest) {
     const latitude = request.headers.get("x-vercel-ip-latitude") || "";
     const longitude = request.headers.get("x-vercel-ip-longitude") || "";
 
-    // ---- 7. Rate limiting: IP+path dedup (1 per hour) ----
+    // ---- 8. Rate limiting: IP+path dedup (1 per hour) ----
     const sql = getDb();
     const existing = await sql`
       SELECT 1 FROM page_views
@@ -78,7 +101,7 @@ export async function POST(request: NextRequest) {
       return new NextResponse(null, { status: 204 });
     }
 
-    // ---- 8. Insert into database ----
+    // ---- 9. Insert into database ----
     await sql`
       INSERT INTO page_views (
         page_path, ip_address, user_agent, browser, os,

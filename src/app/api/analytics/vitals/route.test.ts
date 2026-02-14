@@ -96,7 +96,7 @@ describe("POST /api/analytics/vitals", () => {
     );
   });
 
-  it("should default rating to 'unknown' when invalid", async () => {
+  it("should reject invalid rating", async () => {
     const request = new NextRequest("http://localhost/api/analytics/vitals", {
       method: "POST",
       body: JSON.stringify({
@@ -108,19 +108,15 @@ describe("POST /api/analytics/vitals", () => {
       headers: { "content-type": "application/json" },
     });
 
-    await POST(request);
+    const response = await POST(request);
+    const data = await response.json();
 
-    expect(mockSql).toHaveBeenCalledWith(
-      expect.any(Array),
-      "LCP",
-      2500,
-      "unknown",
-      "/test",
-      "navigate"
-    );
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
+    expect(mockSql).not.toHaveBeenCalled();
   });
 
-  it("should default path to / when invalid", async () => {
+  it("should reject path not starting with /", async () => {
     const request = new NextRequest("http://localhost/api/analytics/vitals", {
       method: "POST",
       body: JSON.stringify({
@@ -132,19 +128,15 @@ describe("POST /api/analytics/vitals", () => {
       headers: { "content-type": "application/json" },
     });
 
-    await POST(request);
+    const response = await POST(request);
+    const data = await response.json();
 
-    expect(mockSql).toHaveBeenCalledWith(
-      expect.any(Array),
-      "LCP",
-      2500,
-      "good",
-      "/",
-      "navigate"
-    );
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
+    expect(mockSql).not.toHaveBeenCalled();
   });
 
-  it("should default path to / when exceeding 500 characters", async () => {
+  it("should reject path exceeding 500 characters", async () => {
     const longPath = "/" + "a".repeat(500);
 
     const request = new NextRequest("http://localhost/api/analytics/vitals", {
@@ -158,19 +150,15 @@ describe("POST /api/analytics/vitals", () => {
       headers: { "content-type": "application/json" },
     });
 
-    await POST(request);
+    const response = await POST(request);
+    const data = await response.json();
 
-    expect(mockSql).toHaveBeenCalledWith(
-      expect.any(Array),
-      "LCP",
-      2500,
-      "good",
-      "/",
-      "navigate"
-    );
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
+    expect(mockSql).not.toHaveBeenCalled();
   });
 
-  it("should truncate navigationType exceeding 30 characters", async () => {
+  it("should reject navigationType exceeding 30 characters", async () => {
     const request = new NextRequest("http://localhost/api/analytics/vitals", {
       method: "POST",
       body: JSON.stringify({
@@ -183,16 +171,12 @@ describe("POST /api/analytics/vitals", () => {
       headers: { "content-type": "application/json" },
     });
 
-    await POST(request);
+    const response = await POST(request);
+    const data = await response.json();
 
-    expect(mockSql).toHaveBeenCalledWith(
-      expect.any(Array),
-      "LCP",
-      2500,
-      "good",
-      "/test",
-      "navigate" // Falls back to default when > 30 chars
-    );
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
+    expect(mockSql).not.toHaveBeenCalled();
   });
 
   it("should return 400 when metric name is invalid", async () => {
@@ -202,6 +186,7 @@ describe("POST /api/analytics/vitals", () => {
         name: "INVALID_METRIC",
         value: 2500,
         rating: "good",
+        path: "/",
       }),
       headers: { "content-type": "application/json" },
     });
@@ -210,7 +195,7 @@ describe("POST /api/analytics/vitals", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid metric");
+    expect(data.error).toBe("Invalid input");
     expect(mockSql).not.toHaveBeenCalled();
   });
 
@@ -220,6 +205,7 @@ describe("POST /api/analytics/vitals", () => {
       body: JSON.stringify({
         value: 2500,
         rating: "good",
+        path: "/",
       }),
       headers: { "content-type": "application/json" },
     });
@@ -228,7 +214,7 @@ describe("POST /api/analytics/vitals", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid metric");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should accept all valid metric names", async () => {
@@ -261,6 +247,7 @@ describe("POST /api/analytics/vitals", () => {
         name: "LCP",
         value: "not-a-number",
         rating: "good",
+        path: "/",
       }),
       headers: { "content-type": "application/json" },
     });
@@ -269,7 +256,7 @@ describe("POST /api/analytics/vitals", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid value");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should return 400 when value is negative", async () => {
@@ -279,6 +266,7 @@ describe("POST /api/analytics/vitals", () => {
         name: "LCP",
         value: -100,
         rating: "good",
+        path: "/",
       }),
       headers: { "content-type": "application/json" },
     });
@@ -287,7 +275,7 @@ describe("POST /api/analytics/vitals", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid value");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should return 400 when value is Infinity", async () => {
@@ -297,6 +285,7 @@ describe("POST /api/analytics/vitals", () => {
         name: "LCP",
         value: Infinity,
         rating: "good",
+        path: "/",
       }),
       headers: { "content-type": "application/json" },
     });
@@ -305,7 +294,7 @@ describe("POST /api/analytics/vitals", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid value");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should accept zero as a valid value", async () => {
@@ -364,7 +353,7 @@ describe("POST /api/analytics/vitals", () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Failed to record vitals");
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
   });
 });

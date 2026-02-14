@@ -8,19 +8,49 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getDb } from "@/lib/analytics";
-import { isValidEmail } from "@/lib/subscribers";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 
-// Rate limiter: 10 requests per IP per hour for comments
-const commentsRateLimiter = createRateLimiter({
+// Rate limiter: 10 requests per IP per hour for POST comments
+const commentsPostRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   maxRequests: 10,
+});
+
+// Rate limiter: 60 requests per IP per minute for GET comments
+const commentsGetRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 60,
+});
+
+// Zod schema for input validation
+const commentSchema = z.object({
+  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(200),
+  comment: z.string().trim().min(3).max(2000),
+  email: z.string().email().max(320),
+  reaction: z.enum(["up", "down"]).optional().default("up"),
 });
 
 // ---- GET: Fetch comments for a post ----
 
 export async function GET(request: NextRequest) {
+  // Check rate limit
+  const ipAddress = getClientIp(request);
+  const rateLimit = await commentsGetRateLimiter.checkRateLimit(ipAddress);
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfter || 60),
+        },
+      }
+    );
+  }
+
   const slug = request.nextUrl.searchParams.get("slug");
 
   if (!slug) {
@@ -52,7 +82,11 @@ export async function GET(request: NextRequest) {
 
     const thumbsUp = thumbsResult[0]?.thumbs_up ?? 0;
 
-    return NextResponse.json({ comments, thumbsUp });
+    return NextResponse.json({ comments, thumbsUp }, {
+      headers: {
+        "Cache-Control": "public, max-age=30, stale-while-revalidate=60",
+      },
+    });
   } catch (error) {
     console.error("Fetch comments error:", error);
     return NextResponse.json(
@@ -66,11 +100,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Content-Type validation
+    const contentType = request.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      return NextResponse.json(
+        { error: "Content-Type must be application/json" },
+        { status: 415 }
+      );
+    }
+
     // Extract IP address first for rate limiting
     const ipAddress = getClientIp(request);
 
     // Check rate limit
-    const rateLimit = commentsRateLimiter.checkRateLimit(ipAddress);
+    const rateLimit = await commentsPostRateLimiter.checkRateLimit(ipAddress);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: "Too many comment requests. Please try again later." },
@@ -83,54 +126,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const slug: string = (body.slug ?? "").trim();
-    const comment: string = (body.comment ?? "").trim();
-    const reaction: string = (body.reaction ?? "up").trim();
-    const email: string = (body.email ?? "").toLowerCase().trim();
-
-    // Validate required fields
-    if (!slug) {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: "Missing post slug." },
+        { error: "Invalid input" },
         { status: 400 }
       );
     }
 
-    if (!comment || comment.length < 2) {
+    const parsed = commentSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Comment must be at least 2 characters." },
+        { error: "Invalid input" },
         { status: 400 }
       );
     }
 
-    if (comment.length > 2000) {
-      return NextResponse.json(
-        { error: "Comment must be 2000 characters or less." },
-        { status: 400 }
-      );
-    }
-
-    if (!["up", "down"].includes(reaction)) {
-      return NextResponse.json(
-        { error: "Reaction must be 'up' or 'down'." },
-        { status: 400 }
-      );
-    }
-
-    if (!email || !isValidEmail(email)) {
-      return NextResponse.json(
-        { error: "Please enter a valid email address." },
-        { status: 400 }
-      );
-    }
+    const { slug, comment, reaction, email } = parsed.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
     const sql = getDb();
 
     // Check that the email belongs to an active subscriber
     const subscriber = await sql`
       SELECT id FROM subscribers
-      WHERE email = ${email} AND active = TRUE
+      WHERE email = ${normalizedEmail} AND active = TRUE
       LIMIT 1
     `;
 
@@ -144,8 +166,10 @@ export async function POST(request: NextRequest) {
     // Insert the comment
     const result = await sql`
       INSERT INTO blog_comments (slug, comment, reaction, email)
-      VALUES (${slug}, ${comment}, ${reaction}, ${email})
-      RETURNING id, slug, comment, reaction, email, created_at
+      VALUES (${slug}, ${comment}, ${reaction}, ${normalizedEmail})
+      RETURNING id, slug, comment, reaction,
+        CONCAT(LEFT(email, 1), '***@', SPLIT_PART(email, '@', 2)) AS email,
+        created_at
     `;
 
     return NextResponse.json({ ok: true, comment: result[0] });

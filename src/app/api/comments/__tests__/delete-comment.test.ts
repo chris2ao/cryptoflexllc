@@ -2,10 +2,9 @@
  * Tests for DELETE /api/comments/[id]
  * -----------------------------------------------
  * Verifies authorization logic for comment deletion:
- * - Admin can delete any comment
- * - Subscriber can delete own comment
- * - Cannot delete others' comments
+ * - Admin-only: requires analytics auth
  * - Handles invalid/missing comment IDs
+ * - Returns proper errors for unauthenticated requests
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -33,7 +32,66 @@ describe("DELETE /api/comments/[id]", () => {
     (getDb as ReturnType<typeof vi.fn>).mockReturnValue(mockSql);
   });
 
+  describe("Authentication", () => {
+    it("should return 401 when not authenticated", async () => {
+      (verifyApiAuth as ReturnType<typeof vi.fn>).mockReturnValue(false);
+
+      const request = new NextRequest("http://localhost/api/comments/42", {
+        method: "DELETE",
+      });
+      const params = { id: "42" };
+
+      const response = await DELETE(request, { params: Promise.resolve(params) });
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe("Unauthorized");
+    });
+
+    it("should return 401 before checking ID validity", async () => {
+      (verifyApiAuth as ReturnType<typeof vi.fn>).mockReturnValue(false);
+
+      const request = new NextRequest("http://localhost/api/comments/abc", {
+        method: "DELETE",
+      });
+      const params = { id: "abc" };
+
+      const response = await DELETE(request, { params: Promise.resolve(params) });
+      const data = await response.json();
+
+      // Auth check happens before ID validation
+      expect(response.status).toBe(401);
+      expect(data.error).toBe("Unauthorized");
+      expect(mockSql).not.toHaveBeenCalled();
+    });
+
+    it("should return 401 when subscriber provides email (no self-deletion)", async () => {
+      (verifyApiAuth as ReturnType<typeof vi.fn>).mockReturnValue(false);
+
+      const request = new NextRequest("http://localhost/api/comments/42", {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ email: "user@example.com" }),
+      });
+      const params = { id: "42" };
+
+      const response = await DELETE(request, { params: Promise.resolve(params) });
+      const data = await response.json();
+
+      // Subscriber self-deletion was removed; admin auth required
+      expect(response.status).toBe(401);
+      expect(data.error).toBe("Unauthorized");
+      expect(mockSql).not.toHaveBeenCalled();
+    });
+  });
+
   describe("Input Validation", () => {
+    beforeEach(() => {
+      (verifyApiAuth as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    });
+
     it("should return 400 for invalid comment ID (NaN)", async () => {
       const request = new NextRequest("http://localhost/api/comments/abc", {
         method: "DELETE",
@@ -74,7 +132,7 @@ describe("DELETE /api/comments/[id]", () => {
     });
   });
 
-  describe("Admin Path", () => {
+  describe("Admin Deletion", () => {
     beforeEach(() => {
       (verifyApiAuth as ReturnType<typeof vi.fn>).mockReturnValue(true);
     });
@@ -124,170 +182,7 @@ describe("DELETE /api/comments/[id]", () => {
     });
   });
 
-  describe("Subscriber Path", () => {
-    beforeEach(() => {
-      (verifyApiAuth as ReturnType<typeof vi.fn>).mockReturnValue(false);
-    });
-
-    it("should allow subscriber to delete own comment", async () => {
-      // First query: fetch comment to verify ownership
-      mockSql.mockResolvedValueOnce([
-        { id: 42, email: "user@example.com" },
-      ]);
-      // Second query: delete comment
-      mockSql.mockResolvedValueOnce([{ id: 42 }]);
-
-      const request = new NextRequest("http://localhost/api/comments/42", {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ email: "user@example.com" }),
-      });
-      const params = { id: "42" };
-
-      const response = await DELETE(request, { params: Promise.resolve(params) });
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.ok).toBe(true);
-      expect(data.deleted).toBe(42);
-
-      // Verify ownership check query (first call)
-      const selectCall = mockSql.mock.calls[0];
-      expect(selectCall[0][0]).toContain("SELECT id, email FROM blog_comments WHERE id = ");
-      expect(selectCall[1]).toBe(42);
-
-      // Verify delete query (second call)
-      const deleteCall = mockSql.mock.calls[1];
-      expect(deleteCall[0][0]).toContain("DELETE FROM blog_comments WHERE id = ");
-      expect(deleteCall[1]).toBe(42);
-    });
-
-    it("should handle case-insensitive email matching", async () => {
-      mockSql.mockResolvedValueOnce([
-        { id: 42, email: "User@Example.COM" },
-      ]);
-      mockSql.mockResolvedValueOnce([{ id: 42 }]);
-
-      const request = new NextRequest("http://localhost/api/comments/42", {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ email: "user@example.com" }),
-      });
-      const params = { id: "42" };
-
-      const response = await DELETE(request, { params: Promise.resolve(params) });
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.ok).toBe(true);
-    });
-
-    it("should return 403 when subscriber tries to delete another user's comment", async () => {
-      mockSql.mockResolvedValueOnce([
-        { id: 42, email: "owner@example.com" },
-      ]);
-
-      const request = new NextRequest("http://localhost/api/comments/42", {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ email: "attacker@example.com" }),
-      });
-      const params = { id: "42" };
-
-      const response = await DELETE(request, { params: Promise.resolve(params) });
-      const data = await response.json();
-
-      expect(response.status).toBe(403);
-      expect(data.error).toBe("Forbidden. You can only delete your own comments.");
-
-      // Should not attempt deletion
-      expect(mockSql).toHaveBeenCalledTimes(1);
-    });
-
-    it("should return 403 when no email provided", async () => {
-      const request = new NextRequest("http://localhost/api/comments/42", {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-      const params = { id: "42" };
-
-      const response = await DELETE(request, { params: Promise.resolve(params) });
-      const data = await response.json();
-
-      expect(response.status).toBe(403);
-      expect(data.error).toBe("Unauthorized. Email required for subscriber deletion.");
-    });
-
-    it("should return 403 when request body is invalid JSON", async () => {
-      const request = new NextRequest("http://localhost/api/comments/42", {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: "invalid-json",
-      });
-      const params = { id: "42" };
-
-      const response = await DELETE(request, { params: Promise.resolve(params) });
-      const data = await response.json();
-
-      expect(response.status).toBe(403);
-      expect(data.error).toBe("Unauthorized. Email required for subscriber deletion.");
-    });
-
-    it("should return 404 when subscriber tries to delete nonexistent comment", async () => {
-      mockSql.mockResolvedValueOnce([]);
-
-      const request = new NextRequest("http://localhost/api/comments/999", {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ email: "user@example.com" }),
-      });
-      const params = { id: "999" };
-
-      const response = await DELETE(request, { params: Promise.resolve(params) });
-      const data = await response.json();
-
-      expect(response.status).toBe(404);
-      expect(data.error).toBe("Comment not found.");
-    });
-  });
-
   describe("Error Handling", () => {
-    beforeEach(() => {
-      (verifyApiAuth as ReturnType<typeof vi.fn>).mockReturnValue(false);
-    });
-
-    it("should return 500 on database error during ownership check", async () => {
-      mockSql.mockRejectedValue(new Error("Database connection failed"));
-
-      const request = new NextRequest("http://localhost/api/comments/42", {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ email: "user@example.com" }),
-      });
-      const params = { id: "42" };
-
-      const response = await DELETE(request, { params: Promise.resolve(params) });
-      const data = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(data.error).toBe("Failed to delete comment.");
-    });
-
     it("should return 500 on database error during admin deletion", async () => {
       (verifyApiAuth as ReturnType<typeof vi.fn>).mockReturnValue(true);
       mockSql.mockRejectedValue(new Error("Database connection failed"));

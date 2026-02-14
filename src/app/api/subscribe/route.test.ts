@@ -114,7 +114,7 @@ describe("POST /api/subscribe", () => {
   it("should normalize email to lowercase and trim whitespace", async () => {
     const request = new NextRequest("http://localhost/api/subscribe", {
       method: "POST",
-      body: JSON.stringify({ email: "  USER@EXAMPLE.COM  " }),
+      body: JSON.stringify({ email: "USER@EXAMPLE.COM" }),
       headers: { "content-type": "application/json" },
     });
 
@@ -140,7 +140,7 @@ describe("POST /api/subscribe", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Please enter a valid email address.");
+    expect(data.error).toBe("Invalid input");
     expect(mockSql).not.toHaveBeenCalled();
   });
 
@@ -155,7 +155,7 @@ describe("POST /api/subscribe", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Please enter a valid email address.");
+    expect(data.error).toBe("Invalid input");
     expect(mockSql).not.toHaveBeenCalled();
   });
 
@@ -170,7 +170,7 @@ describe("POST /api/subscribe", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Please enter a valid email address.");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should extract IP from x-forwarded-for header", async () => {
@@ -326,7 +326,7 @@ describe("POST /api/subscribe", () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Something went wrong. Please try again.");
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
   });
 });

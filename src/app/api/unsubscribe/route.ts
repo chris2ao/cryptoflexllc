@@ -25,6 +25,16 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // Reject tokens that aren't valid hex before attempting buffer comparison,
+  // otherwise Buffer.from(token, "hex") silently truncates and timingSafeEqual
+  // throws a RangeError on mismatched buffer lengths (returns 500 instead of 403).
+  if (!/^[0-9a-f]+$/i.test(token)) {
+    return new NextResponse(htmlPage("Invalid link", "The unsubscribe link is invalid or expired."), {
+      status: 403,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+
   // Verify HMAC token (timing-safe comparison)
   const expected = makeUnsubscribeToken(email);
   const valid = crypto.timingSafeEqual(

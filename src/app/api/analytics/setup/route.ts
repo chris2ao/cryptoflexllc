@@ -11,8 +11,19 @@ import { getDb } from "@/lib/analytics";
 import { verifyApiAuth } from "@/lib/analytics-auth";
 
 export async function GET(request: NextRequest) {
-  // Guard: only allow if ANALYTICS_SETUP_ENABLED is set
-  if (process.env.ANALYTICS_SETUP_ENABLED !== "true") {
+  // Guard: disable in production unless explicitly enabled
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.ANALYTICS_SETUP_ENABLED !== "true"
+  ) {
+    return NextResponse.json({ error: "Setup disabled" }, { status: 404 });
+  }
+
+  // Guard: only allow if ANALYTICS_SETUP_ENABLED is set (for non-production)
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.ANALYTICS_SETUP_ENABLED !== "true"
+  ) {
     return NextResponse.json(
       { error: "Setup endpoint is disabled. Set ANALYTICS_SETUP_ENABLED=true to enable." },
       { status: 403 }

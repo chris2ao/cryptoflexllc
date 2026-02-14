@@ -101,12 +101,12 @@ describe('Weekly Digest API', () => {
       })
     );
 
-    // Should warn about skipped subscribers
+    // Should warn about skipped subscribers (with masked emails)
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('deleted@example.com')
+      expect.stringContaining('d***@example.com')
     );
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('inactive@example.com')
+      expect.stringContaining('i***@example.com')
     );
 
     errorSpy.mockRestore();
@@ -209,10 +209,10 @@ describe('Weekly Digest API', () => {
     // Should attempt to send to both subscribers
     expect(sendMailMock).toHaveBeenCalledTimes(2);
 
-    // Should log error for first subscriber but continue
+    // Should log error for first subscriber but continue (with masked email)
     // console.error is called with (message, error) so check first arg
     expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('fail@example.com'),
+      expect.stringContaining('f***@example.com'),
       expect.any(Error)
     );
 

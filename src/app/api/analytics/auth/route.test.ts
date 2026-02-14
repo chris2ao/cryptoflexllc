@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/lib/analytics-auth");
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: () => ({
+    checkRateLimit: () => Promise.resolve({ allowed: true, remaining: 5 }),
+  }),
+  getClientIp: () => "127.0.0.1",
+}));
 
 describe("POST /api/analytics/auth", () => {
   const originalEnv = { ...process.env };
@@ -30,7 +36,7 @@ describe("POST /api/analytics/auth", () => {
     expect(data.error).toBe("Unauthorized");
   });
 
-  it("should return 401 when secret is not provided in body", async () => {
+  it("should return 400 when secret is not provided in body", async () => {
     process.env.ANALYTICS_SECRET = "correct-secret";
 
     const { POST } = await import("./route");
@@ -43,8 +49,8 @@ describe("POST /api/analytics/auth", () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(401);
-    expect(data.error).toBe("Unauthorized");
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should return 401 when secret does not match", async () => {
@@ -123,10 +129,10 @@ describe("POST /api/analytics/auth", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid request");
+    expect(data.error).toBe("Invalid input");
   });
 
-  it("should handle non-string secret value", async () => {
+  it("should return 400 for non-string secret value", async () => {
     process.env.ANALYTICS_SECRET = "correct-secret";
 
     const { POST } = await import("./route");
@@ -139,7 +145,7 @@ describe("POST /api/analytics/auth", () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(401);
-    expect(data.error).toBe("Unauthorized");
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
   });
 });

@@ -17,6 +17,16 @@ export const ANALYTICS_COOKIE_NAME = "analytics_session";
 const TOKEN_PAYLOAD = "analytics-authenticated";
 
 /**
+ * Returns the cookie name with __Secure- prefix in production.
+ * This ensures the cookie is only sent over HTTPS connections.
+ */
+export function getAnalyticsCookieName(): string {
+  return process.env.NODE_ENV === "production"
+    ? `__Secure-${ANALYTICS_COOKIE_NAME}`
+    : ANALYTICS_COOKIE_NAME;
+}
+
+/**
  * Derives an HMAC-SHA256 token from the analytics secret.
  * The cookie stores this token (not the raw secret), so even
  * if the cookie is intercepted, the original secret isn't exposed.
@@ -50,10 +60,11 @@ export function verifyApiAuth(request: Request): boolean {
   const expectedSecret = process.env.ANALYTICS_SECRET;
   if (!expectedSecret) return false;
 
-  // Check cookie
+  // Check cookie (use environment-aware cookie name)
+  const cookieName = getAnalyticsCookieName();
   const cookieHeader = request.headers.get("cookie") || "";
   const cookieMatch = cookieHeader.match(
-    new RegExp(`(?:^|;\\s*)${ANALYTICS_COOKIE_NAME}=([^;]+)`)
+    new RegExp(`(?:^|;\\s*)${cookieName}=([^;]+)`)
   );
   if (cookieMatch) {
     const token = cookieMatch[1];
@@ -68,6 +79,10 @@ export function verifyApiAuth(request: Request): boolean {
   }
 
   // Fallback: Authorization header (for programmatic access)
+  // TODO: This compares the raw ANALYTICS_SECRET over the wire. Ideally
+  // programmatic clients should authenticate via POST /api/analytics/auth
+  // and use the cookie, or this should accept the HMAC-derived token
+  // instead of the raw secret to reduce exposure surface.
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const bearerToken = authHeader.slice(7);

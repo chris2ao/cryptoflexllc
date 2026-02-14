@@ -11,8 +11,18 @@ import { getDb } from "@/lib/analytics";
 import { verifyApiAuth } from "@/lib/analytics-auth";
 import type { IpIntelData } from "@/lib/analytics-types";
 
-// IPv4 or IPv6 format validation
-const IP_REGEX = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$/;
+/**
+ * Validate IP address format (IPv4 or IPv6)
+ * IPv4: each octet must be 0-255
+ * IPv6: standard hex groups format
+ */
+function isValidIp(ip: string): boolean {
+  // IPv4: each octet 0-255
+  const ipv4 = /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
+  // IPv6: standard hex groups
+  const ipv6 = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^([0-9a-fA-F]{1,4}:)*:[0-9a-fA-F:]*$/;
+  return ipv4.test(ip) || ipv6.test(ip);
+}
 
 /**
  * Reject private, loopback, and reserved IP ranges.
@@ -45,7 +55,7 @@ export async function GET(request: NextRequest) {
   }
 
   const ip = request.nextUrl.searchParams.get("ip");
-  if (!ip || !IP_REGEX.test(ip)) {
+  if (!ip || !isValidIp(ip)) {
     return NextResponse.json({ error: "Invalid IP address" }, { status: 400 });
   }
 
@@ -173,7 +183,12 @@ async function fetchIpApi(ip: string): Promise<IpApiResult> {
   };
 
   try {
-    // ip-api.com free tier: 45 req/min, HTTP only (HTTPS requires paid plan)
+    // ip-api.com free tier: 45 req/min. HTTPS requires the paid plan;
+    // free tier requests to HTTPS are rejected. Using HTTP here means
+    // response data travels in cleartext. The data is public IP metadata
+    // (not user secrets), but switching to the paid HTTPS endpoint or an
+    // alternative provider (e.g., ipinfo.io) would improve data-in-transit security.
+    // TODO: Switch to HTTPS endpoint (requires ip-api.com Pro subscription)
     const res = await fetch(
       `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,message,country,city,regionName,lat,lon,isp,org,as,mobile,proxy,hosting`,
       { signal: AbortSignal.timeout(5000) }

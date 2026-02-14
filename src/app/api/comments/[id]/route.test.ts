@@ -40,7 +40,7 @@ describe("DELETE /api/comments/:id", () => {
     expect(mockSql).toHaveBeenCalledWith(expect.any(Array), 5);
   });
 
-  it("should return 403 when not admin and no email provided", async () => {
+  it("should return 401 when not authenticated", async () => {
     const { verifyApiAuth } = await import("@/lib/analytics-auth");
     vi.mocked(verifyApiAuth).mockReturnValue(false);
 
@@ -53,9 +53,9 @@ describe("DELETE /api/comments/:id", () => {
     const response = await DELETE(request, { params });
     const data = await response.json();
 
-    // New route returns 403 for subscriber path without email
-    expect(response.status).toBe(403);
-    expect(data.error).toBe("Unauthorized. Email required for subscriber deletion.");
+    // Admin-only: unauthenticated requests get 401
+    expect(response.status).toBe(401);
+    expect(data.error).toBe("Unauthorized");
   });
 
   it("should return 400 when ID is not a number", async () => {

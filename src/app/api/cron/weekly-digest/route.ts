@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import nodemailer from "nodemailer";
 import { getDb } from "@/lib/analytics";
 import { getAllPosts } from "@/lib/blog";
@@ -29,10 +30,33 @@ export const maxDuration = 30;
 
 const BASE_URL = "https://cryptoflexllc.com";
 
+/**
+ * Mask email address for logging to prevent PII exposure.
+ * Example: user@domain.com -> u***@domain.com
+ */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  return `${local[0]}***@${domain}`;
+}
+
 export async function GET(request: NextRequest) {
   // ---- Auth: Vercel Cron sends this header automatically ----
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = request.headers.get("authorization") ?? "";
+  const expectedHeader = `Bearer ${cronSecret}`;
+  let cronAuthed = false;
+  if (cronSecret && authHeader.length === expectedHeader.length) {
+    try {
+      cronAuthed = timingSafeEqual(
+        Buffer.from(authHeader),
+        Buffer.from(expectedHeader)
+      );
+    } catch {
+      cronAuthed = false;
+    }
+  }
+  if (!cronAuthed) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -52,6 +76,14 @@ export async function GET(request: NextRequest) {
     // ---- 2. Fetch active subscribers (or use testEmail override) ----
     const testEmail = request.nextUrl.searchParams.get("testEmail");
     let recipients: { email: string }[];
+
+    // Block testEmail relay in production to prevent spam abuse
+    if (process.env.NODE_ENV === "production" && testEmail) {
+      return NextResponse.json(
+        { error: "testEmail disabled in production" },
+        { status: 400 }
+      );
+    }
 
     if (testEmail) {
       recipients = [{ email: testEmail }];
@@ -95,7 +127,7 @@ export async function GET(request: NextRequest) {
         `;
         if (verification.length === 0) {
           console.warn(
-            `[weekly-digest] Skipping ${email} — no longer exists or inactive`
+            `[weekly-digest] Skipping ${maskEmail(email)} — no longer exists or inactive`
           );
           continue;
         }
@@ -122,7 +154,7 @@ export async function GET(request: NextRequest) {
       } catch (error) {
         // Log the error but continue sending to other subscribers
         console.error(
-          `[weekly-digest] Failed to send to ${email} after retries:`,
+          `[weekly-digest] Failed to send to ${maskEmail(email)} after retries:`,
           error
         );
       }

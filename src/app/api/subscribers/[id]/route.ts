@@ -52,7 +52,7 @@ export async function DELETE(request: NextRequest, { params }: Props) {
 
     return NextResponse.json({
       ok: true,
-      deleted: result[0],
+      id: subscriberId,
       commentsRemoved: deleted_comments.length,
     });
   } catch (error) {

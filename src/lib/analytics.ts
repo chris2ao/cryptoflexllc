@@ -82,7 +82,11 @@ export function getDb() {
   // e.g. psql 'postgresql://...' → postgresql://...
   databaseUrl = databaseUrl.replace(/^psql\s+/, "").replace(/^'|'$/g, "");
 
-  return neon(databaseUrl);
+  return neon(databaseUrl, {
+    fetchOptions: {
+      signal: AbortSignal.timeout(10000), // 10 second timeout
+    },
+  });
 }
 
 // --------------- User-Agent Parsing ---------------

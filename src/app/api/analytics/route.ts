@@ -138,6 +138,10 @@ export async function GET(request: NextRequest) {
       recent,
       daily_views: dailyViews,
       map_locations: mapLocations,
+    }, {
+      headers: {
+        "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
+      },
     });
   } catch (error) {
     console.error("Analytics query error:", error);

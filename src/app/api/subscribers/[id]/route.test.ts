@@ -48,7 +48,7 @@ describe("DELETE /api/subscribers/:id", () => {
     expect(response.status).toBe(200);
     expect(data).toEqual({
       ok: true,
-      deleted: { id: 10, email: "user@example.com" },
+      id: 10,
       commentsRemoved: 3,
     });
 

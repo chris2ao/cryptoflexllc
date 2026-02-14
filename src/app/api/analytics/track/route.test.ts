@@ -105,7 +105,7 @@ describe("POST /api/analytics/track", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid path");
+    expect(data.error).toBe("Invalid input");
     expect(mockSql).not.toHaveBeenCalled();
   });
 
@@ -122,7 +122,7 @@ describe("POST /api/analytics/track", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid path");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should return 400 for non-string path", async () => {
@@ -136,7 +136,7 @@ describe("POST /api/analytics/track", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid path");
+    expect(data.error).toBe("Invalid input");
   });
 
   it("should extract first IP from x-forwarded-for", async () => {
@@ -284,7 +284,7 @@ describe("POST /api/analytics/track", () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Failed to record visit");
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
   });
 });

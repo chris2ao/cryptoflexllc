@@ -9,8 +9,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { z } from "zod";
 import { getDb } from "@/lib/analytics";
-import { isValidEmail, unsubscribeUrl } from "@/lib/subscribers";
+import { unsubscribeUrl } from "@/lib/subscribers";
 import { getAllPosts } from "@/lib/blog";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import { withRetry } from "@/lib/email-retry";
@@ -20,19 +21,43 @@ const BASE_URL = "https://cryptoflexllc.com";
 // Allow up to 30 seconds for DB insert + SMTP send
 export const maxDuration = 30;
 
+/**
+ * Mask email address for logging to prevent PII exposure.
+ * Example: user@domain.com -> u***@domain.com
+ */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  return `${local[0]}***@${domain}`;
+}
+
 // Rate limiter: 5 requests per IP per hour
 const subscribeRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   maxRequests: 5,
 });
 
+// Zod schema for input validation
+const subscribeSchema = z.object({
+  email: z.string().email().max(320).trim().toLowerCase(),
+});
+
 export async function POST(request: NextRequest) {
   try {
+    // Content-Type validation
+    const contentType = request.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      return NextResponse.json(
+        { error: "Content-Type must be application/json" },
+        { status: 415 }
+      );
+    }
+
     // Extract IP address first for rate limiting
     const ipAddress = getClientIp(request);
 
     // Check rate limit
-    const rateLimit = subscribeRateLimiter.checkRateLimit(ipAddress);
+    const rateLimit = await subscribeRateLimiter.checkRateLimit(ipAddress);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: "Too many subscription requests. Please try again later." },
@@ -45,15 +70,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const email: string = (body.email ?? "").toLowerCase().trim();
-
-    if (!email || !isValidEmail(email)) {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: "Please enter a valid email address." },
+        { error: "Invalid input" },
         { status: 400 }
       );
     }
+
+    const parsed = subscribeSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid input" },
+        { status: 400 }
+      );
+    }
+
+    const { email } = parsed.data;
 
     // Extract Vercel geolocation headers
     const country = decodeURIComponent(
@@ -81,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     // Send confirmation email before responding (must await on serverless)
     try {
-      console.log(`[subscribe] Sending welcome email to ${email}...`);
+      console.log(`[subscribe] Sending welcome email to ${maskEmail(email)}...`);
       const emailStart = Date.now();
       await sendConfirmationEmail(email);
       console.log(`[subscribe] Welcome email sent in ${Date.now() - emailStart}ms`);
@@ -127,7 +162,7 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
   const latestPosts = getAllPosts().slice(0, 5);
   console.log(`[welcome-email] Found ${latestPosts.length} posts, generating unsubscribe URL...`);
   const unsubLink = unsubscribeUrl(recipientEmail);
-  console.log(`[welcome-email] Building HTML and sending to ${recipientEmail}...`);
+  console.log(`[welcome-email] Building HTML and sending to ${maskEmail(recipientEmail)}...`);
 
   const postRows = latestPosts
     .map(
