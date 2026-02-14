@@ -123,7 +123,7 @@ describe("generateDigestIntro", () => {
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "claude-haiku-4-5-latest",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 400,
         system: expect.stringContaining("CryptoFlex LLC"),
         messages: [
