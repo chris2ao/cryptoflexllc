@@ -8,6 +8,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { OsRow } from "@/lib/analytics-types";
+import { PanelWrapper } from "./panel-wrapper";
 
 const COLORS = [
   "var(--chart-1)",
@@ -25,10 +26,12 @@ export function OsChart({ data }: { data: OsRow[] }) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Operating Systems</h2>
+      <PanelWrapper
+        title="Operating Systems"
+        tooltip="OS distribution across all page views"
+      >
         <p className="text-muted-foreground text-sm text-center py-8">No data yet</p>
-      </div>
+      </PanelWrapper>
     );
   }
 
@@ -40,8 +43,10 @@ export function OsChart({ data }: { data: OsRow[] }) {
   );
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold mb-4">Operating Systems</h2>
+    <PanelWrapper
+      title="Operating Systems"
+      tooltip="OS distribution across all page views"
+    >
       <ChartContainer config={chartConfig} className="h-[250px] w-full">
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent nameKey="os" />} />
@@ -76,6 +81,6 @@ export function OsChart({ data }: { data: OsRow[] }) {
           </Pie>
         </PieChart>
       </ChartContainer>
-    </div>
+    </PanelWrapper>
   );
 }

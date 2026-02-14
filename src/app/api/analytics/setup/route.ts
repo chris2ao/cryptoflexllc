@@ -165,6 +165,85 @@ export async function GET(request: NextRequest) {
         ON blog_comments (slug)
     `;
 
+    // API response time metrics
+    await sql`
+      CREATE TABLE IF NOT EXISTS api_metrics (
+        id            SERIAL PRIMARY KEY,
+        recorded_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        endpoint      VARCHAR(200) NOT NULL,
+        method        VARCHAR(10) NOT NULL DEFAULT 'GET',
+        status_code   SMALLINT NOT NULL DEFAULT 200,
+        duration_ms   DOUBLE PRECISION NOT NULL
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_api_metrics_recorded_at
+        ON api_metrics (recorded_at)
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_api_metrics_endpoint
+        ON api_metrics (endpoint)
+    `;
+
+    // Scroll depth tracking
+    await sql`
+      CREATE TABLE IF NOT EXISTS scroll_events (
+        id            SERIAL PRIMARY KEY,
+        recorded_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        page_path     TEXT NOT NULL,
+        depth         SMALLINT NOT NULL,
+        ip_address    VARCHAR(45) NOT NULL
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_scroll_events_recorded_at
+        ON scroll_events (recorded_at)
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_scroll_events_dedup
+        ON scroll_events (ip_address, page_path)
+    `;
+
+    // Page engagement (time on page)
+    await sql`
+      CREATE TABLE IF NOT EXISTS page_engagement (
+        id            SERIAL PRIMARY KEY,
+        recorded_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        page_path     TEXT NOT NULL,
+        time_seconds  SMALLINT NOT NULL,
+        ip_address    VARCHAR(45) NOT NULL
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_page_engagement_recorded_at
+        ON page_engagement (recorded_at)
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_page_engagement_dedup
+        ON page_engagement (ip_address, page_path)
+    `;
+
+    // Auth attempt logging
+    await sql`
+      CREATE TABLE IF NOT EXISTS auth_attempts (
+        id            SERIAL PRIMARY KEY,
+        attempted_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        ip_address    VARCHAR(45) NOT NULL,
+        success       BOOLEAN NOT NULL DEFAULT FALSE
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_auth_attempts_attempted_at
+        ON auth_attempts (attempted_at)
+    `;
+
     return NextResponse.json({
       success: true,
       message: "Tables created successfully. Your analytics tracking is now ready.",

@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/analytics";
+import { recordApiMetric } from "@/lib/api-timing";
 
 const VALID_METRICS = new Set(["LCP", "INP", "CLS", "FCP", "TTFB"]);
 
@@ -24,6 +25,7 @@ const vitalsSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const t0 = Date.now();
   try {
     // Content-Type validation
     const contentType = request.headers.get("content-type");
@@ -81,8 +83,10 @@ export async function POST(request: NextRequest) {
       VALUES (${name}, ${value}, ${rating}, ${path}, ${safeNavType})
     `;
 
+    recordApiMetric("/api/analytics/vitals", "POST", 204, Date.now() - t0);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
+    recordApiMetric("/api/analytics/vitals", "POST", 500, Date.now() - t0);
     console.error("Vitals tracking error:", error);
     return NextResponse.json(
       { error: "Failed to record vitals" },

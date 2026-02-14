@@ -16,6 +16,7 @@ import {
 } from "@/lib/analytics-auth";
 import { timingSafeEqual } from "crypto";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
+import { getDb } from "@/lib/analytics";
 
 // Rate limiter: 5 attempts per 15 minutes
 const authRateLimiter = createRateLimiter({
@@ -82,6 +83,17 @@ export async function POST(request: NextRequest) {
         timingSafeEqual(Buffer.from(secret), Buffer.from(expectedSecret));
     } catch {
       match = false;
+    }
+
+    // Log auth attempt (fire-and-forget)
+    try {
+      const sql = getDb();
+      sql`
+        INSERT INTO auth_attempts (ip_address, success)
+        VALUES (${ipAddress}, ${match})
+      `.catch(() => {});
+    } catch {
+      // DB not configured — ignore
     }
 
     if (!match) {

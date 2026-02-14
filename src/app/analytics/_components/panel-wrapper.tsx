@@ -7,19 +7,37 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export function StatCard({
-  label,
-  value,
+/**
+ * PanelWrapper — Wraps any analytics panel with a consistent card frame
+ * and an info-icon tooltip in the top-right corner.
+ *
+ * If `tooltip` is omitted the info icon is hidden.
+ * The `title` is rendered as an h2 inside the card header.
+ */
+export function PanelWrapper({
+  title,
   tooltip,
+  badge,
+  children,
+  className = "",
 }: {
-  label: string;
-  value: string;
+  title: string;
   tooltip?: string;
+  badge?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{label}</p>
+    <div
+      className={`rounded-lg border border-border bg-card p-6 ${className}`}
+    >
+      {/* Header row: title + optional badge + tooltip icon */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          {badge}
+        </div>
+
         {tooltip && (
           <TooltipProvider>
             <Tooltip>
@@ -27,13 +45,13 @@ export function StatCard({
                 <button
                   type="button"
                   className="text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={`Info: ${label}`}
+                  aria-label={`Info: ${title}`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"
-                    className="w-3.5 h-3.5"
+                    className="w-4 h-4"
                   >
                     <path
                       fillRule="evenodd"
@@ -43,14 +61,15 @@ export function StatCard({
                   </svg>
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={8} className="max-w-xs">
+              <TooltipContent side="left" sideOffset={8} className="max-w-xs">
                 {tooltip}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
       </div>
-      <p className="mt-1 text-2xl sm:text-3xl font-bold">{value}</p>
+
+      {children}
     </div>
   );
 }

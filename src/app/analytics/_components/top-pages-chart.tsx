@@ -8,6 +8,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { TopPageRow } from "@/lib/analytics-types";
+import { PanelWrapper } from "./panel-wrapper";
 
 const chartConfig = {
   views: {
@@ -23,14 +24,15 @@ const chartConfig = {
 export function TopPagesChart({ data }: { data: TopPageRow[] }) {
   if (data.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Top Pages</h2>
+      <PanelWrapper
+        title="Top Pages"
+        tooltip="Most visited pages ranked by total and unique views"
+      >
         <p className="text-muted-foreground text-sm text-center py-8">No data yet</p>
-      </div>
+      </PanelWrapper>
     );
   }
 
-  // Take top 10 and truncate long paths for display
   const top10 = data.slice(0, 10).map((row) => ({
     ...row,
     short_path: row.page_path.length > 30
@@ -39,8 +41,10 @@ export function TopPagesChart({ data }: { data: TopPageRow[] }) {
   }));
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold mb-4">Top Pages</h2>
+    <PanelWrapper
+      title="Top Pages"
+      tooltip="Most visited pages ranked by total and unique views"
+    >
       <ChartContainer config={chartConfig} className="h-[300px] w-full">
         <BarChart data={top10} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid horizontal={false} strokeDasharray="3 3" />
@@ -66,6 +70,6 @@ export function TopPagesChart({ data }: { data: TopPageRow[] }) {
           <Bar dataKey="unique_views" fill="var(--chart-2)" radius={[0, 4, 4, 0]} barSize={16} />
         </BarChart>
       </ChartContainer>
-    </div>
+    </PanelWrapper>
   );
 }

@@ -8,8 +8,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/analytics";
 import { verifyApiAuth } from "@/lib/analytics-auth";
+import { recordApiMetric } from "@/lib/api-timing";
 
 export async function GET(request: NextRequest) {
+  const t0 = Date.now();
   // ---- Auth check (cookie or Authorization header) ----
   if (!verifyApiAuth(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -127,6 +129,7 @@ export async function GET(request: NextRequest) {
         `,
       ]);
 
+    recordApiMetric("/api/analytics", "GET", 200, Date.now() - t0);
     return NextResponse.json({
       days,
       summary: summary[0],
@@ -144,6 +147,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    recordApiMetric("/api/analytics", "GET", 500, Date.now() - t0);
     console.error("Analytics query error:", error);
     return NextResponse.json(
       { error: "Failed to fetch analytics" },
