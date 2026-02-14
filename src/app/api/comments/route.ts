@@ -10,6 +10,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/analytics";
 import { isValidEmail } from "@/lib/subscribers";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
+
+// Rate limiter: 10 requests per IP per hour for comments
+const commentsRateLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
+});
 
 // ---- GET: Fetch comments for a post ----
 
@@ -26,8 +33,11 @@ export async function GET(request: NextRequest) {
   try {
     const sql = getDb();
 
+    // Only return masked emails to prevent PII exposure on this public endpoint
     const comments = await sql`
-      SELECT id, slug, comment, reaction, email, created_at
+      SELECT id, slug, comment, reaction,
+        CONCAT(LEFT(email, 1), '***@', SPLIT_PART(email, '@', 2)) AS email_masked,
+        created_at
       FROM blog_comments
       WHERE slug = ${slug}
       ORDER BY created_at DESC
@@ -56,6 +66,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Extract IP address first for rate limiting
+    const ipAddress = getClientIp(request);
+
+    // Check rate limit
+    const rateLimit = commentsRateLimiter.checkRateLimit(ipAddress);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many comment requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.retryAfter || 3600),
+          },
+        }
+      );
+    }
+
     const body = await request.json();
     const slug: string = (body.slug ?? "").trim();
     const comment: string = (body.comment ?? "").trim();

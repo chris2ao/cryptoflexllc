@@ -12,14 +12,39 @@ import nodemailer from "nodemailer";
 import { getDb } from "@/lib/analytics";
 import { isValidEmail, unsubscribeUrl } from "@/lib/subscribers";
 import { getAllPosts } from "@/lib/blog";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
+import { withRetry } from "@/lib/email-retry";
 
 const BASE_URL = "https://cryptoflexllc.com";
 
 // Allow up to 30 seconds for DB insert + SMTP send
 export const maxDuration = 30;
 
+// Rate limiter: 5 requests per IP per hour
+const subscribeRateLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+});
+
 export async function POST(request: NextRequest) {
   try {
+    // Extract IP address first for rate limiting
+    const ipAddress = getClientIp(request);
+
+    // Check rate limit
+    const rateLimit = subscribeRateLimiter.checkRateLimit(ipAddress);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many subscription requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.retryAfter || 3600),
+          },
+        }
+      );
+    }
+
     const body = await request.json();
     const email: string = (body.email ?? "").toLowerCase().trim();
 
@@ -29,13 +54,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Extract IP address
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    const realIp = request.headers.get("x-real-ip");
-    const ipAddress = forwardedFor
-      ? forwardedFor.split(",")[0].trim()
-      : realIp || "";
 
     // Extract Vercel geolocation headers
     const country = decodeURIComponent(
@@ -209,16 +227,18 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
 </body>
 </html>`;
 
-  const info = await transporter.sendMail({
-    from: `"CryptoFlex LLC" <${gmailUser}>`,
-    to: recipientEmail,
-    subject: "Welcome to CryptoFlex! Thanks for Subscribing",
-    html,
-    headers: {
-      "List-Unsubscribe": `<${unsubLink}>`,
-      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-    },
-  });
+  const info = await withRetry(() =>
+    transporter.sendMail({
+      from: `"CryptoFlex LLC" <${gmailUser}>`,
+      to: recipientEmail,
+      subject: "Welcome to CryptoFlex! Thanks for Subscribing",
+      html,
+      headers: {
+        "List-Unsubscribe": `<${unsubLink}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    })
+  );
   console.log(`[welcome-email] SUCCESS: messageId=${info.messageId}, response=${info.response}`);
 }
 

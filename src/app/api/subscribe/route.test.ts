@@ -10,6 +10,18 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/analytics");
 vi.mock("@/lib/blog");
 vi.mock("nodemailer");
+vi.mock("@/lib/rate-limit", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/rate-limit")>();
+  return {
+    ...actual,
+    createRateLimiter: () => ({
+      checkRateLimit: () => ({ allowed: true, remaining: 5 }),
+    }),
+  };
+});
+vi.mock("@/lib/email-retry", () => ({
+  withRetry: vi.fn((fn: () => Promise<unknown>) => fn()),
+}));
 
 describe("POST /api/subscribe", () => {
   let mockSql: any;

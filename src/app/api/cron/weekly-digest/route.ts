@@ -23,6 +23,7 @@ import { getDb } from "@/lib/analytics";
 import { getAllPosts } from "@/lib/blog";
 import { unsubscribeUrl } from "@/lib/subscribers";
 import { generateDigestIntro, type DigestIntro } from "@/lib/newsletter-intro";
+import { withRetry } from "@/lib/email-retry";
 
 export const maxDuration = 30;
 
@@ -82,24 +83,49 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // ---- 5. Send to each subscriber ----
+    // ---- 5. Send to each subscriber (verify existence first) ----
+    const sql = getDb();
     let sent = 0;
+
     for (const { email } of recipients) {
+      // Verify subscriber still exists and is active (unless using testEmail override)
+      if (!testEmail) {
+        const verification = await sql`
+          SELECT id FROM subscribers WHERE email = ${email} AND active = TRUE LIMIT 1
+        `;
+        if (verification.length === 0) {
+          console.warn(
+            `[weekly-digest] Skipping ${email} — no longer exists or inactive`
+          );
+          continue;
+        }
+      }
+
       const html = buildEmailHtml(recentPosts, hasNewPosts, email, intro);
 
-      await transporter.sendMail({
-        from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
-        to: email,
-        subject: hasNewPosts
-          ? `This Week at CryptoFlex — ${recentPosts.length} New Post${recentPosts.length > 1 ? "s" : ""}!`
-          : "This Week at CryptoFlex — Quick Update",
-        html,
-        headers: {
-          "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
-          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        },
-      });
-      sent++;
+      try {
+        await withRetry(() =>
+          transporter.sendMail({
+            from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
+            to: email,
+            subject: hasNewPosts
+              ? `This Week at CryptoFlex — ${recentPosts.length} New Post${recentPosts.length > 1 ? "s" : ""}!`
+              : "This Week at CryptoFlex — Quick Update",
+            html,
+            headers: {
+              "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+          })
+        );
+        sent++;
+      } catch (error) {
+        // Log the error but continue sending to other subscribers
+        console.error(
+          `[weekly-digest] Failed to send to ${email} after retries:`,
+          error
+        );
+      }
     }
 
     return NextResponse.json({

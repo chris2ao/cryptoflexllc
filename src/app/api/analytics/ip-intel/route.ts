@@ -19,17 +19,22 @@ const IP_REGEX = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$/;
  * Prevents SSRF by blocking lookups against internal addresses.
  */
 function isPrivateIp(ip: string): boolean {
+  // Normalize IPv4-mapped IPv6 (e.g., ::ffff:127.0.0.1 -> 127.0.0.1)
+  const normalized = /^::ffff:/i.test(ip) ? ip.replace(/^::ffff:/i, "") : ip;
+
   // IPv4 private/reserved ranges
-  if (/^127\./.test(ip)) return true;
-  if (/^10\./.test(ip)) return true;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return true;
-  if (/^192\.168\./.test(ip)) return true;
-  if (/^0\./.test(ip)) return true;
-  if (/^169\.254\./.test(ip)) return true;
+  if (/^127\./.test(normalized)) return true;
+  if (/^10\./.test(normalized)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(normalized)) return true;
+  if (/^192\.168\./.test(normalized)) return true;
+  if (/^0\./.test(normalized)) return true;
+  if (/^169\.254\./.test(normalized)) return true;
   // IPv6 loopback
-  if (ip === "::1" || ip === "0:0:0:0:0:0:0:1") return true;
+  if (normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") return true;
   // IPv6 link-local
-  if (/^fe80:/i.test(ip)) return true;
+  if (/^fe80:/i.test(normalized)) return true;
+  // IPv6 unique local addresses (fc00::/7)
+  if (/^f[cd]/i.test(normalized)) return true;
   return false;
 }
 

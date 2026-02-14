@@ -7,6 +7,12 @@ import { GET, POST } from "./route";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/analytics");
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: () => ({
+    checkRateLimit: () => ({ allowed: true, remaining: 10 }),
+  }),
+  getClientIp: () => "127.0.0.1",
+}));
 
 describe("GET /api/comments", () => {
   let mockSql: any;
