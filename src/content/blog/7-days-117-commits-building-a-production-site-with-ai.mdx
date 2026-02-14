@@ -1,0 +1,636 @@
+---
+title: "7 Days, 117 Commits: Building a Production Website with AI"
+date: "2026-02-15T08:00:00"
+author: "Chris Johnson"
+readingTime: "25 min read"
+description: "One cybersecurity nerd, one AI coding assistant, one week, 117 commits, 24 pull requests, 17 blog posts, 410 tests at 98% coverage. This is the story of building a production website from scratch with Claude Code, including every mistake, meltdown, and meme along the way."
+tags: ["Journey", "Claude Code", "AI", "Next.js", "Web Development"]
+---
+
+import { Tip, Info, Warning, Stop, Security } from '@/components/ui/callout';
+import { JourneyTimelineDiagram, WelcomeEmailSagaDiagram, BeforeAfterArchitectureDiagram } from '@/components/mdx';
+
+Picture this: It's a Tuesday afternoon. I'm sitting in a virtual meeting, half-paying attention, when a colleague starts demoing something called Claude Code. Within an hour, I watch them go from a vague feature idea to a fully implemented workflow with unit tests, integration tests, and a deployment to production. Something that would normally take a team of developers several days.
+
+My immediate reaction: "What the Helli!?!?!?"
+
+By Friday night, I had downloaded Claude Code like a completely normal person who doesn't have boundary issues with work-life balance. Seven days later, I had built a production-grade website with custom analytics, a newsletter system, 17 blog posts, 410 automated tests at 98% coverage, and enough git commits to make my colleagues question my sleep schedule.
+
+This is that story. Every triumph, every face-palm moment, every WAF rule that blocked my own site. If you've ever wondered what it's really like to build something with AI, buckle up. It's messier, funnier, and more educational than you might think.
+
+![Dog sitting at computer with no idea what it's doing](https://media.giphy.com/media/xDQ3Oql1BN54c/giphy.gif)
+
+## The Background: My AI Journey So Far
+
+I've been playing with AI since the early ChatGPT days, back when GPT-3.5 was a research preview and you had to refresh the page every 30 seconds because the servers were on fire. At the time, it felt like a really powerful search engine that occasionally hallucinated facts with disturbing confidence. Useful, but not revolutionary.
+
+Since then, I've used everything. Claude for writing and reasoning. ChatGPT for quick answers and code snippets. Perplexity for research. GitHub Copilot for autocomplete on steroids. Ollama for running models locally when I'm feeling paranoid about data privacy. OpenRouter for comparing different models side-by-side. Even some custom in-house tools that I can't talk about because, well, cybersecurity consultant problems.
+
+AI is everywhere now. It's in your phone, your browser, your IDE, probably your refrigerator. (If that felt like a personal attack, I'm sorry. But also, why does your fridge need to be smart? It's a box that makes things cold.)
+
+But I'd never seen anything quite like what my colleague demonstrated that Tuesday.
+
+They started with a user story: "As a customer, I want to filter products by price range so I can find items in my budget." Within minutes, Claude Code had analyzed the existing codebase, identified the relevant files, proposed an implementation plan, and asked for approval. My colleague gave the go-ahead.
+
+What happened next was like watching a really fast construction crew build a house. Claude Code wrote the backend API endpoint. Then the frontend component. Then the Redux actions (yes, they're still using Redux, I know). Then unit tests for the utilities. Integration tests for the API. E2E tests for the user flow. TypeScript types. Documentation comments. A migration script for the database.
+
+The whole thing deployed to a staging environment. The tests ran. They all passed. My colleague reviewed the code, approved it, merged it, and pushed to production.
+
+Total elapsed time: about an hour.
+
+![Mind blown reaction](https://media.giphy.com/media/26ufdipJYOGgw/giphy.gif)
+
+I sat there thinking about all the side projects I'd started and abandoned over the years. The half-finished WordPress sites. The Django apps that never made it past the authentication system. The React tutorials I'd followed and then promptly forgotten.
+
+What if I could actually finish something?
+
+## Day 1: From Zero to Live (Feb 7, 7 commits)
+
+Friday night. Normal people are out with friends, watching movies, living their lives. I'm sitting at my desk with a fresh installation of Claude Code and a dangerous amount of caffeine.
+
+"Let's build a website," I told Claude. "Something professional. A blog, maybe a portfolio. Modern tech stack. Make it look good."
+
+<Info title="What is Next.js?">
+Next.js is a framework built on top of React (a popular JavaScript library for building user interfaces) that makes it easier to build full-featured web applications. Think of it like a pre-assembled toolkit with batteries included. Instead of having to figure out routing, server-side rendering, image optimization, and a dozen other things yourself, Next.js handles it for you. It's become incredibly popular because it lets you go from idea to deployed website very quickly.
+</Info>
+
+Claude suggested Next.js 16 with React 19 and Tailwind CSS v4. I had no idea what half of those version numbers meant, but I trusted the process. We ran `create-next-app`, configured some options, and suddenly I had a full project structure.
+
+"That's it?" I asked.
+
+"Now we need to deploy it," Claude said.
+
+<Info title="What is Vercel?">
+Vercel is a hosting platform designed specifically for modern web applications. In the old days (like, 10 years ago), deploying a website meant renting a server, configuring Apache or Nginx, setting up databases, managing SSL certificates, and probably crying a little. Vercel does all of that automatically. You connect your GitHub repository, and every time you push code, Vercel builds and deploys it. For free, up to a generous usage limit. It's kind of magical.
+</Info>
+
+I linked my GitHub account to Vercel, pointed it at the repository, and clicked "Deploy." A minute later, I had a URL. A real URL. On the actual internet.
+
+"Wait... it's live? On the internet? Already?"
+
+This is where I should mention my background. I learned web development in the Apache and FTP era. You edited files locally, uploaded them via FileZilla, refreshed your browser, and hoped you didn't break anything. The idea of a CI/CD pipeline that automatically built, tested, and deployed code on every commit was completely foreign to me.
+
+<Info title="What is Git?">
+Git is version control software that tracks every change you make to your code. Think of it like "Track Changes" in Microsoft Word, but for entire projects and infinitely more powerful. A "commit" is like saving a snapshot of your work with a description of what you changed. Git lets you see the entire history of a project, collaborate with others, and undo mistakes by rolling back to previous versions. GitHub is a website that hosts git repositories and adds collaboration features like pull requests and issue tracking.
+</Info>
+
+By the end of the night, I had 7 commits:
+
+1. Initial Next.js app with TypeScript and Tailwind
+2. Full site structure with pages and components
+3. A "How I Built This" guide documenting the setup
+4. A blog system using MDX (Markdown for React)
+5. My first blog post (ironically, about building the site)
+6. A commit removing em dashes from all content (long story, don't ask)
+7. A code review and cleanup pass
+
+The site was live. I had a blog. It looked professional. And it had taken maybe four hours.
+
+![Celebration magic moment](https://media.giphy.com/media/3o7qDEq2bMbcbPRQ2c/giphy.gif)
+
+<JourneyTimelineDiagram />
+
+## Day 2: Analytics and Paranoia (Feb 8, 12 commits, PRs #1-4)
+
+Saturday morning. I woke up and immediately checked my new website. It was still there. Still live. Still mine.
+
+But a question nagged at me: "Who's looking at this?"
+
+The answer, I would soon discover, was mostly bots and web crawlers. But I didn't know that yet, so I decided to build a custom analytics system.
+
+<Info title="What is a database?">
+A database is where you store data in an organized way so you can query it later. Think of it like a spreadsheet on steroids. Instead of storing information in a file that you have to read entirely into memory, a database lets you ask questions like "show me all visitors from Canada in the last week" and get instant answers. PostgreSQL (often called Postgres) is one of the most popular databases for web applications. Neon is a serverless Postgres provider, meaning they handle all the server management and scaling for you.
+</Info>
+
+<Info title="What is an API endpoint?">
+An API endpoint is a specific URL that your website can send requests to in order to perform actions or retrieve data. Think of it like a drive-through window at a restaurant. You pull up (send a request), place your order (specify what data you want), and get your food back (receive a response). In web development, endpoints like `/api/analytics` handle specific tasks like recording page views or fetching visitor statistics.
+</Info>
+
+I set up Neon Postgres, created a table for page views, and built an analytics dashboard. Every page view would send a request to `/api/analytics/track`, storing the URL, timestamp, user agent, and IP address.
+
+Then I built a beautiful dashboard at `/analytics` to visualize all this data. Where were people visiting from? What pages were they viewing? What devices were they using?
+
+There was just one tiny problem.
+
+I had built the entire analytics dashboard with zero authentication. Anyone could visit `/analytics` and see all my data. Every visitor's IP address. Every page view. Everything.
+
+"We should probably fix that," Claude suggested gently, in the way you might suggest to a friend that their house is on fire.
+
+The next few commits were a crash course in web security:
+
+- Cookie-based authentication with HMAC-SHA256 signing
+- Rate limiting on all API endpoints (10 requests per minute per IP)
+- Error message sanitization (don't leak database queries in error responses)
+- Input validation on all user-supplied data
+- IP OSINT panel to look up where visitors were coming from (but only for authenticated admins)
+
+I also discovered that my `DATABASE_URL` environment variable had extra wrapper text from a psql CLI example. It took three commits to figure out why the database connection kept failing. The error message was helpfully cryptic: "Invalid connection string."
+
+Turns out, copying and pasting from documentation without reading is a time-honored tradition in software development.
+
+By the end of Day 2, I had a secure, rate-limited analytics system with Vercel Web Analytics and Speed Insights integration. I also had a healthy dose of paranoia about security, which would serve me well in the days to come.
+
+![This is fine dog in burning room](https://media.giphy.com/media/NTur7XlVDUdqM/giphy.gif)
+
+## Day 3: Design System and Self-Sabotage (Feb 9-10, 22 commits, PRs #5-7)
+
+Sunday and Monday were all about polish. I wanted the blog to look professional, with consistent styling and helpful visual elements.
+
+Enter the MDX design system.
+
+MDX is like Markdown (simple text formatting) meets React (interactive components). You can write normal blog posts with headers and paragraphs, but also drop in custom components like callout boxes, diagrams, and interactive widgets.
+
+I built a set of reusable components:
+
+- `<Info>` boxes for explaining technical concepts (you've seen a few already)
+- `<Tip>` boxes for practical advice
+- `<Warning>` boxes for gotchas and pitfalls
+- `<Security>` boxes for security-related notes
+- Product badges for linking to tools and services
+- SVG architecture diagrams for system design posts
+
+Then I went through all 9 existing blog posts and retrofitted them with the new design system. It was tedious but satisfying work, like organizing a messy desk drawer.
+
+But the real adventure was The Logo Saga.
+
+I had designed a simple logo for the site: the text "CryptoFlexLLC" in a nice font with some styling. It looked great. Until I tried to put it in the header.
+
+**Commit 1:** "Add logo to header"
+Result: Logo is huge, breaks the layout
+
+**Commit 2:** "Resize logo"
+Result: Logo is now tiny, barely visible
+
+**Commit 3:** "Add container with overflow-hidden"
+Result: Logo is cut off on one side
+
+**Commit 4:** "Crop whitespace from logo SVG and fix footer sizing"
+Result: Finally looks correct
+
+Four commits. To display. A logo.
+
+But that was nothing compared to the WAF incident.
+
+<Info title="What is a WAF (Web Application Firewall)?">
+A Web Application Firewall (WAF) sits between your website and the internet, blocking malicious requests before they reach your server. Think of it like a bouncer at a club, checking IDs and turning away troublemakers. Vercel includes WAF functionality through their security settings. You can define rules to block specific patterns, like requests with SQL injection attempts or paths that look like hacking tools. The trick is not blocking your own legitimate traffic.
+</Info>
+
+I wanted to add some basic security rules to block common attack patterns. I found Vercel's documentation for WAF rules and added them to my `vercel.json` configuration file:
+
+```json
+{
+  "rules": [
+    {
+      "route": "/admin/*",
+      "block": true
+    }
+  ]
+}
+```
+
+I deployed it. The site went down.
+
+Completely down. Every page returned a 403 Forbidden error.
+
+Panic set in. I checked the Vercel dashboard. Checked the logs. Checked the configuration. Everything looked fine.
+
+Except it wasn't fine. Because I had used `rules` and `route` when Vercel actually expects `routes` and `src`. Different property names. Same concept. Wrong syntax.
+
+```json
+{
+  "routes": [
+    {
+      "src": "/admin/*",
+      "status": 403
+    }
+  ]
+}
+```
+
+One character difference. One completely broken website.
+
+I fixed it in about 30 seconds once I found the issue, but those were a very stressful 30 seconds.
+
+I also fixed an issue with markdown tables not rendering (forgot to add the `remark-gfm` plugin), upgraded some dependencies, and called it a night.
+
+![Panic alarm reaction](https://media.giphy.com/media/HUkOv6BNWc1HO/giphy.gif)
+
+## Day 4: Dear Subscriber (Feb 11, 22 commits, PRs #8-17)
+
+Tuesday was productive. Maybe too productive. I built an entire newsletter subscription system from scratch.
+
+The requirements were simple:
+- A form where people could enter their email
+- A database table to store subscribers
+- A confirmation email to verify the address
+- A weekly digest email with the latest blog posts
+- An unsubscribe link (legally required, ethically correct)
+
+<Info title="What is HMAC?">
+HMAC (Hash-based Message Authentication Code) is a way to verify that a message hasn't been tampered with. You take some data (like a user ID), combine it with a secret key, and run it through a hashing algorithm (like SHA-256). The result is a unique signature. Later, you can verify the signature by running the same process and checking if the results match. If someone modifies the data, the signature won't match, and you know something's wrong. It's commonly used for signed cookies, API authentication, and secure tokens.
+</Info>
+
+<Info title="What is a cron job?">
+A cron job is a scheduled task that runs automatically at specific times. The name comes from "chronos," the Greek word for time. In the old days, you'd set up cron jobs on a server to run scripts like "back up the database every night at 2 AM" or "clean up old log files every Sunday." Modern platforms like Vercel let you define cron jobs in your code, and they handle the scheduling infrastructure for you. For example, my weekly newsletter digest runs every Monday at 9 AM.
+</Info>
+
+<Info title="What is SEO?">
+SEO (Search Engine Optimization) is the art and science of making your website show up in Google search results. Search engines like Google use automated crawlers to read your site and index it. They look at things like your page titles, meta descriptions, heading structure, image alt text, internal links, and hundreds of other factors to determine what your page is about and how it should rank. Good SEO means your content appears when people search for relevant topics. Bad SEO means your brilliant blog post about JavaScript closures never gets found because Google thinks it's about actual closures for jackets.
+</Info>
+
+I built all of this. Then I wrote a comprehensive guide to SEO best practices. Then I expanded the "Building This Site" post into a full step-by-step tutorial. Then I went back and improved the newsletter confirmation emails.
+
+Somewhere in the middle of all this, I made 10 pull requests in a single day. Pull requests 8 through 17.
+
+Three of those PRs (11, 12, and 13) were just for removing em dashes from a single blog post.
+
+Let me explain. Em dashes (the long horizontal dashes that writers love) are a perfectly fine punctuation mark. Many style guides recommend them. But they have a tendency to make sentences longer and more complex than they need to be. I decided I didn't like them and wanted to remove them from all my writing.
+
+**PR 11:** "Remove em dashes from blog post"
+**PR 12:** "Actually remove all the em dashes this time"
+**PR 13:** "Fix the sentences that are now grammatically incorrect without em dashes"
+
+I could have done this in one commit. I did not. This is what we call "a learning experience."
+
+But wait, there's more! Remember those WAF rules from Day 3 that broke the entire site? Well, I managed to do it again.
+
+I added new API endpoints for the newsletter system: `/api/subscribe`, `/api/confirm`, `/api/unsubscribe`. I deployed them. They didn't work.
+
+Every request returned 403 Forbidden.
+
+The WAF was blocking my own API endpoints.
+
+**PR 15:** "Update WAF rules to allow newsletter endpoints"
+**PR 16:** "Actually fix the WAF rules properly this time"
+
+I was starting to see a pattern. The WAF was my enemy. Or rather, I was my own enemy, and the WAF was just following orders.
+
+Oh, and TypeScript auto-updated during a build and broke everything. That took another commit to fix by pinning the version in `package.json`.
+
+By the end of Day 4, I had a fully functional newsletter system, comprehensive SEO, and a growing collection of embarrassing commits.
+
+![Email success celebration](https://media.giphy.com/media/l0MYt5jPR6QX5APm0/giphy.gif)
+
+## Day 5: The 5-PR Welcome Email (Feb 12, 17 commits, PRs #18-24)
+
+Wednesday. The day that will live in infamy. The day I tried to send one email.
+
+The plan was simple: I had built a newsletter system the day before. I had a few subscribers (hi mom!). I wanted to send them a welcome email saying "Hey, thanks for subscribing, here's what you can expect."
+
+How hard could it be?
+
+Very. It could be very hard.
+
+First, a couple of features that went smoothly. PR 18 added a subscriber panel to the analytics dashboard, so I could see who was signed up. PR 19 built the subscriber-only blog comment system with confirmation emails. Both deployed without drama, which should have been a warning sign.
+
+Then I integrated Google Analytics 4 for more detailed tracking. Also smooth.
+
+Then came the welcome email.
+
+**PR 20:** Fix a security vulnerability in next-mdx-remote v6.0.0
+
+Okay, that's responsible. We should always patch security issues. CVE fixed, dependencies updated, moving on.
+
+<Info title="What is a CVE (security vulnerability)?">
+CVE stands for Common Vulnerabilities and Exposures. It's a public database of known security flaws in software. When someone discovers a security vulnerability in a popular library or framework, they report it, and it gets a CVE number like CVE-2024-12345. Then the software maintainers release a patch, and everyone scrambles to update. The vulnerability I fixed was CVE-2024-56243 in the next-mdx-remote library, which could potentially allow XSS (Cross-Site Scripting) attacks. Not great!
+</Info>
+
+**PR 21:** Build welcome email blast endpoint
+
+Created `/api/send-welcome-blast`, a POST endpoint that would send welcome emails to all existing subscribers who hadn't received one yet. Tested locally. Worked perfectly.
+
+Deployed to production. Tried to trigger it with curl.
+
+```bash
+curl -X POST https://www.cryptoflexllc.com/api/send-welcome-blast \
+  -H "Authorization: Bearer $SECRET_TOKEN"
+```
+
+Nothing happened. No email. No error. No response.
+
+**PR 22:** Change endpoint to GET and fix WAF blocking
+
+Ah, right. The WAF doesn't like POST requests to unknown endpoints. And actually, for a one-time admin task, GET makes more sense anyway. I can just visit the URL in my browser with the auth token as a query parameter.
+
+Changed it to GET. Deployed again.
+
+The WAF blocked it again.
+
+Different error this time: "Forbidden: Path not allowed."
+
+**PR 23:** Move endpoint to /api/subscribers/welcome-blast
+
+Turns out, I had an existing WAF rule that allowed `/api/subscribers/*` for the newsletter subscription endpoints. But `/api/send-welcome-blast` wasn't under that path, so it got blocked.
+
+I moved the endpoint to `/api/subscribers/welcome-blast` to match the existing security rules.
+
+Deployed. Tested. Still blocked.
+
+At this point, I was ready to throw my laptop out the window.
+
+**PR 24:** Actually fix the WAF rules and document the saga
+
+I went through the entire `vercel.json` configuration file line by line. Found the issue: the WAF rules were checking for exact path matches, not prefix matches. `/api/subscribers/*` wasn't matching `/api/subscribers/welcome-blast`.
+
+Fixed the regex pattern. Added detailed comments explaining what each rule does and why. Deployed.
+
+Visited the URL.
+
+It worked.
+
+The emails sent.
+
+Five pull requests. To send. One. Email.
+
+I immediately wrote a blog post about the entire saga so that future developers (and future me) could learn from this experience.
+
+<WelcomeEmailSagaDiagram />
+
+![Facepalm reaction](https://media.giphy.com/media/XsUtdIeJ0MWMo/giphy.gif)
+
+The lesson here isn't that I'm bad at this. The lesson is that production systems are complicated, edge cases are everywhere, and persistence pays off. Every failed deployment taught me something about how Vercel's security works. Every WAF error made me better at writing security rules. By the end of the saga, I could recite the Vercel WAF documentation from memory. That's either impressive or deeply concerning, depending on your perspective.
+
+Plus, it makes for a great story. And when that welcome email finally landed in my inbox, the dopamine hit was worth every single one of those five pull requests.
+
+![Rocky Balboa arms raised in victory after sending one email](https://media.giphy.com/media/pZRwbfk8AZNfxenK57/giphy.gif)
+
+## Day 6: The Reckoning (Feb 13, 24 commits)
+
+Thursday was the busiest day of the entire week. Twenty-four commits. A complete testing overhaul. A security audit that found 60 issues. And an AI integration that took five attempts to get right.
+
+Let me start with testing.
+
+<Info title="What is test coverage?">
+Test coverage measures how much of your code is executed when your tests run. If you have 100 lines of code and your tests execute 80 of them, you have 80% coverage. High coverage doesn't guarantee bug-free code (you could have tests that don't actually check anything meaningful), but low coverage definitely means large parts of your application are untested. Industry best practice is usually 80% or higher for critical applications.
+</Info>
+
+Up until this point, I had exactly zero automated tests. None. Nada. The entire site was running on hope and manual testing.
+
+"Ship it" is not a testing strategy, despite what some startups might tell you.
+
+I spent the morning writing tests. Unit tests for utility functions. Integration tests for API endpoints. Component tests for React components. E2E tests for critical user flows like newsletter subscription.
+
+By the afternoon, I had 410 tests at 98% statement coverage.
+
+Let that sink in. In a single day, I went from zero tests to 98% coverage.
+
+This is the power of AI-assisted development. Claude Code didn't just write boilerplate tests. It analyzed my code, identified edge cases, suggested test scenarios I hadn't thought of, and generated comprehensive test suites that actually caught bugs.
+
+For example, the newsletter subscription flow had a race condition where rapid double-clicks could create duplicate subscriptions. I never would have thought to test for that. Claude did.
+
+<Info title="What is a security audit?">
+A security audit is a systematic review of your code to find vulnerabilities before attackers do. This includes things like checking for SQL injection, XSS, CSRF, authentication bypasses, insecure dependencies, leaked secrets, and dozens of other potential issues. Professional security audits can cost thousands of dollars. AI-assisted audits are free and surprisingly effective, though they shouldn't replace human review for critical systems.
+</Info>
+
+In the afternoon, I ran a 4-agent security sprint. Four instances of Claude Code working in parallel, each reviewing different aspects of the codebase:
+
+- Agent 1: Input validation and sanitization
+- Agent 2: Authentication and authorization
+- Agent 3: Dependency vulnerabilities
+- Agent 4: Information disclosure and error handling
+
+Thirty minutes later, I had a report with 60 findings.
+
+Sixty.
+
+Some were critical (API endpoints that didn't check authentication). Some were high (user input that wasn't sanitized). Many were low or informational (dependency updates available, console.log statements in production code).
+
+I spent the rest of the day fixing them.
+
+The evening was reserved for adding AI-generated newsletter intros. The idea was simple: when sending the weekly digest email, use Claude Haiku to write a short, personalized introduction that summarizes the blog posts.
+
+This should have been straightforward. The Anthropic SDK is well-documented. I've used similar APIs before.
+
+**Commit 1:** Add AI intro generation to newsletter digest
+
+```javascript
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
+});
+
+const message = await anthropic.messages.create({
+  model: "claude-haiku-4-5-latest",
+  max_tokens: 200,
+  messages: [
+    { role: "user", content: prompt }
+  ]
+});
+```
+
+Deployed. Triggered the weekly digest. Got an error:
+
+```
+Error: model not found: claude-haiku-4-5-latest
+```
+
+Wait, what?
+
+Turns out, the `-latest` alias doesn't exist for Haiku. Only for Opus and Sonnet. You need to use the exact model ID with the date suffix: `claude-haiku-4-5-20251001`.
+
+**Commit 2:** Fix model ID to exact version
+
+**Commit 3:** Add testEmail parameter for debugging (send to my email only)
+
+**Commit 4:** Redeploy to pick up ANTHROPIC_API_KEY environment variable
+
+I had added the API key to Vercel, but new environment variables require a redeploy to take effect. Live and learn.
+
+**Commit 5:** Debug why AI responses weren't appearing in emails
+
+The AI was generating text, but it wasn't showing up in the email. Turns out, I was logging the response but not actually inserting it into the email template.
+
+**Commit 6:** Actually use the AI intro in the email body
+
+**Commit 7:** Add static fallback intro if AI fails
+
+**Commit 8:** Cleanup and final testing
+
+By commit 8, it finally worked. AI-generated intros, personalized for each digest, with a fallback for when the API was down or rate-limited.
+
+There was also a fun bug with vitest mocking. When you mock a module in Vitest, you can't use arrow functions if the code tries to instantiate them with `new`. Arrow functions don't have constructors.
+
+```javascript
+// This doesn't work
+vi.mock('@anthropic-ai/sdk', () => ({
+  default: () => ({ messages: { create: vi.fn() } })
+}));
+
+// This works
+vi.mock('@anthropic-ai/sdk', () => ({
+  default: class MockAnthropic {
+    messages = { create: vi.fn() }
+  }
+}));
+```
+
+JavaScript is weird, y'all.
+
+![Shocked Pikachu face when you find 60 security vulnerabilities](https://media.giphy.com/media/6nWhy3ulBL7GSCvKw6/giphy.gif)
+
+## Day 7: Polish and Ship (Feb 14, 13 commits)
+
+Valentine's Day. The perfect day to launch a website about cryptography and cybersecurity consulting. Romance is in the air.
+
+The final day was all about polish. Little features that make the user experience better:
+
+**Copy button for code blocks**
+
+You know how frustrating it is to manually select and copy code from documentation? I added a little copy button to every code block. Click it, the code copies to your clipboard, the button shows a checkmark. Smooth.
+
+**RSS feeds with full article content**
+
+A lot of blogs only include excerpts in their RSS feeds to drive traffic to the website. I think that's annoying. If you're subscribing to my RSS feed, you deserve the full content. I generate RSS feeds for the main blog and for each tag category.
+
+**GA4 custom events**
+
+Google Analytics is great for tracking page views, but custom events tell you what users are actually doing. Newsletter subscriptions, code copies, external link clicks, PDF downloads. All tracked.
+
+**UTM tracking in newsletter links**
+
+UTM parameters are those `?utm_source=newsletter&utm_medium=email` bits you see in URLs. They tell analytics where traffic came from. Every link in the newsletter emails now has proper UTM tracking so I can see which content drives the most engagement.
+
+**Rate limit cron gotcha**
+
+I had set up a cron job to clean up expired rate limit data every 6 hours. Deployed it. Got an error from Vercel:
+
+```
+Error: Hobby plan only supports daily cron expressions
+```
+
+Oh. Right. The free tier has limits.
+
+Changed it to run daily instead of every 6 hours. One commit to set up, one commit to fix.
+
+**Replacing broken blog images with Giphy GIFs**
+
+Some of my earlier blog posts had images that broke (external URLs that stopped working). I went through and replaced them all with stable Giphy CDN URLs. It's a little meta to use GIFs to fix a GIF problem, but here we are.
+
+**Environment-aware cookie names**
+
+I had hardcoded the auth cookie name as `cryptoflex_session`, but in development I was using `cryptoflex_dev_session`. This caused weird bugs where logging in locally would interfere with the production cookie. Fixed it to use different names based on the environment.
+
+By 8 PM on Valentine's Day, everything was done. The site was polished. The tests were passing. The security audit was clean. The newsletter system was humming along.
+
+I pushed the final commit, watched the deployment succeed, and called it a week.
+
+<BeforeAfterArchitectureDiagram />
+
+![Fireworks and confetti as the final deploy succeeds](https://media.giphy.com/media/g9582DNuQppxC/giphy.gif)
+
+## What I Learned (Top Takeaways)
+
+### 1. Free infrastructure is insanely capable
+
+The entire site runs on free tiers:
+- **Vercel** for hosting, serverless functions, and edge caching
+- **Neon** for PostgreSQL database with 500MB storage
+- **Claude Code** for AI-assisted development (with reasonable usage limits)
+- **GitHub** for version control and CI/CD
+
+Total cost: $0 per month (not counting the domain registration).
+
+A decade ago, this would have required renting a VPS for $20/month minimum, probably a separate database server, and hours of DevOps work to set up SSL certificates, load balancing, and automatic deployments.
+
+The future is here, and it's surprisingly affordable.
+
+### 2. Your WAF will block YOU more than it blocks attackers
+
+I had three separate incidents where my own security rules blocked legitimate functionality:
+- Day 3: Blocked the entire site with wrong config syntax
+- Day 4: Blocked newsletter API endpoints
+- Day 5: Blocked the welcome email endpoint five times
+
+Meanwhile, actual attackers? Zero blocked attempts that I know of.
+
+This is a common pattern in security. It's easy to block everything and be super secure. It's hard to block just the bad stuff while allowing legitimate users through. Finding that balance takes experience, testing, and a lot of failed deployments.
+
+### 3. Write tests before you think you need them
+
+I spent Days 1-5 with zero automated tests, manually clicking through the site to verify everything worked. It was stressful. Every deploy was a gamble.
+
+On Day 6, I wrote 410 tests. They immediately caught bugs I didn't know existed. The newsletter subscription race condition. The analytics endpoint that crashed on certain user agents. The email template that broke with really long blog titles.
+
+Tests aren't just about catching bugs. They're about confidence. With 98% coverage, I can refactor code, add features, and upgrade dependencies without fear. If I break something, the tests will tell me.
+
+### 4. AI doesn't replace knowing what you want to build
+
+Claude Code is incredibly powerful, but it's not magic. It can't read your mind. You still need to know what you're trying to accomplish.
+
+When I said "build a newsletter system," Claude asked a dozen clarifying questions:
+- Should it support double opt-in or single opt-in?
+- What email service provider are you using?
+- Do you want HTML emails or plain text?
+- Should subscribers be able to manage their preferences?
+- What happens if someone subscribes twice with the same email?
+
+These are product decisions, not technical ones. AI can implement your vision brilliantly, but you need to have a vision first.
+
+### 5. The best debugging tool is a good night's sleep
+
+Which I didn't get enough of this week.
+
+Multiple times, I spent an hour trying to fix a bug, gave up, went to bed frustrated, and solved it in 5 minutes the next morning.
+
+The WAF configuration issue on Day 3? Spotted it immediately the next day.
+
+The AI model ID problem on Day 6? Obvious in hindsight after coffee.
+
+Your brain does important work while you sleep, consolidating memories and making connections. Pushing through fatigue usually just makes you write worse code more slowly.
+
+(Do as I say, not as I do.)
+
+### 6. Em dashes will haunt your dreams
+
+At least 3 separate PRs were just for removing em dashes from blog posts. I stand by this decision. Em dashes make sentences longer and more complex than they need to be. But I probably could have done it in one commit instead of three.
+
+Or, you know, just left them alone and focused on actually important things.
+
+But where's the fun in that?
+
+## The Week in Numbers
+
+Here's the final tally:
+
+| Metric | Count |
+|--------|-------|
+| Days | 7 |
+| Commits | 117 |
+| Pull Requests | 24 |
+| Blog Posts | 17 |
+| Tests | 410+ |
+| Statement Coverage | 98% |
+| Security Findings Fixed | 60 |
+| WAF Self-Sabotage Incidents | 3 |
+| PRs to Send One Email | 5 |
+| Em Dash Removal PRs | 3+ |
+| Minds Blown | 1 |
+| Hours of Sleep (average) | Not Enough |
+| Cups of Coffee | Too Many to Count |
+| Times I Questioned My Life Choices | Several |
+| Times I Would Do It Again | Absolutely |
+
+## Closing Thoughts
+
+Building cryptoflexllc.com was one of the most educational, frustrating, and rewarding experiences I've had in software development.
+
+I learned modern web frameworks. I learned serverless architecture. I learned CI/CD pipelines. I learned that WAF configuration is harder than it looks. I learned that sending one email can take five pull requests if you're persistent enough.
+
+But more than that, I learned what's possible when you pair human creativity with AI capability.
+
+I came up with the ideas: a blog, analytics, newsletters, security hardening, testing. Claude Code helped me implement them faster and better than I could have alone. It caught edge cases I missed. It suggested improvements I hadn't considered. It wrote tests that found real bugs.
+
+This isn't about AI replacing developers. It's about AI making developers more effective.
+
+A week ago, I had an idea and a blank repository. Today, I have a production website with custom analytics, an email newsletter system, 17 blog posts, 410 automated tests, and 98% code coverage.
+
+If you're reading this and thinking "I could build something with AI," you're right. You absolutely could.
+
+And you should.
+
+Just maybe get some sleep between commits.
+
+---
+
+**Previous in series:** [Mine Over Matter: What 58 Claude Code Sessions Taught Me](/blog/mining-your-claude-code-sessions)
+
+*Built with Claude Code (Opus 4.6). 117 commits, 24 PRs, 7 days, 0 regrets (ok maybe a few). If you're still reading, you're either impressed or concerned. Either way, thanks for being here.*

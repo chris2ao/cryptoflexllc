@@ -16,3 +16,8 @@ export {
   CommentSystemDiagram,
   WelcomeBlastTroubleshootDiagram,
 } from "./diagrams";
+export {
+  JourneyTimelineDiagram,
+  WelcomeEmailSagaDiagram,
+  BeforeAfterArchitectureDiagram,
+} from "./diagrams-journey";

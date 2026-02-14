@@ -27,6 +27,9 @@ import {
   SEOBeforeAfterDiagram,
   CommentSystemDiagram,
   WelcomeBlastTroubleshootDiagram,
+  JourneyTimelineDiagram,
+  WelcomeEmailSagaDiagram,
+  BeforeAfterArchitectureDiagram,
 } from "@/components/mdx";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
@@ -179,6 +182,9 @@ export default async function BlogPostPage({ params }: Props) {
               SEOBeforeAfterDiagram,
               CommentSystemDiagram,
               WelcomeBlastTroubleshootDiagram,
+              JourneyTimelineDiagram,
+              WelcomeEmailSagaDiagram,
+              BeforeAfterArchitectureDiagram,
             }}
           />
         </div>
