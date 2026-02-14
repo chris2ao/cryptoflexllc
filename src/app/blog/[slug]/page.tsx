@@ -5,6 +5,7 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import {
+  CodeBlock,
   Warning,
   Stop,
   Info,
@@ -151,6 +152,7 @@ export default async function BlogPostPage({ params }: Props) {
               },
             }}
             components={{
+              pre: CodeBlock,
               table: (props) => (
                 <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
                   <table {...props} />
