@@ -1,70 +1,114 @@
 /**
- * AnalyticsTracker — Client-side page-view tracking component
+ * AnalyticsTracker — Client-side page-view + engagement tracking
  * -----------------------------------------------
- * Drop this into your root layout and it automatically tracks
- * every page navigation (both initial load and client-side route
- * changes via Next.js App Router).
+ * Tracks three things automatically on every page:
+ *   1. Page views  (beacon to /api/analytics/track)
+ *   2. Scroll depth milestones (25/50/75/100%)
+ *   3. Time on page (seconds before navigation/unload)
  *
- * TECHNICAL NOTES (for blog post):
- * --------------------------------
- * HOW IT WORKS:
- *   1. This is a "use client" component — it runs in the browser.
- *   2. On mount (and on every pathname change), it sends a POST
- *      request to /api/analytics/track with the current page path.
- *   3. We use navigator.sendBeacon() as the primary method because
- *      it's non-blocking — the browser sends the request in the
- *      background without waiting for a response, so it doesn't
- *      affect page load performance.
- *   4. sendBeacon() also survives page unloads (the browser
- *      guarantees delivery even if the user navigates away).
- *   5. We fall back to fetch() for browsers that don't support
- *      sendBeacon (very rare in 2025+).
- *
- * WHY usePathname()?
- *   Next.js App Router uses client-side navigation (no full page
- *   reload when clicking links). The usePathname() hook re-renders
- *   this component whenever the URL changes, triggering a new
- *   tracking event. This is more reliable than listening to
- *   popstate/pushstate events manually.
- *
- * PRIVACY CONSIDERATION:
- *   The client only sends the page path. All sensitive data (IP,
- *   geo, user-agent) is extracted server-side from request headers.
- *   No cookies, fingerprints, or localStorage are used.
+ * PRIVACY: Only page path and engagement numbers are sent.
+ * All sensitive data (IP, geo, UA) is extracted server-side.
+ * No cookies, fingerprints, or localStorage are used.
  */
 
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+/** Send JSON payload via sendBeacon with fetch fallback */
+function beacon(url: string, data: Record<string, unknown>) {
+  const payload = JSON.stringify(data);
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(
+      url,
+      new Blob([payload], { type: "application/json" }),
+    );
+  } else {
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      keepalive: true,
+    }).catch(() => {});
+  }
+}
 
 export function AnalyticsTracker() {
   const pathname = usePathname();
+  const startTime = useRef(Date.now());
+  const sentDepths = useRef(new Set<number>());
 
+  // ---- 1. Page view tracking ----
   useEffect(() => {
-    // Build the tracking payload — just the page path
-    const payload = JSON.stringify({ path: pathname });
-
-    // Prefer sendBeacon for non-blocking, reliable delivery
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(
-        "/api/analytics/track",
-        new Blob([payload], { type: "application/json" })
-      );
-    } else {
-      // Fallback for older browsers
-      fetch("/api/analytics/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-        // keepalive ensures the request completes even on page unload
-        keepalive: true,
-      }).catch(() => {
-        // Silently fail — analytics should never break the user experience
-      });
-    }
+    beacon("/api/analytics/track", { path: pathname });
   }, [pathname]);
 
-  // This component renders nothing — it's purely a side-effect
+  // ---- 2. Scroll depth + 3. Time on page ----
+  useEffect(() => {
+    // Reset state on each navigation
+    startTime.current = Date.now();
+    sentDepths.current = new Set();
+
+    function checkScrollDepth() {
+      const docHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight <= 0) return;
+
+      const pct = Math.round((window.scrollY / docHeight) * 100);
+      const milestones = [25, 50, 75, 100] as const;
+
+      for (const m of milestones) {
+        if (pct >= m && !sentDepths.current.has(m)) {
+          sentDepths.current.add(m);
+          beacon("/api/analytics/track-engagement", {
+            path: pathname,
+            scroll_depth: m,
+          });
+        }
+      }
+    }
+
+    // Throttled scroll handler via rAF (~16ms)
+    let ticking = false;
+    function onScroll() {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          checkScrollDepth();
+          ticking = false;
+        });
+      }
+    }
+
+    function sendTimeOnPage() {
+      const seconds = Math.round((Date.now() - startTime.current) / 1000);
+      if (seconds >= 1 && seconds <= 3600) {
+        beacon("/api/analytics/track-engagement", {
+          path: pathname,
+          time_seconds: seconds,
+        });
+      }
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") sendTimeOnPage();
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("beforeunload", sendTimeOnPage);
+
+    // Check initial scroll position (page might load scrolled)
+    checkScrollDepth();
+
+    return () => {
+      sendTimeOnPage();
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("beforeunload", sendTimeOnPage);
+    };
+  }, [pathname]);
+
   return null;
 }

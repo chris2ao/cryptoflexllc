@@ -8,6 +8,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { DeviceRow } from "@/lib/analytics-types";
+import { PanelWrapper } from "./panel-wrapper";
 
 const COLORS = [
   "var(--chart-1)",
@@ -22,10 +23,12 @@ export function DeviceChart({ data }: { data: DeviceRow[] }) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Devices</h2>
+      <PanelWrapper
+        title="Devices"
+        tooltip="Desktop, mobile, tablet, and bot distribution"
+      >
         <p className="text-muted-foreground text-sm text-center py-8">No data yet</p>
-      </div>
+      </PanelWrapper>
     );
   }
 
@@ -37,8 +40,10 @@ export function DeviceChart({ data }: { data: DeviceRow[] }) {
   );
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold mb-4">Devices</h2>
+    <PanelWrapper
+      title="Devices"
+      tooltip="Desktop, mobile, tablet, and bot distribution"
+    >
       <ChartContainer config={chartConfig} className="h-[250px] w-full">
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent nameKey="device_type" />} />
@@ -73,6 +78,6 @@ export function DeviceChart({ data }: { data: DeviceRow[] }) {
           </Pie>
         </PieChart>
       </ChartContainer>
-    </div>
+    </PanelWrapper>
   );
 }

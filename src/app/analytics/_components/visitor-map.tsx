@@ -3,8 +3,8 @@
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { MapLocation } from "@/lib/analytics-types";
+import { PanelWrapper } from "./panel-wrapper";
 
-// Scale circle radius based on view count relative to max
 function getRadius(views: number, maxViews: number): number {
   const min = 4;
   const max = 18;
@@ -13,27 +13,30 @@ function getRadius(views: number, maxViews: number): number {
 }
 
 export function VisitorMap({ data }: { data: MapLocation[] }) {
-  // Filter out entries with empty/invalid coordinates
   const valid = data.filter(
     (d) => d.latitude && d.longitude && d.latitude !== "0" && d.longitude !== "0"
   );
 
   if (valid.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Visitor Map</h2>
+      <PanelWrapper
+        title="Visitor Map"
+        tooltip="Geographic distribution of visitors based on IP geolocation"
+      >
         <p className="text-muted-foreground text-sm text-center py-8">
           No location data yet
         </p>
-      </div>
+      </PanelWrapper>
     );
   }
 
   const maxViews = Math.max(...valid.map((d) => d.views));
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold mb-4">Visitor Map</h2>
+    <PanelWrapper
+      title="Visitor Map"
+      tooltip="Geographic distribution of visitors based on IP geolocation"
+    >
       <div className="h-[400px] rounded-lg overflow-hidden">
         <MapContainer
           center={[20, 0]}
@@ -69,6 +72,6 @@ export function VisitorMap({ data }: { data: MapLocation[] }) {
           ))}
         </MapContainer>
       </div>
-    </div>
+    </PanelWrapper>
   );
 }

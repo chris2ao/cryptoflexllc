@@ -19,6 +19,7 @@ import {
   parseOS,
   parseDeviceType,
 } from "@/lib/analytics";
+import { recordApiMetric } from "@/lib/api-timing";
 
 // Zod schema for input validation
 const trackSchema = z.object({
@@ -27,6 +28,7 @@ const trackSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const t0 = Date.now();
   try {
     // ---- 1. Content-Type validation ----
     const contentType = request.headers.get("content-type");
@@ -114,8 +116,10 @@ export async function POST(request: NextRequest) {
       )
     `;
 
+    recordApiMetric("/api/analytics/track", "POST", 204, Date.now() - t0);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
+    recordApiMetric("/api/analytics/track", "POST", 500, Date.now() - t0);
     console.error("Analytics tracking error:", error);
     return NextResponse.json(
       { error: "Failed to record visit" },

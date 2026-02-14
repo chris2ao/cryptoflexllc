@@ -180,6 +180,83 @@ export interface SubscriberRow {
   region: string;
 }
 
+// ---- New analytics metric types ----
+
+/** Referrer breakdown grouped by domain */
+export interface ReferrerRow {
+  referrer_domain: string;
+  views: number;
+  unique_visitors: number;
+}
+
+/** Hour-of-day x day-of-week heatmap cell */
+export interface HourlyHeatmapRow {
+  day_of_week: number; // 0 = Sunday ... 6 = Saturday
+  hour: number; // 0-23
+  views: number;
+}
+
+/** Scroll depth stats per page */
+export interface ScrollDepthRow {
+  page_path: string;
+  depth_25: number;
+  depth_50: number;
+  depth_75: number;
+  depth_100: number;
+}
+
+/** Average time-on-page per page */
+export interface TimeOnPageRow {
+  page_path: string;
+  avg_seconds: number;
+  sample_count: number;
+}
+
+/** API response time metrics (aggregated per endpoint) */
+export interface ApiMetricRow {
+  endpoint: string;
+  method: string;
+  avg_ms: number;
+  p50: number;
+  p75: number;
+  p95: number;
+  error_count: number;
+  total_count: number;
+}
+
+/** Daily API response time trend */
+export interface ApiMetricDailyRow {
+  date: string;
+  avg_ms: number;
+  p50: number;
+  p75: number;
+  p95: number;
+  error_count: number;
+  total_count: number;
+}
+
+/** Bot vs human traffic trend */
+export interface BotTrendRow {
+  date: string;
+  bot_count: number;
+  human_count: number;
+  bot_pct: number;
+}
+
+/** Auth attempt trend */
+export interface AuthAttemptRow {
+  date: string;
+  success_count: number;
+  fail_count: number;
+}
+
+/** New vs returning visitor trend */
+export interface NewVsReturningRow {
+  date: string;
+  new_visitors: number;
+  returning_visitors: number;
+}
+
 export interface IpIntelData {
   ip_address: string;
   isp: string;

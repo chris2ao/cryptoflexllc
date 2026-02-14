@@ -8,6 +8,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { CountryRow } from "@/lib/analytics-types";
+import { PanelWrapper } from "./panel-wrapper";
 
 const chartConfig = {
   views: {
@@ -23,18 +24,22 @@ const chartConfig = {
 export function CountriesChart({ data }: { data: CountryRow[] }) {
   if (data.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Countries</h2>
+      <PanelWrapper
+        title="Countries"
+        tooltip="Top countries by page views and unique visitors"
+      >
         <p className="text-muted-foreground text-sm text-center py-8">No data yet</p>
-      </div>
+      </PanelWrapper>
     );
   }
 
   const top10 = data.slice(0, 10);
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold mb-4">Countries</h2>
+    <PanelWrapper
+      title="Countries"
+      tooltip="Top countries by page views and unique visitors"
+    >
       <ChartContainer config={chartConfig} className="h-[300px] w-full">
         <BarChart data={top10} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid horizontal={false} strokeDasharray="3 3" />
@@ -52,6 +57,6 @@ export function CountriesChart({ data }: { data: CountryRow[] }) {
           <Bar dataKey="unique_visitors" fill="var(--chart-4)" radius={[0, 4, 4, 0]} barSize={16} />
         </BarChart>
       </ChartContainer>
-    </div>
+    </PanelWrapper>
   );
 }

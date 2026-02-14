@@ -8,6 +8,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { DailyViews } from "@/lib/analytics-types";
+import { PanelWrapper } from "./panel-wrapper";
 
 const chartConfig = {
   views: {
@@ -23,18 +24,22 @@ const chartConfig = {
 export function PageViewsChart({ data }: { data: DailyViews[] }) {
   if (data.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Page Views Over Time</h2>
+      <PanelWrapper
+        title="Page Views Over Time"
+        tooltip="Daily trend of total and unique page views"
+      >
         <p className="text-muted-foreground text-sm text-center py-8">
           No data yet
         </p>
-      </div>
+      </PanelWrapper>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold mb-4">Page Views Over Time</h2>
+    <PanelWrapper
+      title="Page Views Over Time"
+      tooltip="Daily trend of total and unique page views"
+    >
       <ChartContainer config={chartConfig} className="h-[300px] w-full">
         <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
           <defs>
@@ -89,6 +94,6 @@ export function PageViewsChart({ data }: { data: DailyViews[] }) {
           />
         </AreaChart>
       </ChartContainer>
-    </div>
+    </PanelWrapper>
   );
 }

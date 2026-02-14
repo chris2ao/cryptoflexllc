@@ -1,14 +1,19 @@
 /**
  * /analytics — Visitor Analytics Dashboard
  * -----------------------------------------------
- * Server-rendered dashboard with visualizations (charts, map) on top
- * and detailed data tables below. Protected by httpOnly cookie auth.
+ * Server-rendered dashboard organized by category with tooltips on
+ * every panel. Protected by httpOnly cookie auth.
  *
- * DATA FLOW:
- *   Browser → Vercel Edge → Serverless Function → Neon Postgres
- *   The page queries the DB directly (not via the API route) to
- *   avoid an unnecessary HTTP round-trip. Chart components are
- *   client-side (recharts, leaflet) and receive data as props.
+ * SECTIONS:
+ *   1. Overview — KPI cards, page views trend, peak hours heatmap
+ *   2. Audience & Geography — map, countries, new vs returning
+ *   3. Content & Engagement — top pages, referrers, scroll depth, time on page
+ *   4. Technology — browsers, devices, OS
+ *   5. Server Telemetry — API response times, error rates
+ *   6. Performance — Web Vitals (Speed Insights)
+ *   7. Security — Vercel Firewall, bot traffic, auth attempts
+ *   8. Newsletter — subscriber management
+ *   9. Recent Activity — visit log + data tables
  */
 
 import type { Metadata } from "next";
@@ -30,6 +35,15 @@ import type {
   VercelAttackStatus,
   VercelFirewallEvents,
   WebVitalsSummary,
+  ReferrerRow,
+  HourlyHeatmapRow,
+  ScrollDepthRow,
+  TimeOnPageRow,
+  ApiMetricRow,
+  ApiMetricDailyRow,
+  BotTrendRow,
+  AuthAttemptRow,
+  NewVsReturningRow,
 } from "@/lib/analytics-types";
 import {
   isVercelApiConfigured,
@@ -37,6 +51,7 @@ import {
   fetchAttackStatus,
   fetchFirewallEvents,
 } from "@/lib/vercel-api";
+import { SectionHeader } from "./_components/section-header";
 import { StatCard } from "./_components/stat-card";
 import { DataTable } from "./_components/data-table";
 import { PageViewsChart } from "./_components/page-views-chart";
@@ -51,6 +66,14 @@ import { VercelFirewallCard } from "./_components/vercel-firewall-card";
 import { VercelAnalyticsCard } from "./_components/vercel-analytics-card";
 import { VercelSpeedInsightsCard } from "./_components/vercel-speed-insights-card";
 import { SubscriberPanel } from "./_components/subscriber-panel";
+import { ReferrerChart } from "./_components/referrer-chart";
+import { PeakHoursHeatmap } from "./_components/peak-hours-heatmap";
+import { ScrollDepthChart } from "./_components/scroll-depth-chart";
+import { TimeOnPageChart } from "./_components/time-on-page-chart";
+import { ApiResponseChart } from "./_components/api-response-chart";
+import { BotTrendChart } from "./_components/bot-trend-chart";
+import { AuthAttemptsChart } from "./_components/auth-attempts-chart";
+import { NewVsReturningChart } from "./_components/new-vs-returning-chart";
 
 export const metadata: Metadata = {
   title: "Analytics",
@@ -81,6 +104,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
   try {
     const sql = getDb();
 
+    // ---- All database queries in parallel ----
     const [
       summary,
       topPages,
@@ -94,7 +118,19 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       webVitalsRaw,
       subscriberSummary,
       subscriberList,
+      // New queries
+      referrers,
+      hourlyHeatmap,
+      scrollDepth,
+      timeOnPage,
+      apiMetricsEndpoints,
+      apiMetricsDaily,
+      botTrend,
+      authAttempts,
+      newVsReturning,
+      bounceData,
     ] = await Promise.all([
+      // 0: Summary stats
       sql`
         SELECT
           COUNT(*)::int AS total_views,
@@ -104,42 +140,48 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
       `,
+      // 1: Top pages
       sql`
         SELECT page_path, COUNT(*)::int AS views, COUNT(DISTINCT ip_address)::int AS unique_views
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY page_path ORDER BY views DESC LIMIT 20
       `,
+      // 2: Top countries
       sql`
         SELECT country, COUNT(*)::int AS views, COUNT(DISTINCT ip_address)::int AS unique_visitors
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY country ORDER BY views DESC LIMIT 20
       `,
+      // 3: Browsers
       sql`
         SELECT browser, COUNT(*)::int AS count
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY browser ORDER BY count DESC LIMIT 15
       `,
+      // 4: Devices
       sql`
         SELECT device_type, COUNT(*)::int AS count
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY device_type ORDER BY count DESC
       `,
+      // 5: OS
       sql`
         SELECT os, COUNT(*)::int AS count
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY os ORDER BY count DESC LIMIT 15
       `,
+      // 6: Recent visits
       sql`
         SELECT id, visited_at, page_path, ip_address, browser, os,
                device_type, referrer, country, city, region
         FROM page_views ORDER BY visited_at DESC LIMIT 50
       `,
-      // Daily views for area chart
+      // 7: Daily views for area chart
       sql`
         SELECT
           DATE(visited_at)::text AS date,
@@ -150,25 +192,20 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         GROUP BY DATE(visited_at)
         ORDER BY date
       `,
-      // Map locations
+      // 8: Map locations
       sql`
         SELECT
-          latitude,
-          longitude,
+          latitude, longitude,
           COUNT(*)::int AS views,
-          MAX(city) AS city,
-          MAX(country) AS country
+          MAX(city) AS city, MAX(country) AS country
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
-          AND latitude IS NOT NULL
-          AND latitude != ''
-          AND longitude IS NOT NULL
-          AND longitude != ''
+          AND latitude IS NOT NULL AND latitude != ''
+          AND longitude IS NOT NULL AND longitude != ''
         GROUP BY latitude, longitude
-        ORDER BY views DESC
-        LIMIT 200
+        ORDER BY views DESC LIMIT 200
       `,
-      // Web Vitals aggregated metrics (p50, p75, p95, rating counts)
+      // 9: Web Vitals
       sql`
         SELECT
           metric_name,
@@ -184,7 +221,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY metric_name
       `.catch(() => []),
-      // Subscriber summary counts
+      // 10: Subscriber summary
       sql`
         SELECT
           COUNT(*)::int AS total,
@@ -192,12 +229,153 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
           COUNT(*) FILTER (WHERE active = FALSE)::int AS inactive
         FROM subscribers
       `.catch(() => [{ total: 0, active: 0, inactive: 0 }]),
-      // Full subscriber list
+      // 11: Subscriber list
       sql`
         SELECT id, email, subscribed_at, active, ip_address, country, city, region
-        FROM subscribers
-        ORDER BY subscribed_at DESC
+        FROM subscribers ORDER BY subscribed_at DESC
       `.catch(() => []),
+
+      // ---- NEW QUERIES ----
+
+      // 12: Referrer breakdown (group by domain)
+      sql`
+        SELECT
+          CASE
+            WHEN referrer = '(direct)' OR referrer = '' THEN '(direct)'
+            ELSE SPLIT_PART(SPLIT_PART(referrer, '://', 2), '/', 1)
+          END AS referrer_domain,
+          COUNT(*)::int AS views,
+          COUNT(DISTINCT ip_address)::int AS unique_visitors
+        FROM page_views
+        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY referrer_domain
+        ORDER BY views DESC LIMIT 15
+      `.catch(() => []),
+      // 13: Hourly heatmap (day_of_week x hour)
+      sql`
+        SELECT
+          EXTRACT(DOW FROM visited_at)::int AS day_of_week,
+          EXTRACT(HOUR FROM visited_at)::int AS hour,
+          COUNT(*)::int AS views
+        FROM page_views
+        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY day_of_week, hour
+      `.catch(() => []),
+      // 14: Scroll depth per page (top 10 pages)
+      sql`
+        SELECT
+          page_path,
+          COUNT(*) FILTER (WHERE depth = 25)::int AS depth_25,
+          COUNT(*) FILTER (WHERE depth = 50)::int AS depth_50,
+          COUNT(*) FILTER (WHERE depth = 75)::int AS depth_75,
+          COUNT(*) FILTER (WHERE depth = 100)::int AS depth_100
+        FROM scroll_events
+        WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY page_path
+        ORDER BY (COUNT(*) FILTER (WHERE depth = 100)) DESC
+        LIMIT 10
+      `.catch(() => []),
+      // 15: Time on page (avg per page, top 10)
+      sql`
+        SELECT
+          page_path,
+          ROUND(AVG(time_seconds))::int AS avg_seconds,
+          COUNT(*)::int AS sample_count
+        FROM page_engagement
+        WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY page_path
+        ORDER BY avg_seconds DESC
+        LIMIT 10
+      `.catch(() => []),
+      // 16: API metrics per endpoint
+      sql`
+        SELECT
+          endpoint,
+          method,
+          ROUND(AVG(duration_ms)::numeric, 1) AS avg_ms,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms) AS p50,
+          PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY duration_ms) AS p75,
+          PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ms) AS p95,
+          COUNT(*) FILTER (WHERE status_code >= 400)::int AS error_count,
+          COUNT(*)::int AS total_count
+        FROM api_metrics
+        WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY endpoint, method
+        ORDER BY total_count DESC
+      `.catch(() => []),
+      // 17: API metrics daily trend
+      sql`
+        SELECT
+          DATE(recorded_at)::text AS date,
+          ROUND(AVG(duration_ms)::numeric, 1) AS avg_ms,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms) AS p50,
+          PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY duration_ms) AS p75,
+          PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ms) AS p95,
+          COUNT(*) FILTER (WHERE status_code >= 400)::int AS error_count,
+          COUNT(*)::int AS total_count
+        FROM api_metrics
+        WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY DATE(recorded_at)
+        ORDER BY date
+      `.catch(() => []),
+      // 18: Bot vs human trend
+      sql`
+        SELECT
+          DATE(visited_at)::text AS date,
+          COUNT(*) FILTER (WHERE device_type = 'Bot')::int AS bot_count,
+          COUNT(*) FILTER (WHERE device_type != 'Bot')::int AS human_count,
+          CASE
+            WHEN COUNT(*) > 0
+            THEN ROUND(COUNT(*) FILTER (WHERE device_type = 'Bot')::numeric / COUNT(*) * 100, 1)
+            ELSE 0
+          END AS bot_pct
+        FROM page_views
+        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY DATE(visited_at)
+        ORDER BY date
+      `.catch(() => []),
+      // 19: Auth attempts
+      sql`
+        SELECT
+          DATE(attempted_at)::text AS date,
+          COUNT(*) FILTER (WHERE success = TRUE)::int AS success_count,
+          COUNT(*) FILTER (WHERE success = FALSE)::int AS fail_count
+        FROM auth_attempts
+        WHERE attempted_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY DATE(attempted_at)
+        ORDER BY date
+      `.catch(() => []),
+      // 20: New vs returning visitors
+      sql`
+        WITH daily_visitors AS (
+          SELECT
+            DATE(visited_at) AS visit_date,
+            ip_address,
+            MIN(visited_at) OVER (PARTITION BY ip_address) AS first_ever
+          FROM page_views
+          WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+        )
+        SELECT
+          visit_date::text AS date,
+          COUNT(DISTINCT CASE WHEN DATE(first_ever) = visit_date THEN ip_address END)::int AS new_visitors,
+          COUNT(DISTINCT CASE WHEN DATE(first_ever) < visit_date THEN ip_address END)::int AS returning_visitors
+        FROM daily_visitors
+        GROUP BY visit_date
+        ORDER BY visit_date
+      `.catch(() => []),
+      // 21: Bounce rate (IPs with only 1 page in the window)
+      sql`
+        WITH visitor_pages AS (
+          SELECT ip_address, COUNT(DISTINCT page_path)::int AS page_count
+          FROM page_views
+          WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          GROUP BY ip_address
+        )
+        SELECT
+          COUNT(*) FILTER (WHERE page_count = 1)::int AS single_page,
+          COUNT(*)::int AS total_visitors
+        FROM visitor_pages
+      `.catch(() => [{ single_page: 0, total_visitors: 0 }]),
     ]);
 
     const stats = summary[0] || {
@@ -207,7 +385,18 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       last_visit: null,
     };
 
-    // ---- Vercel API data (firewall, analytics status, speed insights) ----
+    // Compute bounce rate
+    const bounceStats = (bounceData as unknown as { single_page: number; total_visitors: number }[])[0] || { single_page: 0, total_visitors: 0 };
+    const bounceRate = bounceStats.total_visitors > 0
+      ? Math.round((bounceStats.single_page / bounceStats.total_visitors) * 100)
+      : 0;
+
+    // Compute new vs returning totals
+    const typedNewVsReturning = newVsReturning as unknown as NewVsReturningRow[];
+    const totalNew = typedNewVsReturning.reduce((s, r) => s + r.new_visitors, 0);
+    const totalReturning = typedNewVsReturning.reduce((s, r) => s + r.returning_visitors, 0);
+
+    // ---- Vercel API data ----
     let vercelFirewallConfig: VercelFirewallConfig | null = null;
     let vercelAttackStatus: VercelAttackStatus | null = null;
     let vercelFirewallEvents: VercelFirewallEvents | null = null;
@@ -232,7 +421,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       else console.error("Vercel firewall events error:", fwEvents.reason);
     }
 
-    // Cast query results to typed arrays
+    // ---- Type casts ----
     const typedDailyViews = dailyViews as unknown as DailyViews[];
     const typedMapLocations = mapLocations as unknown as MapLocation[];
     const typedTopPages = topPages as unknown as TopPageRow[];
@@ -244,11 +433,21 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
     const typedWebVitals = webVitalsRaw as unknown as WebVitalsSummary[];
     const subStats = (subscriberSummary as unknown as { total: number; active: number; inactive: number }[])[0] || { total: 0, active: 0, inactive: 0 };
     const typedSubscribers = subscriberList as unknown as SubscriberRow[];
+    const typedReferrers = referrers as unknown as ReferrerRow[];
+    const typedHeatmap = hourlyHeatmap as unknown as HourlyHeatmapRow[];
+    const typedScrollDepth = scrollDepth as unknown as ScrollDepthRow[];
+    const typedTimeOnPage = timeOnPage as unknown as TimeOnPageRow[];
+    const typedApiEndpoints = apiMetricsEndpoints as unknown as ApiMetricRow[];
+    const typedApiDaily = apiMetricsDaily as unknown as ApiMetricDailyRow[];
+    const typedBotTrend = botTrend as unknown as BotTrendRow[];
+    const typedAuthAttempts = authAttempts as unknown as AuthAttemptRow[];
 
     return (
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          {/* Header + Time Filter */}
+          {/* ═══════════════════════════════════════════
+              HEADER + TIME FILTER
+              ═══════════════════════════════════════════ */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold">Analytics</h1>
@@ -273,58 +472,185 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             </div>
           </div>
 
-          {/* Stat Cards */}
+          {/* ═══════════════════════════════════════════
+              SECTION 1: OVERVIEW
+              ═══════════════════════════════════════════ */}
+
+          {/* KPI Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
             <StatCard
               label="Total Page Views"
               value={stats.total_views?.toLocaleString() || "0"}
+              tooltip="Total page loads recorded in the selected time period"
             />
             <StatCard
               label="Unique Visitors"
               value={stats.unique_visitors?.toLocaleString() || "0"}
+              tooltip="Distinct IP addresses that visited the site"
             />
             <StatCard
-              label="First Visit"
-              value={
-                stats.first_visit
-                  ? new Date(stats.first_visit).toLocaleDateString()
-                  : "—"
-              }
+              label="Bounce Rate"
+              value={`${bounceRate}%`}
+              tooltip="Percentage of visitors who viewed only a single page"
             />
             <StatCard
-              label="Last Visit"
-              value={
-                stats.last_visit
-                  ? new Date(stats.last_visit).toLocaleDateString()
-                  : "—"
-              }
+              label="New vs Returning"
+              value={`${totalNew} / ${totalReturning}`}
+              tooltip="Count of first-time visitors vs those with prior visits"
             />
           </div>
 
-          {/* VISUALIZATIONS SECTION */}
-
-          {/* Page Views Area Chart (full width) */}
+          {/* Page Views Over Time (full width) */}
           <div className="mb-8">
             <PageViewsChart data={typedDailyViews} />
           </div>
+
+          {/* Peak Hours Heatmap (full width) */}
+          <div className="mb-10">
+            <PeakHoursHeatmap data={typedHeatmap} />
+          </div>
+
+          {/* ═══════════════════════════════════════════
+              SECTION 2: AUDIENCE & GEOGRAPHY
+              ═══════════════════════════════════════════ */}
+          <SectionHeader
+            title="Audience & Geography"
+            description="Where your visitors come from and how they discover your site"
+          />
 
           {/* Visitor Map (full width) */}
           <div className="mb-8">
             <VisitorMapDynamic data={typedMapLocations} />
           </div>
 
-          {/* Charts Grid */}
+          <div className="grid lg:grid-cols-2 gap-8 mb-10">
+            <CountriesChart data={typedCountries} />
+            <NewVsReturningChart data={typedNewVsReturning} />
+          </div>
+
+          {/* ═══════════════════════════════════════════
+              SECTION 3: CONTENT & ENGAGEMENT
+              ═══════════════════════════════════════════ */}
+          <SectionHeader
+            title="Content & Engagement"
+            description="How visitors interact with your pages and content"
+          />
+
           <div className="grid lg:grid-cols-2 gap-8 mb-10">
             <TopPagesChart data={typedTopPages} />
-            <CountriesChart data={typedCountries} />
+            <ReferrerChart data={typedReferrers} />
+            <ScrollDepthChart data={typedScrollDepth} />
+            <TimeOnPageChart data={typedTimeOnPage} />
+          </div>
+
+          {/* ═══════════════════════════════════════════
+              SECTION 4: TECHNOLOGY
+              ═══════════════════════════════════════════ */}
+          <SectionHeader
+            title="Technology"
+            description="Browsers, devices, and operating systems used by visitors"
+          />
+
+          <div className="grid lg:grid-cols-3 gap-8 mb-10">
             <BrowserChart data={typedBrowsers} />
             <DeviceChart data={typedDevices} />
             <OsChart data={typedOs} />
           </div>
 
-          {/* TABLES SECTION */}
+          {/* ═══════════════════════════════════════════
+              SECTION 5: SERVER TELEMETRY
+              ═══════════════════════════════════════════ */}
+          <SectionHeader
+            title="Server Telemetry"
+            description="API response times, error rates, and server-side performance"
+          />
+
+          <div className="mb-10">
+            <ApiResponseChart
+              endpoints={typedApiEndpoints}
+              daily={typedApiDaily}
+            />
+          </div>
+
+          {/* ═══════════════════════════════════════════
+              SECTION 6: PERFORMANCE
+              ═══════════════════════════════════════════ */}
+          <SectionHeader
+            title="Performance"
+            description="Core Web Vitals and speed metrics from real visitor sessions"
+          />
 
           <div className="grid lg:grid-cols-2 gap-8 mb-10">
+            <VercelAnalyticsCard
+              totalViews={stats.total_views || 0}
+              uniqueVisitors={stats.unique_visitors || 0}
+              topPage={typedTopPages[0]?.page_path || null}
+              topCountry={typedCountries[0]?.country || null}
+            />
+            <VercelSpeedInsightsCard data={typedWebVitals} />
+          </div>
+
+          {/* ═══════════════════════════════════════════
+              SECTION 7: SECURITY
+              ═══════════════════════════════════════════ */}
+          <SectionHeader
+            title="Security"
+            description="Firewall events, bot traffic, and authentication monitoring"
+          />
+
+          <div className="grid lg:grid-cols-2 gap-8 mb-8">
+            <BotTrendChart data={typedBotTrend} />
+            <AuthAttemptsChart data={typedAuthAttempts} />
+          </div>
+
+          {isVercelApiConfigured() ? (
+            <div className="mb-10">
+              <VercelFirewallCard
+                config={vercelFirewallConfig}
+                attackStatus={vercelAttackStatus}
+                events={vercelFirewallEvents}
+              />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-6 mb-10">
+              <h2 className="text-lg font-semibold mb-2">Vercel Firewall</h2>
+              <p className="text-sm text-muted-foreground">
+                Set <code className="text-xs bg-muted px-1.5 py-0.5 rounded">VERCEL_API_TOKEN</code> and{" "}
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">VERCEL_PROJECT_ID</code> environment
+                variables to display live firewall configuration, attack status, and event data from the
+                Vercel API.
+              </p>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════
+              SECTION 8: NEWSLETTER
+              ═══════════════════════════════════════════ */}
+          <SectionHeader
+            title="Newsletter"
+            description="Subscriber counts, status, and geographic distribution"
+          />
+
+          <div className="mb-10">
+            <SubscriberPanel
+              totalCount={subStats.total}
+              activeCount={subStats.active}
+              inactiveCount={subStats.inactive}
+              subscribers={typedSubscribers}
+            />
+          </div>
+
+          {/* ═══════════════════════════════════════════
+              SECTION 9: RECENT ACTIVITY
+              ═══════════════════════════════════════════ */}
+          <SectionHeader
+            title="Recent Activity"
+            description="Real-time visit log and detailed data tables"
+          />
+
+          <RecentVisitsTable data={typedRecent} />
+
+          <div className="grid lg:grid-cols-2 gap-8 mt-8 mb-10">
             <DataTable
               title="Top Pages"
               headers={["Page", "Views", "Unique"]}
@@ -367,67 +693,16 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                 String(r.count),
               ])}
             />
-          </div>
-
-          {/* Recent Visits with clickable IPs */}
-          <RecentVisitsTable data={typedRecent} />
-
-          {/* ── SUBSCRIBERS SECTION ── */}
-          <div className="mt-14 mb-4">
-            <h2 className="text-2xl font-bold">Newsletter</h2>
-            <p className="mt-1 text-muted-foreground text-sm">
-              Blog subscriber data and engagement
-            </p>
-          </div>
-
-          <div className="mb-10">
-            <SubscriberPanel
-              totalCount={subStats.total}
-              activeCount={subStats.active}
-              inactiveCount={subStats.inactive}
-              subscribers={typedSubscribers}
+            <DataTable
+              title="Referrers"
+              headers={["Domain", "Views", "Unique"]}
+              rows={referrers.map((r: Record<string, unknown>) => [
+                String(r.referrer_domain),
+                String(r.views),
+                String(r.unique_visitors),
+              ])}
             />
           </div>
-
-          {/* ── VERCEL PLATFORM SECTION ── */}
-          <div className="mt-14 mb-2">
-            <h2 className="text-2xl font-bold">Vercel Platform</h2>
-            <p className="mt-1 text-muted-foreground text-sm">
-              Integration status and data from Vercel&apos;s platform services
-            </p>
-          </div>
-
-          {/* Vercel Analytics + Speed Insights cards */}
-          <div className="grid lg:grid-cols-2 gap-8 mb-8">
-            <VercelAnalyticsCard
-              totalViews={stats.total_views || 0}
-              uniqueVisitors={stats.unique_visitors || 0}
-              topPage={typedTopPages[0]?.page_path || null}
-              topCountry={typedCountries[0]?.country || null}
-            />
-            <VercelSpeedInsightsCard data={typedWebVitals} />
-          </div>
-
-          {/* Vercel Firewall (full-width, data-rich) */}
-          {isVercelApiConfigured() ? (
-            <div className="mb-10">
-              <VercelFirewallCard
-                config={vercelFirewallConfig}
-                attackStatus={vercelAttackStatus}
-                events={vercelFirewallEvents}
-              />
-            </div>
-          ) : (
-            <div className="rounded-lg border border-border bg-card p-6 mb-10">
-              <h2 className="text-lg font-semibold mb-2">Vercel Firewall</h2>
-              <p className="text-sm text-muted-foreground">
-                Set <code className="text-xs bg-muted px-1.5 py-0.5 rounded">VERCEL_API_TOKEN</code> and{" "}
-                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">VERCEL_PROJECT_ID</code> environment
-                variables to display live firewall configuration, attack status, and event data from the
-                Vercel API.
-              </p>
-            </div>
-          )}
         </div>
       </section>
     );
