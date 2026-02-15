@@ -19,6 +19,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getDb } from "@/lib/analytics";
 import { getAnalyticsCookieName, verifyAuthToken } from "@/lib/analytics-auth";
 import type {
@@ -465,20 +466,28 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                 Last {days} days of visitor data
               </p>
             </div>
-            <div className="flex gap-2">
-              {[7, 14, 30, 90].map((d) => (
-                <a
-                  key={d}
-                  href={`/analytics?days=${d}`}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                    days === d
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {d}d
-                </a>
-              ))}
+            <div className="flex items-center gap-3">
+              <Link
+                href="/backlog"
+                className="px-3 py-1.5 text-sm rounded-md bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Backlog
+              </Link>
+              <div className="flex gap-2">
+                {[7, 14, 30, 90].map((d) => (
+                  <a
+                    key={d}
+                    href={`/analytics?days=${d}`}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      days === d
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {d}d
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
 

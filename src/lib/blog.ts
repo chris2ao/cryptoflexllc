@@ -14,6 +14,30 @@ export interface BlogPost {
 }
 
 const contentDir = path.join(process.cwd(), "src/content/blog");
+const backlogDir = path.join(process.cwd(), "src/content/backlog");
+
+function parsePost(slug: string, filePath: string): BlogPost {
+  const fileContents = fs.readFileSync(filePath, "utf8");
+  const { data, content } = matter(fileContents);
+
+  // gray-matter auto-parses YAML dates into Date objects; normalize to string
+  const rawDate = data.date;
+  const date =
+    rawDate instanceof Date
+      ? rawDate.toISOString().split("T")[0]
+      : (rawDate ?? "1970-01-01");
+
+  return {
+    slug,
+    title: data.title ?? slug,
+    date,
+    author: data.author ?? "",
+    readingTime: data.readingTime ?? "",
+    description: data.description ?? "",
+    tags: data.tags ?? [],
+    content,
+  };
+}
 
 export function getAllPosts(): BlogPost[] {
   if (!fs.existsSync(contentDir)) return [];
@@ -23,26 +47,24 @@ export function getAllPosts(): BlogPost[] {
   const posts = files.map((filename) => {
     const slug = filename.replace(/\.mdx$/, "");
     const filePath = path.join(contentDir, filename);
-    const fileContents = fs.readFileSync(filePath, "utf8");
-    const { data, content } = matter(fileContents);
+    return parsePost(slug, filePath);
+  });
 
-    // gray-matter auto-parses YAML dates into Date objects; normalize to string
-    const rawDate = data.date;
-    const date =
-      rawDate instanceof Date
-        ? rawDate.toISOString().split("T")[0]
-        : (rawDate ?? "1970-01-01");
+  // Sort by date descending (newest first)
+  return posts.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+}
 
-    return {
-      slug,
-      title: data.title ?? slug,
-      date,
-      author: data.author ?? "",
-      readingTime: data.readingTime ?? "",
-      description: data.description ?? "",
-      tags: data.tags ?? [],
-      content,
-    };
+export function getBacklogPosts(): BlogPost[] {
+  if (!fs.existsSync(backlogDir)) return [];
+
+  const files = fs.readdirSync(backlogDir).filter((f) => f.endsWith(".mdx"));
+
+  const posts = files.map((filename) => {
+    const slug = filename.replace(/\.mdx$/, "");
+    const filePath = path.join(backlogDir, filename);
+    return parsePost(slug, filePath);
   });
 
   // Sort by date descending (newest first)
@@ -71,23 +93,15 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
   const filePath = path.join(contentDir, `${slug}.mdx`);
   if (!fs.existsSync(filePath)) return undefined;
 
-  const fileContents = fs.readFileSync(filePath, "utf8");
-  const { data, content } = matter(fileContents);
+  return parsePost(slug, filePath);
+}
 
-  const rawDate = data.date;
-  const date =
-    rawDate instanceof Date
-      ? rawDate.toISOString().split("T")[0]
-      : (rawDate ?? "1970-01-01");
+export function getBacklogPostBySlug(slug: string): BlogPost | undefined {
+  if (slug.includes('/') || slug.includes('\\') || slug.includes('..')) {
+    return undefined;
+  }
+  const filePath = path.join(backlogDir, `${slug}.mdx`);
+  if (!fs.existsSync(filePath)) return undefined;
 
-  return {
-    slug,
-    title: data.title ?? slug,
-    date,
-    author: data.author ?? "",
-    readingTime: data.readingTime ?? "",
-    description: data.description ?? "",
-    tags: data.tags ?? [],
-    content,
-  };
+  return parsePost(slug, filePath);
 }

@@ -13,6 +13,7 @@ const envSchema = z.object({
   VERCEL_TEAM_ID: z.string().optional(),
   NEXT_PUBLIC_GA_ID: z.string().optional(),
   ANALYTICS_SETUP_ENABLED: z.string().optional(),
+  GITHUB_TOKEN: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
