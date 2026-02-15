@@ -75,8 +75,13 @@ export async function GET(request: NextRequest) {
       (p) => new Date(p.date) >= oneWeekAgo
     );
 
+    // Cap at 10 posts per digest to keep emails focused
+    const MAX_DIGEST_POSTS = 10;
+    const totalRecentPosts = recentPosts.length;
+    const digestPosts = recentPosts.slice(0, MAX_DIGEST_POSTS);
+
     // If no new posts this week, still send a short "catch you next week" note
-    const hasNewPosts = recentPosts.length > 0;
+    const hasNewPosts = digestPosts.length > 0;
 
     // ---- 2. Fetch active subscribers (or use testEmail override) ----
     const testEmail = request.nextUrl.searchParams.get("testEmail");
@@ -106,7 +111,7 @@ export async function GET(request: NextRequest) {
     // ---- 3. Generate AI intro (only when there are new posts) ----
     let intro: DigestIntro | undefined;
     if (hasNewPosts) {
-      intro = await generateDigestIntro(recentPosts, new Date());
+      intro = await generateDigestIntro(digestPosts, new Date());
     }
 
     // ---- 4a. Configure Gmail SMTP transport ----
@@ -138,7 +143,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const html = buildEmailHtml(recentPosts, hasNewPosts, email, intro);
+      const html = buildEmailHtml(digestPosts, hasNewPosts, email, intro, totalRecentPosts);
 
       try {
         await withRetry(() =>
@@ -146,7 +151,7 @@ export async function GET(request: NextRequest) {
             from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
             to: email,
             subject: hasNewPosts
-              ? `This Week at CryptoFlex — ${recentPosts.length} New Post${recentPosts.length > 1 ? "s" : ""}!`
+              ? `This Week at CryptoFlex — ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}!`
               : "This Week at CryptoFlex — Quick Update",
             html,
             headers: {
@@ -168,7 +173,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       sent,
-      posts: recentPosts.length,
+      posts: digestPosts.length,
+      totalPosts: totalRecentPosts,
       aiIntro: intro?.fromAi ?? false,
     });
   } catch (error) {
@@ -197,7 +203,8 @@ function buildEmailHtml(
   posts: PostSummary[],
   hasNewPosts: boolean,
   recipientEmail: string,
-  intro?: DigestIntro
+  intro?: DigestIntro,
+  totalPosts?: number
 ): string {
   const unsubLink = unsubscribeUrl(recipientEmail);
 
@@ -224,14 +231,23 @@ function buildEmailHtml(
     )
     .join("");
 
+  const extraPosts = (totalPosts ?? posts.length) - posts.length;
+  const overflowNote = extraPosts > 0
+    ? `<p style="font-size:15px;line-height:1.6;color:#94a3b8;margin:16px 0 0;text-align:center;font-style:italic">
+        Plus ${extraPosts} more post${extraPosts > 1 ? "s" : ""} on the blog this week!
+      </p>`
+    : "";
+
   const contentSection = hasNewPosts
     ? `
       <p style="font-size:16px;line-height:1.6;color:#d4d4d4;margin:0 0 8px">
         ${intro?.contentIntro ?? "Here&rsquo;s what I learned and wrote about this week:"}
       </p>
+      ${intro?.memeHtml ?? ""}
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:20px">
         ${postRows}
       </table>
+      ${overflowNote}
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
           <td align="center" style="padding:8px 0 0">

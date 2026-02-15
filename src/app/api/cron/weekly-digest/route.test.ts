@@ -70,6 +70,7 @@ describe("GET /api/cron/weekly-digest", () => {
     vi.mocked(generateDigestIntro).mockResolvedValue({
       greeting: "AI-generated greeting for this week.",
       contentIntro: "AI-generated content intro about the posts.",
+      memeHtml: '<div style="margin:16px 0">Meme of the Week</div>',
       fromAi: true,
     });
 
@@ -111,6 +112,7 @@ describe("GET /api/cron/weekly-digest", () => {
       ok: true,
       sent: 2,
       posts: 1, // Only 1 recent post from the last 7 days
+      totalPosts: 1,
       aiIntro: true,
     });
 
@@ -204,6 +206,7 @@ describe("GET /api/cron/weekly-digest", () => {
       ok: true,
       sent: 1,
       posts: 0,
+      totalPosts: 0,
       aiIntro: false,
     });
 
@@ -213,6 +216,58 @@ describe("GET /api/cron/weekly-digest", () => {
         html: expect.stringContaining("No new posts this week"),
       })
     );
+  });
+
+  it("should cap digest at 10 posts when more than 10 recent posts exist", async () => {
+    // Generate 15 recent posts
+    const { getAllPosts } = await import("@/lib/blog");
+    const recentDate = new Date();
+    const manyPosts = Array.from({ length: 15 }, (_, i) => ({
+      slug: `post-${i + 1}`,
+      title: `Post ${i + 1}`,
+      date: recentDate.toISOString(),
+      description: `Description for post ${i + 1}`,
+      tags: ["test"],
+      readingTime: "5 min",
+      content: "",
+    }));
+    vi.mocked(getAllPosts).mockReturnValue(manyPosts);
+
+    mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
+    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
+
+    const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
+      headers: {
+        authorization: "Bearer test-cron-secret",
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.posts).toBe(10); // Capped at 10
+    expect(data.totalPosts).toBe(15); // Total available
+
+    // Subject should say 10 posts, not 15
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: expect.stringContaining("10 New Posts"),
+      })
+    );
+
+    // Email should contain overflow message
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining("Plus 5 more posts on the blog this week"),
+      })
+    );
+
+    // Email should NOT contain post 11+
+    const sentHtml = mockTransporter.sendMail.mock.calls[0][0].html;
+    expect(sentHtml).toContain("Post 1");
+    expect(sentHtml).toContain("Post 10");
+    expect(sentHtml).not.toContain("Post 11");
   });
 
   it("should include unsubscribe link in email headers", async () => {
@@ -441,6 +496,7 @@ describe("GET /api/cron/weekly-digest", () => {
       greeting:
         "Thanks for being a subscriber &mdash; it means a lot! Every week I share what I&rsquo;ve been learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building.",
       contentIntro: "Here&rsquo;s what I learned and wrote about this week:",
+      memeHtml: "",
       fromAi: false,
     });
 
