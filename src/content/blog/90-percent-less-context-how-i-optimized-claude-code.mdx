@@ -1,0 +1,858 @@
+---
+title: "90% Less Context: How I Optimized Claude Code (And You Can Too)"
+description: "From 70K tokens per session to 7K. A 7-agent audit, 23 evaluation documents, 11 component scorecards, 5 optimization patterns, and an 8-agent implementation team. This is the full story of cutting context consumption by 90%."
+date: "2026-02-15"
+tags: ["Claude Code", "Optimization", "Agent Teams", "Bash", "Workflow", "Architecture"]
+---
+
+I just cut my Claude Code context consumption by 90%. Not by doing less. By doing it smarter.
+
+**Before:** 70,000 tokens per session.
+**After:** 7,000 tokens per session.
+**Time spent:** 3 sessions.
+**Bugs found:** 8 categories of bash gotchas that would've broken production.
+**Agents deployed:** 8, working in parallel across 6 execution waves.
+
+This isn't theory. This is 19 new files, 9 rewrites, 6 bash scripts, and 4 new agent orchestrators that now power every blog post, every session wrap-up, and every commit I make with Claude Code.
+
+Here's how I did it (and the mistakes you'll want to avoid).
+
+## Step Zero: The Audit Nobody Asked For
+
+Before writing a single line of optimization code, I did something that felt overkill at the time: I ran a full-scale audit.
+
+Not a quick "hmm, this feels slow" investigation. A structured assessment with **7 parallel research agents**, producing **23 evaluation documents**, scoring **11 components** across 4 priority tiers.
+
+```text
+agent-assessment/
+├── EXECUTIVE_SUMMARY.md                  # Big picture, ROI, roadmap
+├── ASSESSMENT.md                         # Master assessment (257 lines)
+├── README.md                             # Directory guide
+│
+├── component-cards/                      # Individual evaluations
+│   ├── INDEX.md                          # Priority ranking overview
+│   ├── context-cost-inventory.md         # Full cost measurements (582 lines)
+│   ├── wrap-up.md                        # CRITICAL: 9/10 ROI
+│   ├── blog-post.md                      # CRITICAL: 10/10 ROI
+│   ├── multi-repo-status.md              # HIGH: 8/10 ROI
+│   ├── multi-repo-orchestrator.md        # HIGH: 9/10 ROI
+│   ├── config-sync.md                    # HIGH: 8/10 ROI
+│   ├── changelog-writer.md              # MEDIUM: 7/10 ROI
+│   ├── skill-catalog.md                  # MEDIUM: 7/10 ROI
+│   ├── deploy-verifier.md               # MEDIUM: 6/10 ROI
+│   ├── skill-extractor.md               # MEDIUM: 6/10 ROI
+│   ├── session-analyzer.md              # LOW: 6/10 ROI
+│   └── context-health.md                # LOW: 5/10 ROI
+│
+├── enhancement-specs/                    # Technical patterns
+│   ├── thin-skill-pattern.md            # 5 patterns (54K of specs!)
+│   ├── scripts-as-enhancers.md          # 4 script JSON schemas
+│   ├── mcp-server-design.md             # MCP caching architecture
+│   └── new-agents.md                    # 4 new agent definitions
+│
+└── implementation/                       # Step-by-step conversion guides
+    ├── wrap-up-conversion.md            # Phase 1 walkthrough
+    ├── blog-post-conversion.md          # Phase 3 walkthrough
+    └── priority-matrix.md               # ROI-scored priority list
+```
+
+**Total assessment output:** 23 files, ~250KB of analysis.
+
+Why go this far? Because optimizing without measuring is just guessing. I needed to know *exactly* where the tokens were going before I could decide where to cut.
+
+## The Problem: Context Bloat Is Real
+
+After 9 days of daily Claude Code use, I hit a pattern I couldn't ignore. Every time I ran `/wrap-up` or `/blog-post`, I'd watch my context window fill up like a bathtub with no drain.
+
+**Typical `/wrap-up` flow (before):**
+1. Load full skill instructions (multi-repo config, git workflow rules, documentation templates)
+2. Read 4 repo `.git` directories to check status
+3. Parse CHANGELOG.md format
+4. Parse README.md structure
+5. Count transcript files
+6. Count todo files
+7. Read activity log
+8. Ask user questions
+9. Update CHANGELOG
+10. Update README
+11. Update MEMORY.md
+12. Commit 4 repos
+13. Push 4 repos
+
+**Cost:** ~15,200 tokens. Every. Single. Time.
+
+**Typical `/blog-post` flow (before):**
+1. Load skill instructions
+2. Load style guide (148 lines)
+3. Load MDX component reference (95 lines)
+4. Read all 19 blog post files to build inventory
+5. Ask user questions
+6. Spawn writing agent (carrying style guide + MDX ref again)
+7. Validate output
+8. Review with code-reviewer agent
+9. Update series navigation
+10. Deploy
+
+**Cost:** ~40,800 tokens. For one blog post.
+
+Combined, these two workflows burned **~56K tokens per session**. And I was running them multiple times a day.
+
+The kicker? Most of that context was **static data** that could be computed once and reused.
+
+## The Full Context Cost Inventory
+
+The audit measured every component. Here's what it found:
+
+```text
+CONTEXT COST BY COMPONENT (tokens per invocation)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ /blog-post          ████████████████████████████████████████  40,800
+ /wrap-up            ███████████████                           15,200
+ session-analyzer    ████████                                   8,000
+ multi-repo-status   ██████                                     6,000
+ skill-extractor     █████                                      4,780
+ changelog-writer    ████                                       3,500
+ deploy-verifier     ███                                        2,500
+ config-sync         ███                                        2,800
+ skill-catalog       ██                                         1,500
+ multi-repo-orch     █                                            694
+ context-health      ▌                                            468
+ hooks (all 4)       ░                                              0
+                     ─────────────────────────────────────────
+                     0        10K       20K       30K       40K
+```
+
+The two biggest bars jumped off the page. `/blog-post` and `/wrap-up` together consumed **56,000 tokens per session**, which is 80% of the total fixed workflow cost. Everything else was pocket change by comparison.
+
+### Where the Tokens Actually Go
+
+The assessment broke down each component into three cost categories: the prompt itself, the files it triggers Claude to read, and the tool calls it makes.
+
+```text
+TYPICAL SESSION CONTEXT FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Session Start
+├─ Interactive Work (main session)
+│  └─ File reads, edits, bash: highly variable (100-50,000 tokens)
+│
+├─ Documentation Phase (wrap-up skill)
+│  ├─ Skill prompt loaded:                   1,443 tokens
+│  ├─ CHANGELOG.md read (first 30 lines):      390 tokens
+│  ├─ README.md read (last 50 lines):          650 tokens
+│  ├─ MEMORY.md × 2 locations:               2,600 tokens
+│  ├─ 12+ git Bash calls across 4 repos:       390 tokens
+│  └─ Document updates (Edit/Write):        2,000+ tokens
+│     Subtotal:                              7,473+ tokens
+│
+├─ Blog Writing Phase (if applicable)
+│  ├─ Skill prompt:                            702 tokens
+│  ├─ Style guide read (154 lines):          2,002 tokens
+│  ├─ MDX reference read (98 lines):         1,274 tokens
+│  ├─ Calibration post reads (2-3 posts):    5,200+ tokens
+│  └─ Build verification output:               260 tokens
+│     Subtotal:                              9,438+ tokens
+│
+└─ Session End
+   └─ All hooks run in PowerShell:             0 tokens
+```
+
+That last line is the hidden gem: **hooks cost zero tokens**. They run as external PowerShell processes, completely outside Claude's context window. This becomes important later.
+
+## The Solution: Five Optimization Patterns
+
+The assessment identified five optimization patterns. I implemented three for the initial rollout, with two more designed for future phases:
+
+### 1. `!command` Pre-computation
+
+Claude Code has a hidden superpower. In `SKILL.md` files, you can run bash commands BEFORE Claude sees your prompt:
+
+```markdown
+## Pre-Survey
+
+!`bash ~/.claude/scripts/wrap-up-survey.sh`
+```
+
+That script runs. Outputs JSON. Claude gets the JSON as **part of the prompt context**, not as a tool response consuming a full turn.
+
+**Key insight:** 10+ tool calls can be replaced with 1 JSON blob. And that JSON is generated by a bash script that costs zero tokens.
+
+### 2. Thin Skill Dispatchers
+
+Skills should be **thin**. 20-40 lines max. Their job:
+1. Run pre-computation script (`!command`)
+2. Ask user 2-4 questions
+3. Spawn a delegated agent with heavy instructions
+
+The **agent** carries the style guide, the MDX reference, the workflow rules. The **main session** stays lean.
+
+**Before:**
+```text
+Skill (111 lines) → Main session does everything
+```
+
+**After:**
+```text
+Skill (38 lines) → Spawn agent (240 lines) → Agent does work in isolation
+```
+
+Main context: ~2K tokens instead of ~15K.
+
+### 3. Staging-Then-Deploy
+
+When you're generating 19 files with 8 parallel agents, **you will have bugs**. Don't deploy directly to `~/.claude/`. Stage first:
+
+1. Create `agent-assessment/output/` in your project
+2. Agents write all output there
+3. Validate syntax, test execution, check JSON output
+4. Fix bugs (and there WILL be bugs)
+5. Copy to `~/.claude/` production paths
+
+This saved me from broken configs reaching production **4 times** during implementation.
+
+### 4. MCP-as-Cache (Designed, Not Yet Built)
+
+For reference data that rarely changes (style guides, MDX component references), an MCP server could cache it across sessions:
+
+```text
+┌──────────────┐     ┌──────────────────┐     ┌─────────────┐
+│ Main Session │────▶│ MCP Cache Server  │────▶│ Style Guide │
+│              │     │ (Node.js process) │     │ (5min TTL)  │
+│ Agent 1      │────▶│                   │     ├─────────────┤
+│              │     │  blog_posts()     │     │ MDX Ref     │
+│ Agent 2      │────▶│  style_guide()    │     │ (5min TTL)  │
+│              │     │  validate_post()  │     ├─────────────┤
+└──────────────┘     └──────────────────┘     │ Blog Index  │
+                                               │ (file watch)│
+                                               └─────────────┘
+```
+
+**Projected savings:** 8,000-10,000 tokens per blog post. When the main session AND a spawned agent both need the style guide, the agent gets an instant cache hit instead of re-reading 154 lines. This is Phase 2 work, designed but not yet implemented.
+
+### 5. Hook-Triggered Automation (Zero Context Cost)
+
+Hooks run in PowerShell, outside the context window. The assessment designed three new hooks:
+
+- **auto-checkpoint.ps1** (PostToolUse): Backup MEMORY.md every 50 edits
+- **pre-commit-security.ps1** (PreToolUse): Block commits containing secrets
+- **validate-blog-post.ps1** (PostToolUse): Validate MDX after every write
+
+**Cost:** Literally zero tokens. Hooks are free. If you can move logic from a skill (costs tokens) to a hook (costs nothing), do it.
+
+### Pattern Summary
+
+```text
+PATTERN COMPARISON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pattern               │ Best For           │ Savings    │ Status
+──────────────────────┼────────────────────┼────────────┼──────────
+!command Pre-compute  │ Data gathering     │ 10K+ tokens│ Deployed
+Thin Skill Dispatcher │ Heavy workflows    │ 87-94%     │ Deployed
+Staging-Then-Deploy   │ Multi-file changes │ Bug prevent│ Deployed
+MCP-as-Cache          │ Reference data     │ 8-10K est. │ Designed
+Hook Automation       │ Validation/safety  │ Zero cost  │ Designed
+```
+
+## The 8-Agent Team Architecture
+
+I didn't do this alone. I built an 8-agent team:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                     MAIN SESSION (Lead)                      │
+│  • Orchestrate waves                                         │
+│  • Deploy validated files                                    │
+│  • Create backups                                            │
+└─────────────────────────────────────────────────────────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         │                   │                   │
+    ┌────▼────┐         ┌────▼────┐        ┌────▼────┐
+    │ WAVE 1  │         │ WAVE 2  │        │ WAVE 3  │
+    │ Staging │         │ Content │        │ Validate│
+    └─────────┘         └─────────┘        └─────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              │               │               │
+         ┌────▼─────┐    ┌────▼─────┐   ┌────▼─────┐
+         │ Script-1 │    │ Script-2 │   │ Agent-1  │
+         │ (git)    │    │ (blog)   │   │ (wrap-up)│
+         └──────────┘    └──────────┘   └──────────┘
+              │               │               │
+         ┌────▼─────┐    ┌────▼─────┐   ┌────▼─────┐
+         │ Agent-2  │    │ Skill-   │   │ Agent-   │
+         │ (blog+)  │    │ Rewriter │   │ Updater  │
+         └──────────┘    └──────────┘   └──────────┘
+```
+
+**Team roster:**
+
+| Agent | Type | Model | Files Created |
+|-------|------|-------|--------------|
+| script-writer-1 | general-purpose | sonnet | wrap-up-survey.sh, config-diff.sh, git-stats.sh |
+| script-writer-2 | general-purpose | sonnet | blog-inventory.sh, validate-mdx.sh, context-health.sh |
+| agent-writer-1 | general-purpose | sonnet | wrap-up-orchestrator.md, session-checkpoint.md |
+| agent-writer-2 | general-purpose | sonnet | blog-post-orchestrator.md, pre-commit-checker.md |
+| skill-rewriter | general-purpose | sonnet | 4 SKILL.md rewrites |
+| agent-updater | general-purpose | sonnet | 5 agent .md updates |
+| validator | general-purpose | sonnet | Syntax checks, execution tests |
+| lead (main) | - | - | Deployment, backups, docs |
+
+**Total parallel capacity:** 6 agents working simultaneously during Wave 2.
+
+## The 6 Execution Waves
+
+Here's how it actually went down:
+
+```text
+WAVE 1: STAGING STRUCTURE (5 minutes)
+├─ Create agent-assessment/output/
+├─ Create subdirs: scripts/, agents/, skills/, agent-updates/
+└─ Ready for parallel content creation
+
+WAVE 2: PARALLEL CONTENT CREATION (45 minutes)
+├─ script-writer-1 → 3 git-focused bash scripts
+├─ script-writer-2 → 3 blog-focused bash scripts
+├─ agent-writer-1 → 2 orchestrator agents
+├─ agent-writer-2 → 2 orchestrator agents
+├─ skill-rewriter → 4 SKILL.md rewrites
+└─ agent-updater → 5 agent updates
+    RESULT: 19 files created in staging area
+
+WAVE 3: VALIDATION + BUG FIXES (90 minutes)
+├─ validator: Syntax checks across all 19 files
+├─ validator: Execution tests on all 6 scripts
+├─ lead: Manual fixes for 8 bug categories
+└─ validator: JSON output verification
+    RESULT: All scripts produce valid JSON
+
+WAVE 4: DEPLOYMENT (10 minutes)
+├─ Create .backup of all 9 existing files
+├─ Copy 19 files to ~/.claude/ production paths
+└─ chmod +x on all 6 scripts
+    RESULT: Production deployment complete
+
+WAVE 5: SMOKE TESTS (15 minutes)
+├─ Test all 6 scripts from production paths
+└─ Verify JSON output format
+    RESULT: All systems operational
+
+WAVE 6: DOCUMENTATION (20 minutes)
+├─ CHANGELOG.md entry (2026-02-15)
+├─ README.md Phase 29 section
+├─ IMPLEMENTATION_SUMMARY.md
+└─ MEMORY.md updates
+    RESULT: Full audit trail preserved
+```
+
+**Total wall-clock time:** ~3 hours across 3 sessions.
+
+## The Bugs (Because There Are Always Bugs)
+
+AI-generated bash with `set -euo pipefail` is a minefield. Every script had at least one bug. Here are the categories that bit me:
+
+### 1. `((var++))` with `set -e` (4 scripts affected)
+
+This one killed me. Literally killed the scripts.
+
+**The bug:**
+```bash
+set -e
+count=0
+((count++))  # Exit code 1 when count is 0 (falsy)
+# Script dies here
+```
+
+**Why it happens:** `((0++))` evaluates to 0, which is falsy in bash arithmetic. Exit code 1. `set -e` sees that and kills the script.
+
+**The fix:**
+```bash
+count=$((count + 1))  # Always succeeds
+```
+
+**Affected:** wrap-up-survey.sh, blog-inventory.sh, validate-mdx.sh, git-stats.sh
+
+### 2. CRLF Line Endings (2 scripts affected)
+
+Windows MDX files use `\r\n` (CRLF). Bash string comparisons don't strip `\r` automatically.
+
+**The bug:**
+```bash
+while IFS= read -r line; do
+  if [[ "$line" == "---" ]]; then  # Never matches
+    # This never runs because line is "---\r"
+  fi
+done < file.mdx
+```
+
+**The fix:**
+```bash
+while IFS= read -r line; do
+  line="${line%$'\r'}"  # Strip trailing \r
+  if [[ "$line" == "---" ]]; then  # Now it matches
+    # This works
+  fi
+done < file.mdx
+```
+
+**Affected:** blog-inventory.sh, validate-mdx.sh
+
+### 3. `grep | wc -l` with `pipefail` (1 script affected)
+
+When grep finds no matches, it exits with code 1. In a pipeline with `set -o pipefail`, that exit code propagates and kills the script.
+
+**The bug:**
+```bash
+set -euo pipefail
+count=$(grep -o 'pattern' file.txt | wc -l)  # Exits when no matches
+```
+
+**The fix:**
+```bash
+count=$(grep -o 'pattern' file.txt 2>/dev/null | wc -l || echo 0)
+```
+
+**Affected:** validate-mdx.sh
+
+### 4. Subshell Variable Scoping (1 script affected)
+
+Pipelines run in subshells. Variable assignments don't propagate back to the parent.
+
+**The bug:**
+```bash
+max_date=""
+sort file.txt | while read line; do
+  max_date="$line"  # Assignment happens in subshell
+done
+echo "$max_date"  # Empty! Subshell variable died
+```
+
+**The fix:**
+```bash
+sorted=$(sort file.txt)
+while read line; do
+  max_date="$line"  # Assignment in parent shell
+done <<< "$sorted"
+echo "$max_date"  # Works!
+```
+
+**Affected:** blog-inventory.sh
+
+### 5. `local` Outside Functions (2 scripts affected)
+
+The `local` keyword only works inside bash functions. Using it in the main script body is a syntax error.
+
+**The bug:**
+```bash
+# Main script body
+local path="/some/path"  # Syntax error
+```
+
+**The fix:**
+```bash
+# Main script body
+path="/some/path"  # Just remove 'local'
+```
+
+**Affected:** config-diff.sh, context-health.sh
+
+### 6. Hardcoded Paths (2 scripts affected)
+
+On my machine, `$HOME` resolves to `/d/Users/chris_dnlqpqd` (OneDrive path), not `/c/Users/chris_dnlqpqd`.
+
+**The bug:**
+```bash
+CLAUDE_CONFIG="/c/Users/chris_dnlqpqd/.claude"  # Wrong!
+```
+
+**The fix:**
+```bash
+CLAUDE_CONFIG="$HOME/.claude"  # Works everywhere
+```
+
+**Affected:** wrap-up-survey.sh, git-stats.sh
+
+### 7. Trailing JSON Commas (1 script affected)
+
+Empty arrays in JSON output can create trailing commas, which breaks JSON parsers.
+
+**The bug:**
+```bash
+printf '  "repos":[\n'
+printf '%s\n' "$REPO_OUTPUT"  # Could be empty
+printf '  ],\n'  # Trailing comma if REPO_OUTPUT is empty
+```
+
+**The fix:**
+```bash
+if [[ -n "$REPO_OUTPUT" ]]; then
+  printf '  "repos":[\n'
+  printf '%s\n' "$REPO_OUTPUT"
+  printf '  ],\n'
+fi
+```
+
+**Affected:** wrap-up-survey.sh
+
+### 8. Spurious `\n` in JSON Strings (3 scripts affected)
+
+The `json_escape()` function had a sed rule that added literal `\n` to every string.
+
+**The bug:**
+```bash
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/$/\\n/'
+  # That s/$/\\n/ adds "\n" to the END of every line
+}
+```
+
+**The fix:**
+```bash
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\n'
+  # Remove the spurious sed rule, use tr to strip actual newlines
+}
+```
+
+**Affected:** wrap-up-survey.sh, blog-inventory.sh, git-stats.sh
+
+## The Before/After Comparison
+
+Here's what the optimization actually achieved:
+
+```
+┌────────────────────────────────────────────────────┐
+│                  TOKEN USAGE                       │
+├─────────────────────────┬──────────┬───────────────┤
+│ Component               │ Before   │ After         │
+├─────────────────────────┼──────────┼───────────────┤
+│ /wrap-up main context   │ 15,200   │  2,000 (87%) │
+│ /blog-post main context │ 40,800   │  2,500 (94%) │
+│ /multi-repo-status      │  6,000   │    800 (87%) │
+│ Session analysis        │  8,000   │  1,500 (81%) │
+├─────────────────────────┼──────────┼───────────────┤
+│ TOTAL PER SESSION       │ 70,000   │  6,800 (90%) │
+└─────────────────────────┴──────────┴───────────────┘
+```
+
+**How the savings work:**
+
+```text
+BEFORE: Monolithic Skill
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌──────────────────────────────────────────────────┐
+│              MAIN SESSION CONTEXT                 │
+│                                                   │
+│  Skill prompt (111 lines)............1,443 tokens │
+│  + CHANGELOG read....................  390 tokens  │
+│  + README read.......................  650 tokens  │
+│  + MEMORY.md × 2....................2,600 tokens  │
+│  + 12 git Bash tool calls............  390 tokens  │
+│  + style guide (154 lines)..........2,002 tokens  │
+│  + MDX reference (98 lines).........1,274 tokens  │
+│  + calibration posts (2-3)..........5,200 tokens  │
+│  + document edits...................2,000 tokens  │
+│  ────────────────────────────────────────────      │
+│  TOTAL IN MAIN CONTEXT:         ~15,949 tokens    │
+│                                                   │
+│  Everything runs here. Context fills up fast.     │
+└──────────────────────────────────────────────────┘
+
+
+AFTER: Thin Skill + Delegated Agent
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌──────────────────────────────────────────────────┐
+│              MAIN SESSION CONTEXT                 │
+│                                                   │
+│  !command pre-survey JSON..........  800 tokens   │
+│  Thin skill prompt (38 lines)......  494 tokens   │
+│  User Q&A (2 questions)............  200 tokens   │
+│  Agent summary (returned)..........  500 tokens   │
+│  ────────────────────────────────────────────      │
+│  TOTAL IN MAIN CONTEXT:          ~1,994 tokens    │
+│                                                   │
+│  Lean. Room for actual work.                      │
+└──────────────────────────────────────────────────┘
+           │
+           │ spawns
+           ▼
+┌──────────────────────────────────────────────────┐
+│           AGENT CONTEXT (isolated)                │
+│                                                   │
+│  Full instructions (240 lines).....3,120 tokens   │
+│  Style guide (embedded)............2,002 tokens   │
+│  MDX reference (embedded)..........1,274 tokens   │
+│  Git operations....................  390 tokens   │
+│  Document edits....................2,000 tokens   │
+│  ────────────────────────────────────────────      │
+│  TOTAL IN AGENT:              ~8,786 tokens       │
+│                                                   │
+│  Heavy lifting in isolation. Dies when done.      │
+└──────────────────────────────────────────────────┘
+```
+
+The key insight: the agent's 8,786 tokens live in an **isolated context window** that gets discarded when the agent finishes. Your main session never sees them. You only pay ~2,000 tokens in your main context, plus a 500-token summary that comes back.
+
+### Annual Projections
+
+The assessment ran the numbers:
+
+```text
+ANNUAL IMPACT (conservative estimate)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sessions per year:                         250
+Average tokens saved per session:       12,000
+Total tokens saved per year:         3,000,000
+
+At $3/MTok (Sonnet 4.5 input):        $9/year
+At $15/MTok (Opus 4.6 input):        $45/year
+
+But the real savings aren't dollars:
+  • Fewer context compaction events
+  • More headroom for complex tasks
+  • Cleaner conversation history
+  • Faster response times (less processing)
+```
+
+The dollar savings are modest. The productivity savings are not.
+
+## The ROI Scorecard
+
+Each component got a card with an ROI score from 1-10 based on token savings, implementation effort, and usage frequency. This is how I decided what to optimize first:
+
+```text
+COMPONENT ROI RANKING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tier 1: CRITICAL (implement first)
+  /blog-post ............... 10/10 ROI │ 40,800 → 2,500 tokens
+  /wrap-up .................. 9/10 ROI │ 15,200 → 2,000 tokens
+
+Tier 2: HIGH (quick wins)
+  session-analyzer .......... 8/10 ROI │  8,000 → 1,500 tokens
+  multi-repo-status ......... 8/10 ROI │  6,000 →   800 tokens
+  changelog-writer .......... 7/10 ROI │  3,500 → 1,200 tokens
+  config-sync ............... 6/10 ROI │  2,800 → 1,000 tokens
+
+Tier 3: MEDIUM (nice to have)
+  skill-catalog ............. 7/10 ROI │  1,500 →   500 tokens
+  deploy-verifier ........... 5/10 ROI │  2,500 → 1,200 tokens
+  skill-extractor ........... 4/10 ROI │  5,000 → 2,500 tokens
+
+Tier 4: LOW / SKIP
+  context-health ............ 5/10 ROI │    468 tokens (already minimal)
+  multi-repo-orchestrator ... merged into multi-repo-status script
+  hooks (all 4) ............. N/A      │ zero tokens, no optimization needed
+```
+
+The top two components alone accounted for 80% of the savings. That's where the 8-agent team focused its effort.
+
+## File Inventory: What Actually Changed
+
+### New Scripts (6 files in `~/.claude/scripts/`)
+
+| Script | Lines | Purpose |
+|--------|-------|---------|
+| wrap-up-survey.sh | 180 | Git state of 4 repos + session artifacts as JSON |
+| blog-inventory.sh | 200 | All MDX posts with frontmatter metadata as JSON |
+| validate-mdx.sh | 350 | Single MDX file validation (frontmatter, em dashes, code blocks, alt text) |
+| config-diff.sh | 140 | Compare local ~/.claude/ against git (master branch) |
+| context-health.sh | 50 | Transcript count, sizes, token estimates |
+| git-stats.sh | 120 | Recent commit history, file changes, top authors |
+
+### New Agent Definitions (4 files in `~/.claude/agents/`)
+
+| Agent | Model | Lines | Purpose |
+|-------|-------|-------|---------|
+| wrap-up-orchestrator.md | haiku | 240 | Automated session wrap-up (CHANGELOG, README, commits) |
+| blog-post-orchestrator.md | sonnet | 180 | Blog writing with embedded style guide + MDX reference |
+| pre-commit-checker.md | inherit | 90 | Unified security + quality gate |
+| session-checkpoint.md | haiku | 70 | Mid-session state preservation before compaction |
+
+### Skill Rewrites (4 files in `~/.claude/skills/`)
+
+| Skill | Before | After | Pre-computation |
+|-------|--------|-------|-----------------|
+| wrap-up/SKILL.md | 111 lines | 38 lines | wrap-up-survey.sh |
+| blog-post/SKILL.md | 54 lines | 41 lines | blog-inventory.sh --minimal |
+| multi-repo-status/SKILL.md | 39 lines | 20 lines | wrap-up-survey.sh (reused) |
+| skill-catalog/SKILL.md | 54 lines | 20 lines | ls file listing |
+
+### Agent Updates (5 files in `~/.claude/agents/`)
+
+| Agent | Change |
+|-------|--------|
+| session-analyzer.md | Added context-health.sh pre-computation reference |
+| changelog-writer.md | Added git-stats.sh pre-computation reference |
+| config-sync.md | Added config-diff.sh --json pre-computation reference |
+| deploy-verifier.md | Added git-stats.sh pre-computation reference |
+| context-health.md | Added Bash to tools, added context-health.sh reference |
+
+**Total files modified:** 9
+**Total files created:** 19
+**Total backups preserved:** 9 (all modified files have `.backup` copies)
+
+## Practical Tips from 9 Days of Daily Use
+
+Beyond the context optimization, here are 12 battle-tested tips:
+
+### 1. `/doctor` First, Always
+
+When Claude Code won't start or shows "invalid settings files," don't guess. Run `/doctor`. It shows exact file paths and error details.
+
+### 2. MCP Config Goes in `~/.claude.json`
+
+Not `~/.claude/mcp-servers.json` (that's for Claude Desktop). Use `claude mcp add --scope user`.
+
+### 3. Windows MCP Needs `cmd /c`
+
+MCP servers using `npx` on Windows MUST use:
+```json
+{
+  "command": "cmd",
+  "args": ["/c", "npx", "@modelcontextprotocol/server-memory"]
+}
+```
+
+Bare `npx` works in Git Bash but fails in PowerShell.
+
+### 4. Git Bash Path Mangling
+
+Git Bash rewrites Windows paths. `npx` commands fail because Git Bash prepends `C:\Program Files\Git` to module paths. Use `npx` with Node.js in PATH or invoke via PowerShell.
+
+### 5. Skills Auto-Discover Instantly
+
+Writing a `SKILL.md` in `~/.claude/skills/<name>/` makes it appear immediately. No restart needed.
+
+### 6. Skills > Commands
+
+When both exist for the same name, skills take priority. Commands become dead code.
+
+### 7. Subagents Are Sandboxed
+
+Task tool agents can't write to `~/.claude/`. Config files must be written from the main session.
+
+### 8. HEREDOC for Commit Messages
+
+Always pass commit messages via HEREDOC for proper formatting:
+```bash
+git commit -m "$(cat <<'EOF'
+Your commit message here.
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+EOF
+)"
+```
+
+### 9. Context Compaction Pre-Flight
+
+Before last 20% of context window, plan for compaction. Preserve critical state in MEMORY.md or knowledge graph.
+
+### 10. Parallel Agent Decomposition
+
+2+ independent research queries? Launch parallel Explore agents. Multi-file changes? Parallel general-purpose agents. Code just written? Immediately launch code-reviewer in parallel.
+
+### 11. Model Selection Strategy
+
+- **Haiku 4.5:** File search, background tasks, pair programming (3x cost savings)
+- **Sonnet 4.5:** Main development work, complex coding (best coding model)
+- **Opus 4.6:** Architectural decisions, security analysis (deepest reasoning)
+
+### 12. `set -euo pipefail` Is a Minefield
+
+Every arithmetic operation, grep pipeline, and conditional needs careful exit-code management. See bugs section above.
+
+## What This Means for You
+
+You don't need to build an 8-agent team to optimize your Claude Code config. But the assessment process itself is worth stealing.
+
+### The Assessment Framework
+
+Before optimizing anything, answer these questions for each component:
+
+```text
+COMPONENT EVALUATION CARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. What does it do now?
+2. How many tokens does it cost?
+   • Prompt size (lines × 13 ≈ tokens)
+   • Triggered file reads
+   • Tool call outputs
+3. What's static vs dynamic?
+   • Static: same every session → pre-compute
+   • Dynamic: changes each time → keep in context
+4. Can a delegated agent handle the heavy work?
+5. Can a hook handle validation for free?
+6. What's the ROI score? (savings × frequency / effort)
+```
+
+I used this template for all 11 components. It took about 2 hours with 7 parallel research agents. You could do it manually in an afternoon.
+
+### The Core Principle
+
+**Static data should be computed once, not re-read every session.**
+
+Ask yourself:
+- Am I reading the same files every time I run this command?
+- Am I running the same git status checks every session?
+- Am I carrying heavy reference docs (style guides, API specs) in my main context when a delegated agent could carry them instead?
+
+If yes to any of those, you have optimization opportunities.
+
+### Start Small
+
+1. Pick your highest-cost workflow (run it, check context usage)
+2. Identify what data is static vs. dynamic
+3. Write a bash script that outputs the static data as JSON
+4. Add `!command` to your skill file to run that script
+5. Measure the difference
+
+You'll be shocked how much context you're burning on data that doesn't change.
+
+## Rollback Plan (Because You Should Always Have One)
+
+Every modified file has a `.backup` alongside it. If something breaks:
+
+```bash
+# Restore all skills
+for f in ~/.claude/skills/*/SKILL.md.backup; do
+  cp "$f" "${f%.backup}"
+done
+
+# Restore all agents
+for f in ~/.claude/agents/*.md.backup; do
+  cp "$f" "${f%.backup}"
+done
+
+# Remove new files
+rm ~/.claude/agents/{wrap-up-orchestrator,blog-post-orchestrator,pre-commit-checker,session-checkpoint}.md
+rm ~/.claude/scripts/{wrap-up-survey,blog-inventory,validate-mdx,config-diff,context-health,git-stats}.sh
+```
+
+**Recovery time:** ~2 minutes.
+
+## What's Next
+
+I'm running this optimized config for the next week to gather real-world metrics:
+- Average context usage per session
+- Time saved per workflow
+- Bug rate in production
+- User friction (did I over-optimize?)
+
+I'll report back with hard numbers in a follow-up post.
+
+For now, I'm shipping this. 90% reduction. Zero compromises. And a bash debugging education I didn't know I needed.
+
+If you're burning context on static data, fix it. Your future self (and your API bill) will thank you.
+
+---
+
+**Want to see the code?** All 19 optimized files (scripts, agents, skills) are in my [claude-code-config repo](https://github.com/chris2ao/claude-code-config) (public). The full assessment with all 23 evaluation documents, component scorecards, and implementation guides lives in [this project's repo](https://github.com/chris2ao/CJClaude_1).
+
+**The assessment framework is the real takeaway.** The 90% reduction is nice, but the systematic approach of measuring first, scoring second, and implementing third is what made it possible without breaking anything. Steal the evaluation card template. Run your own audit. You'll find savings you didn't know you had.
