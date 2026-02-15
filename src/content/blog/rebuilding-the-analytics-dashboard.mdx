@@ -1,5 +1,5 @@
 ---
-title: "The Analytics Dashboard Glow-Up: From 'It Works' to 'It Sparks Joy'"
+title: "From Page Views to Full Telemetry: Rebuilding the Analytics Dashboard"
 date: "2026-02-15T14:00:00"
 author: "Chris Johnson"
 readingTime: "18 min read"
@@ -17,7 +17,7 @@ In other words, it was the analytics equivalent of checking your bank balance bu
 
 Today? It's a 9-section, 26-component command center with heatmaps, scroll depth tracking, engagement metrics, bot detection, API telemetry, and Core Web Vitals. It sparks joy. It also sparks questions like "why did I spend an entire session on tooltips?" but we'll get to that.
 
-![Dog sitting at computer with no idea what it's doing](https://media.giphy.com/media/HuTdo5dgBOsKk/giphy.gif)
+![Dog working at a computer pretending to know what it's doing](https://media.giphy.com/media/VXCPgZwEP7f1e/giphy.gif)
 
 ## The Starting Point: What We Had
 
@@ -183,7 +183,7 @@ Imagine you timed 100 pizza deliveries. The p50 (median) is the delivery time wh
 
 We also track error rates per endpoint. If `/api/analytics/track` suddenly has a 15% error rate, something is wrong and I want to know before my visitors do.
 
-![Detective squinting at screen](https://media.giphy.com/media/sRGUfdb6sNWFhcWIml/giphy.gif)
+![Detective examining evidence with a magnifying glass](https://media.giphy.com/media/3oriO8vwmRIZO6kcNO/giphy.gif)
 
 ### Section 6: Performance (Core Web Vitals)
 
@@ -225,7 +225,7 @@ The **Vercel Firewall Card** pulls real-time data from Vercel's API to show:
 A WAF is like a bouncer at the door of your website. It inspects every incoming request and decides whether to let it through or block it. It looks for known attack patterns: SQL injection attempts, cross-site scripting (XSS), vulnerability scanners, and other nasty things. OWASP (the Open Web Application Security Project) maintains a standard set of rules that most WAFs use. Think of it as a spam filter, but for web attacks instead of emails.
 </Info>
 
-![Watching security cameras meme](https://media.giphy.com/media/l0HlvtIPdijJT1Dqo/giphy.gif)
+![Big Brother is watching you through security monitors](https://media.giphy.com/media/6AlK10KuTyToP2wmn8/giphy.gif)
 
 ### Section 8: Newsletter
 
@@ -437,4 +437,4 @@ Like a lava lamp, but with data.
 
 **Previous in series:** [7 Days, 117 Commits: Building a Production Website with AI](/blog/7-days-117-commits-building-a-production-site-with-ai)
 
-*Built with Claude Code (Opus 4.6). 26 components, 13 new metrics, 9 sections, 1 deeply satisfying heatmap. If your analytics dashboard doesn't spark joy, you're not adding enough tooltips.*
+*Built with Claude Code (Opus 4.6). 26 components, 13 new metrics, 9 sections, 1 deeply satisfying heatmap. If your dashboard can't tell you what's happening at 3 AM on a Tuesday, you're not done building it.*
