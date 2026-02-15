@@ -211,6 +211,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
           {comments.map((c) => (
             <div
               key={c.id}
+              id={`comment-${c.id}`}
               className="rounded-lg border border-border bg-card/50 p-4"
             >
               <div className="flex items-center gap-2 mb-2">

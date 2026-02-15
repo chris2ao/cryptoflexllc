@@ -101,7 +101,14 @@ export function CommentsPanel({ comments: initialComments }: CommentsPanelProps)
                     {c.slug}
                   </td>
                   <td className="px-4 py-2 max-w-[280px] truncate" title={c.comment}>
-                    {c.comment}
+                    <a
+                      href={`https://cryptoflexllc.com/blog/${c.slug}#comment-${c.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/30 hover:decoration-primary/60 transition-colors"
+                    >
+                      {c.comment}
+                    </a>
                   </td>
                   <td className="px-4 py-2">
                     {c.reaction === "up" ? (
