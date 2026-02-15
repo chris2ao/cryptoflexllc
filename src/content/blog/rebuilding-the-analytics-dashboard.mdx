@@ -108,6 +108,8 @@ The heatmap is a 7-day-by-24-hour grid where each cell's color intensity shows h
 A line chart can show you traffic over time, but it compresses an entire day into a single data point. A heatmap shows you the texture of your traffic. Tuesday at 2 PM looks different from Saturday at midnight, and that difference matters when you're deciding when to publish content or schedule maintenance.
 </Tip>
 
+![Overview section showing KPI stat cards, Page Views Over Time area chart, and Peak Hours Heatmap](/blog/dashboard-overview.png)
+
 ### Section 2: Audience & Geography
 
 This section answers the "who" questions. The world map was already here, but we added two new charts:
@@ -119,6 +121,8 @@ This section answers the "who" questions. The world map was already here, but we
 <Info title="What is a referrer?">
 When you click a link on one website that takes you to another, the browser sends along a note saying "this person came from [URL]." That's the referrer. It's how website owners know whether their traffic is coming from Google, social media, email campaigns, or that Slack message your coworker shared. Some browsers and privacy tools strip this information, so referrer data is always a lower bound, not an exact count.
 </Info>
+
+![Audience section showing the visitor world map, countries breakdown, and new vs. returning visitors](/blog/dashboard-audience-geography.png)
 
 ### Section 3: Content & Engagement (The Good Stuff)
 
@@ -199,6 +203,8 @@ Each metric shows a distribution bar so you can see not just the average, but *h
 If your average LCP is 2.3 seconds, that sounds fine. But what if 40% of visitors have a 4-second LCP? The average was hiding a bimodal distribution, some visitors have a great experience and some have a terrible one. Distribution bars expose this immediately.
 </Tip>
 
+![Performance section showing Web Analytics and Speed Insights with Core Web Vitals distribution bars](/blog/dashboard-performance-vitals.png)
+
 ### Section 7: Security (Because I'm That Guy)
 
 Remember, I'm a cybersecurity professional. This section is my playground.
@@ -227,6 +233,8 @@ A WAF is like a bouncer at the door of your website. It inspects every incoming 
 
 ![Big Brother is watching you through security monitors](https://media.giphy.com/media/6AlK10KuTyToP2wmn8/giphy.gif)
 
+![Security section showing bot traffic trends, auth attempts, Vercel Firewall status, and newsletter metrics](/blog/dashboard-security-newsletter.png)
+
 ### Section 8: Newsletter
 
 Subscriber counts, active vs. inactive breakdown, and a full subscriber list table. This was already built but it now lives in its own section instead of being awkwardly shoved at the bottom.
@@ -234,6 +242,8 @@ Subscriber counts, active vs. inactive breakdown, and a full subscriber list tab
 ### Section 9: Recent Activity
 
 The raw data firehose. Last 50 page views with full visitor details, plus sortable data tables for every dimension (pages, countries, browsers, devices, OS, referrers).
+
+![Recent Activity data tables showing top pages, countries, browsers, and devices](/blog/dashboard-data-tables.png)
 
 ## The Component Architecture: Making It Maintainable
 
