@@ -169,6 +169,15 @@ export interface WebVitalsSummary {
   poor_count: number;
 }
 
+export interface CommentRow {
+  id: number;
+  slug: string;
+  comment: string;
+  reaction: "up" | "down";
+  email: string;
+  created_at: string;
+}
+
 export interface SubscriberRow {
   id: number;
   email: string;

@@ -12,7 +12,7 @@
  *   5. Server Telemetry — API response times, error rates
  *   6. Performance — Web Vitals (Speed Insights)
  *   7. Security — Vercel Firewall, bot traffic, auth attempts
- *   8. Newsletter — subscriber management
+ *   8. Newsletter & Comments — subscriber management, comment moderation
  *   9. Recent Activity — visit log + data tables
  */
 
@@ -31,6 +31,7 @@ import type {
   OsRow,
   RecentVisit,
   SubscriberRow,
+  CommentRow,
   VercelFirewallConfig,
   VercelAttackStatus,
   VercelFirewallEvents,
@@ -66,6 +67,7 @@ import { VercelFirewallCard } from "./_components/vercel-firewall-card";
 import { VercelAnalyticsCard } from "./_components/vercel-analytics-card";
 import { VercelSpeedInsightsCard } from "./_components/vercel-speed-insights-card";
 import { SubscriberPanel } from "./_components/subscriber-panel";
+import { CommentsPanel } from "./_components/comments-panel";
 import { ReferrerChart } from "./_components/referrer-chart";
 import { PeakHoursHeatmap } from "./_components/peak-hours-heatmap";
 import { ScrollDepthChart } from "./_components/scroll-depth-chart";
@@ -129,6 +131,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       authAttempts,
       newVsReturning,
       bounceData,
+      commentList,
     ] = await Promise.all([
       // 0: Summary stats
       sql`
@@ -376,6 +379,12 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
           COUNT(*)::int AS total_visitors
         FROM visitor_pages
       `.catch(() => [{ single_page: 0, total_visitors: 0 }]),
+      // 22: Blog comments (all, for moderation)
+      sql`
+        SELECT id, slug, comment, reaction, email, created_at
+        FROM blog_comments
+        ORDER BY created_at DESC
+      `.catch(() => []),
     ]);
 
     const stats = summary[0] || {
@@ -441,6 +450,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
     const typedApiDaily = apiMetricsDaily as unknown as ApiMetricDailyRow[];
     const typedBotTrend = botTrend as unknown as BotTrendRow[];
     const typedAuthAttempts = authAttempts as unknown as AuthAttemptRow[];
+    const typedComments = commentList as unknown as CommentRow[];
 
     return (
       <section className="py-16 sm:py-20">
@@ -627,17 +637,21 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
               SECTION 8: NEWSLETTER
               ═══════════════════════════════════════════ */}
           <SectionHeader
-            title="Newsletter"
-            description="Subscriber counts, status, and geographic distribution"
+            title="Newsletter & Comments"
+            description="Subscriber management, comment moderation, and engagement"
           />
 
-          <div className="mb-10">
+          <div className="mb-8">
             <SubscriberPanel
               totalCount={subStats.total}
               activeCount={subStats.active}
               inactiveCount={subStats.inactive}
               subscribers={typedSubscribers}
             />
+          </div>
+
+          <div className="mb-10">
+            <CommentsPanel comments={typedComments} />
           </div>
 
           {/* ═══════════════════════════════════════════
