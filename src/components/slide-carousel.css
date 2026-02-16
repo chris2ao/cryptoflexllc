@@ -1,0 +1,234 @@
+.slide-carousel-theme {
+  --bg-deep: #06090f;
+  --bg-card: #0c1120;
+  --bg-card-alt: #101829;
+  --border: #1a2744;
+  --cyan: #22d3ee;
+  --cyan-dim: #22d3ee44;
+  --blue: #3b82f6;
+  --blue-bright: #60a5fa;
+  --green: #34d399;
+  --green-dim: #34d39944;
+  --amber: #fbbf24;
+  --amber-dim: #fbbf2444;
+  --red: #f87171;
+  --red-dim: #f8717144;
+  --purple: #a78bfa;
+  --purple-dim: #a78bfa44;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
+  --white: #f8fafc;
+
+  font-family: var(--font-outfit), sans-serif;
+  color: var(--text);
+}
+
+/* Slide base */
+.slide-carousel-theme .slide {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-deep);
+  padding: 6%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Grid overlay */
+.slide-carousel-theme .slide::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Glow effects */
+.slide-carousel-theme .glow-top-right {
+  position: absolute;
+  top: -20%;
+  right: -20%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, var(--cyan-dim) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.slide-carousel-theme .glow-bottom-left {
+  position: absolute;
+  bottom: -20%;
+  left: -20%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, #3b82f644 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Typography */
+.slide-carousel-theme .heading-syne {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.slide-carousel-theme .mono {
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+
+/* Stats grid */
+.slide-carousel-theme .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8%;
+}
+
+.slide-carousel-theme .stat-number {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.2rem, 5vw, 2.4rem);
+  line-height: 1;
+}
+
+.slide-carousel-theme .stat-label {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: clamp(0.5rem, 1.5vw, 0.7rem);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.slide-carousel-theme .stat-desc {
+  font-size: clamp(0.5rem, 1.5vw, 0.65rem);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Timeline */
+.slide-carousel-theme .timeline-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5%;
+}
+
+.slide-carousel-theme .timeline-tag {
+  display: inline-block;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: clamp(0.45rem, 1.2vw, 0.6rem);
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--text-dim);
+}
+
+/* Security agents */
+.slide-carousel-theme .agent-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4%;
+}
+
+.slide-carousel-theme .agent-finding {
+  font-size: clamp(0.5rem, 1.3vw, 0.65rem);
+  color: var(--text-dim);
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Severity badges */
+.slide-carousel-theme .severity-critical {
+  color: var(--red);
+}
+
+.slide-carousel-theme .severity-high {
+  color: var(--amber);
+}
+
+.slide-carousel-theme .severity-medium {
+  color: var(--blue-bright);
+}
+
+.slide-carousel-theme .severity-info {
+  color: var(--text-muted);
+}
+
+/* Architecture grid */
+.slide-carousel-theme .arch-category {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4%;
+}
+
+.slide-carousel-theme .arch-tag {
+  display: inline-block;
+  font-size: clamp(0.45rem, 1.2vw, 0.6rem);
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--text-dim);
+}
+
+/* Slide footer */
+.slide-carousel-theme .slide-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3% 6%;
+  border-top: 1px solid var(--border);
+  background: var(--bg-deep);
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: clamp(0.45rem, 1.2vw, 0.6rem);
+  color: var(--text-muted);
+}
+
+.slide-carousel-theme .slide-footer .brand-highlight {
+  color: var(--cyan);
+}
+
+/* Takeaways */
+.slide-carousel-theme .takeaway-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4%;
+}
+
+.slide-carousel-theme .takeaway-number {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 800;
+  color: var(--cyan);
+  font-size: clamp(0.7rem, 2vw, 1rem);
+}
+
+/* CTA slide */
+.slide-carousel-theme .cta-quote {
+  font-family: var(--font-syne), sans-serif;
+  font-size: clamp(0.6rem, 2vw, 1rem);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--white);
+  border-left: 3px solid var(--cyan);
+  padding-left: 5%;
+}
+
+.slide-carousel-theme .cta-url {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 800;
+  font-size: clamp(1rem, 3.5vw, 1.8rem);
+  color: var(--cyan);
+}

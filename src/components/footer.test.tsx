@@ -23,7 +23,7 @@ describe("Footer", () => {
     ).toBeInTheDocument();
   });
 
-  it("has all 5 navigation links", () => {
+  it("has all 6 navigation links", () => {
     render(<Footer />);
     expect(screen.getByRole("link", { name: "Blog" })).toHaveAttribute(
       "href",
@@ -36,6 +36,10 @@ describe("Footer", () => {
     expect(screen.getByRole("link", { name: "Portfolio" })).toHaveAttribute(
       "href",
       "/portfolio"
+    );
+    expect(screen.getByRole("link", { name: "Resources" })).toHaveAttribute(
+      "href",
+      "/resources"
     );
     expect(screen.getByRole("link", { name: "Services" })).toHaveAttribute(
       "href",

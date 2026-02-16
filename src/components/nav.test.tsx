@@ -38,13 +38,14 @@ describe("Nav", () => {
     vi.clearAllMocks();
   });
 
-  it("renders all 6 navigation links", () => {
+  it("renders all 7 navigation links", () => {
     render(<Nav />);
     expect(screen.getAllByText("Home").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Blog").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Services").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("About").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Portfolio").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Resources").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Contact").length).toBeGreaterThanOrEqual(1);
   });
 

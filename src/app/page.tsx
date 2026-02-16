@@ -64,6 +64,23 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Resources Teaser */}
+      <section className="py-16 sm:py-20 border-t border-border/40">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl sm:text-3xl font-bold">Resources</h2>
+            <p className="mt-4 text-muted-foreground leading-relaxed">
+              Visual recaps, slide decks, and reference material from my
+              projects. Start with the &quot;7 Days, 117 Commits&quot; carousel
+              for the full build story.
+            </p>
+            <Button asChild variant="outline" className="mt-6">
+              <Link href="/resources">Browse resources</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Services Teaser */}
       <section className="py-16 sm:py-20 border-t border-border/40">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
