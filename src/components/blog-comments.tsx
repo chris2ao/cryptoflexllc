@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { sendGAEvent } from "@next/third-parties/google";
-import { ThumbsUp, ThumbsDown, Loader2, MessageSquare, Send } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Loader2, MessageSquare, Send, Reply, X } from "lucide-react";
 
 interface Comment {
   id: number;
@@ -11,6 +11,11 @@ interface Comment {
   reaction: "up" | "down";
   email: string;
   created_at: string;
+  parent_id: number | null;
+}
+
+interface CommentWithReplies extends Comment {
+  replies: Comment[];
 }
 
 interface BlogCommentsProps {
@@ -19,7 +24,7 @@ interface BlogCommentsProps {
 }
 
 export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<CommentWithReplies[]>([]);
   const [thumbsUp, setThumbsUp] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +35,15 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [submitMessage, setSubmitMessage] = useState("");
+
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyComment, setReplyComment] = useState("");
+  const [replyReaction, setReplyReaction] = useState<"up" | "down">("up");
+  const [replyEmail, setReplyEmail] = useState("");
+  const [replySubmitting, setReplySubmitting] = useState(false);
+  const [replyStatus, setReplyStatus] = useState<"idle" | "success" | "error">("idle");
+  const [replyMessage, setReplyMessage] = useState("");
 
   const fetchComments = useCallback(async () => {
     try {
@@ -93,12 +107,203 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
     }
   }
 
+  async function handleReplySubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!replyComment.trim() || !replyEmail.trim() || replyingTo == null) return;
+
+    setReplySubmitting(true);
+    setReplyStatus("idle");
+
+    try {
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          comment: replyComment,
+          reaction: replyReaction,
+          email: replyEmail,
+          parent_id: replyingTo,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setReplyStatus("error");
+        setReplyMessage(data.error ?? "Something went wrong.");
+        return;
+      }
+
+      setReplyStatus("success");
+      setReplyMessage("Reply posted!");
+      sendGAEvent("event", "blog_comment_reply", { post_slug: slug, reaction: replyReaction });
+      setReplyComment("");
+      setReplyReaction("up");
+      setReplyEmail("");
+
+      // Refresh comments and close reply form
+      await fetchComments();
+      setTimeout(() => {
+        setReplyingTo(null);
+        setReplyStatus("idle");
+      }, 1500);
+    } catch {
+      setReplyStatus("error");
+      setReplyMessage("Network error. Please try again.");
+    } finally {
+      setReplySubmitting(false);
+    }
+  }
+
+  function cancelReply() {
+    setReplyingTo(null);
+    setReplyComment("");
+    setReplyReaction("up");
+    setReplyEmail("");
+    setReplyStatus("idle");
+    setReplyMessage("");
+  }
+
   // Mask email for display: show first 2 chars + domain
   function maskEmail(email: string): string {
     const [local, domain] = email.split("@");
     if (!domain) return email;
     const visible = local.slice(0, 2);
     return `${visible}***@${domain}`;
+  }
+
+  function renderCommentCard(c: Comment, isReply: boolean = false) {
+    return (
+      <div
+        key={c.id}
+        id={`comment-${c.id}`}
+        className={`rounded-lg border border-border bg-card/50 p-4 ${isReply ? "ml-8 border-l-2 border-l-primary/30" : ""}`}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          {isReply && <Reply className="h-3.5 w-3.5 text-muted-foreground" />}
+          {c.reaction === "up" ? (
+            <ThumbsUp className="h-4 w-4 text-green-400" />
+          ) : (
+            <ThumbsDown className="h-4 w-4 text-red-400" />
+          )}
+          <span className="text-xs text-muted-foreground font-mono">
+            {maskEmail(c.email)}
+          </span>
+          <span className="text-xs text-muted-foreground">&middot;</span>
+          <span className="text-xs text-muted-foreground">
+            {new Date(c.created_at).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
+          </span>
+        </div>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+          {c.comment}
+        </p>
+      </div>
+    );
+  }
+
+  function renderReplyForm(parentId: number) {
+    if (replyingTo !== parentId) return null;
+
+    return (
+      <div className="ml-8 mt-2">
+        <form onSubmit={handleReplySubmit} className="space-y-3 rounded-lg border border-primary/20 bg-card/30 p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-primary">Replying to comment</span>
+            <button
+              type="button"
+              onClick={cancelReply}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+              Cancel
+            </button>
+          </div>
+
+          <textarea
+            value={replyComment}
+            onChange={(e) => {
+              setReplyComment(e.target.value);
+              if (replyStatus === "error") setReplyStatus("idle");
+            }}
+            placeholder="Write your reply..."
+            rows={2}
+            maxLength={2000}
+            required
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y min-h-[60px]"
+          />
+
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+            {/* Reaction toggle */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground mr-1">Reaction:</span>
+              <button
+                type="button"
+                onClick={() => setReplyReaction("up")}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  replyReaction === "up"
+                    ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/40"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ThumbsUp className="h-3.5 w-3.5" />
+                Up
+              </button>
+              <button
+                type="button"
+                onClick={() => setReplyReaction("down")}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  replyReaction === "down"
+                    ? "bg-red-500/20 text-red-400 ring-1 ring-red-500/40"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ThumbsDown className="h-3.5 w-3.5" />
+                Down
+              </button>
+            </div>
+
+            {/* Email + submit */}
+            <div className="flex flex-1 gap-2 w-full sm:w-auto">
+              <input
+                type="email"
+                required
+                value={replyEmail}
+                onChange={(e) => {
+                  setReplyEmail(e.target.value);
+                  if (replyStatus === "error") setReplyStatus("idle");
+                }}
+                placeholder="your-subscriber@email.com"
+                className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <button
+                type="submit"
+                disabled={replySubmitting}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {replySubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Reply
+              </button>
+            </div>
+          </div>
+
+          {replyStatus === "success" && (
+            <p className="text-sm text-green-400">{replyMessage}</p>
+          )}
+          {replyStatus === "error" && (
+            <p className="text-sm text-red-400">{replyMessage}</p>
+          )}
+        </form>
+      </div>
+    );
   }
 
   return (
@@ -209,32 +414,38 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
       ) : (
         <div className="space-y-4">
           {comments.map((c) => (
-            <div
-              key={c.id}
-              id={`comment-${c.id}`}
-              className="rounded-lg border border-border bg-card/50 p-4"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                {c.reaction === "up" ? (
-                  <ThumbsUp className="h-4 w-4 text-green-400" />
-                ) : (
-                  <ThumbsDown className="h-4 w-4 text-red-400" />
-                )}
-                <span className="text-xs text-muted-foreground font-mono">
-                  {maskEmail(c.email)}
-                </span>
-                <span className="text-xs text-muted-foreground">&middot;</span>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(c.created_at).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </span>
+            <div key={c.id}>
+              {/* Top-level comment */}
+              {renderCommentCard(c)}
+
+              {/* Reply button */}
+              <div className="mt-1 ml-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (replyingTo === c.id) {
+                      cancelReply();
+                    } else {
+                      cancelReply();
+                      setReplyingTo(c.id);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Reply className="h-3.5 w-3.5" />
+                  Reply
+                </button>
               </div>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                {c.comment}
-              </p>
+
+              {/* Reply form (shown when replying to this comment) */}
+              {renderReplyForm(c.id)}
+
+              {/* Replies */}
+              {c.replies.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {c.replies.map((reply) => renderCommentCard(reply, true))}
+                </div>
+              )}
             </div>
           ))}
         </div>

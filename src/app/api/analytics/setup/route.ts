@@ -165,6 +165,17 @@ export async function GET(request: NextRequest) {
         ON blog_comments (slug)
     `;
 
+    // Add reply threading support (single-level replies)
+    await sql`
+      ALTER TABLE blog_comments
+        ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES blog_comments(id) ON DELETE CASCADE
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_blog_comments_parent_id
+        ON blog_comments (parent_id)
+    `;
+
     // API response time metrics
     await sql`
       CREATE TABLE IF NOT EXISTS api_metrics (

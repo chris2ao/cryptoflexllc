@@ -2,15 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BlogComments } from "./blog-comments";
 
-const mockComments = [
-  {
-    id: 1,
-    slug: "test-post",
-    comment: "Great post!",
-    reaction: "up" as const,
-    email: "test@example.com",
-    created_at: "2026-02-01T12:00:00Z",
-  },
+const mockCommentsThreaded = [
   {
     id: 2,
     slug: "test-post",
@@ -18,6 +10,28 @@ const mockComments = [
     reaction: "down" as const,
     email: "another@test.com",
     created_at: "2026-02-02T14:30:00Z",
+    parent_id: null,
+    replies: [],
+  },
+  {
+    id: 1,
+    slug: "test-post",
+    comment: "Great post!",
+    reaction: "up" as const,
+    email: "test@example.com",
+    created_at: "2026-02-01T12:00:00Z",
+    parent_id: null,
+    replies: [
+      {
+        id: 3,
+        slug: "test-post",
+        comment: "I agree with this!",
+        reaction: "up" as const,
+        email: "reply@example.com",
+        created_at: "2026-02-03T13:00:00Z",
+        parent_id: 1,
+      },
+    ],
   },
 ];
 
@@ -29,7 +43,7 @@ describe("BlogComments", () => {
   it("fetches and displays comments on mount", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ comments: mockComments, thumbsUp: 1 }),
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
     });
 
     render(<BlogComments slug="test-post" />);
@@ -39,6 +53,75 @@ describe("BlogComments", () => {
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/comments?slug=test-post"
     );
+  });
+
+  it("displays replies indented below parent comments", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
+    });
+
+    render(<BlogComments slug="test-post" />);
+
+    expect(await screen.findByText("I agree with this!")).toBeInTheDocument();
+
+    // Reply should have the indented class
+    const replyElement = document.getElementById("comment-3");
+    expect(replyElement).toBeInTheDocument();
+    expect(replyElement?.className).toContain("ml-8");
+  });
+
+  it("shows Reply button on top-level comments", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
+    });
+
+    render(<BlogComments slug="test-post" />);
+
+    await screen.findByText("Great post!");
+
+    const replyButtons = screen.getAllByRole("button", { name: /reply/i });
+    // Should have reply buttons for the 2 top-level comments
+    expect(replyButtons.length).toBe(2);
+  });
+
+  it("shows reply form when Reply button is clicked", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
+    });
+
+    render(<BlogComments slug="test-post" />);
+
+    await screen.findByText("Great post!");
+
+    const replyButtons = screen.getAllByRole("button", { name: /^reply$/i });
+    fireEvent.click(replyButtons[0]);
+
+    expect(screen.getByText("Replying to comment")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Write your reply...")).toBeInTheDocument();
+  });
+
+  it("hides reply form when Cancel is clicked", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
+    });
+
+    render(<BlogComments slug="test-post" />);
+
+    await screen.findByText("Great post!");
+
+    const replyButtons = screen.getAllByRole("button", { name: /^reply$/i });
+    fireEvent.click(replyButtons[0]);
+
+    expect(screen.getByText("Replying to comment")).toBeInTheDocument();
+
+    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+    fireEvent.click(cancelButton);
+
+    expect(screen.queryByText("Replying to comment")).not.toBeInTheDocument();
   });
 
   it("shows loading state initially", () => {
@@ -67,7 +150,7 @@ describe("BlogComments", () => {
   it("masks email addresses correctly", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ comments: mockComments, thumbsUp: 1 }),
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
     });
 
     render(<BlogComments slug="test-post" />);
@@ -85,6 +168,8 @@ describe("BlogComments", () => {
         reaction: "up" as const,
         email: "notanemail",
         created_at: "2026-02-01T12:00:00Z",
+        parent_id: null,
+        replies: [],
       },
     ];
 
@@ -102,7 +187,7 @@ describe("BlogComments", () => {
   it("formats dates correctly", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ comments: mockComments, thumbsUp: 1 }),
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
     });
 
     render(<BlogComments slug="test-post" />);
@@ -114,7 +199,7 @@ describe("BlogComments", () => {
   it("displays thumbs-up and thumbs-down icons correctly", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ comments: mockComments, thumbsUp: 1 }),
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
     });
 
     render(<BlogComments slug="test-post" />);
@@ -132,7 +217,7 @@ describe("BlogComments", () => {
   it("shows thumbs-up summary when count > 0", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ comments: mockComments, thumbsUp: 5 }),
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 5 }),
     });
 
     render(<BlogComments slug="test-post" />);
@@ -145,7 +230,7 @@ describe("BlogComments", () => {
   it("shows singular 'person' when thumbsUp count is 1", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ comments: mockComments, thumbsUp: 1 }),
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
     });
 
     render(<BlogComments slug="test-post" />);
@@ -158,7 +243,7 @@ describe("BlogComments", () => {
   it("hides thumbs-up summary when count is 0", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ comments: mockComments, thumbsUp: 0 }),
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 0 }),
     });
 
     render(<BlogComments slug="test-post" />);
@@ -173,7 +258,7 @@ describe("BlogComments", () => {
 
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ comments: mockComments, thumbsUp: 3 }),
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 3 }),
     });
 
     render(<BlogComments slug="test-post" onThumbsUpCount={callback} />);
@@ -239,6 +324,8 @@ describe("BlogComments", () => {
               reaction: "up",
               email: "new@example.com",
               created_at: new Date().toISOString(),
+              parent_id: null,
+              replies: [],
             },
           ],
           thumbsUp: 1,

@@ -30,6 +30,7 @@ const commentSchema = z.object({
   comment: z.string().trim().min(3).max(2000),
   email: z.string().email().max(320),
   reaction: z.enum(["up", "down"]).optional().default("up"),
+  parent_id: z.number().int().positive().optional(),
 });
 
 // ---- GET: Fetch comments for a post ----
@@ -64,25 +65,52 @@ export async function GET(request: NextRequest) {
     const sql = getDb();
 
     // Only return masked emails to prevent PII exposure on this public endpoint
-    const comments = await sql`
+    const rows = await sql`
       SELECT id, slug, comment, reaction,
         CONCAT(LEFT(email, 1), '***@', SPLIT_PART(email, '@', 2)) AS email,
-        created_at
+        created_at, parent_id
       FROM blog_comments
       WHERE slug = ${slug}
-      ORDER BY created_at DESC
+      ORDER BY created_at ASC
     `;
 
-    // Count thumbs up for this post
+    // Group into threaded structure: top-level comments with nested replies
+    const topLevel: Array<Record<string, unknown>> = [];
+    const replyMap = new Map<number, Array<Record<string, unknown>>>();
+
+    for (const row of rows) {
+      if (row.parent_id == null) {
+        topLevel.push({ ...row, replies: [] });
+      } else {
+        const parentId = Number(row.parent_id);
+        if (!replyMap.has(parentId)) {
+          replyMap.set(parentId, []);
+        }
+        replyMap.get(parentId)!.push(row);
+      }
+    }
+
+    // Attach replies to their parents
+    for (const comment of topLevel) {
+      const id = Number(comment.id);
+      if (replyMap.has(id)) {
+        (comment.replies as Array<Record<string, unknown>>).push(...replyMap.get(id)!);
+      }
+    }
+
+    // Reverse so newest top-level comments are first
+    topLevel.reverse();
+
+    // Count thumbs up for this post (top-level only)
     const thumbsResult = await sql`
       SELECT COUNT(*)::int AS thumbs_up
       FROM blog_comments
-      WHERE slug = ${slug} AND reaction = 'up'
+      WHERE slug = ${slug} AND reaction = 'up' AND parent_id IS NULL
     `;
 
     const thumbsUp = thumbsResult[0]?.thumbs_up ?? 0;
 
-    return NextResponse.json({ comments, thumbsUp }, {
+    return NextResponse.json({ comments: topLevel, thumbsUp }, {
       headers: {
         "Cache-Control": "public, max-age=30, stale-while-revalidate=60",
       },
@@ -144,7 +172,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { slug, comment, reaction, email } = parsed.data;
+    const { slug, comment, reaction, email, parent_id } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
 
     const sql = getDb();
@@ -163,13 +191,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // If replying, validate the parent comment exists and is top-level
+    if (parent_id != null) {
+      const parent = await sql`
+        SELECT id, parent_id FROM blog_comments
+        WHERE id = ${parent_id} AND slug = ${slug}
+        LIMIT 1
+      `;
+
+      if (parent.length === 0) {
+        return NextResponse.json(
+          { error: "The comment you are replying to does not exist." },
+          { status: 404 }
+        );
+      }
+
+      // Enforce single-level threading: can't reply to a reply
+      if (parent[0].parent_id != null) {
+        return NextResponse.json(
+          { error: "You can only reply to top-level comments." },
+          { status: 400 }
+        );
+      }
+    }
+
     // Insert the comment
     const result = await sql`
-      INSERT INTO blog_comments (slug, comment, reaction, email)
-      VALUES (${slug}, ${comment}, ${reaction}, ${normalizedEmail})
+      INSERT INTO blog_comments (slug, comment, reaction, email, parent_id)
+      VALUES (${slug}, ${comment}, ${reaction}, ${normalizedEmail}, ${parent_id ?? null})
       RETURNING id, slug, comment, reaction,
         CONCAT(LEFT(email, 1), '***@', SPLIT_PART(email, '@', 2)) AS email,
-        created_at
+        created_at, parent_id
     `;
 
     return NextResponse.json({ ok: true, comment: result[0] });

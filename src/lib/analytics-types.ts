@@ -176,6 +176,7 @@ export interface CommentRow {
   reaction: "up" | "down";
   email: string;
   created_at: string;
+  parent_id: number | null;
 }
 
 export interface SubscriberRow {

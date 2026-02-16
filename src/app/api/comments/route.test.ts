@@ -25,7 +25,7 @@ describe("GET /api/comments", () => {
     vi.mocked(getDb).mockReturnValue(mockSql);
   });
 
-  it("should fetch comments for a given slug", async () => {
+  it("should fetch comments and group into threaded structure", async () => {
     mockSql
       .mockResolvedValueOnce([
         {
@@ -33,16 +33,27 @@ describe("GET /api/comments", () => {
           slug: "test-post",
           comment: "Great post!",
           reaction: "up",
-          email: "user@example.com",
-          created_at: "2026-02-13T12:00:00Z",
+          email: "u***@example.com",
+          created_at: "2026-02-13T11:00:00Z",
+          parent_id: null,
         },
         {
           id: 2,
           slug: "test-post",
           comment: "Thanks for sharing",
           reaction: "down",
-          email: "other@example.com",
-          created_at: "2026-02-13T11:00:00Z",
+          email: "o***@example.com",
+          created_at: "2026-02-13T12:00:00Z",
+          parent_id: null,
+        },
+        {
+          id: 3,
+          slug: "test-post",
+          comment: "I agree!",
+          reaction: "up",
+          email: "r***@example.com",
+          created_at: "2026-02-13T13:00:00Z",
+          parent_id: 1,
         },
       ])
       .mockResolvedValueOnce([{ thumbs_up: 1 }]);
@@ -55,27 +66,14 @@ describe("GET /api/comments", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toEqual({
-      comments: [
-        {
-          id: 1,
-          slug: "test-post",
-          comment: "Great post!",
-          reaction: "up",
-          email: "user@example.com",
-          created_at: "2026-02-13T12:00:00Z",
-        },
-        {
-          id: 2,
-          slug: "test-post",
-          comment: "Thanks for sharing",
-          reaction: "down",
-          email: "other@example.com",
-          created_at: "2026-02-13T11:00:00Z",
-        },
-      ],
-      thumbsUp: 1,
-    });
+    // Top-level comments should be in reverse order (newest first)
+    expect(data.comments).toHaveLength(2);
+    expect(data.comments[0].id).toBe(2); // newest top-level first
+    expect(data.comments[0].replies).toEqual([]);
+    expect(data.comments[1].id).toBe(1);
+    expect(data.comments[1].replies).toHaveLength(1);
+    expect(data.comments[1].replies[0].id).toBe(3);
+    expect(data.thumbsUp).toBe(1);
 
     expect(mockSql).toHaveBeenCalledTimes(2);
   });
@@ -171,6 +169,7 @@ describe("POST /api/comments", () => {
         reaction: "up",
         email: "subscriber@example.com",
         created_at: "2026-02-13T12:00:00Z",
+        parent_id: null,
       },
     ]);
 
@@ -198,10 +197,102 @@ describe("POST /api/comments", () => {
         reaction: "up",
         email: "subscriber@example.com",
         created_at: "2026-02-13T12:00:00Z",
+        parent_id: null,
       },
     });
 
     expect(mockSql).toHaveBeenCalledTimes(2);
+  });
+
+  it("should create a reply to a top-level comment", async () => {
+    // Mock subscriber check
+    mockSql.mockResolvedValueOnce([{ id: 1 }]);
+
+    // Mock parent comment check (top-level, parent_id is null)
+    mockSql.mockResolvedValueOnce([{ id: 10, parent_id: null }]);
+
+    // Mock reply insertion
+    mockSql.mockResolvedValueOnce([
+      {
+        id: 200,
+        slug: "test-post",
+        comment: "I agree!",
+        reaction: "up",
+        email: "r***@example.com",
+        created_at: "2026-02-13T14:00:00Z",
+        parent_id: 10,
+      },
+    ]);
+
+    const request = new NextRequest("http://localhost/api/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        slug: "test-post",
+        comment: "I agree!",
+        reaction: "up",
+        email: "replier@example.com",
+        parent_id: 10,
+      }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.ok).toBe(true);
+    expect(data.comment.parent_id).toBe(10);
+    expect(mockSql).toHaveBeenCalledTimes(3); // subscriber + parent check + insert
+  });
+
+  it("should return 404 when replying to a non-existent comment", async () => {
+    // Mock subscriber check
+    mockSql.mockResolvedValueOnce([{ id: 1 }]);
+
+    // Mock parent comment check (not found)
+    mockSql.mockResolvedValueOnce([]);
+
+    const request = new NextRequest("http://localhost/api/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        slug: "test-post",
+        comment: "Reply to nothing",
+        email: "user@example.com",
+        parent_id: 999,
+      }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(data.error).toBe("The comment you are replying to does not exist.");
+  });
+
+  it("should return 400 when replying to a reply (enforce single-level)", async () => {
+    // Mock subscriber check
+    mockSql.mockResolvedValueOnce([{ id: 1 }]);
+
+    // Mock parent comment check (is itself a reply)
+    mockSql.mockResolvedValueOnce([{ id: 50, parent_id: 10 }]);
+
+    const request = new NextRequest("http://localhost/api/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        slug: "test-post",
+        comment: "Reply to a reply",
+        email: "user@example.com",
+        parent_id: 50,
+      }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("You can only reply to top-level comments.");
   });
 
   it("should normalize email to lowercase and trim whitespace", async () => {
@@ -214,6 +305,7 @@ describe("POST /api/comments", () => {
         reaction: "up",
         email: "user@example.com",
         created_at: "2026-02-13T12:00:00Z",
+        parent_id: null,
       },
     ]);
 
@@ -244,6 +336,7 @@ describe("POST /api/comments", () => {
         reaction: "up",
         email: "user@example.com",
         created_at: "2026-02-13T12:00:00Z",
+        parent_id: null,
       },
     ]);
 
@@ -365,6 +458,25 @@ describe("POST /api/comments", () => {
         slug: "test-post",
         comment: "Test comment",
         email: "not-an-email",
+      }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
+  });
+
+  it("should return 400 when parent_id is not a positive integer", async () => {
+    const request = new NextRequest("http://localhost/api/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        slug: "test-post",
+        comment: "Test comment",
+        email: "user@example.com",
+        parent_id: -1,
       }),
       headers: { "content-type": "application/json" },
     });

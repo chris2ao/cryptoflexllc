@@ -1,39 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { MDXRemote } from "next-mdx-remote/rsc";
-import remarkGfm from "remark-gfm";
 import { getAnalyticsCookieName, verifyAuthToken } from "@/lib/analytics-auth";
 import { getBacklogPosts } from "@/lib/blog";
 import { isGitHubApiConfigured } from "@/lib/github-api";
-import { BacklogPost } from "./_components/backlog-post";
-import {
-  CodeBlock,
-  Warning,
-  Stop,
-  Info,
-  Tip,
-  Security,
-  Vercel,
-  Cloudflare,
-  Nextjs,
-  CloudflareDoubleHop,
-  VercelNativeWAF,
-  TwoLayerWAF,
-  OldVsNewStack,
-  SiteArchitectureDiagram,
-  MDXPipelineDiagram,
-  DeploymentFlowDiagram,
-  SEOStackDiagram,
-  GoogleCrawlFlowDiagram,
-  MetadataFlowDiagram,
-  SEOBeforeAfterDiagram,
-  CommentSystemDiagram,
-  WelcomeBlastTroubleshootDiagram,
-  JourneyTimelineDiagram,
-  WelcomeEmailSagaDiagram,
-  BeforeAfterArchitectureDiagram,
-} from "@/components/mdx";
+import { BacklogList } from "@/components/backlog-list";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +17,20 @@ export default async function BacklogPage() {
 
   const posts = getBacklogPosts();
   const githubConfigured = isGitHubApiConfigured();
+
+  // Extract unique tags from backlog posts
+  const tagSet = new Set<string>();
+  for (const post of posts) {
+    for (const tag of post.tags) {
+      tagSet.add(tag);
+    }
+  }
+  const allTags = Array.from(tagSet).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" })
+  );
+
+  // Strip content for serialization to client component
+  const postSummaries = posts.map(({ content: _, ...rest }) => rest);
 
   return (
     <section className="py-16 sm:py-20">
@@ -90,59 +75,13 @@ export default async function BacklogPage() {
         )}
 
         {/* Empty state */}
-        {posts.length === 0 && (
+        {posts.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             No drafts in the backlog
           </div>
+        ) : (
+          <BacklogList posts={postSummaries} allTags={allTags} />
         )}
-
-        {/* Posts */}
-        {posts.map((post) => (
-          <BacklogPost
-            key={post.slug}
-            post={post}
-            githubConfigured={githubConfigured}
-          >
-            <div className="prose prose-invert prose-zinc max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-code:text-primary/90 prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-border">
-              <MDXRemote
-                source={post.content}
-                options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-                components={{
-                  pre: CodeBlock,
-                  table: (props) => (
-                    <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-                      <table {...props} />
-                    </div>
-                  ),
-                  Warning,
-                  Stop,
-                  Info,
-                  Tip,
-                  Security,
-                  Vercel,
-                  Cloudflare,
-                  Nextjs,
-                  CloudflareDoubleHop,
-                  VercelNativeWAF,
-                  TwoLayerWAF,
-                  OldVsNewStack,
-                  SiteArchitectureDiagram,
-                  MDXPipelineDiagram,
-                  DeploymentFlowDiagram,
-                  SEOStackDiagram,
-                  GoogleCrawlFlowDiagram,
-                  MetadataFlowDiagram,
-                  SEOBeforeAfterDiagram,
-                  CommentSystemDiagram,
-                  WelcomeBlastTroubleshootDiagram,
-                  JourneyTimelineDiagram,
-                  WelcomeEmailSagaDiagram,
-                  BeforeAfterArchitectureDiagram,
-                }}
-              />
-            </div>
-          </BacklogPost>
-        ))}
       </div>
     </section>
   );

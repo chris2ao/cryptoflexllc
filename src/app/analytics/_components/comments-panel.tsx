@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Loader2, ThumbsUp, ThumbsDown, Search } from "lucide-react";
+import { Trash2, Loader2, ThumbsUp, ThumbsDown, Search, Reply } from "lucide-react";
 import type { CommentRow } from "@/lib/analytics-types";
 
 interface CommentsPanelProps {
@@ -75,6 +75,7 @@ export function CommentsPanel({ comments: initialComments }: CommentsPanelProps)
             <tr className="bg-muted/50 text-left">
               <th className="px-4 py-3 font-medium">Post</th>
               <th className="px-4 py-3 font-medium">Comment</th>
+              <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Reaction</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Date</th>
@@ -85,7 +86,7 @@ export function CommentsPanel({ comments: initialComments }: CommentsPanelProps)
             {filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-8 text-center text-muted-foreground"
                 >
                   {search ? "No comments match your search." : "No comments yet."}
@@ -109,6 +110,16 @@ export function CommentsPanel({ comments: initialComments }: CommentsPanelProps)
                     >
                       {c.comment}
                     </a>
+                  </td>
+                  <td className="px-4 py-2">
+                    {c.parent_id != null ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-blue-400">
+                        <Reply className="h-3 w-3" />
+                        #{c.parent_id}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Top</span>
+                    )}
                   </td>
                   <td className="px-4 py-2">
                     {c.reaction === "up" ? (
