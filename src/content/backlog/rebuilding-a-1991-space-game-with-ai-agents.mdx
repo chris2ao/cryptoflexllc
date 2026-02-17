@@ -1,0 +1,387 @@
+---
+title: "Time Travel at 4X Speed: Rebuilding a 1991 Space Strategy Game with AI Agents"
+date: "2026-02-16T10:00:00"
+author: "Chris Johnson"
+readingTime: "18 min read"
+description: "How I used Claude Code and four parallel AI agents to rebuild Second Conflict, a forgotten 1991 Windows 3.0 space strategy game, as a modern web app. Complete with reverse-engineered game mechanics, 261 passing tests, and more nostalgia than I knew what to do with."
+tags: ["Claude Code", "Game Development", "AI Agents", "Retro Gaming", "TypeScript", "Canvas", "Next.js"]
+---
+
+import { Tip, Info, Warning, Stop, Security } from '@/components/ui/callout';
+
+## The Game Nobody Remembers (Except Me)
+
+In 1991, a programmer named Jerry W. Galloway shipped a Windows 3.0 game called *Second Conflict*. It was a turn-based 4X space strategy game: 26 star systems, fleets of warships, planet conquest, and enough morale mechanics to make you feel genuinely bad about losing a colony to a revolt.
+
+It was not *Civilization*. It was not *Master of Orion*. It was shareware that probably lived its best life on a CompuServe BBS and a handful of floppy disks passed between friends.
+
+I played it constantly.
+
+Fast forward to 2026. I'm in the middle of a Claude Code learning project, building up my experience with AI-assisted development. I've done analytics dashboards, security hardening, newsletter systems. All useful. All professionally sensible.
+
+And then one evening I thought: *what if I just... rebuilt that old game?*
+
+![Buzz Lightyear with arms spread saying "To infinity and beyond"](https://media.giphy.com/media/3oEjI5VtIhHvK37WYo/giphy.gif)
+
+Reader, I rebuilt the game. Here's how four AI agents, a pile of reverse-engineered binary data, and one weekend turned a Windows 3.0 artifact into a live web app.
+
+---
+
+## What We're Dealing With
+
+Before the code, some context on the original game.
+
+*Second Conflict* is a 4X game in the purest sense: eXplore, eXpand, eXploit, eXterminate. You start with a home system, a handful of ships, and a galaxy of 26 star systems to conquer. Your opponents (up to 3 AI players) are doing the same thing.
+
+The mechanics are surprisingly deep for a shareware game from 1991:
+
+- **7 unit types:** WarShip, StealthShip, Transport, Missile, SystemDefense, Factory, Troop
+- **Combat system** with firing order, sensors, stealth detection, and first-strike mechanics
+- **Morale system** where conquered planets can revolt if you neglect them
+- **Production system** with per-planet output modified by difficulty and unit type
+- **Random events** like plagues, economic booms, and diplomatic incidents
+- **Seeded galaxy generation** so the same game ID gives the same map every time
+
+The original ran in a 640x480 window with the aesthetic you'd expect from Windows 3.0. Pixelated star systems connected by route lines, a text-based combat log, and a UI that would make a modern UX designer cry into their Figma file.
+
+My job: take all of that and make it work in a browser in 2026.
+
+<Info title="What's a 4X Game?">
+4X stands for eXplore, eXpand, eXploit, eXterminate. The genre was popularized by games like Civilization and Master of Orion. You start small, build up an empire, and eliminate your opponents. The fun is in the strategy: when to build, when to attack, how to balance growth against defense.
+</Info>
+
+---
+
+## The Reverse Engineering Problem
+
+Here's the thing about rebuilding a 1991 game: there's no source code. No documentation. No developer blog post. There's an executable, a help file, and some scenario data files.
+
+So before writing a single line of modern code, I had to figure out what the original game actually *did*.
+
+I spent time with the original binary, the help file, and the scenario data. Some mechanics were explicit in the help text. Others required testing the original game and observing outcomes. Some I had to infer from the data files (which turned out to be plain text with very readable key-value pairs, bless Jerry Galloway's organizational instincts).
+
+By the end, I had a document of extracted mechanics:
+
+- Exact combat formulas (including the firing order priority table)
+- Unit cost and production time per planet per difficulty level
+- Morale decay rates and revolt thresholds
+- Sensor range and stealth detection probabilities
+- Scoring rules (which turned out to be surprisingly elaborate)
+- The xoshiro128** PRNG seed format (yes, 1991 shareware used a seeded RNG)
+
+<Tip title="Old Data Formats Are Often Readable">
+Before assuming you need a hex editor to reverse-engineer old software, check the data files first. A lot of 1990s games used plain text or very simple binary formats because storage was expensive and compression was CPU-intensive. Second Conflict's scenario files were essentially human-readable CSVs.
+</Tip>
+
+---
+
+## The Architecture Decision That Changed Everything
+
+When I sat down to design the remake, I had a choice that turned out to be critical: where does the game logic live?
+
+Option A: weave game state directly into React components and Zustand stores. Fast to build, easy to reason about initially, painful to test, painful to debug.
+
+Option B: build the game engine as pure functions, completely isolated from any UI framework, then wrap it with a React/Zustand presentation layer.
+
+I went with Option B, and it's the reason the whole project came together so cleanly.
+
+The engine API looks like this:
+
+```typescript
+// Pure function: takes state, returns new state. No side effects.
+function processTurn(state: GameState, actions: PlayerAction[]): GameState {
+  let nextState = applyPlayerActions(state, actions);
+  nextState = processAiTurns(nextState);
+  nextState = processProduction(nextState);
+  nextState = processMovement(nextState);
+  nextState = processEvents(nextState);
+  nextState = updateScores(nextState);
+  return nextState;
+}
+```
+
+No React. No DOM. No `useState`. Just data in, data out.
+
+This matters for three reasons:
+
+**Reason 1: Testability.** You can test `processTurn()` with a jest/vitest test in milliseconds. No rendering, no browser, no simulated user events. Just call the function with a state object and assert on the result.
+
+**Reason 2: Parallel agent development.** When you have multiple AI agents building different engine modules simultaneously, pure functions with well-defined interfaces don't step on each other. Agent 1 can build `combat.ts` while Agent 2 builds `morale.ts` because they both operate on the same `GameState` type and return the same `GameState` type. The interfaces don't conflict.
+
+**Reason 3: Reproducibility.** The entire game state, including the PRNG seed, lives in a plain JavaScript object. Saving and loading a game is just `JSON.stringify(state)` and `JSON.parse(saved)`. Replaying a sequence of events is trivial.
+
+<Info title="Immutability in Game State">
+Every engine function returns a new state object rather than mutating the existing one. This is the same principle as Redux reducers. It makes debugging much easier: you can snapshot state at any point and compare before/after. It also plays well with React, which uses reference equality to detect changes.
+</Info>
+
+---
+
+## The Agent Strategy: Four Workers, One Boss
+
+This is the part that made the project actually feasible in a single session.
+
+The engine has 14 modules: galaxy generator, movement, combat, scoring, production, morale, revolt, events, diplomacy, validation, and a few support modules. Writing 14 well-tested modules sequentially would take days. Writing them in parallel with AI agents took a few hours.
+
+Here's how I split the work:
+
+```
+Main Session (Claude Opus): Architecture, store, rendering, UI, AI strategy, turn processor
+│
+├── Agent 1 (Claude Sonnet): galaxy-generator + movement
+│   └── 65 tests
+│
+├── Agent 2 (Claude Sonnet): combat + scoring
+│   └── 42 tests
+│
+├── Agent 3 (Claude Sonnet): production + morale + revolt
+│   └── 76 tests
+│
+└── Agent 4 (Claude Sonnet): validation + events + diplomacy
+    └── 67 tests
+```
+
+While the four agents worked on engine modules in the background, the main session built:
+
+- The Canvas star map rendering system
+- The Zustand store bridge between engine and UI
+- React hooks for game interactions
+- All UI components (main menu, system panel, fleet dialog, production dialog, save/load, combat reports)
+- The AI player strategy
+- The turn processor that orchestrated engine calls
+
+The four agents didn't need to coordinate with each other. They each had a well-defined piece of the `GameState` type to work with and a clear contract to implement. The main session designed the interfaces; the agents filled them in.
+
+<Info title="Why Opus for the Main Session?">
+I used Claude Opus for the main session because it was doing architectural work: designing the overall system structure, making decisions about how modules would interact, and writing the glue code that connected everything. The background agents were doing more focused, bounded tasks where Sonnet's speed and cost profile made more sense.
+</Info>
+
+When the agents finished, I had a cleanup pass to do: the agent-written code had some unused imports and minor style inconsistencies. One final cleanup agent handled all of that. Total: about 75 files created, roughly 5,000 lines of engine code, all in a single session.
+
+---
+
+## Building the Star Map
+
+The most visually interesting part of any 4X game is the map. In Second Conflict, it's a galaxy of 26 star systems connected by travel routes. You click a system to select it, click another to move fleets, and watch little fleet icons glide along the routes.
+
+I built this with the Canvas API, which turns out to be a great fit for game rendering. The rendering pipeline is also pure functions:
+
+```typescript
+function renderStarMap(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  camera: CameraState,
+  selectedSystem: string | null
+): void {
+  clearCanvas(ctx, camera);
+  renderStarfield(ctx, camera);      // parallax background stars
+  renderRoutes(ctx, state, camera);  // travel routes between systems
+  renderFleetRoutes(ctx, state, camera); // animated moving fleets
+  renderSystems(ctx, state, camera, selectedSystem); // system circles with glow
+}
+```
+
+The fun parts:
+
+**Parallax starfield.** The background has three layers of stars at different depths. As you pan the camera, near stars move faster than far stars. It's a simple effect but it makes the space feel vast instead of flat.
+
+**System glow effects.** Each star system is rendered as a circle with a color based on its owner. Systems get a soft glow ring that pulses slightly. This is achieved with `ctx.shadowBlur` and `ctx.shadowColor`, which is basically cheating but looks great.
+
+**Animated fleet routes.** When a fleet is en route, a small icon glides along the route line over several frames. The position is interpolated based on turns remaining vs. total travel time. Watching your warships crawl toward an enemy system while you wait for them to arrive captures the original game's tension surprisingly well.
+
+**Hit detection.** Clicking on a system needs to figure out which system you clicked. This is a simple distance calculation from mouse coordinates (transformed into game-space coordinates accounting for camera pan and zoom) to each system's position.
+
+![Man looking very impressed and nodding](https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif)
+
+<Warning title="Canvas Coordinates vs. Game Coordinates">
+The camera transform is easy to forget. When you click on the canvas, you get pixel coordinates. You need to transform those back into game-space coordinates (subtracting pan offset, dividing by zoom) before doing distance calculations. I got this wrong twice before remembering to account for zoom.
+</Warning>
+
+---
+
+## The AI Player: Balanced Strategy
+
+Writing an AI opponent for a 4X game is harder than it sounds. Too aggressive and it rushes the player every game. Too passive and it never poses a threat. Too predictable and the player figures it out in two games and exploits it forever.
+
+I settled on a priority-ordered strategy that the AI evaluates each turn:
+
+```typescript
+function computeAiActions(state: GameState, playerId: PlayerId): AiAction[] {
+  const priorities = [
+    evaluateDefend,    // Am I under threat?
+    evaluateBuild,     // Can I afford critical units?
+    evaluateExpand,    // Are there unclaimed systems nearby?
+    evaluateReinforce, // Do my frontier systems need more troops?
+    evaluateAttack,    // Can I take an enemy system?
+    evaluateScout,     // Are there systems I haven't seen?
+  ];
+
+  const actions: AiAction[] = [];
+  for (const evaluate of priorities) {
+    const action = evaluate(state, playerId);
+    if (action) actions.push(action);
+  }
+  return actions;
+}
+```
+
+The priorities reflect sound 4X strategy: defense before offense, building before expanding, reinforcing before attacking. The AI isn't unbeatable but it plays a consistent, coherent game. It won't ignore an attack on its home system to go exploring. It won't keep sending scouts when it's under siege.
+
+The original game's AI was notoriously passive (you could sometimes just ignore it for 20 turns and it wouldn't do much). My version is somewhat more proactive, which I think is an improvement.
+
+---
+
+## The Morale System: Surprisingly Faithful
+
+One of the things that made *Second Conflict* memorable was the morale system. Conquered planets weren't just static resource generators. They had morale that decayed over time, especially if you didn't garrison troops or build factories. Low enough morale and the planet revolted, destroying all your units there and going neutral.
+
+This created genuine strategic tension. You couldn't just blitz across the galaxy and claim every system. You had to consolidate. Leave troops. Build factories. Actually govern your empire.
+
+Implementing this faithfully meant getting the decay formula right:
+
+```typescript
+function updateSystemMorale(
+  system: StarSystem,
+  owner: PlayerId,
+  garrisonSize: number,
+  factoryCount: number
+): number {
+  if (system.originalOwner === owner) {
+    // Home or long-held systems recover morale naturally
+    return Math.min(100, system.morale + MORALE_RECOVERY_RATE);
+  }
+
+  const garrisonBonus = Math.min(garrisonSize * GARRISON_MORALE_BONUS, MAX_GARRISON_BONUS);
+  const factoryBonus = factoryCount * FACTORY_MORALE_BONUS;
+  const baseDecay = CONQUERED_MORALE_DECAY_RATE;
+
+  const netChange = garrisonBonus + factoryBonus - baseDecay;
+  const newMorale = Math.max(0, Math.min(100, system.morale + netChange));
+
+  if (newMorale <= REVOLT_THRESHOLD) {
+    // Trigger revolt on next turn
+    return REVOLT_PENDING_FLAG;
+  }
+
+  return newMorale;
+}
+```
+
+The constants (GARRISON_MORALE_BONUS, REVOLT_THRESHOLD, etc.) came directly from the reverse-engineered scenario data. Getting them right meant the game felt like the original: not oppressively punishing, but you couldn't ignore morale and expect to hold a large empire.
+
+<Tip title="Constants as Documentation">
+Extracting magic numbers into named constants isn't just style. When the constant is named `REVOLT_THRESHOLD = 25`, you immediately know what `morale <= 25` means. When you're rebuilding a game from reverse-engineered data, named constants are also how you document what you learned from the original.
+</Tip>
+
+---
+
+## The PRNG: One Small Touch That Matters
+
+The original *Second Conflict* used a seeded random number generator for galaxy generation. Type in the same game ID and you'd get the same galaxy every time. Players could share seeds: "try game 7734, it's a really balanced map."
+
+I wanted to preserve this. More importantly, I wanted the seeded RNG to be part of the game state, so that saving and loading a game reproduced identical outcomes.
+
+The implementation uses xoshiro128**, a modern, well-understood PRNG that produces high-quality randomness and is tiny to implement:
+
+```typescript
+// The PRNG state is stored IN the game state. Every call to random()
+// updates state.prng and returns a reproducible value.
+function nextRandom(state: GameState): [number, GameState] {
+  const [s0, s1, s2, s3] = state.prng;
+  const result = Math.imul(rotl(Math.imul(s1, 5), 7), 9) >>> 0;
+
+  const t = s1 << 9;
+  const next: PrngState = [
+    s0 ^ s2,
+    s1 ^ s3,
+    s2 ^ t,
+    rotl(s3, 11) ^ t,
+  ];
+
+  return [result / 0x100000000, { ...state, prng: next }];
+}
+```
+
+The key insight: `nextRandom` is a pure function. It takes state, returns a number AND the new state. No hidden global RNG state. Every call is deterministic given the same input.
+
+This means you can replay any game from its initial seed. You can write tests that use fixed seeds and get predictable outcomes. And players can share seeds the way they did in 1991.
+
+---
+
+## The Numbers
+
+After the session wrapped, here's where the project stood:
+
+| Metric | Value |
+|--------|-------|
+| Total files created | ~75 |
+| Engine modules | 14 |
+| Test suites | 11 |
+| Tests passing | 261 |
+| Statement coverage | 93.4% |
+| Agents used | 5 (4 parallel workers + 1 cleanup) |
+| Stack | Next.js 15, React 19, TypeScript, Tailwind CSS v4, Zustand v5, Canvas API |
+| Time | Single session |
+
+The 93.4% coverage number comes from the agent-written engine code having solid test suites. The coverage gap is mostly edge cases in the event system (rare diplomatic events that are hard to trigger deterministically) and some canvas rendering paths that require a real browser to test.
+
+<Info title="261 Tests Is a High Bar">
+Most hobby game projects have zero tests. The reason I had 261 is almost entirely because of the pure-functions architecture. It's trivially easy to write tests for functions that take data and return data. If the game logic had been tangled up in React components and Zustand stores, testing it would have required mounting components and simulating user events, which is significantly more painful.
+</Info>
+
+---
+
+## What Actually Surprised Me
+
+Going into this, I expected the interesting challenges to be technical: rendering, state management, AI behavior. The thing that actually surprised me was the reverse engineering.
+
+The original *Second Conflict* help file is a masterpiece of 1991 technical writing. It explains the mechanics clearly, gives you enough numbers to understand the system, and trusts the player to figure out strategy. Modern games often hide their mechanics behind UX polish. The original game just... told you how everything worked.
+
+Reading it felt like receiving design notes directly from Jerry Galloway, 35 years later. Every mechanic I found in the help file was a puzzle piece that clicked into place in the modern implementation.
+
+I don't know if Jerry Galloway is still around or if he'd be amused or horrified to see his 1991 shareware game running in a web browser in 2026. But I hope it's the former.
+
+![Heartwarming moment with two people hugging](https://media.giphy.com/media/l0HlT5LBDQzNNxOBG/giphy.gif)
+
+---
+
+## Play It
+
+The game is live at [second-conflict.vercel.app](https://second-conflict.vercel.app). The repo is private for now (there are some rough edges I want to clean up first), but the game itself is fully playable.
+
+A few things to know before you start:
+
+- Hover over the star map to see routes. Click a system to select it.
+- To move fleets, select your system, then click an adjacent system in the fleet panel.
+- Build factories before anything else. Production is the engine of everything.
+- Don't ignore morale. A revolt at the wrong time will ruin your day.
+- The AI is not a pushover on higher difficulty settings.
+
+Good luck. The galaxy won't conquer itself.
+
+---
+
+## Lessons Learned
+
+Beyond the nostalgia, here's what this project actually taught me about AI-assisted development.
+
+**The pure functions architecture enables parallel agents.** You cannot overstate how important this is. If the engine modules had shared mutable state or been tightly coupled, running four agents simultaneously would have been chaos. Clean interfaces between pure modules made parallel development not just possible but smooth.
+
+**Reverse engineering is a form of requirements gathering.** Every game mechanic I extracted from the original binary was a requirement that I didn't have to invent. The design was already done. I just had to implement it faithfully. This is a surprisingly common situation when rebuilding existing software.
+
+**Test coverage pays for itself on the first bug.** The 261 tests caught three significant bugs that would have been painful to debug in a running game: a morale calculation that used integer division where float was needed, a combat resolver that applied first-strike bonuses to the wrong unit, and a galaxy generator that could produce disconnected graphs on certain seeds.
+
+**Seeded RNG belongs in your game state.** Put it there from the start. Retrofitting reproducibility into a game that uses `Math.random()` everywhere is a nightmare. The cost of doing it right from the beginning is nearly zero.
+
+<Tip title="Start With the Engine">
+If you're building a game, write the game logic as pure functions first, before touching any UI framework. Get it tested. Get it working. Then build the presentation layer on top. You'll thank yourself during the third major UI refactor.
+</Tip>
+
+<Warning title="Canvas Has No Layout System">
+Coming from React and CSS, the Canvas API's lack of layout management is jarring. Every element's position is computed manually in code. There's no flexbox, no grid, no responsive design. Plan your coordinate system carefully before you start drawing anything, because moving things around later means updating a lot of math.
+</Warning>
+
+---
+
+The game Jerry Galloway made in 1991 was a small, earnest piece of software that a lot of people never heard of. Rebuilding it felt like a small act of preservation. The mechanics work, the morale system punishes overextension exactly as it should, and the star map glows in a way the original definitely didn't.
+
+That feels like the right kind of tribute.
