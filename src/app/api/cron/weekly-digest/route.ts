@@ -301,6 +301,9 @@ function buildEmailHtml(
               <p style="font-size:16px;line-height:1.6;color:#d4d4d4;margin:0 0 20px">
                 ${intro?.greeting ?? "Thanks for being a subscriber. It means a lot! Every week I share what I&rsquo;ve been learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building."}
               </p>
+              <p style="font-size:14px;line-height:1.6;color:#94a3b8;margin:0 0 20px;font-style:italic">
+                Quick note: some of you may not have received last week&rsquo;s newsletter due to a technical hiccup on my end. I&rsquo;ve fixed the issue, and deliveries should be smooth from here on out. Thanks for your patience!
+              </p>
             </td>
           </tr>
 
