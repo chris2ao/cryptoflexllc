@@ -31,6 +31,7 @@ describe("GET /api/cron/weekly-digest", () => {
     const nodemailer = await import("nodemailer");
     mockTransporter = {
       sendMail: vi.fn().mockResolvedValue({ messageId: "test-id" }),
+      close: vi.fn(),
     };
     vi.mocked(nodemailer.default.createTransport).mockReturnValue(
       mockTransporter as any
@@ -89,14 +90,11 @@ describe("GET /api/cron/weekly-digest", () => {
   });
 
   it("should send digest to all active subscribers with recent posts", async () => {
-    // First SQL call: fetch subscribers
+    // SQL call: fetch subscribers
     mockSql.mockResolvedValueOnce([
       { email: "user1@example.com" },
       { email: "user2@example.com" },
     ]);
-    // Subscriber verification: both active
-    mockSql.mockResolvedValueOnce([{ id: 1 }]);
-    mockSql.mockResolvedValueOnce([{ id: 2 }]);
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {
@@ -190,7 +188,6 @@ describe("GET /api/cron/weekly-digest", () => {
     ]);
 
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {
@@ -234,7 +231,6 @@ describe("GET /api/cron/weekly-digest", () => {
     vi.mocked(getAllPosts).mockReturnValue(manyPosts);
 
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {
@@ -272,7 +268,6 @@ describe("GET /api/cron/weekly-digest", () => {
 
   it("should include unsubscribe link in email headers", async () => {
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {
@@ -298,10 +293,6 @@ describe("GET /api/cron/weekly-digest", () => {
       { email: "user2@example.com" },
       { email: "user3@example.com" },
     ]);
-    // Subscriber verifications: all active
-    mockSql.mockResolvedValueOnce([{ id: 1 }]);
-    mockSql.mockResolvedValueOnce([{ id: 2 }]);
-    mockSql.mockResolvedValueOnce([{ id: 3 }]);
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {
@@ -351,7 +342,6 @@ describe("GET /api/cron/weekly-digest", () => {
     ]);
 
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {
@@ -370,7 +360,6 @@ describe("GET /api/cron/weekly-digest", () => {
 
   it("should use singular 'Post' in subject when one recent post", async () => {
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {
@@ -405,7 +394,6 @@ describe("GET /api/cron/weekly-digest", () => {
 
   it("should continue gracefully when email sending fails for a subscriber", async () => {
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
     mockTransporter.sendMail.mockRejectedValueOnce(
       new Error("SMTP connection failed")
     );
@@ -426,7 +414,6 @@ describe("GET /api/cron/weekly-digest", () => {
 
   it("should configure Gmail SMTP with correct settings", async () => {
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
 
     const nodemailer = await import("nodemailer");
     const createTransportSpy = vi.mocked(nodemailer.default.createTransport);
@@ -443,6 +430,8 @@ describe("GET /api/cron/weekly-digest", () => {
       host: "smtp.gmail.com",
       port: 465,
       secure: true,
+      pool: true,
+      maxConnections: 5,
       auth: {
         user: "test@cryptoflexllc.com",
         pass: "test-password",
@@ -452,7 +441,6 @@ describe("GET /api/cron/weekly-digest", () => {
 
   it("should include AI-generated intro in email HTML", async () => {
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {
@@ -476,7 +464,6 @@ describe("GET /api/cron/weekly-digest", () => {
 
   it("should include aiIntro flag in response JSON", async () => {
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {
@@ -501,7 +488,6 @@ describe("GET /api/cron/weekly-digest", () => {
     });
 
     mockSql.mockResolvedValueOnce([{ email: "user@example.com" }]);
-    mockSql.mockResolvedValueOnce([{ id: 1 }]); // verification
 
     const request = new NextRequest("http://localhost/api/cron/weekly-digest", {
       headers: {

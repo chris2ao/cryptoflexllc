@@ -26,7 +26,7 @@ import { unsubscribeUrl } from "@/lib/subscribers";
 import { generateDigestIntro, type DigestIntro } from "@/lib/newsletter-intro";
 import { withRetry } from "@/lib/email-retry";
 
-export const maxDuration = 30;
+export const maxDuration = 300;
 
 const BASE_URL = "https://cryptoflexllc.com";
 
@@ -114,61 +114,61 @@ export async function GET(request: NextRequest) {
       intro = await generateDigestIntro(digestPosts, new Date());
     }
 
-    // ---- 4a. Configure Gmail SMTP transport ----
+    // ---- 4a. Configure Gmail SMTP transport (pooled) ----
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
       secure: true,
+      pool: true,
+      maxConnections: 5,
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
       },
     });
 
-    // ---- 5. Send to each subscriber (verify existence first) ----
-    const sql = getDb();
+    // ---- 5. Send to all subscribers concurrently (batched) ----
+    const CONCURRENCY = 5;
     let sent = 0;
 
-    for (const { email } of recipients) {
-      // Verify subscriber still exists and is active (unless using testEmail override)
-      if (!testEmail) {
-        const verification = await sql`
-          SELECT id FROM subscribers WHERE email = ${email} AND active = TRUE LIMIT 1
-        `;
-        if (verification.length === 0) {
-          console.warn(
-            `[weekly-digest] Skipping ${maskEmail(email)} — no longer exists or inactive`
+    const subject = hasNewPosts
+      ? `This Week at CryptoFlex — ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}!`
+      : "This Week at CryptoFlex — Quick Update";
+
+    for (let i = 0; i < recipients.length; i += CONCURRENCY) {
+      const batch = recipients.slice(i, i + CONCURRENCY);
+
+      const results = await Promise.allSettled(
+        batch.map(async ({ email }) => {
+          const html = buildEmailHtml(digestPosts, hasNewPosts, email, intro, totalRecentPosts);
+          await withRetry(() =>
+            transporter.sendMail({
+              from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
+              to: email,
+              subject,
+              html,
+              headers: {
+                "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              },
+            })
           );
-          continue;
+        })
+      );
+
+      for (let j = 0; j < results.length; j++) {
+        if (results[j].status === "fulfilled") {
+          sent++;
+        } else {
+          console.error(
+            `[weekly-digest] Failed to send to ${maskEmail(batch[j].email)} after retries:`,
+            (results[j] as PromiseRejectedResult).reason
+          );
         }
       }
-
-      const html = buildEmailHtml(digestPosts, hasNewPosts, email, intro, totalRecentPosts);
-
-      try {
-        await withRetry(() =>
-          transporter.sendMail({
-            from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
-            to: email,
-            subject: hasNewPosts
-              ? `This Week at CryptoFlex — ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}!`
-              : "This Week at CryptoFlex — Quick Update",
-            html,
-            headers: {
-              "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
-              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-            },
-          })
-        );
-        sent++;
-      } catch (error) {
-        // Log the error but continue sending to other subscribers
-        console.error(
-          `[weekly-digest] Failed to send to ${maskEmail(email)} after retries:`,
-          error
-        );
-      }
     }
+
+    transporter.close();
 
     return NextResponse.json({
       ok: true,
