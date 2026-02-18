@@ -1,12 +1,9 @@
 /**
- * GET /api/cron/catch-up-digest?alreadySent=11
+ * GET /api/cron/catch-up-digest
  * -----------------------------------------------
- * One-time endpoint to send the weekly digest to subscribers who
- * missed it due to the function timeout. Skips the first N
- * subscribers (ordered by id) who already received the email.
- *
- * Query params:
- *   alreadySent - Number of subscribers who already received the digest
+ * One-time endpoint to resend the weekly digest to all active
+ * subscribers with an apology for the delay. Sends to everyone
+ * so nobody is missed.
  *
  * Required env vars: same as weekly-digest
  */
@@ -54,16 +51,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // ---- Parse alreadySent param ----
-  const alreadySentParam = request.nextUrl.searchParams.get("alreadySent");
-  const alreadySent = alreadySentParam ? parseInt(alreadySentParam, 10) : 0;
-  if (isNaN(alreadySent) || alreadySent < 0) {
-    return NextResponse.json(
-      { error: "alreadySent must be a non-negative integer" },
-      { status: 400 }
-    );
-  }
-
   try {
     // ---- 1. Get posts from the last 14 days (wider window for catch-up) ----
     const allPosts = getAllPosts();
@@ -79,21 +66,17 @@ export async function GET(request: NextRequest) {
     const digestPosts = recentPosts.slice(0, MAX_DIGEST_POSTS);
     const hasNewPosts = digestPosts.length > 0;
 
-    // ---- 2. Fetch subscribers who missed the digest ----
+    // ---- 2. Fetch all active subscribers ----
     const sql = getDb();
     const rows = await sql`
-      SELECT email FROM subscribers
-      WHERE active = TRUE
-      ORDER BY id
-      OFFSET ${alreadySent}
+      SELECT email FROM subscribers WHERE active = TRUE
     `;
 
     if (rows.length === 0) {
       return NextResponse.json({
         ok: true,
         sent: 0,
-        skipped: alreadySent,
-        reason: "no remaining subscribers",
+        reason: "no active subscribers",
       });
     }
 
@@ -158,8 +141,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       sent,
-      skipped: alreadySent,
-      remaining: recipients.length,
+      total: recipients.length,
       posts: digestPosts.length,
       totalPosts: totalRecentPosts,
     });
