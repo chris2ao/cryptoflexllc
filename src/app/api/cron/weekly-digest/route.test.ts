@@ -481,7 +481,7 @@ describe("GET /api/cron/weekly-digest", () => {
     const { generateDigestIntro } = await import("@/lib/newsletter-intro");
     vi.mocked(generateDigestIntro).mockResolvedValueOnce({
       greeting:
-        "Thanks for being a subscriber &mdash; it means a lot! Every week I share what I&rsquo;ve been learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building.",
+        "Thanks for being a subscriber. It means a lot! Every week I share what I&rsquo;ve been learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building.",
       contentIntro: "Here&rsquo;s what I learned and wrote about this week:",
       memeHtml: "",
       fromAi: false,

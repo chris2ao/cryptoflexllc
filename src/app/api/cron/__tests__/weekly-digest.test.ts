@@ -25,6 +25,7 @@ vi.mock('nodemailer', () => ({
   default: {
     createTransport: vi.fn(() => ({
       sendMail: vi.fn().mockResolvedValue({ messageId: 'test-id' }),
+      close: vi.fn(),
     })),
   },
 }));
@@ -46,13 +47,12 @@ describe('Weekly Digest API', () => {
     process.env.DATABASE_URL = 'postgresql://test';
   });
 
-  it('skips deleted or inactive subscribers', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('sends only to active subscribers returned by the query', async () => {
     const nodemailer = await import('nodemailer');
     const sendMailMock = vi.fn().mockResolvedValue({ messageId: 'test-id' });
     (nodemailer.default.createTransport as any).mockReturnValue({
       sendMail: sendMailMock,
+      close: vi.fn(),
     });
 
     const { getAllPosts } = await import('@/lib/blog');
@@ -67,22 +67,11 @@ describe('Weekly Digest API', () => {
       },
     ]);
 
-    // Mock: getSubscribers query returns 3 subscribers
+    // Mock: query returns only active subscribers (filtering is done in SQL)
     mockQuery.mockResolvedValueOnce([
-      { email: 'active@example.com' },
-      { email: 'deleted@example.com' },
-      { email: 'inactive@example.com' },
+      { email: 'active1@example.com' },
+      { email: 'active2@example.com' },
     ]);
-
-    // Mock: subscriber verification queries
-    // active@example.com exists and is active
-    mockQuery.mockResolvedValueOnce([{ id: 1 }]);
-
-    // deleted@example.com doesn't exist
-    mockQuery.mockResolvedValueOnce([]);
-
-    // inactive@example.com exists but is inactive (empty result)
-    mockQuery.mockResolvedValueOnce([]);
 
     const request = new NextRequest('http://localhost/api/cron/weekly-digest', {
       headers: { Authorization: 'Bearer test-secret' },
@@ -93,24 +82,14 @@ describe('Weekly Digest API', () => {
 
     expect(response.status).toBe(200);
 
-    // Should only send to active@example.com (1 email)
-    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    // Should send to all subscribers returned by query
+    expect(sendMailMock).toHaveBeenCalledTimes(2);
     expect(sendMailMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: 'active@example.com',
-      })
+      expect.objectContaining({ to: 'active1@example.com' })
     );
-
-    // Should warn about skipped subscribers (with masked emails)
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('d***@example.com')
+    expect(sendMailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'active2@example.com' })
     );
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('i***@example.com')
-    );
-
-    errorSpy.mockRestore();
-    warnSpy.mockRestore();
   });
 
   it('wraps sendMail with retry logic', async () => {
@@ -122,6 +101,7 @@ describe('Weekly Digest API', () => {
     const sendMailMock = vi.fn().mockResolvedValue({ messageId: 'test-id' });
     (nodemailer.default.createTransport as any).mockReturnValue({
       sendMail: sendMailMock,
+      close: vi.fn(),
     });
 
     const { getAllPosts } = await import('@/lib/blog');
@@ -139,9 +119,6 @@ describe('Weekly Digest API', () => {
     // Mock: getSubscribers
     mockQuery.mockResolvedValueOnce([{ email: 'test@example.com' }]);
 
-    // Mock: subscriber verification (active)
-    mockQuery.mockResolvedValueOnce([{ id: 1 }]);
-
     const request = new NextRequest('http://localhost/api/cron/weekly-digest', {
       headers: { Authorization: 'Bearer test-secret' },
     });
@@ -156,9 +133,8 @@ describe('Weekly Digest API', () => {
 
   it('continues sending after one subscriber fails all retries', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mock withRetry to actually retry but fail for first subscriber
+    // Mock withRetry to pass through
     const { withRetry: originalWithRetry } = await import('@/lib/email-retry');
     vi.mocked(originalWithRetry).mockImplementation(async (fn) => {
       const result = await fn();
@@ -173,6 +149,7 @@ describe('Weekly Digest API', () => {
 
     (nodemailer.default.createTransport as any).mockReturnValue({
       sendMail: sendMailMock,
+      close: vi.fn(),
     });
 
     const { getAllPosts } = await import('@/lib/blog');
@@ -193,10 +170,6 @@ describe('Weekly Digest API', () => {
       { email: 'success@example.com' },
     ]);
 
-    // Mock: subscriber verifications (both active)
-    mockQuery.mockResolvedValueOnce([{ id: 1 }]);
-    mockQuery.mockResolvedValueOnce([{ id: 2 }]);
-
     const request = new NextRequest('http://localhost/api/cron/weekly-digest', {
       headers: { Authorization: 'Bearer test-secret' },
     });
@@ -210,14 +183,12 @@ describe('Weekly Digest API', () => {
     expect(sendMailMock).toHaveBeenCalledTimes(2);
 
     // Should log error for first subscriber but continue (with masked email)
-    // console.error is called with (message, error) so check first arg
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining('f***@example.com'),
       expect.any(Error)
     );
 
     errorSpy.mockRestore();
-    warnSpy.mockRestore();
   });
 
   it('returns 401 if CRON_SECRET is missing', async () => {
@@ -268,10 +239,8 @@ describe('Weekly Digest API', () => {
       },
     ]);
 
-    // First SQL call: fetch subscribers
+    // SQL call: fetch subscribers
     mockQuery.mockResolvedValueOnce([{ email: 'test@example.com' }]);
-    // Subscriber verification: active
-    mockQuery.mockResolvedValueOnce([{ id: 1 }]);
 
     const request = new NextRequest('http://localhost/api/cron/weekly-digest', {
       headers: { Authorization: 'Bearer test-secret' },

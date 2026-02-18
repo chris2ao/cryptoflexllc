@@ -1,20 +1,14 @@
 /**
- * GET /api/cron/weekly-digest
+ * GET /api/cron/catch-up-digest?alreadySent=11
  * -----------------------------------------------
- * Triggered by Vercel Cron every Monday at 9 AM ET.
- * Fetches blog posts published in the last 7 days, builds a
- * branded HTML email, and sends it to all active subscribers
- * via Gmail SMTP (Google Workspace).
+ * One-time endpoint to send the weekly digest to subscribers who
+ * missed it due to the function timeout. Skips the first N
+ * subscribers (ordered by id) who already received the email.
  *
- * Required env vars:
- *   CRON_SECRET        - Vercel cron secret for auth
- *   GMAIL_USER         - e.g. Chris.Johnson@cryptoflexllc.com
- *   GMAIL_APP_PASSWORD - Google Workspace App Password
- *   SUBSCRIBER_SECRET  - HMAC secret for unsubscribe tokens
- *   DATABASE_URL       - Neon Postgres connection string
+ * Query params:
+ *   alreadySent - Number of subscribers who already received the digest
  *
- * Optional env vars:
- *   ANTHROPIC_API_KEY  - Enables AI-generated newsletter intros via Claude Haiku
+ * Required env vars: same as weekly-digest
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -23,7 +17,6 @@ import nodemailer from "nodemailer";
 import { getDb } from "@/lib/analytics";
 import { getAllPosts } from "@/lib/blog";
 import { unsubscribeUrl } from "@/lib/subscribers";
-import { generateDigestIntro, type DigestIntro } from "@/lib/newsletter-intro";
 import { withRetry } from "@/lib/email-retry";
 
 export const maxDuration = 300;
@@ -35,10 +28,6 @@ function utm(campaign: string, content?: string): string {
   return content ? `${params}&utm_content=${encodeURIComponent(content)}` : params;
 }
 
-/**
- * Mask email address for logging to prevent PII exposure.
- * Example: user@domain.com -> u***@domain.com
- */
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
   if (!domain) return "***";
@@ -46,7 +35,7 @@ function maskEmail(email: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  // ---- Auth: Vercel Cron sends this header automatically ----
+  // ---- Auth ----
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers.get("authorization") ?? "";
   const expectedHeader = `Bearer ${cronSecret}`;
@@ -65,56 +54,52 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // ---- Parse alreadySent param ----
+  const alreadySentParam = request.nextUrl.searchParams.get("alreadySent");
+  const alreadySent = alreadySentParam ? parseInt(alreadySentParam, 10) : 0;
+  if (isNaN(alreadySent) || alreadySent < 0) {
+    return NextResponse.json(
+      { error: "alreadySent must be a non-negative integer" },
+      { status: 400 }
+    );
+  }
+
   try {
-    // ---- 1. Get posts from the last 7 days ----
+    // ---- 1. Get posts from the last 14 days (wider window for catch-up) ----
     const allPosts = getAllPosts();
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
     const recentPosts = allPosts.filter(
-      (p) => new Date(p.date) >= oneWeekAgo
+      (p) => new Date(p.date) >= twoWeeksAgo
     );
 
-    // Cap at 10 posts per digest to keep emails focused
     const MAX_DIGEST_POSTS = 10;
     const totalRecentPosts = recentPosts.length;
     const digestPosts = recentPosts.slice(0, MAX_DIGEST_POSTS);
-
-    // If no new posts this week, still send a short "catch you next week" note
     const hasNewPosts = digestPosts.length > 0;
 
-    // ---- 2. Fetch active subscribers (or use testEmail override) ----
-    const testEmail = request.nextUrl.searchParams.get("testEmail");
-    let recipients: { email: string }[];
+    // ---- 2. Fetch subscribers who missed the digest ----
+    const sql = getDb();
+    const rows = await sql`
+      SELECT email FROM subscribers
+      WHERE active = TRUE
+      ORDER BY id
+      OFFSET ${alreadySent}
+    `;
 
-    // Block testEmail relay in production to prevent spam abuse
-    if (process.env.NODE_ENV === "production" && testEmail) {
-      return NextResponse.json(
-        { error: "testEmail disabled in production" },
-        { status: 400 }
-      );
+    if (rows.length === 0) {
+      return NextResponse.json({
+        ok: true,
+        sent: 0,
+        skipped: alreadySent,
+        reason: "no remaining subscribers",
+      });
     }
 
-    if (testEmail) {
-      recipients = [{ email: testEmail }];
-    } else {
-      const sql = getDb();
-      const rows = await sql`
-        SELECT email FROM subscribers WHERE active = TRUE
-      `;
-      if (rows.length === 0) {
-        return NextResponse.json({ ok: true, sent: 0, reason: "no subscribers" });
-      }
-      recipients = rows.map((r) => ({ email: r.email as string }));
-    }
+    const recipients = rows.map((r) => ({ email: r.email as string }));
 
-    // ---- 3. Generate AI intro (only when there are new posts) ----
-    let intro: DigestIntro | undefined;
-    if (hasNewPosts) {
-      intro = await generateDigestIntro(digestPosts, new Date());
-    }
-
-    // ---- 4a. Configure Gmail SMTP transport (pooled) ----
+    // ---- 3. Configure Gmail SMTP transport (pooled) ----
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
@@ -127,20 +112,20 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // ---- 5. Send to all subscribers concurrently (batched) ----
+    // ---- 4. Send to each missed subscriber concurrently ----
     const CONCURRENCY = 5;
     let sent = 0;
 
     const subject = hasNewPosts
-      ? `This Week at CryptoFlex - ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}!`
-      : "This Week at CryptoFlex - Quick Update";
+      ? `This Week at CryptoFlex - ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}! (Delayed)`
+      : "This Week at CryptoFlex - Quick Update (Delayed)";
 
     for (let i = 0; i < recipients.length; i += CONCURRENCY) {
       const batch = recipients.slice(i, i + CONCURRENCY);
 
       const results = await Promise.allSettled(
         batch.map(async ({ email }) => {
-          const html = buildEmailHtml(digestPosts, hasNewPosts, email, intro, totalRecentPosts);
+          const html = buildCatchUpHtml(digestPosts, hasNewPosts, email, totalRecentPosts);
           await withRetry(() =>
             transporter.sendMail({
               from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
@@ -161,7 +146,7 @@ export async function GET(request: NextRequest) {
           sent++;
         } else {
           console.error(
-            `[weekly-digest] Failed to send to ${maskEmail(batch[j].email)} after retries:`,
+            `[catch-up-digest] Failed to send to ${maskEmail(batch[j].email)} after retries:`,
             (results[j] as PromiseRejectedResult).reason
           );
         }
@@ -173,21 +158,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       sent,
+      skipped: alreadySent,
+      remaining: recipients.length,
       posts: digestPosts.length,
       totalPosts: totalRecentPosts,
-      aiIntro: intro?.fromAi ?? false,
     });
   } catch (error) {
-    console.error("Weekly digest error:", error);
+    console.error("Catch-up digest error:", error);
     return NextResponse.json(
-      { error: "Failed to send weekly digest" },
+      { error: "Failed to send catch-up digest" },
       { status: 500 }
     );
   }
 }
 
 // ---------------------------------------------------------------
-// Email template builder
+// Catch-up email template (with apology intro)
 // ---------------------------------------------------------------
 
 interface PostSummary {
@@ -199,12 +185,11 @@ interface PostSummary {
   readingTime: string;
 }
 
-function buildEmailHtml(
+function buildCatchUpHtml(
   posts: PostSummary[],
   hasNewPosts: boolean,
   recipientEmail: string,
-  intro?: DigestIntro,
-  totalPosts?: number
+  totalPosts: number
 ): string {
   const unsubLink = unsubscribeUrl(recipientEmail);
 
@@ -213,7 +198,7 @@ function buildEmailHtml(
       (p) => `
       <tr>
         <td style="padding:0 0 24px 0">
-          <a href="${BASE_URL}/blog/${p.slug}?${utm("weekly-digest", p.slug)}" style="color:#4dd0e1;font-size:18px;font-weight:600;text-decoration:none">${escapeHtml(p.title)}</a>
+          <a href="${BASE_URL}/blog/${p.slug}?${utm("catch-up-digest", p.slug)}" style="color:#4dd0e1;font-size:18px;font-weight:600;text-decoration:none">${escapeHtml(p.title)}</a>
           <p style="margin:6px 0 4px;color:#b0b0b0;font-size:13px">${formatDate(p.date)}${p.readingTime ? ` · ${escapeHtml(p.readingTime)}` : ""}</p>
           <p style="margin:0;color:#d4d4d4;font-size:15px;line-height:1.5">${escapeHtml(p.description)}</p>
           ${
@@ -231,7 +216,7 @@ function buildEmailHtml(
     )
     .join("");
 
-  const extraPosts = (totalPosts ?? posts.length) - posts.length;
+  const extraPosts = totalPosts - posts.length;
   const overflowNote = extraPosts > 0
     ? `<p style="font-size:15px;line-height:1.6;color:#94a3b8;margin:16px 0 0;text-align:center;font-style:italic">
         Plus ${extraPosts} more post${extraPosts > 1 ? "s" : ""} on the blog this week!
@@ -241,9 +226,8 @@ function buildEmailHtml(
   const contentSection = hasNewPosts
     ? `
       <p style="font-size:16px;line-height:1.6;color:#d4d4d4;margin:0 0 8px">
-        ${intro?.contentIntro ?? "Here&rsquo;s what I learned and wrote about this week:"}
+        Here&rsquo;s what I wrote about this week:
       </p>
-      ${intro?.memeHtml ?? ""}
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:20px">
         ${postRows}
       </table>
@@ -251,24 +235,14 @@ function buildEmailHtml(
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
           <td align="center" style="padding:8px 0 0">
-            <a href="${BASE_URL}/blog?${utm("weekly-digest", "cta-read-blog")}" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Read the Blog</a>
+            <a href="${BASE_URL}/blog?${utm("catch-up-digest", "cta-read-blog")}" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Read the Blog</a>
           </td>
         </tr>
       </table>`
     : `
       <p style="font-size:16px;line-height:1.6;color:#d4d4d4;margin:0">
         No new posts this week, but I&rsquo;m working on some great content behind the scenes. Stay tuned for next week!
-      </p>
-      <p style="font-size:16px;line-height:1.6;color:#d4d4d4;margin:16px 0 0">
-        In the meantime, check out the latest posts on the blog:
-      </p>
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:12px">
-        <tr>
-          <td align="center">
-            <a href="${BASE_URL}/blog?${utm("weekly-digest", "cta-visit-blog")}" style="display:inline-block;background:#4dd0e1;color:#0e0e12;padding:12px 28px;border-radius:6px;font-weight:600;text-decoration:none;font-size:15px">Visit the Blog</a>
-          </td>
-        </tr>
-      </table>`;
+      </p>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -278,11 +252,9 @@ function buildEmailHtml(
   <title>CryptoFlex Weekly Digest</title>
 </head>
 <body style="margin:0;padding:0;background-color:#0a0a0f;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif">
-  <!-- Wrapper -->
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#0a0a0f">
     <tr>
       <td align="center" style="padding:32px 16px">
-        <!-- Card -->
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background-color:#141419;border-radius:12px;border:1px solid #23232d">
 
           <!-- Header with logo -->
@@ -292,14 +264,14 @@ function buildEmailHtml(
             </td>
           </tr>
 
-          <!-- Greeting -->
+          <!-- Greeting with apology -->
           <tr>
             <td style="padding:28px 32px 0">
               <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#f0f0f0">
-                ${hasNewPosts ? "This Week at CryptoFlex" : "Hey from CryptoFlex!"}
+                This Week at CryptoFlex
               </h1>
               <p style="font-size:16px;line-height:1.6;color:#d4d4d4;margin:0 0 20px">
-                ${intro?.greeting ?? "Thanks for being a subscriber. It means a lot! Every week I share what I&rsquo;ve been learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building."}
+                Sorry this is a day late! I&rsquo;m still learning, and I ran into a technical issue with the newsletter delivery. I think I&rsquo;ve worked out the kinks now, so you should be good to go going forward. Thanks for your patience, and thanks for being a subscriber!
               </p>
             </td>
           </tr>

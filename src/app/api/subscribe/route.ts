@@ -209,7 +209,7 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
                 Welcome to CryptoFlex!
               </h1>
               <p style="font-size:16px;line-height:1.7;color:#d4d4d4;margin:0 0 16px">
-                Thank you so much for subscribing &mdash; I&rsquo;m really excited to have you here! I&rsquo;m Chris, and I started CryptoFlex to share everything I&rsquo;m learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building along the way.
+                Thank you so much for subscribing! I&rsquo;m really excited to have you here! I&rsquo;m Chris, and I started CryptoFlex to share everything I&rsquo;m learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building along the way.
               </p>
               <p style="font-size:16px;line-height:1.7;color:#d4d4d4;margin:0 0 16px">
                 I look forward to sharing what I learn with you, and I&rsquo;m always open to feedback, ideas, or just saying hello. You can reach me anytime at <a href="mailto:Chris.Johnson@cryptoflexllc.com" style="color:#4dd0e1;text-decoration:none">Chris.Johnson@cryptoflexllc.com</a>.
@@ -255,7 +255,7 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
                 <a href="${unsubLink}" style="color:#6b6b78;text-decoration:underline">Unsubscribe</a>
               </p>
               <p style="margin:12px 0 0;font-size:12px;color:#44444d;text-align:center">
-                &copy; ${new Date().getFullYear()} CryptoFlex LLC &mdash; cryptoflexllc.com
+                &copy; ${new Date().getFullYear()} CryptoFlex LLC | cryptoflexllc.com
               </p>
             </td>
           </tr>
