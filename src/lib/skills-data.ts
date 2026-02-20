@@ -997,7 +997,7 @@ claude mcp list`,
     repo: "upstash/context7-mcp",
   },
 
-  // ── Learned Skills (18) ────────────────────────────────────────
+  // ── Learned Skills (23) ────────────────────────────────────────
   {
     id: "learned-powershell-stdin",
     name: "PowerShell stdin Hooks",
@@ -1506,6 +1506,310 @@ powershell -File /tmp/script.ps1
 rm /tmp/script.ps1`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
+  },
+
+  // ── Missing Skill: /sync ───────────────────────────────────────
+  {
+    id: "sync",
+    name: "/sync",
+    category: "skill",
+    description:
+      "Config synchronization tool that detects drift and syncs ~/.claude/ with target repos.",
+    summary:
+      "A synchronization skill that runs a survey to detect configuration drift between your local ~/.claude/ directory and two target repositories (claude-code-config and CJClaudin_home). Prompts which repos to sync and how to handle post-copy operations (commit + push, review first, or copy files only). Uses the sync-orchestrator agent under the hood with secret-detection scanning before any copy.",
+    tags: ["Configuration", "DevOps", "Git", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "sync-orchestrator agent",
+      "sync-survey.sh script",
+    ],
+    integrationSteps: [
+      "Copy skills/sync/SKILL.md to ~/.claude/skills/sync/SKILL.md",
+      "Ensure agents/sync-orchestrator.md is installed",
+      "Ensure scripts/sync-survey.sh is installed and executable",
+      "Run /sync to detect drift and synchronize configs",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/sync
+cp skills/sync/SKILL.md ~/.claude/skills/sync/SKILL.md
+
+# Usage
+/sync`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
+  // ── Missing Learned Skills (5) ─────────────────────────────────
+  {
+    id: "learned-context-compaction",
+    name: "Context Compaction Pre-Flight",
+    category: "skill",
+    description:
+      "Strategic planning for massive sessions (900+ turns). Plan phases, commit incrementally.",
+    summary:
+      "Long Claude Code sessions (900+ turns, 30MB+ transcripts) require strategic planning to avoid context window exhaustion. The key is to plan work in phases, commit after each phase, update MEMORY.md with progress, and compact the context between phases. Without this, the last 20% of context produces noticeably lower quality output as the model struggles to maintain coherence across the full history.",
+    tags: ["Performance", "Session Management", "Workflow"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Plan work in discrete phases before starting",
+      "Commit and push after each phase completes",
+      "Update MEMORY.md with phase progress and decisions",
+      "Compact context between phases using /compact",
+    ],
+    codeSnippet: `# Session planning pattern
+# Phase 1: Research and plan (commit when done)
+# Phase 2: Implement core feature (commit when done)
+# Phase 3: Tests and validation (commit when done)
+# Phase 4: Documentation and cleanup (commit when done)
+
+# Between each phase:
+# 1. Commit all changes
+# 2. Update MEMORY.md with decisions
+# 3. Use /compact to free context
+# 4. Start next phase with fresh context`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "learned-interactive-freeze",
+    name: "Interactive Mode Freeze Recovery",
+    category: "skill",
+    description:
+      "TUI freeze from corrupted project state. Fix: rename project state dir, restart.",
+    summary:
+      "Claude Code's interactive TUI can freeze when the project state directory (~/.claude/projects/...) becomes corrupted, often from a crashed session or concurrent access. The fix is to rename the corrupted project state directory and restart Claude Code — it recreates the state directory automatically. This is faster than debugging the corruption.",
+    tags: ["Claude Code", "Debugging", "Recovery"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Identify the frozen project state directory in ~/.claude/projects/",
+      "Rename it: mv <dir> <dir>.bak",
+      "Restart Claude Code — state is recreated automatically",
+      "If the issue persists, check for disk space or permission issues",
+    ],
+    codeSnippet: `# Find the project state directory
+ls ~/.claude/projects/
+
+# Rename the corrupted state
+mv ~/.claude/projects/<project-hash> \\
+   ~/.claude/projects/<project-hash>.bak
+
+# Restart Claude Code
+claude`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "learned-settings-validation",
+    name: "Settings Validation Debugging",
+    category: "skill",
+    description:
+      "\"Found N invalid settings files\" — debug with --debug, check YAML quoting and MCP type field.",
+    summary:
+      "The cryptic 'Found N invalid settings files' error on Claude Code startup usually means a settings.json or settings.local.json file has syntax issues. Common causes: missing quotes around YAML values, missing \"type\": \"stdio\" in MCP server configs, or trailing commas in JSON. Debug with `claude --debug` to see which specific file is invalid, then fix the syntax.",
+    tags: ["Claude Code", "Configuration", "Debugging"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Run claude --debug to identify the invalid file",
+      "Check for missing 'type': 'stdio' in MCP configs",
+      "Validate JSON syntax (no trailing commas, proper quoting)",
+      "Re-run claude to verify the fix",
+    ],
+    codeSnippet: `# Debug to find the invalid file
+claude --debug 2>&1 | grep -i "invalid\\|error\\|settings"
+
+# Common fix: add missing type to MCP configs
+# Wrong:
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    }
+  }
+}
+
+# Correct — add "type": "stdio"
+{
+  "mcpServers": {
+    "memory": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    }
+  }
+}`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "learned-blog-pipeline",
+    name: "Blog Post Production Pipeline",
+    category: "skill",
+    description:
+      "Repeatable 8-step blog pipeline. Always delegate writing to Sonnet. Calibrate tone from recent posts.",
+    summary:
+      "A battle-tested 8-step pipeline for producing consistent, high-quality blog posts with Claude Code. Key insights: always delegate prose writing to Sonnet (not Haiku or Opus), read 2-3 recent posts to calibrate tone and style before writing, use dynamic post discovery (scan the directory) instead of hardcoded post lists, and validate MDX output before committing. The pipeline covers topic selection, research, outline, writing, validation, review, series navigation, and publish.",
+    tags: ["Blog", "Content", "Workflow", "Automation"],
+    dependencies: ["Claude Code CLI", "MDX content system"],
+    integrationSteps: [
+      "Use /blog-post skill for the full automated pipeline",
+      "Or follow the 8 steps manually for more control",
+      "Always read 2-3 recent posts before writing for tone calibration",
+      "Validate MDX with validate-mdx.sh before committing",
+    ],
+    codeSnippet: `# The 8-step blog production pipeline:
+# 1. Topic Selection — interactive prompts
+# 2. Research — parallel agents mine git logs, changelogs
+# 3. Tone Calibration — read 2-3 recent posts
+# 4. Outline — structure with sections, callouts
+# 5. Write — delegate to Sonnet via blog-post-orchestrator
+# 6. Validate — em dashes, GIFs, frontmatter, MDX syntax
+# 7. Review — code review pass for technical accuracy
+# 8. Publish — build, commit, push
+
+# Quick start:
+/blog-post`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "learned-parallel-decomposition",
+    name: "Parallel Agent Decomposition",
+    category: "skill",
+    description:
+      "Break tasks into parallel agents for 45% time savings. Route by specialization.",
+    summary:
+      "Complex tasks should be decomposed into parallel agents rather than executed sequentially. A case study on em-dash removal across 20 blog posts showed 45% time savings using 4 parallel Haiku agents vs. sequential processing. The routing heuristic: Haiku for exploration and file scanning, Sonnet for content generation and analysis, Opus for architecture and security decisions. Each agent gets a focused scope and returns structured results to a captain agent for synthesis.",
+    tags: ["Performance", "Workflow", "Automation", "Architecture"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Identify independent sub-tasks in your workflow",
+      "Assign each to a parallel Task agent with the right model",
+      "Use a captain agent pattern to collect and synthesize results",
+      "Route: Haiku=scan, Sonnet=generate, Opus=decide",
+    ],
+    codeSnippet: `# Captain Agent Pattern example:
+# 1. Captain (Sonnet) breaks down the task
+# 2. Spawns parallel workers:
+#    Task(model="haiku")  — scan files
+#    Task(model="haiku")  — check dependencies
+#    Task(model="haiku")  — validate configs
+# 3. Captain collects results and synthesizes
+
+# Model routing heuristic:
+# Haiku  — exploration, file scanning, formatting
+# Sonnet — code generation, analysis, writing
+# Opus   — architecture, security, complex reasoning`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
+  // ── PowerShell Hooks (2) ───────────────────────────────────────
+  {
+    id: "hook-save-session",
+    name: "Save Session Hook",
+    category: "hook",
+    description:
+      "SessionEnd hook that archives full conversation transcripts with timestamps and summaries.",
+    summary:
+      "A PowerShell hook script that triggers on SessionEnd events. Archives the full conversation transcript with a timestamp and session ID, creates a human-readable summary, and updates an index file for easy browsing. This creates a persistent, searchable archive of all your Claude Code sessions — invaluable for the session-analyzer and skill-extractor agents.",
+    tags: ["Session Management", "PowerShell", "Automation", "Hooks"],
+    dependencies: ["PowerShell", "Claude Code CLI"],
+    integrationSteps: [
+      "Copy save-session.ps1 to .claude/hooks/ in your project",
+      "Add SessionEnd hook entry to .claude/settings.local.json",
+      "Set async: false to ensure archival completes before exit",
+      "Transcripts are saved with timestamps for later analysis",
+    ],
+    codeSnippet: `# .claude/settings.local.json
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "type": "command",
+        "command": "powershell -File .claude/hooks/save-session.ps1",
+        "async": false
+      }
+    ]
+  }
+}`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-log-activity",
+    name: "Log Activity Hook",
+    category: "hook",
+    description:
+      "PostToolUse hook that logs every Bash/Edit/Write operation with timestamps to activity_log.txt.",
+    summary:
+      "An async PowerShell hook that fires after every tool use (Bash, Edit, Write, NotebookEdit). Logs each operation with a timestamp, session ID, tool name, and operation details to an activity_log.txt file. This creates an audit trail of everything Claude Code does in your project — useful for debugging, compliance, and understanding session patterns. Runs async to avoid slowing down the main workflow.",
+    tags: ["Monitoring", "PowerShell", "Automation", "Hooks"],
+    dependencies: ["PowerShell", "Claude Code CLI"],
+    integrationSteps: [
+      "Copy log-activity.ps1 to .claude/hooks/ in your project",
+      "Add PostToolUse hook entry to .claude/settings.local.json",
+      "Set async: true so logging doesn't block operations",
+      "Review activity_log.txt for audit trail",
+    ],
+    codeSnippet: `# .claude/settings.local.json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "powershell -File .claude/hooks/log-activity.ps1",
+        "async": true
+      }
+    ]
+  }
+}
+
+# Output format in activity_log.txt:
+# [2026-02-20T14:30:00] (session-abc) Bash | npm run build
+# [2026-02-20T14:30:05] (session-abc) Edit | src/app/page.tsx`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
+  // ── Plugin Configuration ───────────────────────────────────────
+  {
+    id: "plugin-everything-claude-code",
+    name: "everything-claude-code Plugin",
+    category: "configuration",
+    description:
+      "13 specialized agents, 30+ commands, and 30+ skills from the gold-standard Claude Code plugin.",
+    summary:
+      "The everything-claude-code plugin by Affaan Mustafa is the foundation of this configuration. It provides 13 specialized plugin agents (planner, architect, tdd-guide, code-reviewer, security-reviewer, build-error-resolver, e2e-runner, refactor-cleaner, doc-updater, and more) that automatically activate based on context. Includes 30+ slash commands (/plan, /verify, /tdd, /code-review, /security, /build-fix) and 30+ embedded skills. Agents orchestrate automatically — complex features trigger the planner, code changes trigger the reviewer, bugs trigger the TDD guide.",
+    tags: ["Plugin", "Agents", "Orchestration", "Core"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Add the marketplace entry to ~/.claude/settings.json",
+      "Install the plugin via the commands below",
+      "Plugin agents activate automatically based on context",
+      "Use /plan, /verify, /tdd, /security for manual invocation",
+    ],
+    codeSnippet: `# Install the plugin
+/plugin marketplace add affaan-m/everything-claude-code
+/plugin install everything-claude-code@everything-claude-code
+
+# settings.json configuration
+{
+  "enabledPlugins": {
+    "everything-claude-code@everything-claude-code": true
+  },
+  "extraKnownMarketplaces": {
+    "everything-claude-code": {
+      "source": {
+        "source": "github",
+        "repo": "affaan-m/everything-claude-code"
+      }
+    }
+  }
+}`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
   },
 ];
 
