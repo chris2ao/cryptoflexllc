@@ -27,6 +27,7 @@ export function Footer() {
             <nav className="mt-3 flex flex-col gap-2">
               {[
                 { href: "/blog", label: "Blog" },
+                { href: "/skills", label: "Skills" },
                 { href: "/about", label: "About" },
                 { href: "/portfolio", label: "Portfolio" },
                 { href: "/resources", label: "Resources" },
