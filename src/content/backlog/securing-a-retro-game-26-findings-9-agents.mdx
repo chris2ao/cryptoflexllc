@@ -1,0 +1,348 @@
+---
+title: "Securing a Retro Game: 26 Findings, 9 Agents, 15 Minutes"
+date: "2026-02-21T04:00:00"
+description: "What happens when a 5-agent security team audits a client-side browser game? 26 findings, a 'God Mode in 30 seconds' attack chain, and 4 parallel developers shipping every fix before the coffee got cold."
+tags: ["Claude Code", "Security", "Agent Teams", "Game Dev", "Canvas", "TypeScript"]
+author: "Chris Johnson"
+readingTime: "16 min read"
+---
+
+I wrote a previous post about auditing the analytics dashboard on this site and finding 19 security issues. That was a backend API with a real database, real secrets, and real users.
+
+This time I pointed the same kind of security team at something completely different: a retro browser game I rebuilt from scratch. "Second Conflict" is a 1991 Windows 3.0 space strategy game that I've been remaking as a modern web app. Pure client-side TypeScript, no backend, no server, no users. Just a canvas and a Zustand store.
+
+The result was 26 findings. And one attack chain that the red teamer titled "God Mode in 30 Seconds."
+
+Client-side games are not boring from a security perspective. They are interesting in different ways than server-side apps, and the lessons generalize to any application that stores state in the browser.
+
+## The Target
+
+Before getting into the findings, let me set the scene for what the agents were reviewing.
+
+Second Conflict runs entirely in the browser. The tech stack is <Nextjs /> 15, React 19, TypeScript with strict mode, Zustand v5 for state management, and the Canvas API for rendering. There is no backend, no authentication, no database, and no network requests. Game state persists to `localStorage`. The codebase is about 4,700 lines across roughly 40 files, with 574 transitive npm dependencies.
+
+<Info title="Why Secure a Single-Player Game?">
+If the player is only cheating themselves, does security matter? Yes, for several reasons. A crafted save file could cause a persistent DoS (the game crashes on load, every time, and there is no way to fix it without opening DevTools). Unbounded growth in arrays or particle systems can degrade performance significantly. The validation code that exists but is never called creates a false sense of security during development. And the exercise reveals patterns that transfer directly to apps where the stakes are higher.
+</Info>
+
+## The Assessment Team
+
+Five agents ran simultaneously, each with a distinct mandate.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│            SENIOR APPSEC ENGINEER (Team Lead)                    │
+│       Coordinates, deduplicates, consolidates findings           │
+├──────────────┬──────────────┬──────────────┬────────────────────┤
+│  Penetration │   Threat     │   Architect  │    Red Teamer      │
+│    Tester    │ Intelligence │  (STRIDE)    │  (Adversarial)     │
+│              │   Analyst    │              │                    │
+│ Client-side  │ Dependency   │ Threat model │ Attack chains,     │
+│ security,    │ audit, CVE   │ architecture │ PoC exploits,      │
+│ XSS, input   │ scan, supply │ review       │ worst-case         │
+│ validation   │ chain        │              │ scenarios          │
+└──────────────┴──────────────┴──────────────┴────────────────────┘
+```
+
+All five ran in parallel via Claude Code Agent Teams. Each agent read every relevant file in its domain. The team lead then consolidated reports, deduplicated overlapping findings, and assigned severity ratings.
+
+Total unique findings: 26. Zero duplicates counted twice. Thirty findings across raw reports, consolidated to 26.
+
+## The Findings
+
+Let me walk through the most interesting ones.
+
+### HIGH: Missing Security Headers and Source Maps (F-01)
+
+The `next.config.ts` file was essentially empty. No Content Security Policy, no `X-Frame-Options`, no `X-Content-Type-Options`, no `Referrer-Policy`, no `Permissions-Policy`. The game could be embedded in an iframe on any domain.
+
+Worse: production source maps were enabled. That means anyone who visits the deployed site can open DevTools, navigate to Sources, and read the full original TypeScript with variable names, comments, and logic intact. It is essentially publishing your source code alongside your compiled output.
+
+<Security title="Why Source Maps Matter in Production">
+Source maps are invaluable during development. In production, they expose your full application logic to anyone who opens a browser. For a game, this means an attacker can study the exact PRNG implementation, find every validation shortcut, and understand the complete game state schema before crafting a malicious save file. Disable them with `productionBrowserSourceMaps: false` in `next.config.ts`.
+</Security>
+
+The fix is a single config file change. Two lines to disable source maps and the `X-Powered-By` header, plus the security headers object:
+
+```typescript
+// next.config.ts (after)
+const nextConfig: NextConfig = {
+  productionBrowserSourceMaps: false,
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
+};
+```
+
+One config change. Real hardening.
+
+### HIGH: No Schema Validation on localStorage (F-02)
+
+The persistence layer loaded saved games with a bare type assertion:
+
+```typescript
+// BEFORE: trusting localStorage completely
+const saved = JSON.parse(localStorage.getItem("second-conflict") ?? "null");
+const state = saved as GameState; // fingers crossed
+```
+
+If a player (or a malicious script on the page) writes a crafted object to `localStorage`, the game will attempt to use it as a `GameState`. Depending on what is missing or malformed, this can cause crashes, undefined behavior, or a state that is permanently broken on every subsequent load.
+
+<Stop title="localStorage Is Untrusted Input">
+Treat `localStorage` with the same suspicion as any external data source. An API response, a form field, a URL parameter, a file upload: you validate all of those. `localStorage` is no different. It is writable by any JavaScript running on the page, including third-party scripts. Deserialize it with a schema validator, not a type assertion.
+</Stop>
+
+The fix added two validation functions. `validateGameState()` checks the structure of the deserialized object: verifies that `systems` and `players` are proper arrays, validates player color hex codes against `/^#[0-9a-fA-F]{6}$/`, clamps any negative numeric values to zero, and caps array sizes to prevent memory exhaustion. `validatePersistedData()` wraps the outer save slot structure and caps at 20 slots with 50-character name limits.
+
+If validation fails, the game falls back to the current in-memory state rather than crashing.
+
+### MEDIUM: Validation Code That Was Never Called (F-03)
+
+This one stings a little. `validateProductionChange()` existed in the codebase. It was written, it was tested, it was correct. And the turn processor never called it.
+
+```typescript
+// The function existed in engine/rules.ts
+export function validateProductionChange(
+  planet: Planet,
+  change: ProductionChange
+): ValidationResult { ... }
+
+// The turn processor in turn-processor.ts just... applied the change
+function applyProductionChange(state: GameState, change: ProductionChange) {
+  // validateProductionChange() was never called here
+  state.planets[change.planetId].production = change.type;
+}
+```
+
+This meant a player could enqueue production of unit types that are not supposed to be buildable, bypassing the `BUILDABLE_UNIT_TYPES` restriction entirely. The validation logic was right. The wiring was missing.
+
+<Warning title="Unused Validation Is Worse Than No Validation">
+When validation code exists but is not called, it creates a false sense of security. The code passes review ("we have validation for that"), the tests pass ("the validator function works correctly"), and the vulnerability ships. Always verify that validation is actually invoked at the boundary where untrusted data enters the system.
+</Warning>
+
+The fix was adding one line: `validateProductionChange(state, change)` before applying the change in the turn processor. But finding it required actually reading both the rules engine and the turn processor together, which is exactly the kind of cross-file analysis that makes a structured security review valuable.
+
+### MEDIUM: Dead Code Path for Wreck Orders (F-06)
+
+The UI collected "wreck orders" (commands to salvage destroyed ships) and included them in the player action payload. The turn processor received that payload and silently dropped the wreck orders without processing them.
+
+Zero error. Zero feedback. Orders vanished.
+
+This is not a security vulnerability in the traditional sense, but it reveals a category of risk that matters: action surfaces that appear functional but have no effect. If an attacker understands the game state schema, they can craft orders that look meaningful but consume no server resources and trigger no validation. In a client-side game this is mostly an integrity issue, but the pattern translates directly to backend systems where similar dead endpoints can mask authorization failures.
+
+The fix: implement `validateWreckOrder()` and wire it into the turn processor so wreck orders are actually processed.
+
+### MEDIUM: PRNG State Persisted to localStorage (F-07)
+
+Second Conflict uses a proper seeded PRNG: xoshiro128**. Seeded at game start, deterministic, correct. The full internal state (four 32-bit integers, `s0` through `s3`) was serialized to `localStorage` with every save.
+
+Anyone who opens the browser console can read the current PRNG state:
+
+```javascript
+JSON.parse(localStorage.getItem("second-conflict")).rng
+// { s0: 1234567890, s1: 987654321, s2: 1122334455, s3: 5544332211 }
+```
+
+With that state, they can reconstruct the PRNG and predict every future random outcome: which planets get discovered, which random events fire, what combat dice rolls will land.
+
+<Info title="Why This Matters for Game Integrity">
+For a strictly single-player game, exposing the RNG state means a player can predict and manipulate all future random events. In any multiplayer context, or any game with persistent leaderboards, this would be a critical finding. Even for single-player, it is worth fixing: the game is more interesting when randomness is actually random from the player's perspective.
+</Info>
+
+The fix: generate a fresh seed from `crypto.getRandomValues()` on each load. Do not persist the PRNG state. The sequence of events will differ between sessions, but each session is internally deterministic once started, which is all the engine actually needs.
+
+## The Red Team's "God Mode in 30 Seconds" Chain
+
+The red teamer combined four findings into a single attack chain. None of the individual findings were critical on their own. Together, they enable complete game domination in about 30 seconds of browser console work.
+
+```
+ATTACK CHAIN: "God Mode in 30 Seconds"
+────────────────────────────────────────────────────────────────
+Step 1: Open browser console
+  > const save = JSON.parse(localStorage.getItem("second-conflict"))
+
+Step 2: Read RNG state to predict all future outcomes
+  > save.rng  // { s0, s1, s2, s3 }
+
+Step 3: Edit game state directly
+  > save.systems.forEach(s => {
+      if (s.owner === 0) {        // own systems
+        s.warships = 99999
+        s.troops = 99999
+        s.factories = 99
+      } else {                    // AI systems
+        s.warships = 0
+        s.troops = 0
+        s.factories = 0
+      }
+    })
+
+Step 4: Inject troop production into all own queues
+  > save.systems
+      .filter(s => s.owner === 0)
+      .forEach(s => s.productionQueue = [{ type: "troops", turns: 1 }])
+
+Step 5: Write back and reload
+  > localStorage.setItem("second-conflict", JSON.stringify(save))
+  > location.reload()
+```
+
+The chain works because: save validation is absent (F-02), so the modified state loads without complaint. The PRNG state is readable (F-07), so future rolls are predictable. Negative unit counts are possible (F-05), so the AI systems can be zeroed. Production queue bypass is possible (F-03), so troops queue regardless of normal restrictions. And there are no server-side checks, because there is no server.
+
+<Security title="How Individual Findings Compound">
+Security assessments often find LOW and MEDIUM findings that look minor in isolation. The red team's job is to ask: "What if I combine all of these?" A missing bounds check, an exposed internal state value, a validation function that exists but is not wired up, and an unchecked array push are four small problems. Combined, they are a complete game state takeover. Always evaluate findings as a portfolio, not just individually.
+</Security>
+
+## The STRIDE Threat Model
+
+The architect agent produced a full STRIDE analysis. For a client-side game, several of the categories resolve quickly (there is no authentication to spoof, no server to elevate privileges on), but a few are genuinely interesting.
+
+| Threat | Finding | Verdict |
+|--------|---------|---------|
+| Spoofing | Player IDs are plain integers, no auth | Acceptable for single-player |
+| Tampering | Full state accessible via console/localStorage | Inherent to client-side, mitigate with validation |
+| Repudiation | Turn logs stored client-side, modifiable | Acceptable, document as limitation |
+| Information Disclosure | AI strategy, PRNG state, full game logic visible | Fix PRNG; source maps are the bigger concern |
+| Denial of Service | Crafted saves with massive arrays, unbounded particle systems | Fix with validation caps and array pruning |
+| Elevation of Privilege | Factory cap bypass, production queue injection, negative units | Fix with boundary enforcement |
+
+The "Tampering" row is worth pausing on. For a client-side game, some degree of state manipulation is inherent. You cannot prevent a determined player from opening the browser console. The goal is not to make manipulation impossible, but to ensure that normal use, malformed saves, and broken states all behave safely. Crashing on a bad save is not acceptable. Ignoring a bad save and falling back cleanly is.
+
+## The Dependency Audit
+
+The threat intelligence analyst scanned all 574 transitive dependencies for known CVEs and supply chain risks.
+
+The results were mostly good news:
+
+- All 574 packages have SHA-512 integrity hashes in `package-lock.json`
+- No typosquatting risk detected
+- All packages are from reputable, active maintainers
+- Supply chain integrity verified
+
+There were a handful of LOW-severity dev dependency issues: an older version of `minimatch` with a ReDoS vulnerability in a dev tool, some deprecated `glob` patterns, and `ajv` schema validation warnings. None of these affect the runtime bundle delivered to players.
+
+<Tip title="SHA-512 Hashes in package-lock.json">
+Every package in `package-lock.json` includes an `integrity` field with a SHA-512 hash. npm verifies this hash on every install. If a package is modified in the registry (a supply chain attack), the hash will not match and the install will fail. This is not something you configure: npm does it automatically. But it is worth knowing it is there and what it protects against.
+</Tip>
+
+## The Positive Findings
+
+The threat intelligence analyst and penetration tester both flagged a set of positive findings, things the codebase got right. These matter because they establish the security baseline and narrow the attack surface considerably.
+
+| Finding | Why It Matters |
+|---------|---------------|
+| Zero `dangerouslySetInnerHTML` usage | No XSS injection surface in the React layer |
+| No prototype pollution vectors | No `Object.assign({}, userInput)` patterns or similar |
+| Canvas rendering has no HTML injection surface | Canvas draws pixels, not DOM nodes |
+| TypeScript strict mode properly configured | Type safety catches a category of bugs at compile time |
+| No external API calls or network requests | Zero SSRF surface, no data exfiltration paths |
+| Immutability convention well followed | `readonly` throughout, consistent with pure function architecture |
+| 574 deps all SHA-512 verified | Supply chain integrity intact |
+
+The "no external API calls" finding is significant. A client-side app that never phones home has a dramatically smaller attack surface than one with analytics, telemetry, CDN dependencies, or social login. That was a deliberate architectural choice for Second Conflict, and it pays off from a security perspective.
+
+## The Remediation: 4 Parallel Developers
+
+After the assessment consolidated its findings, I spun up four developer agents to implement the fixes. The key constraint was non-overlapping file sets: each agent worked on a distinct group of files so there were no merge conflicts.
+
+```
+Agent 1: Engine Core
+  turn-processor.ts, events.ts, random.ts
+  - Wire validateProductionChange() into turn processor
+  - Implement wreck order processing
+  - Add Math.max(0, ...) clamps on all unit subtractions
+  - Clamp discovery event factories to FACTORIES_PER_PLANET
+  - Prune log arrays (50 turns) and combatResults (10 turns)
+  - Add empty array guard to pickRandom()
+
+Agent 2: Persistence Layer
+  persistence.ts, game-store.ts, game-slice.ts
+  - Add validateGameState() with structure, regex, clamp logic
+  - Add validatePersistedData() with slot caps and name truncation
+  - Wrap store rehydration in try-catch with safe fallback
+  - Cap save slots at 20, truncate names to 50 chars
+
+Agent 3: UI / Rendering / AI
+  save-load-dialog.tsx, arena-controller.ts, particles.ts, strategy-balanced.ts
+  - Add maxLength={50} to save name input
+  - Cap arena stars at 500, particles at 500
+  - Fix AI to check transports > 0 before dispatching troops
+
+Agent 4: Config and Type Safety
+  next.config.ts, combat.ts, .gitignore
+  - Add security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+  - Disable production source maps and X-Powered-By
+  - Replace unsafe type assertions with emptyMutableUnits() factory
+  - Verify .vercel in .gitignore
+```
+
+All four ran simultaneously. When they finished, 321 tests passed and the production build was clean.
+
+Total wall clock time: roughly 15 minutes from "launch the assessment team" to "commit merged and verified."
+
+<Tip title="Non-Overlapping File Sets Are Critical for Parallel Agents">
+When running multiple agents to implement fixes in parallel, assign them non-overlapping file sets. If Agent 1 and Agent 2 both modify `turn-processor.ts`, you get a merge conflict and a broken build. Plan the file ownership before launching agents, not after. The slight overhead in planning saves significant time in integration.
+</Tip>
+
+## By the Numbers
+
+```
+Total Findings:       26
+  CRITICAL:            0
+  HIGH:                2  (security headers, localStorage validation)
+  MEDIUM:              5  (validation bypass, factory cap, negative units,
+                           dead code path, PRNG exposure)
+  LOW:                10  (various bounds, type safety, dev CVEs)
+  INFO/Positive:       9  (things the codebase got right)
+
+Files Modified:       12
+Lines Added:         231
+Lines Removed:        49
+Tests Passing:       321
+Production Build:    Clean
+Wall Clock Time:     ~15 minutes
+```
+
+## What Client-Side Games Teach You About Security
+
+Working through this assessment reinforced a few things that apply well beyond game development.
+
+**localStorage is untrusted input.** It is writable by any JavaScript on the page. Treat it the way you treat a form submission or an API response: parse it, validate it, clamp its values, and fail gracefully when it does not match your schema.
+
+**Validation code that is not called does not exist.** The production queue validator was written and tested. It was not wired up. That is not a validation system, it is a false sense of security. The only way to catch this is to trace the execution path from the trust boundary to the validation function, not just read the function in isolation.
+
+**Security headers are cheap insurance.** The entire `next.config.ts` change was about 20 lines. It prevents clickjacking, MIME sniffing, and information disclosure via the `X-Powered-By` header. For a Next.js project, there is no reason not to add these headers. The configuration takes 10 minutes. The protection is permanent.
+
+**Defense in depth matters even when the stakes are low.** A single-player game where "the player is only cheating themselves" is still worth hardening. The patterns you establish in low-stakes code carry into high-stakes code. The habit of validating deserialized data, capping array growth, and actually calling your validation functions is worth building regardless of the target.
+
+**Small findings compose into big problems.** The "God Mode" chain used four MEDIUM/LOW findings together to achieve complete state takeover. No individual finding was alarming. The combination was. A security review needs to think in attack chains, not just individual findings.
+
+<Warning title="The Compounding Problem">
+When you see multiple LOW findings in a security report, do not dismiss them as minor. Ask: "Can these be combined?" A missing bounds check plus an exposed internal state plus a validation function that is not called plus an unchecked array push is four small problems that compose into one large one. The red team's job is to find the chain. Your job is to break any link in it.
+</Warning>
+
+## Closing Thoughts
+
+The Second Conflict security assessment was different from the analytics dashboard audit I ran previously. The analytics dashboard had real users, real secrets, real database queries, and real authentication to attack. Second Conflict had none of that. And yet it produced 26 findings, two of them HIGH severity, and a red team chain that could compromise the full game state in 30 seconds of browser console work.
+
+The lesson is not that client-side apps are insecure by nature. The lesson is that the attack surface shifts: instead of SQL injection and SSRF, you get localStorage tampering and PRNG prediction. Instead of authentication bypass, you get factory cap bypass and production queue injection. The categories are different. The discipline required to find them is the same.
+
+Nine agents, 15 minutes, 26 findings, all fixed. That is what parallel agent security assessments look like in practice.
+
+---
+
+*Written by Chris Johnson and edited by Claude Code (Opus 4.6) and Claude Code Agent Teams. The Second Conflict source code is at [github.com/chris2ao/second-conflict](https://github.com/chris2ao/second-conflict). The analytics dashboard security post is at [I Audited My Own Code. 19 Security Findings Later...](/blog/security-hardening-analytics-dashboard).*
