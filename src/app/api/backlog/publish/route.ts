@@ -120,8 +120,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, slug }, { status: 200 });
   } catch (error) {
     console.error("Error publishing post:", error);
+    const detail = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to publish post" },
+      { error: `Failed to publish post: ${detail}` },
       { status: 500 }
     );
   }
