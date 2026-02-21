@@ -32,7 +32,8 @@ export function PostActionBar({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Publish failed");
+        const msg = typeof data.error === "string" ? data.error : `Publish failed (${res.status})`;
+        throw new Error(msg);
       }
       setState("success");
       setMessage("Published! Vercel will deploy shortly.");
@@ -49,7 +50,8 @@ export function PostActionBar({
       const res = await fetch(`/api/backlog/${encodeURIComponent(slug)}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Delete failed");
+        const msg = typeof data.error === "string" ? data.error : `Delete failed (${res.status})`;
+        throw new Error(msg);
       }
       setState("success");
       setMessage("Draft deleted.");
