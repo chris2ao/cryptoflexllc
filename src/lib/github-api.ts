@@ -121,12 +121,15 @@ export async function createFile(
     });
 
     if (!response.ok) {
+      const body = await response.text().catch(() => "");
       console.error(
-        `GitHub API error: PUT ${path} returned ${response.status}`
+        `GitHub API error: PUT ${path} returned ${response.status}`,
+        body
       );
-      throw new Error("Failed to create file on GitHub");
+      throw new Error(`GitHub API PUT returned ${response.status}`);
     }
   } catch (error) {
+    if (error instanceof Error && error.message.startsWith("GitHub API")) throw error;
     console.error(`Error creating file ${path}:`, error);
     throw new Error("Failed to create file on GitHub");
   }
