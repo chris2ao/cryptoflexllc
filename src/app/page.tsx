@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/hero";
 import { BlogCard } from "@/components/blog-card";
+import { SubscribeInline } from "@/components/subscribe-inline";
+import { ThirdConflictPromo } from "@/components/third-conflict-promo";
 import { getAllPosts } from "@/lib/blog";
 
 export default function HomePage() {
@@ -64,6 +66,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Subscribe Inline */}
+      <SubscribeInline />
+
       {/* Resources Teaser */}
       <section className="py-16 sm:py-20 border-t border-border/40">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -80,6 +85,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Third Conflict Promo */}
+      <ThirdConflictPromo />
 
       {/* Services Teaser */}
       <section className="py-16 sm:py-20 border-t border-border/40">
