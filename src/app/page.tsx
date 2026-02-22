@@ -4,14 +4,26 @@ import { Hero } from "@/components/hero";
 import { BlogCard } from "@/components/blog-card";
 import { SubscribeInline } from "@/components/subscribe-inline";
 import { ThirdConflictPromo } from "@/components/third-conflict-promo";
+import { StatsSection } from "@/components/animated-counter";
 import { getAllPosts } from "@/lib/blog";
 
 export default function HomePage() {
-  const posts = getAllPosts().slice(0, 3);
+  const allPosts = getAllPosts();
+  const posts = allPosts.slice(0, 3);
 
   return (
     <>
       <Hero />
+
+      {/* Stats */}
+      <StatsSection
+        stats={[
+          { value: allPosts.length, label: "Blog Posts" },
+          { value: 591, label: "Tests Passing" },
+          { value: 98, label: "Code Coverage", suffix: "%" },
+          { value: 5, label: "Active Projects" },
+        ]}
+      />
 
       {/* Featured Blog Posts */}
       {posts.length > 0 && (

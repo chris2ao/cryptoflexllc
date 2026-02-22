@@ -2,6 +2,40 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { CareerTimeline } from "@/components/career-timeline";
+
+const careerEvents = [
+  {
+    title: "Military Service",
+    period: "Intelligence & Combat Operations",
+    description:
+      "Intelligence analyst and combat veteran who served in Iraq and Afghanistan. Learned to evaluate complex information, identify patterns, and think in terms of adversaries and systems.",
+  },
+  {
+    title: "Chem/Bio Defense",
+    period: "Pentagon & US Capitol",
+    description:
+      "Supported mission-critical operations at the Pentagon and US Capitol, environments where reliability and discipline aren't optional.",
+  },
+  {
+    title: "IT Operations",
+    period: "Service Desk to Developer",
+    description:
+      "Ran through multiple layers of the stack: service desk, project management, and developer work. Built the broad technical foundation that everything else sits on.",
+  },
+  {
+    title: "Security Engineer & Cloud Architect",
+    period: "Security & Cloud Infrastructure",
+    description:
+      "Designed and implemented security controls, hardened systems, and built cloud infrastructure, bridging defense with modern architecture.",
+  },
+  {
+    title: "Cybersecurity Defense Operations",
+    period: "Current Role",
+    description:
+      "Working across security engineering and SOC operations, helping teams improve detection, response, and operational resilience.",
+  },
+];
 
 export const metadata: Metadata = {
   title: "About",
@@ -133,90 +167,7 @@ export default function AboutPage() {
               layer.
             </p>
 
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="h-3 w-3 rounded-full bg-primary" />
-                  <div className="flex-1 w-px bg-border" />
-                </div>
-                <div className="pb-6">
-                  <p className="font-medium text-foreground">
-                    Military Service
-                  </p>
-                  <p className="text-sm">
-                    Intelligence analyst and combat veteran who served in Iraq
-                    and Afghanistan. Learned to evaluate complex information,
-                    identify patterns, and think in terms of adversaries and
-                    systems.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="h-3 w-3 rounded-full bg-primary" />
-                  <div className="flex-1 w-px bg-border" />
-                </div>
-                <div className="pb-6">
-                  <p className="font-medium text-foreground">
-                    Chem/Bio Defense
-                  </p>
-                  <p className="text-sm">
-                    Supported mission-critical operations at the Pentagon and US
-                    Capitol, environments where reliability and discipline
-                    aren&apos;t optional.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="h-3 w-3 rounded-full bg-primary" />
-                  <div className="flex-1 w-px bg-border" />
-                </div>
-                <div className="pb-6">
-                  <p className="font-medium text-foreground">IT Operations</p>
-                  <p className="text-sm">
-                    Ran through multiple layers of the stack: service desk,
-                    project management, and developer work. Built the
-                    broad technical foundation that everything else sits on.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="h-3 w-3 rounded-full bg-primary" />
-                  <div className="flex-1 w-px bg-border" />
-                </div>
-                <div className="pb-6">
-                  <p className="font-medium text-foreground">
-                    Security Engineer &amp; Cloud Architect
-                  </p>
-                  <p className="text-sm">
-                    Designed and implemented security controls, hardened systems,
-                    and built cloud infrastructure, bridging defense with
-                    modern architecture.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="h-3 w-3 rounded-full bg-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">
-                    Cybersecurity Defense Operations
-                  </p>
-                  <p className="text-sm">
-                    Where I am today, working across security engineering and
-                    SOC operations, helping teams improve detection, response,
-                    and operational resilience.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <CareerTimeline events={careerEvents} />
 
             <p>
               At a certain point, I made the jump that changed everything: left

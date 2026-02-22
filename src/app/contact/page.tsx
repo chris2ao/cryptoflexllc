@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ContactForm } from "@/components/contact-form";
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -38,20 +39,29 @@ export default function ContactPage() {
         <h1 className="text-3xl sm:text-4xl font-bold">Let&apos;s Connect</h1>
         <p className="mt-4 text-lg text-muted-foreground">
           Whether you want to talk security, infrastructure, or just geek out
-          about tech &mdash; I&apos;d love to hear from you.
+          about tech, I&apos;d love to hear from you.
         </p>
 
+        {/* Contact Form */}
         <Card className="mt-10 bg-card">
           <CardHeader>
-            <h2 className="text-xl font-semibold">Reach Out on LinkedIn</h2>
+            <h2 className="text-xl font-semibold">Send a Message</h2>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <p className="text-muted-foreground">
-              The best way to get in touch is through LinkedIn. Drop me a
-              connection request or send a message &mdash; I&apos;m always happy
-              to connect with folks in the security and tech community.
-            </p>
+          <CardContent>
+            <ContactForm />
+          </CardContent>
+        </Card>
 
+        {/* LinkedIn */}
+        <Card className="mt-6 bg-card">
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Connect on LinkedIn</h2>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              You can also reach me directly through LinkedIn. Drop me a
+              connection request or send a message.
+            </p>
             <a
               href="https://www.linkedin.com/in/chris-johnson-secops/"
               target="_blank"
@@ -64,6 +74,7 @@ export default function ContactPage() {
           </CardContent>
         </Card>
 
+        {/* Email fallback */}
         <Card className="mt-6 bg-card">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">

@@ -10,6 +10,8 @@ export interface BlogPost {
   readingTime: string;
   description: string;
   tags: string[];
+  series?: string;
+  seriesOrder?: number;
   content: string;
 }
 
@@ -35,6 +37,8 @@ function parsePost(slug: string, filePath: string): BlogPost {
     readingTime: data.readingTime ?? "",
     description: data.description ?? "",
     tags: data.tags ?? [],
+    series: data.series ?? undefined,
+    seriesOrder: data.seriesOrder ?? undefined,
     content,
   };
 }
@@ -94,6 +98,49 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
   if (!fs.existsSync(filePath)) return undefined;
 
   return parsePost(slug, filePath);
+}
+
+export function getRelatedPosts(
+  currentSlug: string,
+  currentTags: string[],
+  limit: number = 3
+): BlogPost[] {
+  const posts = getAllPosts();
+  const currentTagsLower = currentTags.map((t) => t.toLowerCase());
+
+  const scored = posts
+    .filter((p) => p.slug !== currentSlug)
+    .map((post) => {
+      const postTagsLower = post.tags.map((t) => t.toLowerCase());
+      const overlap = currentTagsLower.filter((t) =>
+        postTagsLower.includes(t)
+      ).length;
+      return { post, score: overlap };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || new Date(b.post.date).getTime() - new Date(a.post.date).getTime());
+
+  return scored.slice(0, limit).map((item) => item.post);
+}
+
+export function getSeriesPosts(seriesName: string): BlogPost[] {
+  const posts = getAllPosts();
+  return posts
+    .filter((p) => p.series === seriesName)
+    .sort((a, b) => (a.seriesOrder ?? 0) - (b.seriesOrder ?? 0));
+}
+
+export function getAllSeries(): { name: string; postCount: number }[] {
+  const posts = getAllPosts();
+  const seriesMap = new Map<string, number>();
+  for (const post of posts) {
+    if (post.series) {
+      seriesMap.set(post.series, (seriesMap.get(post.series) ?? 0) + 1);
+    }
+  }
+  return Array.from(seriesMap.entries())
+    .map(([name, postCount]) => ({ name, postCount }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function getBacklogPostBySlug(slug: string): BlogPost | undefined {

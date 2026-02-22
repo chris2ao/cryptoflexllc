@@ -179,6 +179,15 @@ export interface CommentRow {
   parent_id: number | null;
 }
 
+export interface GuestbookRow {
+  id: number;
+  name: string;
+  message: string;
+  ip: string | null;
+  approved: boolean;
+  created_at: string;
+}
+
 export interface SubscriberRow {
   id: number;
   email: string;

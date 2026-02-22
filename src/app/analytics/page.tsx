@@ -33,6 +33,7 @@ import type {
   RecentVisit,
   SubscriberRow,
   CommentRow,
+  GuestbookRow,
   VercelFirewallConfig,
   VercelAttackStatus,
   VercelFirewallEvents,
@@ -69,6 +70,7 @@ import { VercelAnalyticsCard } from "./_components/vercel-analytics-card";
 import { VercelSpeedInsightsCard } from "./_components/vercel-speed-insights-card";
 import { SubscriberPanel } from "./_components/subscriber-panel";
 import { CommentsPanel } from "./_components/comments-panel";
+import { GuestbookPanel } from "./_components/guestbook-panel";
 import { ReferrerChart } from "./_components/referrer-chart";
 import { PeakHoursHeatmap } from "./_components/peak-hours-heatmap";
 import { ScrollDepthChart } from "./_components/scroll-depth-chart";
@@ -133,6 +135,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       newVsReturning,
       bounceData,
       commentList,
+      guestbookList,
     ] = await Promise.all([
       // 0: Summary stats
       sql`
@@ -386,6 +389,12 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         FROM blog_comments
         ORDER BY created_at DESC
       `.catch(() => []),
+      // 23: Guestbook entries (all, for moderation)
+      sql`
+        SELECT id, name, message, ip, approved, created_at
+        FROM guestbook
+        ORDER BY created_at DESC
+      `.catch(() => []),
     ]);
 
     const stats = summary[0] || {
@@ -452,6 +461,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
     const typedBotTrend = botTrend as unknown as BotTrendRow[];
     const typedAuthAttempts = authAttempts as unknown as AuthAttemptRow[];
     const typedComments = commentList as unknown as CommentRow[];
+    const typedGuestbook = guestbookList as unknown as GuestbookRow[];
 
     return (
       <section className="py-16 sm:py-20">
@@ -646,8 +656,8 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
               SECTION 8: NEWSLETTER
               ═══════════════════════════════════════════ */}
           <SectionHeader
-            title="Newsletter & Comments"
-            description="Subscriber management, comment moderation, and engagement"
+            title="Newsletter, Comments & Guestbook"
+            description="Subscriber management, comment moderation, guestbook approvals"
           />
 
           <div className="mb-8">
@@ -659,8 +669,12 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             />
           </div>
 
-          <div className="mb-10">
+          <div className="mb-8">
             <CommentsPanel comments={typedComments} />
+          </div>
+
+          <div className="mb-10">
+            <GuestbookPanel entries={typedGuestbook} />
           </div>
 
           {/* ═══════════════════════════════════════════

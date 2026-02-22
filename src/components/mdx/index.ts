@@ -21,3 +21,4 @@ export {
   WelcomeEmailSagaDiagram,
   BeforeAfterArchitectureDiagram,
 } from "./diagrams-journey";
+export { CodePlayground } from "./code-playground";

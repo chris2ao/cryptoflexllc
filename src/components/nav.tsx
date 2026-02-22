@@ -11,6 +11,7 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const links = [
   { href: "/", label: "Home" },
@@ -20,6 +21,7 @@ const links = [
   { href: "/about", label: "About" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/resources", label: "Resources" },
+  { href: "/guestbook", label: "Guestbook" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -56,6 +58,7 @@ export function Nav() {
               {link.label}
             </Link>
           ))}
+          <ThemeToggle />
         </nav>
 
         {/* Mobile hamburger */}
@@ -102,6 +105,9 @@ export function Nav() {
                   {link.label}
                 </Link>
               ))}
+              <div className="mt-2 border-t border-border pt-2">
+                <ThemeToggle />
+              </div>
             </nav>
           </SheetContent>
         </Sheet>

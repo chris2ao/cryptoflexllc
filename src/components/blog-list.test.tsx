@@ -87,7 +87,7 @@ describe("BlogList", () => {
   it("renders search input", () => {
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    expect(screen.getByPlaceholderText("Search posts...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search posts... (Ctrl+K)")).toBeInTheDocument();
   });
 
   it("renders all tags as badges", () => {
@@ -106,7 +106,7 @@ describe("BlogList", () => {
   it("filters posts by search text", async () => {
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
     fireEvent.change(searchInput, { target: { value: "testing" } });
 
     await waitFor(() => {
@@ -119,7 +119,7 @@ describe("BlogList", () => {
   it("filters posts case-insensitively", async () => {
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
     fireEvent.change(searchInput, { target: { value: "TESTING" } });
 
     await waitFor(() => {
@@ -131,7 +131,7 @@ describe("BlogList", () => {
   it("searches across title, description, and tags", async () => {
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
 
     // Search by title
     fireEvent.change(searchInput, { target: { value: "First" } });
@@ -214,7 +214,7 @@ describe("BlogList", () => {
   it("shows result count when filters are active", async () => {
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
     fireEvent.change(searchInput, { target: { value: "testing" } });
 
     await waitFor(() => {
@@ -225,7 +225,7 @@ describe("BlogList", () => {
   it("shows clear filters button when filters are active", async () => {
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
     fireEvent.change(searchInput, { target: { value: "testing" } });
 
     await waitFor(() => {
@@ -250,7 +250,7 @@ describe("BlogList", () => {
 
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
     fireEvent.change(searchInput, { target: { value: "test" } });
 
     await screen.findByRole("button", { name: /clear filters/i });
@@ -267,7 +267,7 @@ describe("BlogList", () => {
   it("shows empty state when no posts match filters", async () => {
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
     fireEvent.change(searchInput, { target: { value: "nonexistent" } });
 
     await waitFor(() => {
@@ -310,7 +310,7 @@ describe("BlogList", () => {
 
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
     fireEvent.change(searchInput, { target: { value: "first" } });
 
     // Should match posts with typescript tag AND "first" in text
@@ -321,7 +321,7 @@ describe("BlogList", () => {
   it("trims whitespace from search input", async () => {
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
     fireEvent.change(searchInput, { target: { value: "   testing   " } });
 
     await waitFor(() => {
@@ -333,7 +333,7 @@ describe("BlogList", () => {
   it("treats empty whitespace search as no filter", () => {
     render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts...");
+    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
     fireEvent.change(searchInput, { target: { value: "   " } });
 
     // Should show all posts

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Fuse from "fuse.js";
+import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BlogCard } from "@/components/blog-card";
 import type { BlogPost } from "@/lib/blog";
@@ -17,8 +19,37 @@ interface BlogListProps {
 export function BlogList({ posts, allTags }: BlogListProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const [search, setSearch] = useState("");
+
+  // Keyboard shortcut: Ctrl/Cmd+K to focus search
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Fuse.js instance for fuzzy search
+  const fuse = useMemo(
+    () =>
+      new Fuse(posts, {
+        keys: [
+          { name: "title", weight: 3 },
+          { name: "description", weight: 2 },
+          { name: "tags", weight: 1 },
+        ],
+        threshold: 0.4,
+        includeScore: true,
+        ignoreLocation: true,
+      }),
+    [posts]
+  );
 
   // Read selected tags from URL query params
   const selectedTags = useMemo(
@@ -26,34 +57,28 @@ export function BlogList({ posts, allTags }: BlogListProps) {
     [searchParams]
   );
 
-  // Filter posts: must match ALL selected tags AND search text
+  // Filter posts: must match ALL selected tags AND fuzzy search text
   const filtered = useMemo(() => {
-    const term = search.toLowerCase().trim();
-    return posts.filter((post) => {
-      // Tag filter (AND logic)
-      if (selectedTags.length > 0) {
+    let results: BlogPostSummary[];
+
+    const term = search.trim();
+    if (term) {
+      results = fuse.search(term).map((r) => r.item);
+    } else {
+      results = [...posts];
+    }
+
+    if (selectedTags.length > 0) {
+      results = results.filter((post) => {
         const postTagsLower = post.tags.map((t) => t.toLowerCase());
-        const allTagsMatch = selectedTags.every((tag) =>
+        return selectedTags.every((tag) =>
           postTagsLower.includes(tag.toLowerCase())
         );
-        if (!allTagsMatch) return false;
-      }
+      });
+    }
 
-      // Text search
-      if (term) {
-        const haystack = [
-          post.title,
-          post.description,
-          ...post.tags,
-        ]
-          .join(" ")
-          .toLowerCase();
-        if (!haystack.includes(term)) return false;
-      }
-
-      return true;
-    });
-  }, [posts, selectedTags, search]);
+    return results;
+  }, [posts, selectedTags, search, fuse]);
 
   function toggleTag(tag: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -65,14 +90,12 @@ export function BlogList({ posts, allTags }: BlogListProps) {
     // Rebuild tag params
     params.delete("tag");
     if (isSelected) {
-      // Remove this tag
       for (const t of current) {
         if (t.toLowerCase() !== tag.toLowerCase()) {
           params.append("tag", t);
         }
       }
     } else {
-      // Add this tag
       for (const t of current) {
         params.append("tag", t);
       }
@@ -92,14 +115,16 @@ export function BlogList({ posts, allTags }: BlogListProps) {
 
   return (
     <>
-      {/* Search input */}
-      <div className="mb-6">
+      {/* Search input with icon */}
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
+          ref={searchRef}
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search posts..."
-          className="w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          placeholder="Search posts... (Ctrl+K)"
+          className="w-full max-w-md rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 

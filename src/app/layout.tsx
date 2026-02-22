@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { ThemeProvider } from "@/components/theme-provider";
+import { BackToTop } from "@/components/back-to-top";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { WebVitalsReporter } from "@/components/web-vitals-reporter";
 import { WebsiteJsonLd, PersonJsonLd } from "@/components/json-ld";
@@ -55,19 +57,19 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/CFLogo.png",
-        width: 512,
-        height: 512,
-        alt: "CryptoFlex LLC Logo",
+        url: "/api/og?title=CryptoFlex%20LLC&author=Chris%20Johnson",
+        width: 1200,
+        height: 630,
+        alt: "CryptoFlex LLC",
       },
     ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "CryptoFlex LLC | Chris Johnson",
     description:
       "Cybersecurity professional writing about AI-assisted development, security, and infrastructure.",
-    images: ["/CFLogo.png"],
+    images: ["/api/og?title=CryptoFlex%20LLC&author=Chris%20Johnson"],
   },
   alternates: {
     canonical: BASE_URL,
@@ -96,28 +98,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-screen flex flex-col`}
       >
-        <WebsiteJsonLd
-          url={BASE_URL}
-          name="CryptoFlex LLC"
-          description="Personal tech blog and portfolio of Chris Johnson — veteran, engineer, and cybersecurity professional."
+        {/* Prevent flash of wrong theme on page load */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")}catch(e){}`,
+          }}
         />
-        <PersonJsonLd
-          name="Chris Johnson"
-          url={BASE_URL}
-          jobTitle="Cybersecurity Professional"
-          description="Veteran turned cybersecurity professional. Writing about AI-assisted development, security, and infrastructure."
-        />
-        <AnalyticsTracker />
-        <WebVitalsReporter />
-        <Analytics />
-        <SpeedInsights />
-        <Nav />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <ThemeProvider>
+          <WebsiteJsonLd
+            url={BASE_URL}
+            name="CryptoFlex LLC"
+            description="Personal tech blog and portfolio of Chris Johnson — veteran, engineer, and cybersecurity professional."
+          />
+          <PersonJsonLd
+            name="Chris Johnson"
+            url={BASE_URL}
+            jobTitle="Cybersecurity Professional"
+            description="Veteran turned cybersecurity professional. Writing about AI-assisted development, security, and infrastructure."
+          />
+          <AnalyticsTracker />
+          <WebVitalsReporter />
+          <Analytics />
+          <SpeedInsights />
+          <Nav />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <BackToTop />
+        </ThemeProvider>
       </body>
       <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID!} />
     </html>
