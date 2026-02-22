@@ -1,0 +1,368 @@
+---
+title: "Building Cann Cann: Recreating a 1990 Artillery Game for the Modern Web"
+date: "2026-02-21T14:00:00"
+description: "How I took a 1990 Windows 3.1 shareware game called Bang Bang, studied it from an Internet Archive zip file, and rebuilt it as a modern web app using Next.js, Canvas, and AI-assisted development in a single session."
+tags: ["Claude Code", "Game Development", "Canvas API", "Next.js", "Building in Public"]
+author: "Chris Johnson"
+readingTime: "12 min read"
+series: "Building in Public"
+seriesOrder: 7
+---
+
+# Building Cann Cann: Recreating a 1990 Artillery Game for the Modern Web
+
+In 1990, a developer named David B. Lutton II released a Windows 3.1 shareware game called Bang Bang. Two cannons sit on opposite sides of a hilly landscape. You pick an angle. You pick a velocity. You fire. Wind pushes the shell sideways. First player to hit the opponent's cannon wins.
+
+That's the whole game. No story, no upgrades, no microtransactions. Just physics, terrain, and turn-based anxiety.
+
+I found it on the Internet Archive, downloaded a zip file containing the original 16-bit EXE, and spent about 20 minutes clicking through screenshots and reading the help file. Then I opened Claude Code and started building a modern remake.
+
+The result is [Cann Cann](https://cann-cann.vercel.app), deployed and playable. This post covers the architecture decisions, the interesting implementation details, and what AI-assisted game development actually looks like from the inside.
+
+## Why Recreate a 33-Year-Old Shareware Game?
+
+A few reasons, in order of importance:
+
+1. It's a great canvas for practicing clean architecture. Artillery games have a tight, well-defined problem domain: terrain, physics, collision detection, turn management, scoring. Every piece is separable.
+
+2. I wanted to test the three-layer architecture I used for my other game project (Second Conflict) on a smaller, faster problem.
+
+3. Honestly, it looked fun. Turn-based local multiplayer with wind physics is the kind of game you can play with one hand while holding coffee.
+
+## The Three-Layer Architecture
+
+The most important decision I made before writing a single line of code was to separate the game into three completely distinct layers.
+
+```
+src/
+├── engine/          # Pure functions, no side effects
+├── store/           # Zustand state management
+├── rendering/       # Canvas drawing
+├── components/      # React UI (controls, HUD)
+└── hooks/           # useGameLoop, useCanvas
+```
+
+**Why this matters:** Each layer has a clear job and talks to the adjacent layer through a defined interface. The engine doesn't know about Canvas. The rendering layer doesn't know about Zustand. React doesn't touch physics.
+
+This isn't just good hygiene. It's what made parallel development possible. I could write all 10 engine modules as pure functions, test them independently, then wire in the rendering layer, then connect the store. Each step was verifiable before the next one started.
+
+<Tip title="Separate Pure Logic from Side Effects">
+If your game engine functions take state and return new state with no side effects, you can test them without a browser, without a Canvas, and without a real game loop. Artillery game physics is deterministic: same inputs, same outputs, every time.
+</Tip>
+
+## The Engine Layer: 10 Pure Modules
+
+Every file in `src/engine/` exports only pure functions. No `useState`, no DOM access, no randomness from `Math.random()`. Here's the full module breakdown:
+
+| Module | Responsibility |
+|--------|---------------|
+| `types.ts` | All TypeScript interfaces (GameState, Cannon, Projectile, Wind, etc.) |
+| `constants.ts` | Physics, visual, and balance constants |
+| `terrain.ts` | Procedural generation + crater mutation |
+| `physics.ts` | Projectile simulation, collision detection |
+| `wind.ts` | Random wind generation per turn |
+| `cannon.ts` | Placement on terrain, barrel geometry |
+| `game-init.ts` | Build initial GameState from settings |
+| `turn.ts` | Turn management, shot resolution, round cycling |
+| `scoring.ts` | Score tracking, match completion |
+| `ai.ts` | Simulation-based opponent AI |
+
+Each module has one job. `terrain.ts` doesn't touch cannons. `scoring.ts` doesn't simulate physics. The dependency graph is a tree, not a web.
+
+### Terrain Generation
+
+The original Bang Bang had hilly terrain with a prominent central mountain. I replicated this with layered sine waves plus a gaussian bump:
+
+```typescript
+// terrain.ts (simplified)
+export function generateTerrain(rng: RngState, width: number = GAME_WIDTH) {
+  // 4 sine wave layers with random frequency, amplitude, phase
+  const layers = [...]; // generated from rng
+
+  // Central mountain: gaussian curve
+  const peakX = width * (0.35 + peakR.value * 0.3);
+  const peakWidth = width * (0.15 + peakWidthR.value * 0.15);
+  const peakHeight = 80 + peakHeightR.value * 120;
+
+  const heights = Array.from({ length: width }, (_, x) => {
+    let y = baseY;
+    for (const layer of layers) {
+      y -= layer.amp * Math.sin(layer.freq * x + layer.phase);
+    }
+    // Gaussian mountain
+    const dx = x - peakX;
+    y -= peakHeight * Math.exp(-(dx * dx) / (2 * peakWidth * peakWidth));
+    return clamp(y, MIN_TERRAIN_HEIGHT, MAX_TERRAIN_HEIGHT);
+  });
+
+  return { terrain: heights as readonly number[], rng: currentRng };
+}
+```
+
+**What's happening:** Sine waves create organic rolling hills. The gaussian bump adds the dramatic central mountain you see in every artillery game. Four overlapping sine waves at different frequencies produce the irregular, natural-looking ridge lines.
+
+**Why pure functions matter here:** The same seed produces the same terrain, every time. This means you can reproduce any game state for debugging, testing, or replays. It also means the AI uses the same terrain the player sees.
+
+### Destructible Terrain
+
+When a shot lands, it carves a crater. The terrain array is immutable, so creating a crater means producing a new array:
+
+```typescript
+export function applyCreator(
+  terrain: readonly number[],
+  x: number,
+  y: number,
+  radius: number = CRATER_RADIUS,
+): readonly number[] {
+  return terrain.map((height, i) => {
+    const dx = i - x;
+    if (Math.abs(dx) > radius) return height;
+    const depth = Math.sqrt(radius * radius - dx * dx);
+    return Math.max(height, y + depth);
+  });
+}
+```
+
+The terrain gets "lowered" (crater carved upward from impact point). The next shot has to navigate around existing craters.
+
+<Info title="Immutable State in Games">
+Mutating the terrain array in place would work, but it makes debugging painful and testing nearly impossible. When every state transformation produces a new object, you can compare before and after states, log the full history, and replay any sequence of moves.
+</Info>
+
+### Seeded PRNG
+
+One of the first things I copied from my other game project was the seeded pseudo-random number generator (xoshiro128**). This is the same algorithm used in Second Conflict.
+
+```typescript
+// lib/random.ts
+export function nextFloat(state: RngState): RngResult<number> {
+  // xoshiro128** algorithm: 4 uint32s → deterministic float
+  const [s0, s1, s2, s3] = state.s;
+  const result = Math.imul(rotl(Math.imul(s0 * 5, 7), 7), 9);
+  // ... state advance
+  return { value: result / 0x100000000, rng: nextState };
+}
+```
+
+Every random decision in the engine (terrain shape, wind strength, AI noise) flows through this PRNG. You pass in the current state, you get back a new state and a float. No global state, no side effects.
+
+**Why this matters for AI:** The AI uses the same PRNG as the rest of the game. When the AI generates its 25 candidate shots, those random samples are deterministic given the same seed. Same game, same AI behavior, every time.
+
+## Collision Detection: Order Matters
+
+This was the one bug I hit during development that took some thought to untangle.
+
+The original code checked terrain collision first, then cannon collision. The problem: both the cannon and the terrain surface occupy approximately the same y-coordinate at the cannon's position. A shot that should hit the enemy cannon was instead terminating on terrain.
+
+The fix was straightforward: check cannon hits before terrain hits.
+
+```typescript
+export function checkCollision(
+  proj: Projectile,
+  terrain: readonly number[],
+  cannons: readonly [Cannon, Cannon],
+  activePlayer: number,
+): ShotResult | null {
+  // Cannon check FIRST (priority over terrain at same position)
+  const enemyIdx = 1 - activePlayer;
+  const enemy = cannons[enemyIdx];
+  const dist = Math.sqrt((proj.x - enemy.x) ** 2 + (proj.y - enemy.y) ** 2);
+  if (dist <= CANNON_HIT_RADIUS) {
+    return { outcome: "hit_cannon", impactX: enemy.x, impactY: enemy.y };
+  }
+
+  // Terrain check second
+  if (proj.x >= 0 && proj.x < terrain.length) {
+    const terrainY = getTerrainHeightAt(terrain, proj.x);
+    if (proj.y >= terrainY) {
+      return { outcome: "hit_terrain", impactX: proj.x, impactY: terrainY };
+    }
+  }
+
+  // Off-screen
+  if (proj.x < 0 || proj.x >= GAME_WIDTH || proj.y > GAME_HEIGHT) {
+    return { outcome: "off_screen", impactX: proj.x, impactY: proj.y };
+  }
+
+  return null; // still in flight
+}
+```
+
+<Warning title="Collision Priority Is a Design Decision">
+When multiple collision types can trigger at the same pixel, the order you check them is a game design choice, not just a bug to fix. In an artillery game, a shot that grazes the terrain at the cannon's base should register as a cannon hit. That's more satisfying and more fair. Check the most specific (or most desirable) collision first.
+</Warning>
+
+## The AI: Simulation Over Heuristics
+
+The AI in Cann Cann doesn't use angle calculations or trajectory formulas. It uses the same physics engine as real gameplay, run 25 times per turn with different inputs.
+
+```typescript
+export function calculateAiShot(
+  state: GameState,
+  difficulty: Difficulty,
+  rng: RngState,
+): { angle: number; velocity: number; rng: RngState } {
+  // Direct angle to target as a starting point
+  const directAngle = Math.atan2(dy, Math.abs(dx)) * (180 / Math.PI);
+
+  // Sample 25 candidates with random variation around direct angle
+  const candidates = [];
+  for (let i = 0; i < 25; i++) {
+    const candidateAngle = clamp(directAngle + (rng.float - 0.5) * 50, 5, 175);
+    const candidateVelocity = 30 + rng.float * 65;
+
+    // Simulate the full trajectory using the real physics engine
+    const result = simulateFullTrajectory(
+      barrelTip.x, barrelTip.y,
+      candidateAngle, candidateVelocity,
+      state.wind, state.terrain,
+      state.cannons, state.activePlayer,
+    );
+
+    candidates.push({
+      angle: candidateAngle,
+      velocity: candidateVelocity,
+      distance: distanceToTarget(result.impactX, enemyCannon),
+    });
+  }
+
+  // Pick the candidate closest to the enemy, add difficulty-based noise
+  const best = candidates.sort((a, b) => a.distance - b.distance)[0];
+  return addDifficultyNoise(best, difficulty, rng);
+}
+```
+
+**What's happening:** The AI runs 25 complete physics simulations, measures how close each one gets to the enemy cannon, picks the best, then adds noise scaled to difficulty. Easy = lots of noise (wild shots). Hard = very little noise (nearly perfect aim).
+
+**Why simulation over formulas:** The real physics includes wind, terrain shape, and barrel position offset. Deriving a closed-form solution for all of that is possible but fragile. Using the actual engine means the AI automatically benefits from any physics changes, and it's impossible for the AI to "cheat" with physics the player doesn't have access to.
+
+<Tip title="Simulation-Based AI Is Easier to Tune Than Formula AI">
+When your AI uses the same physics as the game, you only need to tune the noise level per difficulty setting. You don't need to re-derive formulas every time physics constants change. The AI samples from the same possibility space as the player, which keeps it feeling fair.
+</Tip>
+
+## The Rendering Layer
+
+The Canvas rendering is split into 8 modules, each responsible for one visual element:
+
+| Module | What It Draws |
+|--------|--------------|
+| `draw-sky.ts` | Gradient sky, animated sun with rotating rays, drifting clouds, flapping birds |
+| `draw-terrain.ts` | Green gradient terrain polygon |
+| `draw-cannons.ts` | Diamond body, rotating barrel, colored flags, active player glow |
+| `draw-projectile.ts` | Projectile dot + fading trail |
+| `draw-effects.ts` | Expanding explosion rings, screen shake |
+| `draw-hud.ts` | Wind arrow indicator, turn display |
+| `particles.ts` | Explosion particles with physics |
+| `game-renderer.ts` | Orchestrator that calls all the above |
+
+Each drawing function takes a `CanvasRenderingContext2D` and the relevant state slice. Nothing in the rendering layer mutates game state or has side effects beyond drawing to the canvas.
+
+### Device Pixel Ratio Handling
+
+High-DPI screens (retina displays) render canvas at double resolution by default, but the canvas logical size doesn't change. The result is blurry graphics.
+
+The fix: scale the canvas buffer to the physical pixel size, then apply a CSS transform to display it at the logical size.
+
+```typescript
+// hooks/useCanvas.ts
+useEffect(() => {
+  const canvas = canvasRef.current;
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = GAME_WIDTH * dpr;
+  canvas.height = GAME_HEIGHT * dpr;
+  canvas.style.width = `${GAME_WIDTH}px`;
+  canvas.style.height = `${GAME_HEIGHT}px`;
+
+  const ctx = canvas.getContext("2d")!;
+  ctx.scale(dpr, dpr);
+}, []);
+```
+
+This lives in the hook layer, not the rendering layer. The render functions work entirely in logical coordinates (0 to GAME_WIDTH, 0 to GAME_HEIGHT) and never need to know about device pixels.
+
+<Tip title="Handle DPR in the Hook, Not the Renderer">
+If your rendering functions need to know about device pixel ratio, you've mixed concerns. Scale the canvas once in setup code, then let your draw functions use logical coordinates as if DPR doesn't exist. This makes the rendering code simpler and makes it trivially easy to swap canvas implementations.
+</Tip>
+
+## The Zustand Store: 3 Slices
+
+State management lives in `src/store/` with three Zustand slices:
+
+- **game slice:** GameState (terrain, cannons, projectile, wind, scores, round)
+- **UI slice:** Menu state, settings panel visibility, active screen
+- **settings slice:** Player names, round count, difficulty, persisted to localStorage
+
+The store is the bridge between the pure engine and the React components. Actions in the store call engine functions and replace state:
+
+```typescript
+// store/game-slice.ts (simplified)
+fire: (angle: number, velocity: number) => {
+  const state = get().game;
+  const result = resolveShot(state, angle, velocity); // pure engine call
+  set({ game: result.newState });
+  // trigger animation, schedule next turn, etc.
+}
+```
+
+The engine never touches the store. The store calls the engine. React calls the store. Data flows in one direction.
+
+## Development Flow: How the Session Actually Went
+
+The whole project was built in a single Claude Code session. Here's the actual sequence:
+
+1. **Examined the original game** from the Internet Archive zip: screenshots, help file, readme.
+
+2. **Created the repo** via MCP GitHub tool (private, `chris2ao/Cann-Cann`).
+
+3. **Architecture planning** with a plan-mode agent. This produced the module breakdown and the decision to use the same three-layer pattern as Second Conflict.
+
+4. **Engine modules in parallel batches.** All pure functions, no dependencies on React or Canvas. Claude wrote `types.ts`, `constants.ts`, `terrain.ts`, `physics.ts`, `wind.ts`, `cannon.ts` in the first batch. `game-init.ts`, `turn.ts`, `scoring.ts`, `ai.ts` in the second batch.
+
+5. **Tests.** 25 engine tests covering terrain generation, physics simulation, collision detection, AI shot generation, and scoring. All pure functions, all testable without a browser.
+
+6. **Rendering layer.** Eight Canvas drawing modules, game renderer orchestrator.
+
+7. **Store + hooks.** Three Zustand slices, `useCanvas` hook for DPR handling, `useGameLoop` hook for the animation frame.
+
+8. **React components.** Game canvas, HUD overlay, controls panel, settings menu, main menu.
+
+9. **Bug fix.** Collision detection was checking terrain before cannon. Shot that should hit the cannon was hitting terrain. Flipped the check order.
+
+10. **Deploy.** `npx vercel --prod` from the project directory.
+
+Total time from empty repo to deployed game: one session.
+
+<Info title="Parallel Agent Execution">
+Steps 4 and 8 each used multiple parallel agents writing independent files simultaneously. The engine modules have no dependencies on each other (they share only `types.ts`), so all 10 could be written in parallel. React components similarly don't depend on each other. Parallel execution is what makes a single-session deploy viable for a project of this scope.
+</Info>
+
+## What the Original Game Got Right
+
+After rebuilding Bang Bang from scratch, the design clarity of the original is striking.
+
+Every mechanic is legible: angle affects direction, velocity affects distance, wind affects lateral drift. There's no hidden information. You can see the terrain, you can see the wind indicator, you know what your opponent shot last turn. Every loss is instructive.
+
+The constraint of Windows 3.1 hardware forced the designers to make each mechanic count. There's no room for filler. Cann Cann tries to preserve that clarity while adding the visual polish available on modern hardware: smooth gradient sky, animated sun, explosion particles, screen shake.
+
+## Lessons Learned
+
+1. **Three-layer architecture scales down.** I was worried it would be overkill for a game this small. It wasn't. Having clear separation between engine, store, and rendering made debugging faster and made parallel development straightforward.
+
+2. **Pure functions first, effects later.** Writing all 10 engine modules before touching Canvas meant I could test the core logic in isolation. The 25 tests caught the collision detection bug before I'd written a single rendering function.
+
+3. **Seeded PRNG is worth the setup cost.** Once you have deterministic randomness, you get reproducible bugs, testable AI behavior, and the option for replays without any additional work.
+
+4. **Simulation AI is easier than formula AI.** For physics-heavy games, running your own physics engine N times per AI turn is simpler than deriving closed-form solutions. The AI automatically handles wind, terrain shape, and any physics changes.
+
+5. **DPR belongs in the hook.** Handle device pixel ratio once during canvas setup. Keep rendering functions in logical coordinates.
+
+<Warning title="Collision Detection Order">
+Check the more specific collision type first. In an artillery game, cannon hits should be checked before terrain hits, because both occupy the same spatial position. Getting this backwards is a subtle bug: shots that look like hits register as misses.
+</Warning>
+
+## Play It
+
+Cann Cann is live at [cann-cann.vercel.app](https://cann-cann.vercel.app). Two-player hot seat or solo vs CPU (Easy / Medium / Hard). Arrow keys to adjust angle and velocity, Space or Enter to fire.
+
+The source is in a private repo but the architecture described here is the same pattern I use across projects. If you're building a browser game with Canvas, the three-layer split (pure engine / state store / rendering) is the most useful structural decision you can make before writing any code.
