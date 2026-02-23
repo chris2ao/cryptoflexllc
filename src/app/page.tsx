@@ -99,6 +99,19 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Games Section */}
+      <section className="py-16 sm:py-20 border-t border-border/40">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl sm:text-3xl font-bold">Games I Built</h2>
+            <p className="mt-2 text-muted-foreground">
+              Side projects built with Claude Code. Playable right in the
+              browser.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Third Conflict Promo */}
       <ThirdConflictPromo />
 
