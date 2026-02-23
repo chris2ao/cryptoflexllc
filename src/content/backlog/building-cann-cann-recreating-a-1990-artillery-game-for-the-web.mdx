@@ -1,12 +1,12 @@
 ---
 title: "Building Cann Cann: Recreating a 1990 Artillery Game for the Modern Web"
-date: "2026-02-21T14:00:00"
-description: "How I took a 1990 Windows 3.1 shareware game called Bang Bang, studied it from an Internet Archive zip file, and rebuilt it as a modern web app using Next.js, Canvas, and AI-assisted development in a single session."
-tags: ["Claude Code", "Game Development", "Canvas API", "Next.js", "Building in Public"]
+date: "2026-02-23T14:00:00"
+description: "A technical deep-dive into rebuilding a 1990 Windows 3.1 artillery game as a modern web app with Next.js 15, Canvas 2D, Web Audio synthesis, 6 weapons, 4 terrain biomes, AI personality, and a tri-specialist security audit. From empty repo to 20-feature modernization in two sessions."
+tags: ["Claude Code", "Game Development", "Canvas API", "Next.js", "Web Audio", "Security"]
 author: "Chris Johnson"
-readingTime: "12 min read"
-series: "Building in Public"
-seriesOrder: 7
+readingTime: "18 min read"
+series: "Game Development with Claude Code"
+seriesOrder: 1
 ---
 
 # Building Cann Cann: Recreating a 1990 Artillery Game for the Modern Web
@@ -345,17 +345,169 @@ Every mechanic is legible: angle affects direction, velocity affects distance, w
 
 The constraint of Windows 3.1 hardware forced the designers to make each mechanic count. There's no room for filler. Cann Cann tries to preserve that clarity while adding the visual polish available on modern hardware: smooth gradient sky, animated sun, explosion particles, screen shake.
 
+## The Four-Phase Modernization
+
+After the initial build, the game was functional but felt like a tech demo. Silent, visually flat, single weapon, one-hit kills. Four expert reviews (game design, platform engineering, game direction, art direction) produced a 20-feature modernization plan organized in four phases.
+
+### Phase 1: Make It Feel Like a Game
+
+The highest-impact changes were all about feel, not mechanics.
+
+**Procedural Sound System (Web Audio API):** The single biggest upgrade. Every sound is synthesized at runtime using oscillators and noise buffers. Zero audio files, zero hosting cost. The `SoundEngine` class generates:
+
+| Sound | Technique | Duration |
+|-------|-----------|----------|
+| Cannon fire | Low sine (80Hz) + filtered noise burst | 210ms |
+| Projectile whistle | Sine oscillator, pitch mapped to velocity | Continuous |
+| Terrain impact | Sine thud (60Hz) + bandpass noise crunch | 300ms |
+| Tank destruction | Layered: 40Hz rumble + 400Hz crackle + 2kHz sizzle | 800ms |
+| UI click | Square wave at 600Hz | 50ms |
+| Victory fanfare | Three ascending sine tones (A4, C#5, E5) | 600ms |
+
+```typescript
+// Cannon fire: noise burst through lowpass + sine thump
+playFire(): void {
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 800;
+
+  // Noise envelope: 10ms attack, 50ms hold, 150ms decay
+  noiseGain.gain.linearRampToValueAtTime(1, now + 0.01);
+  noiseGain.gain.linearRampToValueAtTime(0, now + 0.21);
+
+  // Simultaneous 80Hz sine "thump"
+  osc.frequency.value = 80;
+}
+```
+
+The whistle uses `setTargetAtTime` for smooth pitch transitions as projectile speed changes during flight. The `init()` method must be called from a user gesture to satisfy browser autoplay policy.
+
+**Visual Effects:** Muzzle flash at barrel tip (radial gradient, 150ms fade), shockwave ring on explosions (expanding stroke circle), screen flash on cannon hits (alpha 0.3, 100ms decay), debris particles on terrain impacts, glowing cannonball with `shadowBlur`, and smoke trail that fades from orange to gray.
+
+**Ghost Trajectory:** Previous shot's path rendered as a faded dotted line on the next turn, stored in `lastTrajectory` state. This is the core artillery skill loop: adjust and retry.
+
+**Close Miss Feedback:** When a shot lands within 2x `CANNON_HIT_RADIUS` of the enemy, a "CLOSE!" floating text appears with the distance in pixels.
+
+### Phase 2: Make It Strategic
+
+**Weapon Arsenal (6 types):** Each weapon is a pure data object with `speedMult`, `gravityMult`, `blastRadius`, `damage`, and a `special` behavior flag. Ammo is tracked per match, not per round.
+
+| Weapon | Damage | Blast | Speed | Special | Ammo |
+|--------|--------|-------|-------|---------|------|
+| Standard Shell | 35 | 25px | 1.0x | none | Unlimited |
+| Heavy Bomb | 50 | 45px | 0.7x | none | 2/match |
+| Cluster Bomb | 20 ea | 15px | 1.0x | Splits into 3 at apex | 1/match |
+| Bouncer | 30 | 20px | 1.0x | Bounces off terrain | 2/match |
+| Dirt Bomb | 0 | 40px | 0.8x | Creates terrain mound | 2/match |
+| Sniper Shot | 55 | 10px | 1.8x | Low gravity (0.6x) | 1/match |
+
+The weapon system is entirely immutable. `useAmmo()` returns a new inventory array. `getAvailableWeapons()` filters by remaining ammo. The AI selects weapons strategically based on distance, terrain obstruction, and remaining ammo.
+
+**Health System:** 100 HP per tank, distance-attenuated splash damage, floating damage numbers, visual damage states (cracks at <50 HP, smoke wisps at <25 HP), health bars above tanks.
+
+**Terrain Themes (4 biomes):** Selected per round via seeded RNG. Each theme defines 11 color parameters plus optional ambient particles:
+
+- **Grasslands:** Green hills, blue sky, no ambient particles
+- **Desert:** Tan dunes, orange sky, no ambient particles
+- **Arctic:** Ice terrain, cool blue tones, 30 falling snowflakes
+- **Volcanic:** Dark red landscape, fiery sky, 20 rising embers
+
+```typescript
+export interface TerrainTheme {
+  readonly terrainTop: string;
+  readonly terrainBottom: string;
+  readonly skyTop: string;
+  readonly skyBottom: string;
+  readonly sunColor: string;
+  readonly cloudColor: string;
+  readonly grassColors: readonly string[];
+  readonly soilColors: readonly string[];
+  readonly mountainColor: string;
+  readonly ambientParticles: AmbientParticleConfig | null;
+}
+```
+
+### Phase 3: Polish and Retention
+
+**AI Personality:** Speech bubbles above the AI tank reacting to game events. Personality varies by difficulty: Easy is encouraging ("Nice try!"), Medium is competitive ("Getting close..."), Hard is taunting ("Is that all you've got?"). Emotes triggered on hits, misses, near-misses, kills, and AI's own shots.
+
+**Camera Follow:** During projectile flight, the camera smoothly tracks at 1.5x zoom using lerp interpolation. Holds on impact for 500ms, then eases back to overview. Clamped to battlefield bounds.
+
+**Victory Ceremonies:** Round wins get a freeze frame, victory particle burst in winner's color, and elastic-scale banner animation. Match wins trigger canvas fireworks (multi-burst particles).
+
+**Statistics Tracking:** Lifetime stats persisted to localStorage: matches played/won, total shots/hits, accuracy percentage, best streak, longest hit distance. Stats screen accessible from the main menu.
+
+### Phase 4: Platform and Infrastructure
+
+**Static Export:** `output: 'export'` in Next.js config eliminates serverless cold starts and conserves Vercel free tier budget. The game is 100% client-side.
+
+**PWA/Offline:** Web app manifest + service worker enables "Add to Home Screen" and offline play. Network-first strategy for navigation (fresh security patches), stale-while-revalidate for static assets.
+
+**Touch Support:** Drag-to-aim on the canvas (angle from turret to touch point, power from drag distance). Larger touch targets on sliders.
+
+**Accessibility:** Colorblind mode adds pattern overlays (stripes for P1, dots for P2). Reduced motion disables screen shake, particles, and ambient animations. Respects `prefers-reduced-motion` system setting.
+
+## Security Hardening
+
+After the modernization, a tri-specialist security assessment identified 20+ findings across critical, high, medium, and low severities. All were fixed:
+
+**Critical/High (all resolved):**
+- `setTimeout`/`requestAnimationFrame` lifecycle leaks causing orphaned animation loops and stale state writes after component unmount. Fixed with `cancelledRef` guards and `safeTimeout` wrappers that track timer IDs.
+- No security headers. Fixed with `vercel.json` providing CSP, HSTS (2-year max-age + preload), X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy, Permissions-Policy.
+- Module-level `deferredPrompt` singleton unsafe under React Strict Mode. Moved to `useRef`.
+- localStorage deserialization without validation. Added schema validation with type-checked `bool()` and `num()` helpers in the Zustand `merge` function.
+- Unbounded `scorchMarks` and `damageNumbers` arrays. Capped at 50 and 10 entries.
+
+**Medium (all resolved):**
+- Service worker `skipWaiting` + unbounded caching. Hardened with URL allowlist filtering, network-first for navigation, offline 503 fallback.
+- `prefersReducedMotion()` called per frame. Cached via `MediaQueryList` listener.
+- Canvas render loop lacked error boundary. Wrapped in try/catch.
+- Dev dependency vulnerabilities (minimatch ReDoS). Resolved with npm overrides.
+
+## The Animated Title Screen
+
+The final touch was replacing the ASCII art cannon on the main menu with a full-screen animated canvas battlefield.
+
+The `TitleBackground` component renders a dramatic sunset scene: gradient sky, glowing sun with rotating rays, three layers of mountain silhouettes, procedural hilly terrain with grass blades, and two tanks that take turns firing projectiles at each other every 4 seconds.
+
+Key design decisions:
+
+1. **Immutable scene state:** `updateScene()` returns a new `Scene` object, never mutates in place. All interfaces use `readonly` modifiers.
+
+2. **Deterministic debris:** Explosion debris particle radii are pre-computed at creation time and stored on the `SceneExplosion` object, avoiding `Math.random()` in the per-frame draw path.
+
+3. **Gradient caching:** Sky, overlay, and terrain fill gradients are created once and invalidated only on window resize, eliminating hundreds of short-lived GC objects per second.
+
+4. **Module-level constants:** Cloud positions, mountain layers, grass colors, soil colors are all allocated once as `const` arrays outside the component.
+
+```typescript
+// Scene update returns new state, no mutation
+function updateScene(prev: Scene, time: number): Scene {
+  let projectile = prev.projectile;
+  // ... physics calculations ...
+  return {
+    terrain: prev.terrain,
+    projectile: { ...projectile, x: newX, y: newY, vy: newVy, trail: newTrail },
+    explosions: activeExplosions,
+    lastFireTime,
+    firingTank,
+  };
+}
+```
+
 ## Lessons Learned
 
-1. **Three-layer architecture scales down.** I was worried it would be overkill for a game this small. It wasn't. Having clear separation between engine, store, and rendering made debugging faster and made parallel development straightforward.
+1. **Three-layer architecture scales down.** Clear separation between engine, store, and rendering made debugging faster and parallel development straightforward, even for a small game.
 
-2. **Pure functions first, effects later.** Writing all 10 engine modules before touching Canvas meant I could test the core logic in isolation. The 25 tests caught the collision detection bug before I'd written a single rendering function.
+2. **Pure functions first, effects later.** Writing all engine modules before touching Canvas meant testing core logic in isolation. The tests caught the collision detection bug before a single rendering function existed.
 
-3. **Seeded PRNG is worth the setup cost.** Once you have deterministic randomness, you get reproducible bugs, testable AI behavior, and the option for replays without any additional work.
+3. **Procedural audio is viable.** Web Audio oscillators and noise buffers produce convincing game sounds with zero hosting cost. Layer multiple simple sounds (sine thump + filtered noise burst) rather than trying to synthesize one complex sound.
 
-4. **Simulation AI is easier than formula AI.** For physics-heavy games, running your own physics engine N times per AI turn is simpler than deriving closed-form solutions. The AI automatically handles wind, terrain shape, and any physics changes.
+4. **Immutable state pays for itself.** Every state transformation produces a new object. This made the weapon system, health system, and terrain themes trivial to add because existing state was never accidentally corrupted.
 
-5. **DPR belongs in the hook.** Handle device pixel ratio once during canvas setup. Keep rendering functions in logical coordinates.
+5. **Security assessments should happen before deployment.** The `setTimeout` lifecycle bugs were invisible during manual testing but would have caused memory leaks in production.
+
+6. **Canvas animation is its own discipline.** Per-frame gradient allocation, `Math.random()` in draw paths, `performance.now()` vs threaded timestamps: these are canvas-specific pitfalls that typical React code reviews won't catch.
 
 <Warning title="Collision Detection Order">
 Check the more specific collision type first. In an artillery game, cannon hits should be checked before terrain hits, because both occupy the same spatial position. Getting this backwards is a subtle bug: shots that look like hits register as misses.
@@ -363,6 +515,4 @@ Check the more specific collision type first. In an artillery game, cannon hits 
 
 ## Play It
 
-Cann Cann is live at [cann-cann.vercel.app](https://cann-cann.vercel.app). Two-player hot seat or solo vs CPU (Easy / Medium / Hard). Arrow keys to adjust angle and velocity, Space or Enter to fire.
-
-The source is in a private repo but the architecture described here is the same pattern I use across projects. If you're building a browser game with Canvas, the three-layer split (pure engine / state store / rendering) is the most useful structural decision you can make before writing any code.
+Cann Cann is live at [cann-cann.vercel.app](https://cann-cann.vercel.app). Two-player hot seat, solo vs CPU (Easy / Medium / Hard), or Practice mode. Arrow keys to adjust angle and velocity, 1-6 to select weapons, Space or Enter to fire. Installable as a PWA for offline play.

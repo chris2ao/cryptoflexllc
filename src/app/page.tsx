@@ -4,6 +4,7 @@ import { Hero } from "@/components/hero";
 import { BlogCard } from "@/components/blog-card";
 import { SubscribeInline } from "@/components/subscribe-inline";
 import { ThirdConflictPromo } from "@/components/third-conflict-promo";
+import { CannCannPromo } from "@/components/cann-cann-promo";
 import { StatsSection } from "@/components/animated-counter";
 import { getAllPosts } from "@/lib/blog";
 
@@ -100,6 +101,9 @@ export default function HomePage() {
 
       {/* Third Conflict Promo */}
       <ThirdConflictPromo />
+
+      {/* Cann Cann Promo */}
+      <CannCannPromo />
 
       {/* Services Teaser */}
       <section className="py-16 sm:py-20 border-t border-border/40">
