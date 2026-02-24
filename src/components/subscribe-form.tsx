@@ -60,7 +60,9 @@ export function SubscribeForm() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+          <label htmlFor="subscribe-email" className="sr-only">Email address</label>
           <input
+            id="subscribe-email"
             type="email"
             required
             value={email}

@@ -58,7 +58,9 @@ export function SubscribeInline() {
               onSubmit={handleSubmit}
               className="flex w-full sm:w-auto gap-2"
             >
+              <label htmlFor="subscribe-inline-email" className="sr-only">Email address</label>
               <input
+                id="subscribe-inline-email"
                 type="email"
                 required
                 value={email}
