@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getAllPosts } from "@/lib/blog";
+import { getAllResources } from "@/lib/resources";
 
-const BASE_URL = "https://cryptoflexllc.com";
+const BASE_URL = "https://www.cryptoflexllc.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const posts = getAllPosts();
@@ -56,7 +57,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.5,
     },
+    {
+      url: `${BASE_URL}/guestbook`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.5,
+    },
+    {
+      url: `${BASE_URL}/skills`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
   ];
 
-  return [...staticPages, ...blogEntries];
+  const resources = getAllResources();
+  const resourceEntries: MetadataRoute.Sitemap = resources.map((r) => ({
+    url: `${BASE_URL}/resources/${r.slug}`,
+    lastModified: new Date(r.date),
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
+  }));
+
+  return [...staticPages, ...blogEntries, ...resourceEntries];
 }

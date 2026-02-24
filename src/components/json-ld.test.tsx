@@ -180,7 +180,7 @@ describe("PersonJsonLd", () => {
 
     expect(data.sameAs).toEqual([
       "https://github.com/chris2ao",
-      "https://www.linkedin.com/in/chris-johnson-4a2a70253/",
+      "https://www.linkedin.com/in/chris-johnson-secops/",
     ]);
   });
 });
@@ -260,7 +260,7 @@ describe("ArticleJsonLd", () => {
 
     expect(data.author["@type"]).toBe("Person");
     expect(data.author.name).toBe("Test Author");
-    expect(data.author.url).toBe("https://cryptoflexllc.com/about");
+    expect(data.author.url).toBe("https://www.cryptoflexllc.com/about");
   });
 
   it("includes publisher organization", () => {
@@ -280,8 +280,8 @@ describe("ArticleJsonLd", () => {
 
     expect(data.publisher["@type"]).toBe("Organization");
     expect(data.publisher.name).toBe("CryptoFlex LLC");
-    expect(data.publisher.url).toBe("https://cryptoflexllc.com");
-    expect(data.publisher.logo.url).toBe("https://cryptoflexllc.com/CFLogo.png");
+    expect(data.publisher.url).toBe("https://www.cryptoflexllc.com");
+    expect(data.publisher.logo.url).toBe("https://www.cryptoflexllc.com/CFLogo.png");
   });
 
   it("includes mainEntityOfPage", () => {
@@ -336,7 +336,7 @@ describe("ArticleJsonLd", () => {
     const script = container.querySelector('script[type="application/ld+json"]');
     const data = JSON.parse(script!.textContent!);
 
-    expect(data.image).toBe("https://cryptoflexllc.com/CFLogo.png");
+    expect(data.image).toBe("https://www.cryptoflexllc.com/CFLogo.png");
   });
 
   it("handles empty tags array", () => {

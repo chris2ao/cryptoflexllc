@@ -16,7 +16,7 @@ import { getAllPosts } from "@/lib/blog";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import { withRetry } from "@/lib/email-retry";
 
-const BASE_URL = "https://cryptoflexllc.com";
+const BASE_URL = "https://www.cryptoflexllc.com";
 
 function utm(campaign: string, content?: string): string {
   const params = `utm_source=newsletter&utm_medium=email&utm_campaign=${campaign}`;

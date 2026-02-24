@@ -9,13 +9,13 @@ export const metadata: Metadata = {
   description:
     "Tech articles about cybersecurity, AI-assisted development with Claude Code, web infrastructure, Next.js, and hands-on engineering projects.",
   alternates: {
-    canonical: "https://cryptoflexllc.com/blog",
+    canonical: "https://www.cryptoflexllc.com/blog",
   },
   openGraph: {
     title: "Blog — CryptoFlex LLC",
     description:
       "Tech articles about cybersecurity, AI-assisted development, and hands-on engineering projects.",
-    url: "https://cryptoflexllc.com/blog",
+    url: "https://www.cryptoflexllc.com/blog",
   },
 };
 

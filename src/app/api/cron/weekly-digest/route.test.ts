@@ -62,7 +62,7 @@ describe("GET /api/cron/weekly-digest", () => {
     // Mock unsubscribeUrl
     const { unsubscribeUrl } = await import("@/lib/subscribers");
     vi.mocked(unsubscribeUrl).mockImplementation(
-      (email) => `https://cryptoflexllc.com/api/unsubscribe?email=${email}&token=test`
+      (email) => `https://www.cryptoflexllc.com/api/unsubscribe?email=${email}&token=test`
     );
 
     // Mock generateDigestIntro

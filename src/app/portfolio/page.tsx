@@ -6,13 +6,13 @@ export const metadata: Metadata = {
   description:
     "Projects and engineering work by Chris Johnson — cryptocurrency mining infrastructure, custom analytics dashboards, AI-assisted web development, and security tooling.",
   alternates: {
-    canonical: "https://cryptoflexllc.com/portfolio",
+    canonical: "https://www.cryptoflexllc.com/portfolio",
   },
   openGraph: {
     title: "Portfolio — Chris Johnson",
     description:
       "Engineering projects spanning infrastructure, security, and AI-assisted development.",
-    url: "https://cryptoflexllc.com/portfolio",
+    url: "https://www.cryptoflexllc.com/portfolio",
   },
 };
 

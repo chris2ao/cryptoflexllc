@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
 import rehypeStringify from "rehype-stringify";
 
-const BASE_URL = "https://cryptoflexllc.com";
+const BASE_URL = "https://www.cryptoflexllc.com";
 const OG_IMAGE = `${BASE_URL}/CFLogo.png`;
 
 function escapeXml(str: string): string {

@@ -67,7 +67,7 @@ export function PersonJsonLd({
     },
     sameAs: [
       "https://github.com/chris2ao",
-      "https://www.linkedin.com/in/chris-johnson-4a2a70253/",
+      "https://www.linkedin.com/in/chris-johnson-secops/",
     ],
   };
 
@@ -107,15 +107,15 @@ export function ArticleJsonLd({
     author: {
       "@type": "Person",
       name: author,
-      url: "https://cryptoflexllc.com/about",
+      url: "https://www.cryptoflexllc.com/about",
     },
     publisher: {
       "@type": "Organization",
       name: "CryptoFlex LLC",
-      url: "https://cryptoflexllc.com",
+      url: "https://www.cryptoflexllc.com",
       logo: {
         "@type": "ImageObject",
-        url: "https://cryptoflexllc.com/CFLogo.png",
+        url: "https://www.cryptoflexllc.com/CFLogo.png",
       },
     },
     mainEntityOfPage: {
@@ -123,7 +123,7 @@ export function ArticleJsonLd({
       "@id": url,
     },
     keywords: tags.join(", "),
-    image: "https://cryptoflexllc.com/CFLogo.png",
+    image: "https://www.cryptoflexllc.com/CFLogo.png",
   };
 
   return (

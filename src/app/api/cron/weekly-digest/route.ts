@@ -28,7 +28,7 @@ import { withRetry } from "@/lib/email-retry";
 
 export const maxDuration = 30;
 
-const BASE_URL = "https://cryptoflexllc.com";
+const BASE_URL = "https://www.cryptoflexllc.com";
 
 function utm(campaign: string, content?: string): string {
   const params = `utm_source=newsletter&utm_medium=email&utm_campaign=${campaign}`;

@@ -30,7 +30,7 @@
       }
     },
     {
-      "src": "/api/(?!analytics|subscribe|unsubscribe|cron/weekly-digest|cron/cleanup-rate-limits|comments|subscribers|backlog)(.*)",
+      "src": "/api/(?!analytics|subscribe|unsubscribe|cron/weekly-digest|cron/cleanup-rate-limits|comments|subscribers|backlog|og|guestbook|contact)(.*)",
       "mitigate": {
         "action": "deny"
       }

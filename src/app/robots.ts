@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/analytics", "/analytics/", "/api/"],
       },
     ],
-    sitemap: "https://cryptoflexllc.com/sitemap.xml",
+    sitemap: "https://www.cryptoflexllc.com/sitemap.xml",
   };
 }

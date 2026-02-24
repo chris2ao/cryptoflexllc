@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const BASE_URL = "https://cryptoflexllc.com";
+const BASE_URL = "https://www.cryptoflexllc.com";
 
 /**
  * Generate an HMAC-based unsubscribe token for a given email.

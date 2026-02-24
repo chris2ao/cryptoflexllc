@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description:
     "Get in touch with Chris Johnson for cybersecurity consulting, infrastructure projects, or collaboration. Connect on LinkedIn or via email.",
   alternates: {
-    canonical: "https://cryptoflexllc.com/contact",
+    canonical: "https://www.cryptoflexllc.com/contact",
   },
 };
 

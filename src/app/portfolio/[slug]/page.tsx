@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { getAllCaseStudies, getCaseStudyBySlug } from "@/lib/case-studies";
 
-const BASE_URL = "https://cryptoflexllc.com";
+const BASE_URL = "https://www.cryptoflexllc.com";
 
 interface Props {
   params: Promise<{ slug: string }>;

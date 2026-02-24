@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Leave a message on the CryptoFlex LLC guestbook. Say hello, share thoughts, or just let me know you stopped by.",
   alternates: {
-    canonical: "https://cryptoflexllc.com/guestbook",
+    canonical: "https://www.cryptoflexllc.com/guestbook",
   },
 };
 

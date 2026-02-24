@@ -65,7 +65,7 @@ describe("subscribers", () => {
       const email = "user@example.com";
       const url = unsubscribeUrl(email);
 
-      expect(url).toMatch(/^https:\/\/cryptoflexllc\.com\/api\/unsubscribe\?/);
+      expect(url).toMatch(/^https:\/\/www\.cryptoflexllc\.com\/api\/unsubscribe\?/);
       expect(url).toContain(`email=${encodeURIComponent(email)}`);
       expect(url).toContain("&token=");
     });

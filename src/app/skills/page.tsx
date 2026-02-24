@@ -6,13 +6,13 @@ export const metadata: Metadata = {
   description:
     "Browse CryptoFlex LLC's full catalog of Claude Code skills, agents, hooks, commands, configurations, and MCP servers. Each item includes integration steps and code snippets.",
   alternates: {
-    canonical: "https://cryptoflexllc.com/skills",
+    canonical: "https://www.cryptoflexllc.com/skills",
   },
   openGraph: {
     title: "Skills & Tools Catalog",
     description:
       "A comprehensive catalog of Claude Code skills, agents, hooks, commands, and configurations built by CryptoFlex LLC.",
-    url: "https://cryptoflexllc.com/skills",
+    url: "https://www.cryptoflexllc.com/skills",
   },
 };
 

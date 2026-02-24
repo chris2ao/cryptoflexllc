@@ -20,6 +20,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${resource.title} | CryptoFlex LLC`,
     description: resource.description,
+    alternates: {
+      canonical: `https://www.cryptoflexllc.com/resources/${slug}`,
+    },
   };
 }
 

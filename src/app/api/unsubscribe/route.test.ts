@@ -163,7 +163,7 @@ describe("GET /api/unsubscribe", () => {
     expect(text).toContain('<html lang="en">');
     expect(text).toContain("CryptoFlex LLC");
     expect(text).toContain("Back to the blog");
-    expect(text).toContain("https://cryptoflexllc.com/blog");
+    expect(text).toContain("https://www.cryptoflexllc.com/blog");
   });
 
   it("should return 500 when database query fails", async () => {

@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Resources | CryptoFlex LLC",
   description:
     "Carousels, guides, and downloadable resources from CryptoFlex LLC.",
+  alternates: {
+    canonical: "https://www.cryptoflexllc.com/resources",
+  },
 };
 
 export default function ResourcesPage() {
