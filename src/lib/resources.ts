@@ -2,7 +2,7 @@ export interface Resource {
   slug: string;
   title: string;
   description: string;
-  type: "carousel" | "document" | "download";
+  type: "carousel" | "infographic" | "document" | "download";
   tags: string[];
   date: string;
 }
@@ -16,6 +16,15 @@ const resources: Resource[] = [
     type: "carousel",
     tags: ["Next.js", "Security", "AI", "DevOps"],
     date: "2026-02-14",
+  },
+  {
+    slug: "claude-code-intro",
+    title: "Getting Started with Claude Code",
+    description:
+      "A visual guide to installing Claude Code, what it does, and a 5-step roadmap for getting up and running.",
+    type: "infographic",
+    tags: ["Claude Code", "Getting Started", "AI"],
+    date: "2026-02-06",
   },
 ];
 

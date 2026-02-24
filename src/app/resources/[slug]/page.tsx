@@ -53,6 +53,17 @@ export default async function ResourceDetailPage({ params }: Props) {
             <SlideCarousel slides={slides} />
           </div>
         )}
+
+        {resource.type === "infographic" && (
+          <div className="mt-10">
+            <iframe
+              src={`/resources/${slug}.html`}
+              title={resource.title}
+              className="w-full rounded-lg border border-border"
+              style={{ height: "1100px" }}
+            />
+          </div>
+        )}
       </div>
     </section>
   );

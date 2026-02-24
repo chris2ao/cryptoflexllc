@@ -27,7 +27,7 @@ describe("resources", () => {
         expect(r).toHaveProperty("type");
         expect(r).toHaveProperty("tags");
         expect(r).toHaveProperty("date");
-        expect(["carousel", "document", "download"]).toContain(r.type);
+        expect(["carousel", "infographic", "document", "download"]).toContain(r.type);
         expect(Array.isArray(r.tags)).toBe(true);
       }
     });

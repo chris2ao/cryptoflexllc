@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Getting Started with Claude Code — CryptoFlex LLC</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Geist:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface-2: #16161f;
+    --border: rgba(0, 229, 255, 0.12);
+    --cyan: #00e5ff;
+    --cyan-dim: rgba(0, 229, 255, 0.6);
+    --cyan-glow: rgba(0, 229, 255, 0.08);
+    --text: #e8eaf0;
+    --text-muted: #7a8094;
+    --text-dim: #4a5168;
+    --green: #00ffaa;
+    --amber: #ffb347;
+    --red: #ff5f57;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Geist', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  .card {
+    width: 900px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 80px rgba(0, 229, 255, 0.05),
+      0 40px 80px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Subtle grid background */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* Header glow */
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 200px;
+    background: radial-gradient(ellipse at top, rgba(0, 229, 255, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 40px 48px 32px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-logo {
+    height: 36px;
+    width: auto;
+    display: block;
+  }
+
+  .brand-name {
+    font-family: 'Geist Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+
+  .tags {
+    display: flex;
+    gap: 8px;
+  }
+
+  .tag {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--cyan-dim);
+    background: rgba(0, 229, 255, 0.06);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    padding: 3px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .title {
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    margin-bottom: 12px;
+  }
+
+  .title em {
+    font-style: normal;
+    color: var(--cyan);
+  }
+
+  .subtitle {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 520px;
+    font-weight: 400;
+  }
+
+  /* BODY */
+  .body {
+    padding: 36px 48px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* Section card */
+  .section {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.4;
+  }
+
+  .section-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--cyan);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--cyan);
+  }
+
+  /* Steps */
+  .steps {
+    grid-column: span 2;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.4;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    margin-top: 16px;
+    position: relative;
+  }
+
+  .steps-grid::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), var(--cyan-dim), var(--border), transparent);
+    z-index: 0;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    padding: 0 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-num {
+    width: 36px;
+    height: 36px;
+    background: var(--bg);
+    border: 1.5px solid var(--cyan);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Geist Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cyan);
+    box-shadow: 0 0 16px rgba(0, 229, 255, 0.2);
+    flex-shrink: 0;
+  }
+
+  .step-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    font-weight: 400;
+  }
+
+  /* Terminal block */
+  .terminal {
+    background: #0d0d14;
+    border: 1px solid rgba(0, 229, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(0, 229, 255, 0.04);
+    border-bottom: 1px solid rgba(0, 229, 255, 0.08);
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: var(--red); }
+  .dot.y { background: var(--amber); }
+  .dot.g { background: var(--green); }
+
+  .terminal-title {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-left: 6px;
+  }
+
+  .terminal-body {
+    padding: 14px 16px;
+  }
+
+  .tline {
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    white-space: pre;
+  }
+
+  .tline .prompt { color: var(--cyan); }
+  .tline .cmd { color: var(--text); }
+  .tline .comment { color: var(--text-dim); }
+  .tline .success { color: var(--green); }
+  .tline .out { color: var(--text-muted); }
+
+  /* Comparison */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .compare-item {
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .compare-item.good { border-color: rgba(0, 255, 170, 0.2); }
+  .compare-item.bad { border-color: rgba(255, 95, 87, 0.2); }
+
+  .compare-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .compare-label.good { color: var(--green); }
+  .compare-label.bad { color: #ff5f57; }
+
+  .compare-item ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .compare-item li {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.4;
+  }
+
+  .compare-item.good li::before { content: '→'; color: var(--green); font-family: monospace; flex-shrink: 0; }
+  .compare-item.bad li::before { content: '✕'; color: #ff5f57; font-family: monospace; flex-shrink: 0; }
+
+  /* Quote block */
+  .quote {
+    background: rgba(0, 229, 255, 0.04);
+    border-left: 2px solid var(--cyan);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 14px;
+  }
+
+  .quote p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .quote strong {
+    color: var(--cyan);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  /* What it does */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .action-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .action-icon {
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    width: 20px;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+
+  .action-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
+
+  .action-text strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* FOOTER */
+  .footer {
+    padding: 20px 48px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-left {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .footer-left span { color: var(--cyan); }
+
+  .footer-url {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 5px 14px;
+    border-radius: 100px;
+    background: rgba(0,229,255,0.03);
+  }
+
+  .footer-url span { color: var(--cyan-dim); }
+
+  h3.sh {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+
+  p.sp {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 0;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand-row">
+      <div class="brand">
+        <img class="brand-logo" src="https://www.cryptoflexllc.com/CFLogo.png" alt="CryptoFlex LLC" />
+        <span class="brand-name">cryptoflexllc.com</span>
+      </div>
+      <div class="tags">
+        <span class="tag">Claude Code</span>
+        <span class="tag">Getting Started</span>
+        <span class="tag">AI Dev</span>
+      </div>
+    </div>
+
+    <h1 class="title">Getting Started with<br><em>Claude Code</em></h1>
+    <p class="subtitle">Skip the 7-day deep dive. Here's everything you need to install, authenticate, and start building — in plain English.</p>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- Install & Auth -->
+    <div class="section">
+      <div class="section-label">Step 1 — Install &amp; Authenticate</div>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <span class="terminal-title">terminal</span>
+        </div>
+        <div class="terminal-body">
+          <div class="tline"><span class="comment"># Requires Node.js 18+</span></div>
+          <div class="tline"><span class="prompt">$ </span><span class="cmd">npm install -g @anthropic-ai/claude-code</span></div>
+          <div class="tline"> </div>
+          <div class="tline"><span class="comment"># Navigate to your project</span></div>
+          <div class="tline"><span class="prompt">$ </span><span class="cmd">cd my-project</span></div>
+          <div class="tline"><span class="prompt">$ </span><span class="cmd">claude</span></div>
+          <div class="tline"> </div>
+          <div class="tline"><span class="success">✓ Authenticated. Claude Code ready.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- What it does -->
+    <div class="section">
+      <div class="section-label">What Claude Code Actually Does</div>
+      <div class="actions">
+        <div class="action-row">
+          <span class="action-icon">01</span>
+          <span class="action-text"><strong>Reads</strong> your files to understand project context</span>
+        </div>
+        <div class="action-row">
+          <span class="action-icon">02</span>
+          <span class="action-text"><strong>Plans</strong> changes and tells you before executing</span>
+        </div>
+        <div class="action-row">
+          <span class="action-icon">03</span>
+          <span class="action-text"><strong>Writes</strong> code directly to your files — no copy-paste</span>
+        </div>
+        <div class="action-row">
+          <span class="action-icon">04</span>
+          <span class="action-text"><strong>Runs</strong> commands: installs, builds, git operations</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why not local -->
+    <div class="section">
+      <div class="section-label">Why I Left Local Models</div>
+      <h3 class="sh" style="margin-bottom: 12px;">Ollama + Qwen vs. Cloud</h3>
+      <div class="compare-grid">
+        <div class="compare-item bad">
+          <div class="compare-label bad">✕ Local (Ollama)</div>
+          <ul>
+            <li>30-second response times</li>
+            <li>Hallucinated imports</li>
+            <li>Not production-ready</li>
+          </ul>
+        </div>
+        <div class="compare-item good">
+          <div class="compare-label good">→ Claude Code</div>
+          <ul>
+            <li>Fast, accurate responses</li>
+            <li>Full project context</li>
+            <li>Pay only what you use</li>
+          </ul>
+        </div>
+      </div>
+      <div class="quote">
+        <p><strong>Local models are valid</strong> for privacy-sensitive work or if you have serious GPU hardware. For day-to-day dev on a normal workstation? Cloud wins.</p>
+      </div>
+    </div>
+
+    <!-- Pro tips -->
+    <div class="section">
+      <div class="section-label">Keys to Good Results</div>
+      <h3 class="sh" style="margin-bottom: 12px;">Lessons Learned</h3>
+      <div class="actions">
+        <div class="action-row">
+          <span class="action-icon" style="color: var(--green);">→</span>
+          <span class="action-text"><strong>Be specific.</strong> "Dark theme, cyan accent, Geist font" beats "make it look good"</span>
+        </div>
+        <div class="action-row">
+          <span class="action-icon" style="color: var(--green);">→</span>
+          <span class="action-text"><strong>Review everything.</strong> The learning happens in code review, not generation</span>
+        </div>
+        <div class="action-row">
+          <span class="action-icon" style="color: var(--green);">→</span>
+          <span class="action-text"><strong>Iterate fast.</strong> "Add hamburger menu" to done in seconds, not an hour</span>
+        </div>
+        <div class="action-row">
+          <span class="action-icon" style="color: var(--green);">→</span>
+          <span class="action-text"><strong>Use the platform.</strong> Hooks, rules, and MCP servers — don't fight the tooling</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5-step roadmap -->
+    <div class="steps">
+      <div class="section-label">Your Starter Roadmap</div>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">Install &amp;<br>authenticate</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">Start with a<br>small project</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">Describe in<br>detail, watch</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">Review, ask<br>questions, iterate</div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-text">Explore rules,<br>hooks &amp; MCP</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-left">
+      Chris Johnson &nbsp;·&nbsp; <span>CryptoFlex LLC</span> &nbsp;·&nbsp; Feb 2026
+    </div>
+    <div class="footer-url">
+      <span>cryptoflexllc.com</span>/blog/getting-started-with-claude-code
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
