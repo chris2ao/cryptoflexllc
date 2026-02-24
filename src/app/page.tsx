@@ -20,7 +20,7 @@ export default function HomePage() {
       <StatsSection
         stats={[
           { value: allPosts.length, label: "Blog Posts" },
-          { value: 591, label: "Tests Passing" },
+          { value: 589, label: "Tests Passing" }, // Update manually when test suite changes
           { value: 98, label: "Code Coverage", suffix: "%" },
           { value: 5, label: "Active Projects" },
         ]}

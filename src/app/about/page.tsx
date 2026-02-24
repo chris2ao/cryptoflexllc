@@ -232,7 +232,7 @@ export default function AboutPage() {
               alt="Chris Johnson"
               width={400}
               height={400}
-              className="aspect-square rounded-xl object-cover"
+              className="aspect-square rounded-xl object-cover ring-1 ring-border shadow-xl"
               priority
             />
 
