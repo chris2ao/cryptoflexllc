@@ -1,4 +1,5 @@
 /** JSON-LD structured data components for SEO */
+import { BASE_URL } from "@/lib/constants";
 
 interface WebsiteJsonLdProps {
   url: string;
@@ -109,15 +110,15 @@ export function ArticleJsonLd({
     author: {
       "@type": "Person",
       name: author,
-      url: "https://www.cryptoflexllc.com/about",
+      url: `${BASE_URL}/about`,
     },
     publisher: {
       "@type": "Organization",
       name: "CryptoFlex LLC",
-      url: "https://www.cryptoflexllc.com",
+      url: BASE_URL,
       logo: {
         "@type": "ImageObject",
-        url: "https://www.cryptoflexllc.com/CFLogo.png",
+        url: `${BASE_URL}/CFLogo.png`,
       },
     },
     mainEntityOfPage: {
@@ -125,7 +126,7 @@ export function ArticleJsonLd({
       "@id": url,
     },
     keywords: tags.join(", "),
-    image: `https://www.cryptoflexllc.com/api/og?title=${encodeURIComponent(title)}`,
+    image: `${BASE_URL}/api/og?title=${encodeURIComponent(title)}`,
   };
 
   return (

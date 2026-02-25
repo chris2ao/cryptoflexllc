@@ -5,8 +5,7 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { getAllCaseStudies, getCaseStudyBySlug } from "@/lib/case-studies";
-
-const BASE_URL = "https://www.cryptoflexllc.com";
+import { BASE_URL } from "@/lib/constants";
 
 interface Props {
   params: Promise<{ slug: string }>;

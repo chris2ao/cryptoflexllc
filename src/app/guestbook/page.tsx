@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { GuestbookEntries } from "@/components/guestbook-entries";
 import { AchievementBadges } from "@/components/achievement-badges";
+import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Guestbook",
   description:
     "Leave a message on the CryptoFlex LLC guestbook. Say hello, share thoughts, or just let me know you stopped by.",
   alternates: {
-    canonical: "https://www.cryptoflexllc.com/guestbook",
+    canonical: `${BASE_URL}/guestbook`,
   },
 };
 

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getAllResources, getResourceBySlug } from "@/lib/resources";
 import { SlideCarousel } from "@/components/slide-carousel";
 import { weekOneSlides } from "@/components/slides/week-one-slides";
+import { BASE_URL } from "@/lib/constants";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${resource.title} | CryptoFlex LLC`,
     description: resource.description,
     alternates: {
-      canonical: `https://www.cryptoflexllc.com/resources/${slug}`,
+      canonical: `${BASE_URL}/resources/${slug}`,
     },
   };
 }

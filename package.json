@@ -20,7 +20,6 @@
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
     "@neondatabase/serverless": "^1.0.2",
-    "@next/mdx": "^16.1.6",
     "@next/third-parties": "^16.1.6",
     "@tailwindcss/typography": "^0.5.19",
     "@vercel/analytics": "^1.6.1",

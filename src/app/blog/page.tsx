@@ -3,19 +3,20 @@ import { Suspense } from "react";
 import { BlogList } from "@/components/blog-list";
 import { SubscribeForm } from "@/components/subscribe-form";
 import { getAllPosts, getAllTags } from "@/lib/blog";
+import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Blog",
   description:
     "Tech articles about cybersecurity, AI-assisted development with Claude Code, web infrastructure, Next.js, and hands-on engineering projects.",
   alternates: {
-    canonical: "https://www.cryptoflexllc.com/blog",
+    canonical: `${BASE_URL}/blog`,
   },
   openGraph: {
     title: "Blog — CryptoFlex LLC",
     description:
       "Tech articles about cybersecurity, AI-assisted development, and hands-on engineering projects.",
-    url: "https://www.cryptoflexllc.com/blog",
+    url: `${BASE_URL}/blog`,
   },
 };
 

@@ -49,8 +49,7 @@ import { SocialShare } from "@/components/social-share";
 import { RelatedPosts } from "@/components/related-posts";
 import { BlogSeriesNav } from "@/components/blog-series-nav";
 import { PostReadTracker } from "@/components/post-read-tracker";
-
-const BASE_URL = "https://www.cryptoflexllc.com";
+import { BASE_URL } from "@/lib/constants";
 
 interface Props {
   params: Promise<{ slug: string }>;

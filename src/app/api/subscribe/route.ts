@@ -15,8 +15,8 @@ import { unsubscribeUrl } from "@/lib/subscribers";
 import { getAllPosts } from "@/lib/blog";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import { withRetry } from "@/lib/email-retry";
-
-const BASE_URL = "https://www.cryptoflexllc.com";
+import { BASE_URL } from "@/lib/constants";
+import { maskEmail } from "@/lib/email-utils";
 
 function utm(campaign: string, content?: string): string {
   const params = `utm_source=newsletter&utm_medium=email&utm_campaign=${campaign}`;
@@ -25,16 +25,6 @@ function utm(campaign: string, content?: string): string {
 
 // Allow up to 30 seconds for DB insert + SMTP send
 export const maxDuration = 30;
-
-/**
- * Mask email address for logging to prevent PII exposure.
- * Example: user@domain.com -> u***@domain.com
- */
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain) return "***";
-  return `${local[0]}***@${domain}`;
-}
 
 // Rate limiter: 5 requests per IP per hour
 const subscribeRateLimiter = createRateLimiter({

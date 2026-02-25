@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/analytics";
 import { makeUnsubscribeToken } from "@/lib/subscribers";
 import crypto from "crypto";
+import { BASE_URL } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -89,10 +90,10 @@ function htmlPage(title: string, message: string): string {
 </head>
 <body>
   <div class="card">
-    <img src="https://www.cryptoflexllc.com/CFLogo.png" alt="CryptoFlex LLC" width="180" style="margin-bottom:1.5rem" />
+    <img src="${BASE_URL}/CFLogo.png" alt="CryptoFlex LLC" width="180" style="margin-bottom:1.5rem" />
     <h1>${title}</h1>
     <p>${message}</p>
-    <p style="margin-top:1.5rem"><a href="https://www.cryptoflexllc.com/blog">Back to the blog</a></p>
+    <p style="margin-top:1.5rem"><a href="${BASE_URL}/blog">Back to the blog</a></p>
   </div>
 </body>
 </html>`;

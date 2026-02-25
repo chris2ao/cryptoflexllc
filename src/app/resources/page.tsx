@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { getAllResources } from "@/lib/resources";
 import { ResourceCard } from "@/components/resource-card";
+import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Resources | CryptoFlex LLC",
   description:
     "Carousels, guides, and downloadable resources from CryptoFlex LLC.",
   alternates: {
-    canonical: "https://www.cryptoflexllc.com/resources",
+    canonical: `${BASE_URL}/resources`,
   },
 };
 

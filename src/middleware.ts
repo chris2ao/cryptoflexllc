@@ -19,10 +19,6 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
-  // Add security headers to all responses
-  response.headers.set("X-Frame-Options", "DENY");
-  response.headers.set("X-Content-Type-Options", "nosniff");
-
   // Enforce HTTPS in production
   if (
     process.env.NODE_ENV === "production" &&

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CareerTimeline } from "@/components/career-timeline";
+import { BASE_URL } from "@/lib/constants";
 
 const careerEvents = [
   {
@@ -42,13 +43,13 @@ export const metadata: Metadata = {
   description:
     "Chris Johnson — combat veteran turned cybersecurity professional. Security engineering, SOC operations, cloud architecture, and AI-assisted development.",
   alternates: {
-    canonical: "https://www.cryptoflexllc.com/about",
+    canonical: `${BASE_URL}/about`,
   },
   openGraph: {
     title: "About Chris Johnson",
     description:
       "Combat veteran turned cybersecurity professional. Security engineering, SOC operations, and AI-assisted development.",
-    url: "https://www.cryptoflexllc.com/about",
+    url: `${BASE_URL}/about`,
     type: "profile",
   },
 };

@@ -1,43 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { sendGAEvent } from "@next/third-parties/google";
 import { Mail, CheckCircle, Loader2 } from "lucide-react";
+import { useSubscribe } from "@/hooks/use-subscribe";
 
 export function SubscribeForm() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [message, setMessage] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
-
-    setStatus("loading");
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setStatus("error");
-        setMessage(data.error ?? "Something went wrong.");
-        return;
-      }
-
-      setStatus("success");
-      setMessage("You're subscribed! Check your inbox on Mondays.");
-      setEmail("");
-      sendGAEvent("event", "subscribe", { method: "email" });
-    } catch {
-      setStatus("error");
-      setMessage("Network error. Please try again.");
-    }
-  }
+  const { email, status, message, handleSubmit, updateEmail } = useSubscribe();
 
   return (
     <div className="rounded-xl border border-border/60 bg-card/50 p-6 sm:p-8">
@@ -66,10 +33,7 @@ export function SubscribeForm() {
             type="email"
             required
             value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (status === "error") setStatus("idle");
-            }}
+            onChange={(e) => updateEmail(e.target.value)}
             placeholder="you@example.com"
             className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />

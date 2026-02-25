@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Trash2, Loader2, ThumbsUp, ThumbsDown, Search, Reply } from "lucide-react";
 import type { CommentRow } from "@/lib/analytics-types";
+import { BASE_URL } from "@/lib/constants";
 
 interface CommentsPanelProps {
   comments: CommentRow[];
@@ -103,7 +104,7 @@ export function CommentsPanel({ comments: initialComments }: CommentsPanelProps)
                   </td>
                   <td className="px-4 py-2 max-w-[280px] truncate" title={c.comment}>
                     <a
-                      href={`https://www.cryptoflexllc.com/blog/${c.slug}#comment-${c.id}`}
+                      href={`${BASE_URL}/blog/${c.slug}#comment-${c.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/30 hover:decoration-primary/60 transition-colors"

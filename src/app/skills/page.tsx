@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import { SkillsShowcase } from "@/components/skills-showcase";
+import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Skills & Tools Catalog",
   description:
     "Browse CryptoFlex LLC's full catalog of Claude Code skills, agents, hooks, commands, configurations, and MCP servers. Each item includes integration steps and code snippets.",
   alternates: {
-    canonical: "https://www.cryptoflexllc.com/skills",
+    canonical: `${BASE_URL}/skills`,
   },
   openGraph: {
     title: "Skills & Tools Catalog",
     description:
       "A comprehensive catalog of Claude Code skills, agents, hooks, commands, and configurations built by CryptoFlex LLC.",
-    url: "https://www.cryptoflexllc.com/skills",
+    url: `${BASE_URL}/skills`,
   },
 };
 

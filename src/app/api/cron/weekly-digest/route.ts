@@ -25,24 +25,14 @@ import { getAllPosts } from "@/lib/blog";
 import { unsubscribeUrl } from "@/lib/subscribers";
 import { generateDigestIntro, type DigestIntro } from "@/lib/newsletter-intro";
 import { withRetry } from "@/lib/email-retry";
+import { BASE_URL } from "@/lib/constants";
+import { maskEmail } from "@/lib/email-utils";
 
 export const maxDuration = 30;
-
-const BASE_URL = "https://www.cryptoflexllc.com";
 
 function utm(campaign: string, content?: string): string {
   const params = `utm_source=newsletter&utm_medium=email&utm_campaign=${campaign}`;
   return content ? `${params}&utm_content=${encodeURIComponent(content)}` : params;
-}
-
-/**
- * Mask email address for logging to prevent PII exposure.
- * Example: user@domain.com -> u***@domain.com
- */
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain) return "***";
-  return `${local[0]}***@${domain}`;
 }
 
 export async function GET(request: NextRequest) {

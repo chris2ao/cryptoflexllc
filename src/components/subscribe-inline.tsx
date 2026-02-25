@@ -1,45 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { sendGAEvent } from "@next/third-parties/google";
 import { CheckCircle, Loader2 } from "lucide-react";
+import { useSubscribe } from "@/hooks/use-subscribe";
 
 export function SubscribeInline() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [message, setMessage] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
-
-    setStatus("loading");
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setStatus("error");
-        setMessage(data.error ?? "Something went wrong.");
-        return;
-      }
-
-      setStatus("success");
-      setMessage("You're subscribed! Check your inbox on Mondays.");
-      setEmail("");
-      sendGAEvent("event", "subscribe", { method: "email" });
-    } catch {
-      setStatus("error");
-      setMessage("Network error. Please try again.");
-    }
-  }
+  const { email, status, message, handleSubmit, updateEmail } = useSubscribe();
 
   return (
     <section className="py-10 sm:py-12 border-t border-border/40">
@@ -64,10 +29,7 @@ export function SubscribeInline() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (status === "error") setStatus("idle");
-                }}
+                onChange={(e) => updateEmail(e.target.value)}
                 placeholder="you@example.com"
                 className="flex-1 sm:w-64 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />

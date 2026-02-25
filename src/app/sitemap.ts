@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllPosts } from "@/lib/blog";
 import { getAllResources } from "@/lib/resources";
-
-const BASE_URL = "https://www.cryptoflexllc.com";
+import { BASE_URL } from "@/lib/constants";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const posts = getAllPosts();

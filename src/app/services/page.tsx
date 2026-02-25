@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Shield, Server, Lightbulb, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { BASE_URL } from "@/lib/constants";
 
 const serviceIcons: Record<string, React.ReactNode> = {
   "Security Consulting": <Shield className="h-8 w-8 text-primary mb-2" />,
@@ -16,13 +17,13 @@ export const metadata: Metadata = {
   description:
     "IT consulting services from CryptoFlex LLC — cybersecurity assessments, infrastructure architecture, cloud strategy, and security engineering.",
   alternates: {
-    canonical: "https://www.cryptoflexllc.com/services",
+    canonical: `${BASE_URL}/services`,
   },
   openGraph: {
     title: "Consulting Services",
     description:
       "Cybersecurity assessments, infrastructure architecture, cloud strategy, and security engineering from CryptoFlex LLC.",
-    url: "https://www.cryptoflexllc.com/services",
+    url: `${BASE_URL}/services`,
   },
 };
 

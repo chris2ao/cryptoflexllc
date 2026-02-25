@@ -10,6 +10,7 @@ import { WebsiteJsonLd, PersonJsonLd } from "@/components/json-ld";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { BASE_URL } from "@/lib/constants";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,8 +22,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
-const BASE_URL = "https://www.cryptoflexllc.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),

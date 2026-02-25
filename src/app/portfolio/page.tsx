@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import { ProjectCard } from "@/components/project-card";
+import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Portfolio",
   description:
     "Projects and engineering work by Chris Johnson — cryptocurrency mining infrastructure, custom analytics dashboards, AI-assisted web development, and security tooling.",
   alternates: {
-    canonical: "https://www.cryptoflexllc.com/portfolio",
+    canonical: `${BASE_URL}/portfolio`,
   },
   openGraph: {
     title: "Portfolio — Chris Johnson",
     description:
       "Engineering projects spanning infrastructure, security, and AI-assisted development.",
-    url: "https://www.cryptoflexllc.com/portfolio",
+    url: `${BASE_URL}/portfolio`,
   },
 };
 
