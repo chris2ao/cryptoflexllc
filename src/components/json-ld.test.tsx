@@ -336,7 +336,7 @@ describe("ArticleJsonLd", () => {
     const script = container.querySelector('script[type="application/ld+json"]');
     const data = JSON.parse(script!.textContent!);
 
-    expect(data.image).toBe("https://www.cryptoflexllc.com/CFLogo.png");
+    expect(data.image).toBe("https://www.cryptoflexllc.com/api/og?title=Test%20Article");
   });
 
   it("handles empty tags array", () => {

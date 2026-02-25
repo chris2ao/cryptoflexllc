@@ -5,6 +5,7 @@ import {
   useState,
   useEffect,
   type HTMLAttributes,
+  type ReactElement,
   type ReactNode,
 } from "react";
 import { sendGAEvent } from "@next/third-parties/google";
@@ -17,6 +18,18 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
   const preRef = useRef<HTMLPreElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const [copied, setCopied] = useState(false);
+
+  // Extract language from code element className
+  let language = "";
+  if (
+    children &&
+    typeof children === "object" &&
+    "props" in children &&
+    typeof (children as ReactElement<{ className?: string }>).props?.className === "string"
+  ) {
+    const match = (children as ReactElement<{ className?: string }>).props.className!.match(/language-(\w+)/);
+    if (match) language = match[1];
+  }
 
   useEffect(() => {
     return () => {
@@ -40,6 +53,11 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
 
   return (
     <div className="group relative">
+      {language && (
+        <span className="absolute right-12 top-2 z-10 text-xs text-muted-foreground/70 font-mono uppercase select-none">
+          {language}
+        </span>
+      )}
       <pre ref={preRef} {...props}>
         {children}
       </pre>

@@ -6,6 +6,7 @@ export interface BlogPost {
   slug: string;
   title: string;
   date: string;
+  updatedAt?: string;
   author: string;
   readingTime: string;
   description: string;
@@ -29,10 +30,17 @@ function parsePost(slug: string, filePath: string): BlogPost {
       ? rawDate.toISOString().split("T")[0]
       : (rawDate ?? "1970-01-01");
 
+  const rawUpdatedAt = data.updatedAt;
+  const updatedAt =
+    rawUpdatedAt instanceof Date
+      ? rawUpdatedAt.toISOString().split("T")[0]
+      : rawUpdatedAt ?? undefined;
+
   return {
     slug,
     title: data.title ?? slug,
     date,
+    updatedAt,
     author: data.author ?? "",
     readingTime: data.readingTime ?? "",
     description: data.description ?? "",

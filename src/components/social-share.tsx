@@ -24,6 +24,22 @@ function LinkedInIcon({ className }: { className?: string }) {
   );
 }
 
+function BlueskyIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.785 2.627 3.6 3.476 6.158 3.228-4.326.718-8.1 2.49-3.2 8.525 5.506 5.846 7.07-1.924 8.418-5.705C13.35 19.976 14.134 28 20.418 22c4.9-6.035 1.126-7.807-3.2-8.525 2.558.248 5.373-.6 6.158-3.228.246-.828.624-5.79.624-6.479 0-.688-.139-1.86-.902-2.203-.66-.3-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z" />
+    </svg>
+  );
+}
+
+function HackerNewsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M0 0v24h24V0H0zm12.8 13.4V19h-1.6v-5.6L7.7 6h1.8l2.5 5.5L14.5 6h1.8l-3.5 7.4z" />
+    </svg>
+  );
+}
+
 export function SocialShare({ url, title }: SocialShareProps) {
   const [copied, setCopied] = useState(false);
 
@@ -32,6 +48,8 @@ export function SocialShare({ url, title }: SocialShareProps) {
 
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
   const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+  const blueskyUrl = `https://bsky.app/intent/compose?text=${encodedTitle}%20${encodedUrl}`;
+  const hnUrl = `https://news.ycombinator.com/submitlink?u=${encodedUrl}&t=${encodedTitle}`;
 
   async function copyLink() {
     await navigator.clipboard.writeText(url);
@@ -62,6 +80,24 @@ export function SocialShare({ url, title }: SocialShareProps) {
         aria-label="Share on LinkedIn"
       >
         <LinkedInIcon className="h-4 w-4" />
+      </a>
+      <a
+        href={blueskyUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        aria-label="Share on Bluesky"
+      >
+        <BlueskyIcon className="h-4 w-4" />
+      </a>
+      <a
+        href={hnUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        aria-label="Share on Hacker News"
+      >
+        <HackerNewsIcon className="h-4 w-4" />
       </a>
       <button
         onClick={copyLink}

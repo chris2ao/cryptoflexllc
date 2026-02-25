@@ -84,6 +84,7 @@ interface ArticleJsonLdProps {
   description: string;
   url: string;
   datePublished: string;
+  dateModified?: string;
   author: string;
   tags: string[];
 }
@@ -93,6 +94,7 @@ export function ArticleJsonLd({
   description,
   url,
   datePublished,
+  dateModified,
   author,
   tags,
 }: ArticleJsonLdProps) {
@@ -103,7 +105,7 @@ export function ArticleJsonLd({
     description,
     url,
     datePublished,
-    dateModified: datePublished,
+    dateModified: dateModified || datePublished,
     author: {
       "@type": "Person",
       name: author,
@@ -123,7 +125,7 @@ export function ArticleJsonLd({
       "@id": url,
     },
     keywords: tags.join(", "),
-    image: "https://www.cryptoflexllc.com/CFLogo.png",
+    image: `https://www.cryptoflexllc.com/api/og?title=${encodeURIComponent(title)}`,
   };
 
   return (

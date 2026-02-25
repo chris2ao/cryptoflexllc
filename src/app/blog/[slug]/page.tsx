@@ -70,8 +70,15 @@ function createHeading(level: number) {
     const id = slugify(text);
     const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
     return (
-      <Tag id={id} {...props}>
+      <Tag id={id} className="group" {...props}>
         {children}
+        <a
+          href={`#${id}`}
+          className="ml-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity no-underline"
+          aria-label="Link to section"
+        >
+          #
+        </a>
       </Tag>
     );
   };
@@ -115,7 +122,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: postUrl,
       type: "article",
       publishedTime: post.date,
-      modifiedTime: post.date,
+      modifiedTime: post.updatedAt || post.date,
       authors: post.author ? [post.author] : undefined,
       tags: post.tags,
       images: [
@@ -156,6 +163,7 @@ export default async function BlogPostPage({ params }: Props) {
           description={post.description}
           url={postUrl}
           datePublished={post.date}
+          dateModified={post.updatedAt}
           author={post.author}
           tags={post.tags}
         />
