@@ -58,7 +58,7 @@ export default function HomePage() {
       )}
 
       {/* About Teaser */}
-      <section className="py-16 sm:py-20 border-t border-border/40">
+      <section className="py-16 sm:py-20 border-t border-border/40 bg-muted/10">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="max-w-2xl">
             <h2 className="text-2xl sm:text-3xl font-bold">About Me</h2>
@@ -117,7 +117,7 @@ export default function HomePage() {
       </section>
 
       {/* Services Teaser */}
-      <section className="py-16 sm:py-20 border-t border-border/40">
+      <section className="py-16 sm:py-20 border-t border-border/40 bg-muted/20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="max-w-2xl">
             <h2 className="text-2xl sm:text-3xl font-bold">

@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Shield, Server, Lightbulb, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+
+const serviceIcons: Record<string, React.ReactNode> = {
+  "Security Consulting": <Shield className="h-8 w-8 text-primary mb-2" />,
+  "IT Infrastructure": <Server className="h-8 w-8 text-primary mb-2" />,
+  "IT Strategy & Support": <Lightbulb className="h-8 w-8 text-primary mb-2" />,
+  "Web Development & Management": <Globe className="h-8 w-8 text-primary mb-2" />,
+};
 
 export const metadata: Metadata = {
   title: "Services",
@@ -81,6 +89,7 @@ export default function ServicesPage() {
           {services.map((service) => (
             <Card key={service.title} className="bg-card">
               <CardHeader>
+                {serviceIcons[service.title]}
                 <h2 className="text-xl font-semibold">{service.title}</h2>
               </CardHeader>
               <CardContent>

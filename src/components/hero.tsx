@@ -44,7 +44,7 @@ export function Hero() {
               alt="Chris Johnson"
               width={320}
               height={320}
-              className="aspect-square w-48 sm:w-64 md:w-72 lg:w-80 rounded-2xl object-cover ring-1 ring-border shadow-xl"
+              className="aspect-square w-56 sm:w-64 md:w-72 lg:w-80 rounded-2xl object-cover ring-1 ring-border shadow-xl"
               priority
             />
           </div>
