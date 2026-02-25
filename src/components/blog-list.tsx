@@ -152,7 +152,7 @@ export function BlogList({ posts, allTags }: BlogListProps) {
       </div>
 
       {/* Result count + clear */}
-      {hasFilters && (
+      {hasFilters && filtered.length > 0 && (
         <div className="mb-6 flex items-center gap-3 text-sm text-muted-foreground">
           <span>
             Showing {filtered.length} of {posts.length} posts
@@ -169,9 +169,19 @@ export function BlogList({ posts, allTags }: BlogListProps) {
 
       {/* Post grid */}
       {filtered.length === 0 ? (
-        <p className="text-muted-foreground">
-          No posts match your filters.
-        </p>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+          <p className="text-lg text-muted-foreground mb-4">
+            No posts match your filters.
+          </p>
+          <button
+            onClick={clearFilters}
+            type="button"
+            className="text-sm text-primary hover:underline"
+          >
+            Clear filters
+          </button>
+        </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((post) => (

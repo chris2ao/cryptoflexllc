@@ -14,7 +14,6 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const links = [
-  { href: "/", label: "Home" },
   { href: "/blog", label: "Blog" },
   { href: "/skills", label: "Skills" },
   { href: "/services", label: "Services" },
@@ -46,7 +45,7 @@ export function Nav() {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
           {links.map((link) => {
-            const isActive = pathname === link.href;
+            const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
             return (
               <Link
                 key={link.href}
@@ -96,7 +95,7 @@ export function Nav() {
             </SheetTitle>
             <nav className="flex flex-col gap-2">
               {links.map((link) => {
-                const isActive = pathname === link.href;
+                const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
                 return (
                   <Link
                     key={link.href}

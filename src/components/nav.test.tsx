@@ -38,14 +38,15 @@ describe("Nav", () => {
     vi.clearAllMocks();
   });
 
-  it("renders all 7 navigation links", () => {
+  it("renders all 8 navigation links", () => {
     render(<Nav />);
-    expect(screen.getAllByText("Home").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Blog").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Skills").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Services").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("About").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Portfolio").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Resources").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Guestbook").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Contact").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -75,8 +76,8 @@ describe("Nav", () => {
 
     render(<Nav />);
 
-    const homeLinks = screen.getAllByText("Home");
-    const hasActiveClass = homeLinks.some((link: HTMLElement) =>
+    const aboutLinks = screen.getAllByText("About");
+    const hasActiveClass = aboutLinks.some((link: HTMLElement) =>
       link.className.includes("text-primary")
     );
     expect(hasActiveClass).toBe(false);

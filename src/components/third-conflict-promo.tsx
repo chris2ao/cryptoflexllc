@@ -30,9 +30,7 @@ export function ThirdConflictPromo() {
   const headerText = useTypingAnimation(HEADER_TEXT);
 
   return (
-    <section className="py-16 sm:py-20 border-t border-border/40">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="relative overflow-hidden rounded-xl border border-green-500/30 bg-black/80 p-6 sm:p-8">
+    <div className="relative overflow-hidden rounded-xl border border-green-500/30 bg-black/80 p-6 sm:p-8">
           {/* Scanline overlay */}
           <div
             className="pointer-events-none absolute inset-0"
@@ -100,8 +98,6 @@ export function ThirdConflictPromo() {
               </a>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
+    </div>
   );
 }

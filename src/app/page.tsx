@@ -109,14 +109,12 @@ export default function HomePage() {
               browser.
             </p>
           </div>
+          <div className="mt-8 space-y-8">
+            <ThirdConflictPromo />
+            <CannCannPromo />
+          </div>
         </div>
       </section>
-
-      {/* Third Conflict Promo */}
-      <ThirdConflictPromo />
-
-      {/* Cann Cann Promo */}
-      <CannCannPromo />
 
       {/* Services Teaser */}
       <section className="py-16 sm:py-20 border-t border-border/40">

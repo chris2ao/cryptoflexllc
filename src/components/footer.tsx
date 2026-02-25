@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Github, Linkedin, Rss } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export function Footer() {
@@ -54,17 +55,26 @@ export function Footer() {
                 href="https://www.linkedin.com/in/chris-johnson-secops/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
+                <Linkedin className="h-4 w-4" />
                 LinkedIn
               </a>
               <a
                 href="https://github.com/chris2ao"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
+                <Github className="h-4 w-4" />
                 GitHub
+              </a>
+              <a
+                href="/feed.xml"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Rss className="h-4 w-4" />
+                RSS Feed
               </a>
             </nav>
           </div>
