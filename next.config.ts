@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
       headers: [
         {
           key: "X-Frame-Options",
-          value: "DENY",
+          value: "SAMEORIGIN",
         },
         {
           key: "X-Content-Type-Options",
@@ -50,7 +50,8 @@ const nextConfig: NextConfig = {
             "img-src 'self' data: https:",
             "font-src 'self'",
             "connect-src 'self' https://neon.tech https://www.google-analytics.com",
-            "frame-ancestors 'none'",
+            "frame-src 'self'",
+            "frame-ancestors 'self'",
             "base-uri 'self'",
             "form-action 'self'",
           ].join("; "),
