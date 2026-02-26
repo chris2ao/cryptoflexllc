@@ -49,7 +49,7 @@ const nextConfig: NextConfig = {
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https:",
             "font-src 'self'",
-            "connect-src 'self' https://neon.tech https://www.google-analytics.com",
+            "connect-src 'self' https://www.google-analytics.com",
             "frame-src 'self'",
             "frame-ancestors 'self'",
             "base-uri 'self'",

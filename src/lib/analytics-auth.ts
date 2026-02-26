@@ -79,18 +79,14 @@ export function verifyApiAuth(request: Request): boolean {
   }
 
   // Fallback: Authorization header (for programmatic access)
-  // TODO: This compares the raw ANALYTICS_SECRET over the wire. Ideally
-  // programmatic clients should authenticate via POST /api/analytics/auth
-  // and use the cookie, or this should accept the HMAC-derived token
-  // instead of the raw secret to reduce exposure surface.
+  // Accepts the HMAC-derived token (not the raw secret) so the secret
+  // never travels over the wire or appears in access logs.
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const bearerToken = authHeader.slice(7);
+    const expected = generateAuthToken(expectedSecret);
     try {
-      if (
-        bearerToken.length === expectedSecret.length &&
-        timingSafeEqual(Buffer.from(bearerToken), Buffer.from(expectedSecret))
-      ) {
+      if (timingSafeEqual(Buffer.from(expected), Buffer.from(bearerToken))) {
         return true;
       }
     } catch {

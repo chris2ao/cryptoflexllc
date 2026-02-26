@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/analytics";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 const schema = z.object({
   path: z.string().min(1).max(500),
@@ -24,6 +25,12 @@ const schema = z.object({
   time_seconds: z.number().int().min(1).max(3600).optional(),
 });
 
+// Rate limiter: 30 requests per IP per minute
+const engagementRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+});
+
 export async function POST(request: NextRequest) {
   try {
     const contentType = request.headers.get("content-type");
@@ -32,6 +39,16 @@ export async function POST(request: NextRequest) {
         { error: "Content-Type must be application/json" },
         { status: 415 },
       );
+    }
+
+    // Rate limit check
+    const clientIp = getClientIp(request);
+    const rateLimit = await engagementRateLimiter.checkRateLimit(clientIp);
+    if (!rateLimit.allowed) {
+      return new NextResponse(null, {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfter || 60) },
+      });
     }
 
     let body;

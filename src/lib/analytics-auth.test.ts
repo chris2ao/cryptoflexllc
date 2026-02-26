@@ -113,9 +113,10 @@ describe("analytics-auth", () => {
 
     it("verifies request with valid Bearer token", () => {
       const secret = "test-analytics-secret-456";
+      const hmacToken = generateAuthToken(secret);
       const request = new Request("http://example.com", {
         headers: {
-          authorization: `Bearer ${secret}`,
+          authorization: `Bearer ${hmacToken}`,
         },
       });
 
@@ -218,10 +219,11 @@ describe("analytics-auth", () => {
 
     it("falls back to Bearer token if cookie is invalid", () => {
       const secret = "test-analytics-secret-456";
+      const hmacToken = generateAuthToken(secret);
       const request = new Request("http://example.com", {
         headers: {
           cookie: `${ANALYTICS_COOKIE_NAME}=invalid`,
-          authorization: `Bearer ${secret}`,
+          authorization: `Bearer ${hmacToken}`,
         },
       });
 
