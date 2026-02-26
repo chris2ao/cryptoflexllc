@@ -37,6 +37,27 @@ const subscribeSchema = z.object({
   email: z.string().email().max(320).trim().toLowerCase(),
 });
 
+export async function GET() {
+  try {
+    const sql = getDb();
+    const result = await sql`
+      SELECT COUNT(*) as count FROM subscribers WHERE active = TRUE
+    `;
+    const count = Number(result[0]?.count ?? 0);
+    return NextResponse.json(
+      { count },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=300",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Subscribe count error:", error);
+    return NextResponse.json({ count: 0 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Content-Type validation
@@ -96,17 +117,29 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-vercel-ip-country-region") || "Unknown"
     );
 
+    // Extract source page from Referer header (pathname only, no domain)
+    const referer = request.headers.get("referer");
+    let sourcePage: string | null = null;
+    if (referer) {
+      try {
+        sourcePage = new URL(referer).pathname;
+      } catch {
+        sourcePage = null;
+      }
+    }
+
     const sql = getDb();
 
     // Upsert: if they previously unsubscribed, reactivate.
     // Always update geo data so we have the latest info.
     await sql`
-      INSERT INTO subscribers (email, active, ip_address, country, city, region)
-      VALUES (${email}, TRUE, ${ipAddress}, ${country}, ${city}, ${region})
+      INSERT INTO subscribers (email, active, ip_address, country, city, region, source_page)
+      VALUES (${email}, TRUE, ${ipAddress}, ${country}, ${city}, ${region}, ${sourcePage})
       ON CONFLICT (email)
       DO UPDATE SET active = TRUE, subscribed_at = NOW(),
         ip_address = ${ipAddress}, country = ${country},
-        city = ${city}, region = ${region}
+        city = ${city}, region = ${region},
+        source_page = ${sourcePage}
     `;
 
     // Send confirmation email before responding (must await on serverless)

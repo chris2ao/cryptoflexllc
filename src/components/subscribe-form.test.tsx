@@ -2,9 +2,21 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SubscribeForm } from "./subscribe-form";
 
+/** Helper: create a fetch mock that returns `countResponse` for GET and `postResponse` for POST */
+function mockFetch(postResponse?: { ok: boolean; json: () => Promise<unknown> }) {
+  const countResponse = { ok: true, json: async () => ({ count: 5 }) };
+  return vi.fn().mockImplementation((_url: string, options?: RequestInit) => {
+    if (options?.method === "POST" && postResponse) {
+      return Promise.resolve(postResponse);
+    }
+    return Promise.resolve(countResponse);
+  });
+}
+
 describe("SubscribeForm", () => {
   beforeEach(() => {
-    global.fetch = vi.fn();
+    // Default: GET returns subscriber count, POST is not expected
+    global.fetch = mockFetch();
   });
 
   it("renders the form with all elements", () => {
@@ -29,7 +41,10 @@ describe("SubscribeForm", () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        "/api/subscribe",
+        expect.objectContaining({ method: "POST" })
+      );
     });
   });
 
@@ -43,12 +58,15 @@ describe("SubscribeForm", () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        "/api/subscribe",
+        expect.objectContaining({ method: "POST" })
+      );
     });
   });
 
   it("submits the form successfully", async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    global.fetch = mockFetch({
       ok: true,
       json: async () => ({ success: true }),
     });
@@ -75,12 +93,15 @@ describe("SubscribeForm", () => {
   });
 
   it("shows loading spinner during submission", async () => {
-    let resolvePromise: (value: unknown) => void;
-    const promise = new Promise((resolve) => {
-      resolvePromise = resolve;
+    let resolvePost: (value: unknown) => void;
+    const postPromise = new Promise((resolve) => {
+      resolvePost = resolve;
     });
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(promise);
+    global.fetch = vi.fn().mockImplementation((_url: string, options?: RequestInit) => {
+      if (options?.method === "POST") return postPromise;
+      return Promise.resolve({ ok: true, json: async () => ({ count: 5 }) });
+    });
 
     render(<SubscribeForm />);
 
@@ -99,7 +120,7 @@ describe("SubscribeForm", () => {
     expect(loader).toBeInTheDocument();
 
     // Resolve the promise
-    resolvePromise!({
+    resolvePost!({
       ok: true,
       json: async () => ({ success: true }),
     });
@@ -113,7 +134,7 @@ describe("SubscribeForm", () => {
   });
 
   it("clears the email field after successful submission", async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    global.fetch = mockFetch({
       ok: true,
       json: async () => ({ success: true }),
     });
@@ -140,7 +161,7 @@ describe("SubscribeForm", () => {
   });
 
   it("shows API error message", async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    global.fetch = mockFetch({
       ok: false,
       json: async () => ({ error: "Email already subscribed" }),
     });
@@ -159,7 +180,7 @@ describe("SubscribeForm", () => {
   });
 
   it("shows generic error when API returns no error message", async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    global.fetch = mockFetch({
       ok: false,
       json: async () => ({}),
     });
@@ -176,9 +197,10 @@ describe("SubscribeForm", () => {
   });
 
   it("shows network error message on fetch failure", async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new Error("Network error")
-    );
+    global.fetch = vi.fn().mockImplementation((_url: string, options?: RequestInit) => {
+      if (options?.method === "POST") return Promise.reject(new Error("Network error"));
+      return Promise.resolve({ ok: true, json: async () => ({ count: 5 }) });
+    });
 
     render(<SubscribeForm />);
 
@@ -194,7 +216,7 @@ describe("SubscribeForm", () => {
   });
 
   it("clears error state when user types after an error", async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    global.fetch = mockFetch({
       ok: false,
       json: async () => ({ error: "Email already subscribed" }),
     });
@@ -221,7 +243,7 @@ describe("SubscribeForm", () => {
   });
 
   it("hides form and shows success message after subscription", async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    global.fetch = mockFetch({
       ok: true,
       json: async () => ({ success: true }),
     });

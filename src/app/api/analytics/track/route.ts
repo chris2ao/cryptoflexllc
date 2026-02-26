@@ -52,11 +52,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    const pagePath = parsed.data.path;
+    const rawPath = parsed.data.path;
 
     // ---- 3. Additional path validation ----
-    if (!pagePath.startsWith("/")) {
+    if (!rawPath.startsWith("/")) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
+
+    // ---- 3b. Parse UTM parameters and strip them from the stored path ----
+    // The client may send pathname + search (e.g. /blog/foo?utm_source=newsletter).
+    // We parse UTMs here and store the clean path without query params.
+    let pagePath = rawPath;
+    let utmSource: string | null = null;
+    let utmMedium: string | null = null;
+    let utmCampaign: string | null = null;
+
+    const qIndex = rawPath.indexOf("?");
+    if (qIndex !== -1) {
+      pagePath = rawPath.slice(0, qIndex);
+      const searchParams = new URLSearchParams(rawPath.slice(qIndex + 1));
+      utmSource = searchParams.get("utm_source");
+      utmMedium = searchParams.get("utm_medium");
+      utmCampaign = searchParams.get("utm_campaign");
     }
 
     // ---- 4. Extract IP address ----
@@ -108,11 +125,11 @@ export async function POST(request: NextRequest) {
       INSERT INTO page_views (
         page_path, ip_address, user_agent, browser, os,
         device_type, referrer, country, city, region,
-        latitude, longitude
+        latitude, longitude, utm_source, utm_medium, utm_campaign
       ) VALUES (
         ${pagePath}, ${ipAddress}, ${userAgent}, ${browser}, ${os},
         ${deviceType}, ${referrer}, ${country}, ${city}, ${region},
-        ${latitude}, ${longitude}
+        ${latitude}, ${longitude}, ${utmSource}, ${utmMedium}, ${utmCampaign}
       )
     `;
 

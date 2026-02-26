@@ -130,7 +130,8 @@ export async function GET(request: NextRequest) {
         ip_address    VARCHAR(45) NOT NULL DEFAULT '',
         country       VARCHAR(100) NOT NULL DEFAULT 'Unknown',
         city          VARCHAR(100) NOT NULL DEFAULT 'Unknown',
-        region        VARCHAR(100) NOT NULL DEFAULT 'Unknown'
+        region        VARCHAR(100) NOT NULL DEFAULT 'Unknown',
+        source_page   TEXT
       )
     `;
 
@@ -146,6 +147,11 @@ export async function GET(request: NextRequest) {
         ADD COLUMN IF NOT EXISTS country VARCHAR(100) NOT NULL DEFAULT 'Unknown',
         ADD COLUMN IF NOT EXISTS city VARCHAR(100) NOT NULL DEFAULT 'Unknown',
         ADD COLUMN IF NOT EXISTS region VARCHAR(100) NOT NULL DEFAULT 'Unknown'
+    `;
+
+    await sql`
+      ALTER TABLE subscribers
+        ADD COLUMN IF NOT EXISTS source_page TEXT
     `;
 
     // Blog comments table
@@ -279,6 +285,35 @@ export async function GET(request: NextRequest) {
     await sql`
       CREATE INDEX IF NOT EXISTS idx_client_errors_dedup
         ON client_errors (ip_address, error_message)
+    `;
+
+    // UTM columns on page_views
+    await sql`
+      ALTER TABLE page_views
+        ADD COLUMN IF NOT EXISTS utm_source TEXT,
+        ADD COLUMN IF NOT EXISTS utm_medium TEXT,
+        ADD COLUMN IF NOT EXISTS utm_campaign TEXT
+    `;
+
+    // Search query analytics
+    await sql`
+      CREATE TABLE IF NOT EXISTS search_queries (
+        id            SERIAL PRIMARY KEY,
+        recorded_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        query         TEXT NOT NULL,
+        page_path     TEXT NOT NULL,
+        ip_address    VARCHAR(45) NOT NULL
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_search_queries_recorded_at
+        ON search_queries (recorded_at)
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_search_queries_dedup
+        ON search_queries (ip_address, query)
     `;
 
     return NextResponse.json({

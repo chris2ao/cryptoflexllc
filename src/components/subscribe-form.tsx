@@ -4,7 +4,7 @@ import { Mail, CheckCircle, Loader2 } from "lucide-react";
 import { useSubscribe } from "@/hooks/use-subscribe";
 
 export function SubscribeForm() {
-  const { email, status, message, handleSubmit, updateEmail } = useSubscribe();
+  const { email, status, message, handleSubmit, updateEmail, subscriberCount } = useSubscribe();
 
   return (
     <div className="rounded-xl border border-border/60 bg-card/50 p-6 sm:p-8">
@@ -19,6 +19,12 @@ export function SubscribeForm() {
         Get a weekly email with what I learned, summaries of new posts, and
         direct links. No spam, unsubscribe anytime.
       </p>
+
+      {subscriberCount !== null && subscriberCount > 0 && (
+        <p className="text-sm text-muted-foreground mb-4">
+          Join {subscriberCount.toLocaleString()} readers
+        </p>
+      )}
 
       {status === "success" ? (
         <div className="flex items-center gap-2 text-sm text-green-400">

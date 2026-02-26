@@ -41,7 +41,10 @@ export function AnalyticsTracker() {
 
   // ---- 1. Page view tracking ----
   useEffect(() => {
-    beacon("/api/analytics/track", { path: pathname });
+    // Include search string so the server can extract UTM parameters.
+    // window.location.search is safe here because this runs client-side only.
+    const fullPath = pathname + (window.location.search ?? "");
+    beacon("/api/analytics/track", { path: fullPath });
   }, [pathname]);
 
   // ---- 2. Scroll depth + 3. Time on page ----

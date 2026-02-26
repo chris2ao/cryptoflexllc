@@ -318,3 +318,30 @@ export interface ClientErrorTrendRow {
   error_count: number;
   unique_errors: number;
 }
+
+/** UTM campaign performance row */
+export interface CampaignRow {
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string | null;
+  visit_count: number;
+}
+
+/** Subscriber growth trend (weekly) */
+export interface SubscriberGrowthRow {
+  week: string;
+  new_subscribers: number;
+  cumulative: number;
+}
+
+/** Top converting pages (pages that drive subscriptions) */
+export interface ConvertingPageRow {
+  source_page: string;
+  subscriber_count: number;
+}
+
+/** Search query analytics */
+export interface SearchQueryRow {
+  query: string;
+  search_count: number;
+}

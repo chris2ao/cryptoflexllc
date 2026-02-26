@@ -13,6 +13,7 @@ export interface BlogPost {
   tags: string[];
   series?: string;
   seriesOrder?: number;
+  schemaType?: "Article" | "TechArticle" | "HowTo";
   content: string;
 }
 
@@ -47,6 +48,7 @@ function parsePost(slug: string, filePath: string): BlogPost {
     tags: data.tags ?? [],
     series: data.series ?? undefined,
     seriesOrder: data.seriesOrder ?? undefined,
+    schemaType: data.schemaType ?? undefined,
     content,
   };
 }

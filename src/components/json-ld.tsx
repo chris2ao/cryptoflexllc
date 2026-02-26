@@ -88,6 +88,7 @@ interface ArticleJsonLdProps {
   dateModified?: string;
   author: string;
   tags: string[];
+  schemaType?: "Article" | "TechArticle" | "HowTo";
 }
 
 export function ArticleJsonLd({
@@ -98,10 +99,11 @@ export function ArticleJsonLd({
   dateModified,
   author,
   tags,
+  schemaType = "Article",
 }: ArticleJsonLdProps) {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": schemaType,
     headline: title,
     description,
     url,

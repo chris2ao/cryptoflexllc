@@ -4,7 +4,7 @@ import { CheckCircle, Loader2 } from "lucide-react";
 import { useSubscribe } from "@/hooks/use-subscribe";
 
 export function SubscribeInline() {
-  const { email, status, message, handleSubmit, updateEmail } = useSubscribe();
+  const { email, status, message, handleSubmit, updateEmail, subscriberCount } = useSubscribe();
 
   return (
     <section className="py-10 sm:py-12 border-t border-border/40">
@@ -16,9 +16,16 @@ export function SubscribeInline() {
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-            <p className="text-sm text-muted-foreground shrink-0">
-              Weekly insights on cybersecurity and AI, delivered Mondays.
-            </p>
+            <div className="flex flex-col gap-0.5 shrink-0">
+              <p className="text-sm text-muted-foreground">
+                Weekly insights on cybersecurity and AI, delivered Mondays.
+              </p>
+              {subscriberCount !== null && subscriberCount > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Join {subscriberCount.toLocaleString()} readers
+                </p>
+              )}
+            </div>
             <form
               onSubmit={handleSubmit}
               className="flex w-full sm:w-auto gap-2"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { sendGAEvent } from "@next/third-parties/google";
 
 type SubscribeStatus = "idle" | "loading" | "success" | "error";
@@ -9,6 +9,20 @@ export function useSubscribe() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<SubscribeStatus>("idle");
   const [message, setMessage] = useState("");
+  const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/subscribe")
+      .then((res) => res.json())
+      .then((data: { count?: number }) => {
+        if (typeof data.count === "number" && data.count > 0) {
+          setSubscriberCount(data.count);
+        }
+      })
+      .catch(() => {
+        // Silently ignore fetch errors: social proof is non-critical
+      });
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,5 +59,5 @@ export function useSubscribe() {
     if (status === "error") setStatus("idle");
   }
 
-  return { email, status, message, handleSubmit, updateEmail };
+  return { email, status, message, handleSubmit, updateEmail, subscriberCount };
 }

@@ -49,6 +49,10 @@ import type {
   NewVsReturningRow,
   ClientErrorTrendRow,
   ClientErrorRow,
+  CampaignRow,
+  SubscriberGrowthRow,
+  ConvertingPageRow,
+  SearchQueryRow,
 } from "@/lib/analytics-types";
 import {
   isVercelApiConfigured,
@@ -82,6 +86,10 @@ import { BotTrendChart } from "./_components/bot-trend-chart";
 import { AuthAttemptsChart } from "./_components/auth-attempts-chart";
 import { NewVsReturningChart } from "./_components/new-vs-returning-chart";
 import { ClientErrorsPanel } from "./_components/client-errors-panel";
+import { CampaignPanel } from "./_components/campaign-panel";
+import { SubscriberGrowthChart } from "./_components/subscriber-growth-chart";
+import { TopConvertingPanel } from "./_components/top-converting-panel";
+import { SearchQueriesPanel } from "./_components/search-queries-panel";
 
 export const metadata: Metadata = {
   title: "Analytics",
@@ -142,6 +150,10 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       clientErrorTrend,
       clientErrorRecent,
       clientErrorCount,
+      campaignData,
+      subscriberGrowth,
+      convertingPages,
+      searchQueries,
     ] = await Promise.all([
       // 0: Summary stats
       sql`
@@ -424,6 +436,58 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         FROM client_errors
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
       `.catch(() => [{ total: 0 }]),
+      // Campaign performance (UTM-tagged visits)
+      sql`
+        SELECT
+          utm_source,
+          utm_medium,
+          utm_campaign,
+          COUNT(*)::int AS visit_count
+        FROM page_views
+        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND utm_source IS NOT NULL
+        GROUP BY utm_source, utm_medium, utm_campaign
+        ORDER BY visit_count DESC
+        LIMIT 20
+      `.catch(() => []),
+      // Subscriber growth (weekly)
+      sql`
+        WITH weekly AS (
+          SELECT
+            DATE_TRUNC('week', subscribed_at)::date::text AS week,
+            COUNT(*)::int AS new_subscribers
+          FROM subscribers
+          GROUP BY DATE_TRUNC('week', subscribed_at)
+          ORDER BY week
+        )
+        SELECT
+          week,
+          new_subscribers,
+          SUM(new_subscribers) OVER (ORDER BY week)::int AS cumulative
+        FROM weekly
+      `.catch(() => []),
+      // Top converting posts (pages where subscribers came from)
+      sql`
+        SELECT
+          source_page,
+          COUNT(*)::int AS subscriber_count
+        FROM subscribers
+        WHERE source_page IS NOT NULL AND source_page != ''
+        GROUP BY source_page
+        ORDER BY subscriber_count DESC
+        LIMIT 15
+      `.catch(() => []),
+      // Top search queries
+      sql`
+        SELECT
+          query,
+          COUNT(*)::int AS search_count
+        FROM search_queries
+        WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY query
+        ORDER BY search_count DESC
+        LIMIT 20
+      `.catch(() => []),
     ]);
 
     const stats = summary[0] || {
@@ -494,6 +558,10 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
     const typedErrorTrend = clientErrorTrend as unknown as ClientErrorTrendRow[];
     const typedErrorRecent = clientErrorRecent as unknown as ClientErrorRow[];
     const errorTotal = ((clientErrorCount as unknown as { total: number }[])[0] || { total: 0 }).total;
+    const typedCampaigns = campaignData as unknown as CampaignRow[];
+    const typedSubGrowth = subscriberGrowth as unknown as SubscriberGrowthRow[];
+    const typedConverting = convertingPages as unknown as ConvertingPageRow[];
+    const typedSearchQueries = searchQueries as unknown as SearchQueryRow[];
 
     return (
       <section className="py-16 sm:py-20">
@@ -597,11 +665,16 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             description="How visitors interact with your pages and content"
           />
 
-          <div className="grid lg:grid-cols-2 gap-8 mb-10">
+          <div className="grid lg:grid-cols-2 gap-8 mb-8">
             <TopPagesChart data={typedTopPages} />
             <ReferrerChart data={typedReferrers} />
             <ScrollDepthChart data={typedScrollDepth} />
             <TimeOnPageChart data={typedTimeOnPage} />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8 mb-10">
+            <CampaignPanel campaigns={typedCampaigns} />
+            <SearchQueriesPanel queries={typedSearchQueries} />
           </div>
 
           {/* ═══════════════════════════════════════════
@@ -699,6 +772,11 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             title="Newsletter, Comments & Guestbook"
             description="Subscriber management, comment moderation, guestbook approvals"
           />
+
+          <div className="grid lg:grid-cols-2 gap-8 mb-8">
+            <SubscriberGrowthChart data={typedSubGrowth} />
+            <TopConvertingPanel data={typedConverting} />
+          </div>
 
           <div className="mb-8">
             <SubscriberPanel

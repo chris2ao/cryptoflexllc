@@ -20,6 +20,7 @@ export function BlogList({ posts, allTags }: BlogListProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [search, setSearch] = useState("");
 
@@ -106,8 +107,46 @@ export function BlogList({ posts, allTags }: BlogListProps) {
     router.push(qs ? `/blog?${qs}` : "/blog", { scroll: false });
   }
 
+  function trackSearchQuery(query: string) {
+    if (query.length < 2) return;
+    try {
+      const payload = JSON.stringify({
+        query,
+        path: window.location.pathname,
+      });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(
+          "/api/analytics/track-search",
+          new Blob([payload], { type: "application/json" })
+        );
+      } else {
+        fetch("/api/analytics/track-search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    } catch {
+      // Silently fail - analytics must not disrupt UX
+    }
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      trackSearchQuery(value.trim());
+    }, 1000);
+  }
+
   function clearFilters() {
     setSearch("");
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
     router.push("/blog", { scroll: false });
   }
 
@@ -122,7 +161,7 @@ export function BlogList({ posts, allTags }: BlogListProps) {
           ref={searchRef}
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search posts... (Ctrl+K)"
           className="w-full max-w-md rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />

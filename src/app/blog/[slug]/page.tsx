@@ -165,6 +165,7 @@ export default async function BlogPostPage({ params }: Props) {
           dateModified={post.updatedAt}
           author={post.author}
           tags={post.tags}
+          schemaType={post.schemaType ?? "Article"}
         />
         <BreadcrumbJsonLd
           items={[
