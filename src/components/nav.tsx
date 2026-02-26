@@ -85,13 +85,16 @@ export function Nav() {
           </SheetTrigger>
           <SheetContent side="right" className="w-64">
             <SheetTitle className="mb-4">
-              <Image
-                src="/CFLogo.png"
-                alt="CryptoFlex LLC"
-                width={180}
-                height={54}
-                className="h-9 w-auto"
-              />
+              <div className="flex items-center justify-between">
+                <Image
+                  src="/CFLogo.png"
+                  alt="CryptoFlex LLC"
+                  width={180}
+                  height={54}
+                  className="h-9 w-auto"
+                />
+                <ThemeToggle />
+              </div>
             </SheetTitle>
             <nav className="flex flex-col gap-2">
               {links.map((link) => {
@@ -112,9 +115,6 @@ export function Nav() {
                   </Link>
                 );
               })}
-              <div className="mt-2 border-t border-border pt-2">
-                <ThemeToggle />
-              </div>
             </nav>
           </SheetContent>
         </Sheet>

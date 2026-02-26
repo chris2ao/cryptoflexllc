@@ -173,9 +173,9 @@ export default async function BlogPostPage({ params }: Props) {
             { name: post.title, url: postUrl },
           ]}
         />
-        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:max-w-5xl">
           {/* Post header */}
-          <header className="mb-10">
+          <header className="mb-10 lg:max-w-3xl">
             <div className="flex flex-wrap gap-2 mb-4">
               {post.tags.map((tag) => (
                 <Link key={tag} href={`/blog?tag=${encodeURIComponent(tag)}`}>
@@ -206,77 +206,91 @@ export default async function BlogPostPage({ params }: Props) {
 
           {/* Series Navigation */}
           {post.series && seriesPosts.length > 1 && (
-            <BlogSeriesNav
-              seriesName={post.series}
-              posts={seriesPosts}
-              currentSlug={slug}
-            />
+            <div className="lg:max-w-3xl">
+              <BlogSeriesNav
+                seriesName={post.series}
+                posts={seriesPosts}
+                currentSlug={slug}
+              />
+            </div>
           )}
 
-          {/* Table of Contents */}
-          <BlogToc headings={headings} />
+          {/* Two-column layout: article + sidebar TOC on desktop */}
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-8">
+            <div>
+              {/* Inline TOC for mobile/tablet */}
+              <div className="lg:hidden">
+                <BlogToc headings={headings} />
+              </div>
 
-          {/* Post content */}
-          <div className="prose dark:prose-invert prose-zinc max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-code:text-primary/90 prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-border">
-            <MDXRemote
-              source={post.content}
-              options={{
-                mdxOptions: {
-                  remarkPlugins: [remarkGfm],
-                },
-              }}
-              components={{
-                h1: createHeading(1),
-                h2: createHeading(2),
-                h3: createHeading(3),
-                pre: CodeBlock,
-                table: (props) => (
-                  <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-                    <table {...props} />
-                  </div>
-                ),
-                Warning,
-                Stop,
-                Info,
-                Tip,
-                Security,
-                Vercel,
-                Cloudflare,
-                Nextjs,
-                CloudflareDoubleHop,
-                VercelNativeWAF,
-                TwoLayerWAF,
-                OldVsNewStack,
-                SiteArchitectureDiagram,
-                MDXPipelineDiagram,
-                DeploymentFlowDiagram,
-                SEOStackDiagram,
-                GoogleCrawlFlowDiagram,
-                MetadataFlowDiagram,
-                SEOBeforeAfterDiagram,
-                CommentSystemDiagram,
-                WelcomeBlastTroubleshootDiagram,
-                JourneyTimelineDiagram,
-                WelcomeEmailSagaDiagram,
-                BeforeAfterArchitectureDiagram,
-                CodePlayground,
-              }}
-            />
-          </div>
+              {/* Post content */}
+              <div className="prose dark:prose-invert prose-zinc max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-code:text-primary/90 prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-border">
+                <MDXRemote
+                  source={post.content}
+                  options={{
+                    mdxOptions: {
+                      remarkPlugins: [remarkGfm],
+                    },
+                  }}
+                  components={{
+                    h1: createHeading(1),
+                    h2: createHeading(2),
+                    h3: createHeading(3),
+                    pre: CodeBlock,
+                    table: (props) => (
+                      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                        <table {...props} />
+                      </div>
+                    ),
+                    Warning,
+                    Stop,
+                    Info,
+                    Tip,
+                    Security,
+                    Vercel,
+                    Cloudflare,
+                    Nextjs,
+                    CloudflareDoubleHop,
+                    VercelNativeWAF,
+                    TwoLayerWAF,
+                    OldVsNewStack,
+                    SiteArchitectureDiagram,
+                    MDXPipelineDiagram,
+                    DeploymentFlowDiagram,
+                    SEOStackDiagram,
+                    GoogleCrawlFlowDiagram,
+                    MetadataFlowDiagram,
+                    SEOBeforeAfterDiagram,
+                    CommentSystemDiagram,
+                    WelcomeBlastTroubleshootDiagram,
+                    JourneyTimelineDiagram,
+                    WelcomeEmailSagaDiagram,
+                    BeforeAfterArchitectureDiagram,
+                    CodePlayground,
+                  }}
+                />
+              </div>
 
-          {/* Share + Subscribe */}
-          <div className="mt-12 flex flex-col gap-8">
-            <div className="border-t border-border pt-6">
-              <SocialShare url={postUrl} title={post.title} />
+              {/* Share + Subscribe */}
+              <div className="mt-12 flex flex-col gap-8">
+                <div className="border-t border-border pt-6">
+                  <SocialShare url={postUrl} title={post.title} />
+                </div>
+                <SubscribeForm />
+              </div>
+
+              {/* Related Posts */}
+              <RelatedPosts posts={relatedPosts} />
+
+              {/* Comments section (subscriber-only) */}
+              <BlogComments slug={slug} />
             </div>
-            <SubscribeForm />
+
+            {/* Sidebar TOC for desktop */}
+            <aside className="hidden lg:block">
+              <BlogToc headings={headings} variant="sidebar" />
+            </aside>
           </div>
-
-          {/* Related Posts */}
-          <RelatedPosts posts={relatedPosts} />
-
-          {/* Comments section (subscriber-only) */}
-          <BlogComments slug={slug} />
         </div>
       </article>
     </>

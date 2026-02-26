@@ -6,11 +6,11 @@ import type { TocHeading } from "@/lib/headings";
 
 interface BlogTocProps {
   headings: TocHeading[];
+  variant?: "inline" | "sidebar";
 }
 
-export function BlogToc({ headings }: BlogTocProps) {
+function useTocObserver(headings: TocHeading[]) {
   const [activeId, setActiveId] = useState<string>("");
-  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -32,7 +32,65 @@ export function BlogToc({ headings }: BlogTocProps) {
     return () => observer.disconnect();
   }, [headings]);
 
+  return activeId;
+}
+
+function TocLinks({
+  headings,
+  activeId,
+}: {
+  headings: TocHeading[];
+  activeId: string;
+}) {
+  return (
+    <ul className="space-y-1 text-sm">
+      {headings.map((heading) => (
+        <li
+          key={heading.id}
+          style={{ paddingLeft: `${(heading.level - 1) * 0.75}rem` }}
+        >
+          <a
+            href={`#${heading.id}`}
+            className={`block rounded px-2 py-1 transition-colors ${
+              activeId === heading.id
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={(e) => {
+              e.preventDefault();
+              document
+                .getElementById(heading.id)
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            {heading.text}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function BlogToc({ headings, variant = "inline" }: BlogTocProps) {
+  const activeId = useTocObserver(headings);
+  const [isOpen, setIsOpen] = useState(true);
+
   if (headings.length < 3) return null;
+
+  if (variant === "sidebar") {
+    return (
+      <nav
+        className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto"
+        aria-label="Table of contents"
+      >
+        <p className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+          <List className="h-4 w-4" />
+          Table of Contents
+        </p>
+        <TocLinks headings={headings} activeId={activeId} />
+      </nav>
+    );
+  }
 
   return (
     <nav
@@ -50,31 +108,9 @@ export function BlogToc({ headings }: BlogTocProps) {
         <span className="text-muted-foreground">{isOpen ? "\u2212" : "+"}</span>
       </button>
       {isOpen && (
-        <ul className="mt-3 space-y-1 text-sm">
-          {headings.map((heading) => (
-            <li
-              key={heading.id}
-              style={{ paddingLeft: `${(heading.level - 1) * 0.75}rem` }}
-            >
-              <a
-                href={`#${heading.id}`}
-                className={`block rounded px-2 py-1 transition-colors ${
-                  activeId === heading.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  document
-                    .getElementById(heading.id)
-                    ?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                {heading.text}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3">
+          <TocLinks headings={headings} activeId={activeId} />
+        </div>
       )}
     </nav>
   );
