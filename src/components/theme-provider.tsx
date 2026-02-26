@@ -26,6 +26,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const current = document.documentElement.classList.contains("dark")
       ? "dark"
       : "light";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration: read DOM then set initial state
     setTheme(stored ?? current);
   }, []);
 

@@ -38,7 +38,7 @@ describe("CodeBlock", () => {
   it("shows copy button on render", () => {
     render(
       <CodeBlock>
-        <code>console.log("hello");</code>
+        <code>{"console.log(\"hello\");"}</code>
       </CodeBlock>
     );
 

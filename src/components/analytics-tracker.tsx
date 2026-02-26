@@ -36,6 +36,7 @@ function beacon(url: string, data: Record<string, unknown>) {
 
 export function AnalyticsTracker() {
   const pathname = usePathname();
+  // eslint-disable-next-line react-hooks/purity -- intentional: capture mount timestamp
   const startTime = useRef(Date.now());
   const sentDepths = useRef(new Set<number>());
 

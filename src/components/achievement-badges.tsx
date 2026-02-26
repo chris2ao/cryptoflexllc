@@ -99,7 +99,9 @@ export function AchievementBadges() {
 
   useEffect(() => {
     trackVisit();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration: read localStorage then set initial state
     setBadges(getBadges());
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard
     setMounted(true);
   }, []);
 
