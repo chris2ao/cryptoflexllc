@@ -297,3 +297,24 @@ export interface IpIntelData {
   longitude: string;
   cached_at: string;
 }
+
+/** Client-side error record */
+export interface ClientErrorRow {
+  id: number;
+  recorded_at: string;
+  page_path: string;
+  error_message: string;
+  error_type: string;
+  error_stack: string | null;
+  source: string;
+  ip_address: string;
+  browser: string;
+  os: string;
+}
+
+/** Daily client error trend */
+export interface ClientErrorTrendRow {
+  date: string;
+  error_count: number;
+  unique_errors: number;
+}

@@ -255,6 +255,32 @@ export async function GET(request: NextRequest) {
         ON auth_attempts (attempted_at)
     `;
 
+    // Client-side error tracking
+    await sql`
+      CREATE TABLE IF NOT EXISTS client_errors (
+        id            SERIAL PRIMARY KEY,
+        recorded_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        page_path     TEXT NOT NULL,
+        error_message TEXT NOT NULL,
+        error_type    VARCHAR(100) NOT NULL DEFAULT 'Error',
+        error_stack   TEXT,
+        source        VARCHAR(30) NOT NULL DEFAULT 'onerror',
+        ip_address    VARCHAR(45) NOT NULL,
+        browser       VARCHAR(100) NOT NULL DEFAULT 'Unknown',
+        os            VARCHAR(100) NOT NULL DEFAULT 'Unknown'
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_client_errors_recorded_at
+        ON client_errors (recorded_at)
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_client_errors_dedup
+        ON client_errors (ip_address, error_message)
+    `;
+
     return NextResponse.json({
       success: true,
       message: "Tables created successfully. Your analytics tracking is now ready.",

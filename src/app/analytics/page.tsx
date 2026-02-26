@@ -47,6 +47,8 @@ import type {
   BotTrendRow,
   AuthAttemptRow,
   NewVsReturningRow,
+  ClientErrorTrendRow,
+  ClientErrorRow,
 } from "@/lib/analytics-types";
 import {
   isVercelApiConfigured,
@@ -79,6 +81,7 @@ import { ApiResponseChart } from "./_components/api-response-chart";
 import { BotTrendChart } from "./_components/bot-trend-chart";
 import { AuthAttemptsChart } from "./_components/auth-attempts-chart";
 import { NewVsReturningChart } from "./_components/new-vs-returning-chart";
+import { ClientErrorsPanel } from "./_components/client-errors-panel";
 
 export const metadata: Metadata = {
   title: "Analytics",
@@ -136,6 +139,9 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       bounceData,
       commentList,
       guestbookList,
+      clientErrorTrend,
+      clientErrorRecent,
+      clientErrorCount,
     ] = await Promise.all([
       // 0: Summary stats
       sql`
@@ -395,6 +401,29 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         FROM guestbook
         ORDER BY created_at DESC
       `.catch(() => []),
+      // Client error trend (daily)
+      sql`
+        SELECT
+          DATE(recorded_at)::text AS date,
+          COUNT(*)::int AS error_count,
+          COUNT(DISTINCT error_message)::int AS unique_errors
+        FROM client_errors
+        WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY DATE(recorded_at)
+        ORDER BY date
+      `.catch(() => []),
+      // Recent client errors
+      sql`
+        SELECT id, recorded_at, page_path, error_message, error_type, error_stack, source, ip_address, browser, os
+        FROM client_errors
+        ORDER BY recorded_at DESC LIMIT 20
+      `.catch(() => []),
+      // Client error total count
+      sql`
+        SELECT COUNT(*)::int AS total
+        FROM client_errors
+        WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+      `.catch(() => [{ total: 0 }]),
     ]);
 
     const stats = summary[0] || {
@@ -462,6 +491,9 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
     const typedAuthAttempts = authAttempts as unknown as AuthAttemptRow[];
     const typedComments = commentList as unknown as CommentRow[];
     const typedGuestbook = guestbookList as unknown as GuestbookRow[];
+    const typedErrorTrend = clientErrorTrend as unknown as ClientErrorTrendRow[];
+    const typedErrorRecent = clientErrorRecent as unknown as ClientErrorRow[];
+    const errorTotal = ((clientErrorCount as unknown as { total: number }[])[0] || { total: 0 }).total;
 
     return (
       <section className="py-16 sm:py-20">
@@ -651,6 +683,14 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
               </p>
             </div>
           )}
+
+          <div className="mb-10">
+            <ClientErrorsPanel
+              trend={typedErrorTrend}
+              recent={typedErrorRecent}
+              totalCount={errorTotal}
+            />
+          </div>
 
           {/* ═══════════════════════════════════════════
               SECTION 8: NEWSLETTER

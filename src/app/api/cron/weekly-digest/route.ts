@@ -160,6 +160,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Ping healthcheck service (fire-and-forget, non-blocking)
+    const healthcheckUrl = process.env.HEALTHCHECK_PING_URL;
+    if (healthcheckUrl) {
+      fetch(healthcheckUrl).catch(() => {});
+    }
+
     return NextResponse.json({
       ok: true,
       sent,

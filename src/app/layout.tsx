@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { BackToTop } from "@/components/back-to-top";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { WebVitalsReporter } from "@/components/web-vitals-reporter";
+import { ErrorReporter } from "@/components/error-reporter";
 import { WebsiteJsonLd, PersonJsonLd } from "@/components/json-ld";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
@@ -121,6 +122,7 @@ export default function RootLayout({
           />
           <AnalyticsTracker />
           <WebVitalsReporter />
+          <ErrorReporter />
           <Analytics />
           <SpeedInsights />
           <a
