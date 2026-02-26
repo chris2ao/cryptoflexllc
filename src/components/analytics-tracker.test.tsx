@@ -19,7 +19,7 @@ describe("AnalyticsTracker", () => {
       writable: true,
       configurable: true,
     });
-    global.fetch = fetchSpy;
+    global.fetch = fetchSpy as unknown as typeof global.fetch;
   });
 
   afterEach(() => {

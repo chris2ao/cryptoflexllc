@@ -37,7 +37,7 @@ const mockRouter = {
 };
 
 const mockSearchParams = {
-  getAll: vi.fn(() => []),
+  getAll: vi.fn((): string[] => []),
   toString: vi.fn(() => ""),
 };
 
@@ -378,6 +378,8 @@ describe("BlogList", () => {
         description: "Description",
         tags: [],
         date: "2026-02-01",
+        author: "",
+        readingTime: "",
       },
     ];
 

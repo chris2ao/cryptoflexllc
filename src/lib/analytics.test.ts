@@ -8,7 +8,7 @@ import {
 
 // Mock @neondatabase/serverless
 vi.mock("@neondatabase/serverless", () => ({
-  neon: vi.fn((url: string) => {
+  neon: vi.fn((_url: string) => {
     return vi.fn(); // Return a mock SQL executor
   }),
 }));

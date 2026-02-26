@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NextRequest } from "next/server";
 
 vi.mock("@/lib/analytics-auth");
 vi.mock("@/lib/rate-limit", () => ({
@@ -29,7 +30,7 @@ describe("POST /api/analytics/auth", () => {
       headers: { "content-type": "application/json" },
     });
 
-    const response = await POST(request);
+    const response = await POST(request as unknown as NextRequest);
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -46,7 +47,7 @@ describe("POST /api/analytics/auth", () => {
       headers: { "content-type": "application/json" },
     });
 
-    const response = await POST(request);
+    const response = await POST(request as unknown as NextRequest);
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -63,7 +64,7 @@ describe("POST /api/analytics/auth", () => {
       headers: { "content-type": "application/json" },
     });
 
-    const response = await POST(request);
+    const response = await POST(request as unknown as NextRequest);
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -80,7 +81,7 @@ describe("POST /api/analytics/auth", () => {
       headers: { "content-type": "application/json" },
     });
 
-    const response = await POST(request);
+    const response = await POST(request as unknown as NextRequest);
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -100,7 +101,7 @@ describe("POST /api/analytics/auth", () => {
       headers: { "content-type": "application/json" },
     });
 
-    const response = await POST(request);
+    const response = await POST(request as unknown as NextRequest);
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -125,7 +126,7 @@ describe("POST /api/analytics/auth", () => {
       headers: { "content-type": "application/json" },
     });
 
-    const response = await POST(request);
+    const response = await POST(request as unknown as NextRequest);
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -142,7 +143,7 @@ describe("POST /api/analytics/auth", () => {
       headers: { "content-type": "application/json" },
     });
 
-    const response = await POST(request);
+    const response = await POST(request as unknown as NextRequest);
     const data = await response.json();
 
     expect(response.status).toBe(400);

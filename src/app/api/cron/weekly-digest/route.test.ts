@@ -46,6 +46,7 @@ describe("GET /api/cron/weekly-digest", () => {
         description: "A recent post",
         tags: ["test"],
         readingTime: "5 min",
+        author: "",
         content: "",
       },
       {
@@ -55,6 +56,7 @@ describe("GET /api/cron/weekly-digest", () => {
         description: "An old post",
         tags: [],
         readingTime: "3 min",
+        author: "",
         content: "",
       },
     ]);
@@ -185,6 +187,7 @@ describe("GET /api/cron/weekly-digest", () => {
         description: "An old post",
         tags: [],
         readingTime: "3 min",
+        author: "",
         content: "",
       },
     ]);
@@ -229,6 +232,7 @@ describe("GET /api/cron/weekly-digest", () => {
       description: `Description for post ${i + 1}`,
       tags: ["test"],
       readingTime: "5 min",
+      author: "",
       content: "",
     }));
     vi.mocked(getAllPosts).mockReturnValue(manyPosts);
@@ -337,6 +341,7 @@ describe("GET /api/cron/weekly-digest", () => {
         description: "Post 1",
         tags: [],
         readingTime: "5 min",
+        author: "",
         content: "",
       },
       {
@@ -346,6 +351,7 @@ describe("GET /api/cron/weekly-digest", () => {
         description: "Post 2",
         tags: [],
         readingTime: "3 min",
+        author: "",
         content: "",
       },
     ]);

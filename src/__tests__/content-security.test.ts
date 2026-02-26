@@ -109,7 +109,7 @@ describe("Content Security: Information Disclosure Prevention", () => {
             /Built with Claude Code.*github\.com\/chris2ao/,
           ];
 
-          const hasAllowedContext = allowedContexts.some(pattern =>
+          allowedContexts.some(pattern =>
             content.match(pattern)
           );
 

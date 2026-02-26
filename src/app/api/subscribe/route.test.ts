@@ -33,7 +33,7 @@ describe("POST /api/subscribe", () => {
 
     // Mock getDb to return a SQL tagged template function
     const { getDb } = await import("@/lib/analytics");
-    mockSql = vi.fn((strings: TemplateStringsArray, ...values: any[]) =>
+    mockSql = vi.fn((_strings: TemplateStringsArray, ..._values: any[]) =>
       Promise.resolve([])
     );
     vi.mocked(getDb).mockReturnValue(mockSql);
@@ -57,6 +57,7 @@ describe("POST /api/subscribe", () => {
         description: "Test description 1",
         tags: ["test"],
         readingTime: "5 min read",
+        author: "",
         content: "",
       },
       {
@@ -66,6 +67,7 @@ describe("POST /api/subscribe", () => {
         description: "Test description 2",
         tags: [],
         readingTime: "3 min read",
+        author: "",
         content: "",
       },
     ]);

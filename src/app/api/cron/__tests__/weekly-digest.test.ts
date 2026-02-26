@@ -89,7 +89,7 @@ describe('Weekly Digest API', () => {
     });
 
     const response = await GET(request);
-    const data = await response.json();
+    await response.json();
 
     expect(response.status).toBe(200);
 
@@ -202,7 +202,7 @@ describe('Weekly Digest API', () => {
     });
 
     const response = await GET(request);
-    const data = await response.json();
+    await response.json();
 
     expect(response.status).toBe(200);
 

@@ -103,10 +103,10 @@ describe("BlogCard", () => {
   });
 
   it("handles post without author", () => {
-    const postWithoutAuthor: BlogCardPost = {
+    const postWithoutAuthor = {
       ...mockPost,
       author: undefined,
-    };
+    } as unknown as BlogCardPost;
     render(<BlogCard post={postWithoutAuthor} />);
 
     // Should still render date and reading time
@@ -115,10 +115,10 @@ describe("BlogCard", () => {
   });
 
   it("handles post without reading time", () => {
-    const postWithoutReadingTime: BlogCardPost = {
+    const postWithoutReadingTime = {
       ...mockPost,
       readingTime: undefined,
-    };
+    } as unknown as BlogCardPost;
     render(<BlogCard post={postWithoutReadingTime} />);
 
     // Should still render author and date
@@ -127,11 +127,11 @@ describe("BlogCard", () => {
   });
 
   it("handles post without author or reading time", () => {
-    const minimalPost: BlogCardPost = {
+    const minimalPost = {
       ...mockPost,
       author: undefined,
       readingTime: undefined,
-    };
+    } as unknown as BlogCardPost;
     render(<BlogCard post={minimalPost} />);
 
     // Should still render date
