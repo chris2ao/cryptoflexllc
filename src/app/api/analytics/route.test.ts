@@ -63,7 +63,7 @@ describe("GET /api/analytics", () => {
     expect(data).toHaveProperty("daily_views");
     expect(data).toHaveProperty("map_locations");
 
-    expect(mockSql).toHaveBeenCalledTimes(9);
+    expect(mockSql).toHaveBeenCalledTimes(10);
   });
 
   it("should clamp days parameter to valid range (1-365)", async () => {

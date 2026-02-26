@@ -54,7 +54,7 @@ describe("POST /api/analytics/track", () => {
     expect(response.status).toBe(204);
     expect(await response.text()).toBe("");
 
-    expect(mockSql).toHaveBeenCalledTimes(2);
+    expect(mockSql).toHaveBeenCalledTimes(3);
 
     // First call: rate limit check
     const rateLimitCall = mockSql.mock.calls[0];
