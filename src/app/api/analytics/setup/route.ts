@@ -287,6 +287,21 @@ export async function GET(request: NextRequest) {
         ON client_errors (ip_address, error_message)
     `;
 
+    // Rate limiting table (used by subscribe, contact, and other endpoints)
+    await sql`
+      CREATE TABLE IF NOT EXISTS rate_limits (
+        key            TEXT NOT NULL,
+        window_start   BIGINT NOT NULL,
+        count          INTEGER NOT NULL DEFAULT 1,
+        PRIMARY KEY (key, window_start)
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_rate_limits_expiry
+        ON rate_limits (window_start)
+    `;
+
     // UTM columns on page_views
     await sql`
       ALTER TABLE page_views

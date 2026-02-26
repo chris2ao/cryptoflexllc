@@ -128,19 +128,44 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const sql = getDb();
+    // Upsert with retry: transient Neon errors (cold starts, timeouts)
+    // should not kill the request on the first failure.
+    const maxDbRetries = 2;
+    let dbError: Error | undefined;
 
-    // Upsert: if they previously unsubscribed, reactivate.
-    // Always update geo data so we have the latest info.
-    await sql`
-      INSERT INTO subscribers (email, active, ip_address, country, city, region, source_page)
-      VALUES (${email}, TRUE, ${ipAddress}, ${country}, ${city}, ${region}, ${sourcePage})
-      ON CONFLICT (email)
-      DO UPDATE SET active = TRUE, subscribed_at = NOW(),
-        ip_address = ${ipAddress}, country = ${country},
-        city = ${city}, region = ${region},
-        source_page = ${sourcePage}
-    `;
+    for (let attempt = 0; attempt <= maxDbRetries; attempt++) {
+      try {
+        const sql = getDb();
+        await sql`
+          INSERT INTO subscribers (email, active, ip_address, country, city, region, source_page)
+          VALUES (${email}, TRUE, ${ipAddress}, ${country}, ${city}, ${region}, ${sourcePage})
+          ON CONFLICT (email)
+          DO UPDATE SET active = TRUE, subscribed_at = NOW(),
+            ip_address = ${ipAddress}, country = ${country},
+            city = ${city}, region = ${region},
+            source_page = ${sourcePage}
+        `;
+        dbError = undefined;
+        break;
+      } catch (err) {
+        dbError = err as Error;
+        console.error(
+          `[subscribe] DB upsert attempt ${attempt + 1}/${maxDbRetries + 1} failed:`,
+          (err as Error).message
+        );
+        if (attempt < maxDbRetries) {
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+        }
+      }
+    }
+
+    if (dbError) {
+      console.error("[subscribe] DB upsert exhausted all retries:", dbError);
+      return NextResponse.json(
+        { error: "Unable to save your subscription. Please try again in a moment." },
+        { status: 502 }
+      );
+    }
 
     // Send confirmation email before responding (must await on serverless)
     try {
@@ -154,7 +179,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Subscribe error:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("[subscribe] Unhandled error:", errMsg);
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 }

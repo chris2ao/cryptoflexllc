@@ -302,8 +302,9 @@ describe("POST /api/subscribe", () => {
     expect(data).toEqual({ ok: true });
   });
 
-  it("should return 500 when database operation fails", async () => {
-    mockSql.mockRejectedValueOnce(new Error("Database connection failed"));
+  it("should return 502 when database operation fails after retries", async () => {
+    const dbError = new Error("Database connection failed");
+    mockSql.mockRejectedValue(dbError);
 
     const request = new NextRequest("http://localhost/api/subscribe", {
       method: "POST",
@@ -314,8 +315,29 @@ describe("POST /api/subscribe", () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Something went wrong. Please try again.");
+    expect(response.status).toBe(502);
+    expect(data.error).toBe("Unable to save your subscription. Please try again in a moment.");
+    // Verify all retry attempts were made (1 original + 2 retries = 3 calls)
+    expect(mockSql).toHaveBeenCalledTimes(3);
+  });
+
+  it("should succeed on retry after transient DB failure", async () => {
+    mockSql
+      .mockRejectedValueOnce(new Error("Connection timeout"))
+      .mockResolvedValueOnce([]);
+
+    const request = new NextRequest("http://localhost/api/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ email: "user@example.com" }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ ok: true });
+    expect(mockSql).toHaveBeenCalledTimes(2);
   });
 
   it("should handle malformed JSON body", async () => {
