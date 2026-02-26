@@ -1,0 +1,286 @@
+---
+title: "Bugs, Logging, and a Roadmap: Session Notes from Today's Build"
+date: "2026-02-26T00:00:00"
+description: "Three separate problems solved in one session: a subscribe button 500 error caused by a missing DB column, an MDX parsing failure from a bare angle bracket, and a comprehensive site upgrade plan covering four phases of improvements."
+tags:
+  - Claude Code
+  - Debugging
+  - PostgreSQL
+  - Next.js
+  - Building in Public
+author: Chris Johnson
+readingTime: 10 min read
+series: 'Building in Public'
+seriesOrder: 7
+---
+
+import { Tip, Info, Warning } from '@/components/ui/callout';
+
+Some sessions are about shipping features. Today's session was about fixing the things that quietly broke while I was busy shipping features.
+
+Three separate problems. Three separate root causes. One long morning with a lot of Vercel log tailing.
+
+## Part 1: The Subscribe Button That Returned 500
+
+A user hit the subscribe button and got "Something went wrong. Please try again." Not a great experience. Not a great message. Time to figure out why.
+
+### The Investigation
+
+My first instinct was to check the Vercel function logs. The subscribe endpoint had logging, but it was sparse. Too sparse to tell me what was actually failing. I knew the error was coming from the server, but the logs only showed:
+
+```
+POST /api/subscribe 500
+```
+
+Not exactly a treasure trove of diagnostic information.
+
+So the first fix was more logging. I updated the subscribe handler to use structured `[subscribe]` prefixed log entries at every stage of the request lifecycle. Then I deployed and tried again.
+
+The next log entry was immediately illuminating:
+
+```
+[subscribe] DB upsert attempt 1/3 failed: column "source_page" of relation "subscribers" does not exist
+[subscribe] DB upsert attempt 2/3 failed: column "source_page" of relation "subscribers" does not exist
+[subscribe] DB upsert attempt 3/3 failed: column "source_page" of relation "subscribers" does not exist
+[subscribe] DB exhausted after 3 attempts, returning 502
+```
+
+There it was. PostgreSQL error code `42703`: undefined column.
+
+<Info title="What Is Error Code 42703?">
+PostgreSQL error code `42703` means "undefined_column." The database received a query referencing a column that doesn't exist in the target table. It's a schema mismatch, not a data problem. The fix is always in the migration, not the query.
+</Info>
+
+### The Root Cause
+
+The `source_page` column was in the application code. It was in the migration's `CREATE TABLE` statement. But the actual live Neon Postgres `subscribers` table didn't have it, because the setup migration route had been written to include the column, but it had never been re-run after the column was added.
+
+Setup migrations are tricky. They're not like regular migrations that run on deploy. They're "run once manually" routes that create the initial schema. Once you run them, they sit there and you forget they exist. When you add a new column to the application code, you update the setup route, but unless you explicitly re-run the setup migration (which you usually can't, because idempotency is hard), the live database never gets the update.
+
+In this case, the fix was simple: open the Neon SQL console and run:
+
+```sql
+ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS source_page TEXT;
+```
+
+The `IF NOT EXISTS` clause makes it safe to run even if the column already exists. Immediately after running that, the subscribe endpoint worked. No deploy needed.
+
+### The Second Problem: The Missing `rate_limits` Table
+
+While tracing the subscribe failure, I noticed something else in the logs. The rate limiter was silently falling back to in-memory tracking on every Vercel function cold start.
+
+The rate limiter is supposed to use a `rate_limits` table in Postgres to track request counts per IP. But the `rate_limits` table had never been created. The setup migration route didn't include it, even though the rate limiter, the subscribe endpoint, and the daily cleanup cron all referenced it.
+
+The rate limiter's fallback behavior (fail open, use in-memory tracking) meant it never actually errored. It just silently stopped working every time a function cold-started, because in-memory state doesn't persist between Vercel invocations.
+
+I added the `rate_limits` table to the setup migration:
+
+```sql
+CREATE TABLE IF NOT EXISTS rate_limits (
+  id SERIAL PRIMARY KEY,
+  ip TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  count INTEGER DEFAULT 1,
+  window_start TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(ip, endpoint, window_start)
+);
+```
+
+Then ran it against the live database. Rate limiting was now persistent across cold starts.
+
+<Warning title="Silent Fallbacks Can Hide Infrastructure Gaps">
+The rate limiter's "fail open" design was a pragmatic choice: don't break the subscribe flow just because the rate limit table is unavailable. But it also meant the missing table went unnoticed for weeks. If your fallback behavior masks a misconfiguration, add a log warning so you know about it even when things appear to work.
+</Warning>
+
+### The Retry Logic
+
+While I was in the subscribe handler, I added proper retry logic. The original handler made one DB call and threw on failure. The new version retries up to three times with exponential backoff:
+
+```typescript
+async function upsertSubscriberWithRetry(
+  email: string,
+  sourcePage: string,
+  maxAttempts = 3
+) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`[subscribe] DB upsert attempt ${attempt}/${maxAttempts}`);
+      await db.query(
+        `INSERT INTO subscribers (email, source_page)
+         VALUES ($1, $2)
+         ON CONFLICT (email) DO UPDATE SET source_page = EXCLUDED.source_page`,
+        [email, sourcePage]
+      );
+      return;
+    } catch (err) {
+      lastError = err;
+      console.error(
+        `[subscribe] DB upsert attempt ${attempt}/${maxAttempts} failed:`,
+        err instanceof Error ? err.message : String(err)
+      );
+
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 500));
+      }
+    }
+  }
+
+  throw lastError;
+}
+```
+
+Attempt 1 fails immediately. Attempt 2 waits 500ms. Attempt 3 waits 1000ms. If all three fail, the error propagates and the handler returns 502 (bad gateway, indicating a downstream service failure) instead of 500 (which implies a bug in the application code).
+
+The distinction between 502 and 500 matters. A 502 tells monitoring tools that the upstream database is the problem, not the application. A 500 says the app itself crashed.
+
+<Tip title="Structured Log Prefixes Pay Off Fast">
+Adding `[subscribe]` as a log prefix to every log statement in the subscribe handler took five minutes. It immediately made the Vercel log stream filterable. When something breaks at 2am, you want to type `[subscribe]` in the log filter and see exactly what happened, not scroll through thousands of mixed log lines.
+</Tip>
+
+### The Lesson
+
+The fundamental problem here was that the setup migration and the application code had drifted out of sync. Two root causes, both from the same class of error: schema assumptions that weren't verified at startup.
+
+If I had startup validation (checking that required columns and tables exist before accepting requests), this would have surfaced immediately on deploy rather than silently failing for users. That's on the roadmap now.
+
+---
+
+## Part 2: The Angle Bracket That Broke MDX
+
+While the subscribe fix was being tested, someone reported that clicking a backlog post (the cann-cann game writeup) showed "Something went wrong" instead of the post content.
+
+MDX rendering errors are notoriously unhelpful in production. The error boundary catches the failure and shows a generic message, but the actual compilation error only appears in the server logs.
+
+The log showed the real error:
+
+```
+SyntaxError: Expected corresponding JSX closing tag for <50
+```
+
+The offending line in the MDX source:
+
+```
+When the player health drops to <50 HP, the AI switches to aggressive behavior.
+```
+
+### Why This Breaks MDX
+
+MDX is compiled as JSX. That means the parser treats `<` as the start of a JSX opening tag. When it encounters `<50`, it tries to parse `50` as a React component name. `50` is not a valid component name (it starts with a number), so the parser chokes.
+
+This is a gotcha that's easy to miss in development. If your dev environment renders MDX lazily (or you write the MDX in a plain text editor), the error won't appear until the post is actually rendered. By then, you've forgotten what you wrote.
+
+The fix was a two-character word substitution:
+
+```diff
+- When the player health drops to <50 HP, the AI switches to aggressive behavior.
+- When the opponent is at <25 HP, the final combo sequence triggers.
++ When the player health drops under 50 HP, the AI switches to aggressive behavior.
++ When the opponent is at under 25 HP, the final combo sequence triggers.
+```
+
+No escaped characters. No HTML entities. Just different words that don't involve bare angle brackets in prose.
+
+<Warning title="Never Use Bare Angle Brackets in MDX Prose">
+In MDX, `&lt;` and `&gt;` render as the literal characters `less-than sign` and `greater-than sign`. Alternatively, reword to avoid them entirely. The safest rule: if a `less-than sign` or `greater-than sign` appears in prose text outside a code block, either escape it or rewrite the sentence.
+</Warning>
+
+### The Meta-Irony
+
+I'm the one who writes MDX posts. I'm also the one who fixed the MDX compiler. And I introduced this bug while writing about a game. The post was in the backlog, meaning it had never been rendered in production until someone clicked it.
+
+This is the case for always clicking through every backlog post before publishing. A quick render check would have caught this in 10 seconds.
+
+---
+
+## Part 3: The Site Upgrade Recommendation Plan
+
+Before the bugs hit, the session started with something more strategic: a comprehensive audit of the site and a phased upgrade plan.
+
+The site has been running in production for a while now. Features have accumulated. Some things were shipped fast and could be improved. Others were placeholders that never got finished. I wanted to take stock of where things stood and document what the next meaningful improvements would look like.
+
+The result was a four-phase plan saved to `docs/UPGRADE-PLAN.md`.
+
+### What's Already Done
+
+Before documenting what's next, it's worth noting what's already in place that's working well:
+
+- **`robots.ts`**: Correct search engine directives for all routes
+- **RSS autodiscovery**: `link` tag in the document head for feed readers
+- **Related posts**: Content-aware post recommendations at the end of each article
+- **Tag filtering**: Client-side fuzzy search using Fuse.js
+- **UTM campaign panel**: Attribution tracking in the analytics dashboard
+- **Conversion tracking**: Subscribe event tracking correlated with traffic source
+
+Not bad for a site built over seven weeks.
+
+### Phase 1: Quick Wins (1-3 Days Each)
+
+These are high-value, low-complexity improvements:
+
+**404 Tracking.** Right now, 404 errors are invisible. If a broken link from an external site is sending traffic to a dead URL, I have no idea. Adding a `notFound()` capture that logs to the analytics events table would surface this immediately.
+
+**Lighthouse CI.** Adding a GitHub Actions step to run Lighthouse on every PR would catch performance regressions before they ship. Right now, performance is eyeballed during development. Eyeballing doesn't catch subtle regressions in third-party script load times or LCP changes.
+
+**Accessibility hardening.** The site has reasonable a11y coverage, but an automated axe-core check hasn't been run recently. Color contrast ratios, ARIA labels on interactive elements, and keyboard navigation through the carousel all need verification.
+
+**Blog sort toggle.** Right now, blog posts are always sorted newest-first. A "Sort by: Newest / Oldest" toggle would be useful for readers who want to follow the site's history chronologically. The data is already there. This is purely a UI addition.
+
+### Phase 2: Analytics Depth (1-2 Weeks)
+
+These improvements require more planning but have significant payoff:
+
+**Conversion funnel tracking.** Right now I know how many subscribers I have, but I don't have a clear view of which posts drive subscriptions. Adding funnel event tracking (page view, subscribe form seen, subscribe form submitted, subscription confirmed) would let me see exactly where readers drop off.
+
+**Enhanced 404 intelligence.** Beyond just logging 404s, the system could suggest redirect rules for frequently-hit dead URLs. If 50 requests hit `/blog/old-slug` in a week, that's a signal to add a redirect.
+
+### Phase 3: Design Polish (2-4 Weeks)
+
+These are the improvements that make the site feel more alive:
+
+**Page transitions.** Right now, navigating between pages is an instant swap. Adding subtle fade or slide transitions (using Framer Motion) would make navigation feel smoother. This is purely cosmetic but affects first impressions.
+
+**Card hover effects.** Blog post cards and portfolio cards could have richer hover states. A slight lift (box-shadow change) and a reveal animation on the tag strip would add depth without adding visual noise.
+
+**Portfolio lightbox.** The portfolio section links out to external URLs. A lightbox that previews the project inline (screenshot or embedded iframe) would reduce the friction of context-switching to a new tab.
+
+**Sticky table of contents sidebar.** For long posts (anything over 1500 words), a sticky TOC in the right column would let readers navigate sections without scrolling back to the top. This is a common pattern on technical documentation sites and would improve the reading experience on desktop.
+
+### Phase 4: Content and Growth (Ongoing)
+
+These aren't features so much as content infrastructure:
+
+**Newsletter archive.** Published newsletters aren't accessible after they're sent. A `/newsletter` page with past issues would let new subscribers catch up and improve SEO.
+
+**Case study cards.** The portfolio section is a list of links. Turning it into visual case study cards (problem, solution, outcome) would make it more scannable and demonstrate impact more clearly.
+
+**PersonJsonLd enrichment.** The site has basic structured data. Adding `PersonJsonLd` (name, social profiles, job title, skills) and `WebSiteJsonLd` would improve how the site appears in search results and AI-generated summaries of my professional profile.
+
+<Info title="Why Write a Phased Plan at All?">
+It's easy to keep a mental backlog of "things I want to do someday." Writing it down and organizing it by effort and impact forces prioritization. Phase 1 items are things I could ship this week. Phase 4 items are direction, not deadlines. The plan is a compass, not a contract.
+</Info>
+
+---
+
+## What Today Taught Me
+
+Three separate problems, three separate lessons:
+
+**Schema drift is invisible until it isn't.** The `source_page` column and the `rate_limits` table were both missing from the live database, and neither caused an obvious error until something tried to use them. Startup validation (checking that the database schema matches expectations at boot time) would have caught both immediately.
+
+**Good logging is your first debugging tool.** The original subscribe handler had minimal logging. Adding structured prefixes and per-attempt log entries took minutes and immediately exposed the exact error. Invest in logging before you need it, not after something breaks.
+
+**MDX is JSX.** Always has been. If your prose contains anything that looks like an XML tag (and `less-than 50` definitely does), escape it or reword it. This is especially important in content that gets written fast and reviewed rarely.
+
+**Planning time is not wasted time.** Spending an hour auditing the site and writing a phased upgrade plan means the next several sessions have clear direction. Without the plan, I'd be picking features at random. With the plan, every session has a prioritized list of high-value work.
+
+<Tip title="Run a Schema Check at Startup">
+If your application depends on specific database columns or tables, add a startup check that verifies they exist. A fast `SELECT column_name FROM information_schema.columns WHERE table_name = 'subscribers'` at boot time will catch schema drift before it reaches your users. Better a failed deploy than a silent 500 in production.
+</Tip>
+
+## What's Next
+
+The Phase 1 items from the upgrade plan are the next target. 404 tracking and Lighthouse CI are both small enough to ship in a single session. The blog sort toggle is a UI change that touches two files.
+
+And somewhere in there, I'll add that startup schema validation. Today was a good reminder that silent failures are worse than loud ones.
