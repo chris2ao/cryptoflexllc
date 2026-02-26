@@ -403,7 +403,7 @@ The whistle uses `setTargetAtTime` for smooth pitch transitions as projectile sp
 
 The weapon system is entirely immutable. `useAmmo()` returns a new inventory array. `getAvailableWeapons()` filters by remaining ammo. The AI selects weapons strategically based on distance, terrain obstruction, and remaining ammo.
 
-**Health System:** 100 HP per tank, distance-attenuated splash damage, floating damage numbers, visual damage states (cracks at <50 HP, smoke wisps at <25 HP), health bars above tanks.
+**Health System:** 100 HP per tank, distance-attenuated splash damage, floating damage numbers, visual damage states (cracks at under 50 HP, smoke wisps at under 25 HP), health bars above tanks.
 
 **Terrain Themes (4 biomes):** Selected per round via seeded RNG. Each theme defines 11 color parameters plus optional ambient particles:
 
