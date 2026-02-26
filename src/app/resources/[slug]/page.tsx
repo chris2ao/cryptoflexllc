@@ -64,7 +64,7 @@ export default async function ResourceDetailPage({ params }: Props) {
               src={`/resources/${slug}.html`}
               title={resource.title}
               className="w-full rounded-lg border border-border"
-              style={{ height: "1100px" }}
+              style={{ height: resource.iframeHeight ?? "1100px" }}
             />
           </div>
         )}

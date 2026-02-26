@@ -5,9 +5,20 @@ export interface Resource {
   type: "carousel" | "infographic" | "document" | "download";
   tags: string[];
   date: string;
+  iframeHeight?: string;
 }
 
 const resources: Resource[] = [
+  {
+    slug: "architecture-diagram",
+    title: "CryptoFlex LLC Architecture Diagram",
+    description:
+      "A full visual map of the site architecture: Next.js 16 App Router, Neon Postgres, Vercel Edge, 20+ API routes, and all external services with icons.",
+    type: "infographic",
+    tags: ["Architecture", "Next.js", "Vercel", "Neon", "Infrastructure"],
+    date: "2026-02-25",
+    iframeHeight: "3200px",
+  },
   {
     slug: "week-one-carousel",
     title: "7 Days, 117 Commits: The Full Story",
