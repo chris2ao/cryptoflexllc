@@ -63,7 +63,7 @@ describe("BlogCard", () => {
 
   it("renders formatted date", () => {
     render(<BlogCard post={mockPost} />);
-    expect(screen.getByText("February 9, 2026")).toBeInTheDocument();
+    expect(screen.getByText("February 10, 2026")).toBeInTheDocument();
   });
 
   it("renders author when provided", () => {
@@ -110,7 +110,7 @@ describe("BlogCard", () => {
     render(<BlogCard post={postWithoutAuthor} />);
 
     // Should still render date and reading time
-    expect(screen.getByText("February 9, 2026")).toBeInTheDocument();
+    expect(screen.getByText("February 10, 2026")).toBeInTheDocument();
     expect(screen.getByText("5 min read")).toBeInTheDocument();
   });
 
@@ -123,7 +123,7 @@ describe("BlogCard", () => {
 
     // Should still render author and date
     expect(screen.getByText("Test Author")).toBeInTheDocument();
-    expect(screen.getByText("February 9, 2026")).toBeInTheDocument();
+    expect(screen.getByText("February 10, 2026")).toBeInTheDocument();
   });
 
   it("handles post without author or reading time", () => {
@@ -135,7 +135,7 @@ describe("BlogCard", () => {
     render(<BlogCard post={minimalPost} />);
 
     // Should still render date
-    expect(screen.getByText("February 9, 2026")).toBeInTheDocument();
+    expect(screen.getByText("February 10, 2026")).toBeInTheDocument();
   });
 
   it("renders middot separators between metadata items", () => {
@@ -158,9 +158,9 @@ describe("BlogCard", () => {
 
   it("formats different date styles correctly", () => {
     const dates = [
-      { input: "2026-01-01", expected: "December 31, 2025" },
-      { input: "2026-12-31", expected: "December 30, 2026" },
-      { input: "2026-06-15", expected: "June 14, 2026" },
+      { input: "2026-01-01", expected: "January 1, 2026" },
+      { input: "2026-12-31", expected: "December 31, 2026" },
+      { input: "2026-06-15", expected: "June 15, 2026" },
     ];
 
     dates.forEach(({ input, expected }) => {

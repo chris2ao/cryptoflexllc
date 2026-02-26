@@ -58,7 +58,7 @@ export function BlogCard({ post }: { post: BlogCardPost }) {
           {post.author && <span>{post.author}</span>}
           {post.author && <span>&middot;</span>}
           <span>
-            {new Date(post.date).toLocaleDateString("en-US", {
+            {new Date(post.date + "T00:00:00").toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
               day: "numeric",
