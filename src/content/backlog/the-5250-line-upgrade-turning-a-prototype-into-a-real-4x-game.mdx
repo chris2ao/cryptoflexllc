@@ -1,0 +1,427 @@
+---
+title: "The 5,250-Line Upgrade: Turning a Prototype into a Real 4X Game"
+date: "2026-02-26T12:00:00"
+description: "How a single commit across 58 files added audio, branching tech trees, fleet stances, galaxy types, diplomacy treaties, and 22 achievements to Third Conflict. Everything kept green the whole way."
+tags: ["Claude Code", "Game Development", "TypeScript", "Canvas", "4X Strategy", "Web Audio API"]
+author: "Chris Johnson"
+readingTime: "18 min read"
+series: 'Game Development with Claude Code'
+seriesOrder: 5
+---
+
+import { Tip, Info, Warning, Stop, Security } from '@/components/ui/callout';
+
+## When a Prototype Grows Up
+
+There is a specific moment in every hobby project where you look at what you have and realize: this is actually good. Not "good for a prototype" or "good considering how fast it was built." Just good.
+
+Third Conflict hit that moment somewhere around work stream 7 of a 10-stream upgrade plan. The game had gone from a functional 4X skeleton to something with procedural music, branching tech trees, fleet stances, hyperlane networks, and a 22-achievement system. All 393 tests were green. TypeScript was clean.
+
+The commit message just said "feat: implement major upgrade (WS3-9)."
+
+The numbers told a different story: 58 files changed, +5,250 lines added, -358 lines removed. Seven work streams. A single session.
+
+This is the story of what went into those 5,250 lines, what worked, and what I learned about the difference between a game that runs and a game that feels good to play.
+
+![Character from The Office saying "It's happening"](https://media.giphy.com/media/l0NwNrl6sQZKGk6Ss/giphy.gif)
+
+---
+
+## Context: Where We Were
+
+If you missed the earlier posts in this series, here is the short version.
+
+Third Conflict is a web remake of Second Conflict, a 1991 Windows 3.0 space strategy game. The previous posts covered rebuilding the core game from scratch using parallel AI agents, then running a nine-agent security audit that found 26 vulnerabilities (including a "God Mode in 30 Seconds" attack chain).
+
+After the security work, the game was in good shape architecturally: pure functional engine, immutable state, seeded PRNG, 393 passing tests. The architecture was clean. The gameplay was shallow.
+
+A branching tech tree with two choices did nothing interesting. Combat had no tactical depth. The galaxy looked the same every game. There was no audio at all. The event log was a flat list with no categories.
+
+The upgrade plan was a 10-stream document synthesized from five expert perspectives: game designer, senior developer, art director, experienced player, and game marketer. I implemented work streams 3 through 9 in this session.
+
+<Info title="What's a Work Stream?">
+The upgrade plan divided improvements into 10 numbered work streams, each covering a related set of features. WS1 was QoL fixes. WS2 was CI infrastructure. WS3-9 covered the major gameplay and presentation upgrades. WS10 was launch readiness. Numbering them made it easy to reference specific groups of changes and track what was done.
+</Info>
+
+---
+
+## WS3: Audio From Nothing
+
+Third Conflict has no audio assets. No MP3 files, no OGG samples, no WAV sound effects. Everything is procedurally generated at runtime using the Web Audio API.
+
+This is not a compromise. It is a deliberate architectural choice. An audio asset would add to the bundle size, require licensing, and need to be hosted somewhere. A procedural sound system adds zero bytes to the download and works everywhere the Web Audio API works.
+
+The implementation lives in `src/audio/sound-manager.ts`. The architecture is a bus system:
+
+```typescript
+// Three separate signal paths, all flowing into masterGain
+sfxBus = audioCtx.createGain();   // explosions, fleet sounds
+musicBus = audioCtx.createGain(); // background music
+uiBus = audioCtx.createGain();    // clicks, hover, dialogs
+
+sfxBus.connect(masterGain);
+musicBus.connect(masterGain);
+uiBus.connect(masterGain);
+masterGain.connect(audioCtx.destination);
+```
+
+Players get separate volume sliders for music, SFX, and UI sounds. The buses make this trivial: adjusting `musicBus.gain.value` affects only the background music, not sound effects.
+
+The background music uses a mood system. When you are at peace, the music is calm: slow-attack pads, sparse pentatonic phrases, soft filtered noise. When you are at war or low on resources, the music shifts to tense: faster oscillation rates, minor harmonics, heavier filter cutoff modulation.
+
+```typescript
+type MusicMood = "peaceful" | "tense";
+```
+
+The mood switches automatically based on game state. If you are in a war with any player, tense. If you have active fleets in combat, tense. Otherwise, peaceful.
+
+Dynamic mixing means combat sounds duck the music volume automatically. When a laser fires or an explosion hits, the music bus briefly drops to 30% volume and recovers over about two seconds. This is a standard broadcast technique (radio stations duck music under voice-overs) and it makes combat feel more impactful without requiring the player to lower their own music volume.
+
+Positional stereo panning routes sounds left or right based on where the relevant system is on the galaxy map. A fleet departing from a system on the left side of the canvas pans slightly left. A battle happening center-right pans right. The effect is subtle but it adds spatial grounding to abstract events.
+
+<Tip title="Sound Pooling for Combat">
+The pool architecture matters during combat. If you create a new AudioNode for every laser sound in a battle with 20 warships, you are creating 20 nodes in rapid succession. The garbage collector eventually catches up, but meanwhile you get audio glitches and frame drops. Pre-allocating a fixed pool of 8 gain nodes and cycling through them keeps the node count constant regardless of battle intensity.
+</Tip>
+
+Sound effects are synthesized from primitive oscillators and noise. Lasers are a 440Hz sine wave with a rapid frequency drop. Explosions are filtered white noise with an exponential decay. The missile sound is a frequency sweep from 880Hz down to 220Hz. None of them sound exactly like a Hollywood space battle, but they all sound recognizably like themselves.
+
+---
+
+## WS4: Fleet Stances and Formation Bonuses
+
+Before this upgrade, fleet combat was deterministic and shallow. Your warships attacked. The enemy's warships attacked back. Whoever had more units won.
+
+WS4 added tactical depth through fleet stances and formation bonuses.
+
+**Fleet stances** are per-fleet orders that modify combat behavior:
+
+| Stance | Effect |
+|--------|--------|
+| Aggressive | +15% hit chance, -10% damage reduction |
+| Defensive | -10% hit chance, +15% damage reduction |
+| Flanking | +5% hit, bonus damage vs. transports and factories |
+| Bombardment | Only targets system defenses and factories, ignores warships |
+
+The implementation is in `src/engine/formations.ts`:
+
+```typescript
+export function getStanceModifiers(stance: CombatStance | undefined): {
+  hitMod: number;
+  defenseMod: number;
+} {
+  switch (stance) {
+    case "aggressive":
+      return { hitMod: 15, defenseMod: -10 };
+    case "defensive":
+      return { hitMod: -10, defenseMod: 15 };
+    case "flanking":
+      return { hitMod: 5, defenseMod: -5 };
+    case "bombardment":
+      return { hitMod: 0, defenseMod: 0 };
+    default:
+      return { hitMod: 0, defenseMod: 0 };
+  }
+}
+```
+
+**Formation bonuses** emerge automatically from fleet composition. You do not have to declare a formation. If you send 3+ warships with stealthships, you automatically get the Screen formation: +20% stealth evasion. If you pair 2+ warships with missiles, you get the Strike formation: +10% missile hit chance.
+
+```typescript
+export function getFormationBonus(units: UnitCounts): {
+  attackerHitBonus: number;
+  attackerStealthEvasionBonus: number;
+} {
+  const totalWarAndStealth = units.warship + units.stealthship;
+  const hasMissiles = units.missile > 0;
+
+  // Screen formation: warships escorting stealthships
+  if (totalWarAndStealth >= 3 && units.stealthship > 0) {
+    attackerStealthEvasionBonus = 0.20;
+  }
+
+  // Strike formation: warships with missile support
+  if (units.warship >= 2 && hasMissiles) {
+    attackerHitBonus = 10;
+  }
+
+  return { attackerHitBonus, attackerStealthEvasionBonus };
+}
+```
+
+The retreat mechanic lets a fleet disengage from losing combat, preserving some units at the cost of the system. Fleets that retreat fall back to a configurable rally point. This matters strategically: a smart player sets rally points in safe rear systems rather than letting retreating fleets dissolve.
+
+Governor auto-production was the quality-of-life win from this work stream. You can now set a system to auto-build and the governor will queue production of your preferred unit type automatically at the start of each turn. No more clicking through every system individually each turn.
+
+---
+
+## WS5: A Tech Tree With Teeth
+
+The old tech tree had 15 technologies in three linear branches. You researched them in order. There were no choices, no strategic decisions, no reason to plan ahead.
+
+WS5 rebuilt it with branching choice nodes at tiers 3 and 5 of each branch. When you reach tier 3 in the military branch, you must choose: Missile Guidance or Shield Technology. You can only have one. The other is locked out permanently.
+
+```typescript
+// T3 Choice: Missile Guidance OR Shield Technology
+{
+  id: "missile_guidance",
+  name: "Missile Guidance",
+  branch: "military",
+  tier: 3,
+  cost: 100,
+  description: "+10% missile hit chance, +1 missile damage",
+  prerequisites: ["reinforced_hulls"],
+  choiceGroup: "military_t3",  // picking this locks out shield_technology
+},
+{
+  id: "shield_technology",
+  name: "Shield Technology",
+  branch: "military",
+  tier: 3,
+  cost: 100,
+  description: "All ships take 15% less damage from incoming fire",
+  prerequisites: ["reinforced_hulls"],
+  choiceGroup: "military_t3",
+},
+```
+
+The `choiceGroup` field is how the engine enforces mutual exclusion. If you research any tech in a choice group, all others in that group become unavailable.
+
+This one change transformed the tech tree into something with genuine replayability. Missile Guidance favors offensive fleets. Shield Technology favors defensive ones. Your T3 choice shapes your playstyle for the rest of the game.
+
+Strategic resources added another dimension. Three resources (duranium, xenon, plasma) spawn at specific systems. Certain advanced units require them. Want to build plasma cannons? You need to control a system with a plasma deposit first. This creates territorial objectives beyond simple expansion: you fight for resource systems specifically because of what they unlock.
+
+The economic side of WS5 added real costs to having an empire. The upkeep system charges maintenance on every military unit. War weariness builds over long conflicts, reducing production. Underdog bonuses help weaker players stay in the game rather than getting snowballed into irrelevance in the first 20 turns. Diminishing returns on expansion mean the 15th system you capture is noticeably less valuable than the 5th.
+
+<Warning title="Upkeep Changes the Meta Completely">
+Before upkeep, the optimal strategy was simple: build as many warships as possible, constantly. After upkeep, that strategy is ruinous. You have to balance offensive capacity against economic sustainability. Players who do not adjust will find their production grinding to a halt while their military costs continue. This is intentional. It forces the kind of trade-off thinking that makes 4X games interesting.
+</Warning>
+
+---
+
+## WS6: Diplomacy That Does Something
+
+The original diplomacy system had buttons that did not do much. You could declare war or propose peace. Allies were not particularly useful.
+
+WS6 added two treaty types with real mechanical effects.
+
+**Trade agreements** boost both signatories' production income by a percentage based on the number of planets in each player's territory. A large empire benefits more from trade with a smaller partner than vice versa. This creates an incentive for powerful players to maintain some peaceful relationships even when they could win by force.
+
+**Research pacts** split research costs between partners. If you and an ally both have 50 research points per turn and sign a research pact, you both effectively get 75 research points for shared research. The math works out to a 50% research bonus for equivalent-sized partners.
+
+Treaty timers are now visible in the diplomacy dialog. You can see exactly when a trade agreement expires, and whether your partner has renewed it. Trust breakdowns display as a color-coded history of diplomatic events: wars declared, treaties honored, treaties broken.
+
+The UX improvement was significant. Before, the diplomacy panel was a list of player names with dropdown options. After, it is a proper relationship screen with treaty status, trust score, active timers, and one-click renewal.
+
+---
+
+## WS7: Galaxy Types and the Hyperlane Problem
+
+The most technically interesting work stream.
+
+Before WS7, galaxy generation placed systems at random positions and fleets could travel from any system to any adjacent system. There was no concept of routes or lanes. Movement was unconstrained.
+
+WS7 added galaxy types and a proper hyperlane network.
+
+The four galaxy types generate distinctly different maps:
+
+- **Random**: systems placed with spacing constraints, baseline experience
+- **Spiral**: two arms of densely packed systems with sparse interarm gaps, creating natural chokepoints
+- **Ring**: systems arranged in a ring with a dense central cluster, making center control critical
+- **Clusters**: faction homelands separated by sparse connective systems, encouraging early faction conflict
+
+The hyperlane network was the hard part. Fleets can now only travel along established hyperlanes. To build a connected galaxy with interesting chokepoints, you need a graph where every system is reachable but not every system is adjacent to every other system.
+
+The implementation uses Delaunay triangulation:
+
+```typescript
+// Build complete hyperlane graph using Delaunay triangulation
+// then prune long edges to create strategic chokepoints
+function buildHyperlaneNetwork(
+  systems: readonly StarSystem[],
+  rng: RngState
+): readonly StarSystem[] {
+  const triangulated = delaunayTriangulate(systems);
+  const edges = pruneByDistance(triangulated, MAX_HYPERLANE_LENGTH);
+  const connected = ensureConnectivity(systems, edges);
+  return applyEdges(systems, connected);
+}
+```
+
+Delaunay triangulation gives you a graph where every system has reasonable neighbors without excessive long-distance connections. Pruning removes edges above a maximum length, creating the chokepoints. An connectivity check then adds back the minimum spanning edges needed to ensure no system is isolated.
+
+The result is a galaxy where geographic control matters. A system sitting on the only hyperlane between two regions of the galaxy is worth fighting over regardless of its planet count. A player who controls a chokepoint can defend with far fewer ships than a player on an open front.
+
+Map overlays make the galaxy legible. Four overlay modes toggle information badges onto every system:
+
+| Overlay | Shows |
+|---------|-------|
+| Military | Warship count, system defense rating |
+| Economic | Planet output, production queue status |
+| Threat | Proximity to enemy fleets, vulnerability rating |
+| Diplomatic | Relationship status, treaty presence |
+
+The color-coded badges appear as small chips below each system label. Switch to military overlay before planning an attack and you can immediately see which enemy systems are defended and which are soft.
+
+Territory visualization draws translucent faction-colored areas around controlled systems, similar to Voronoi cells. You can see at a glance who controls what without reading every system label. This was a pure UX improvement with no gameplay change, and it made the galaxy map dramatically easier to read.
+
+![Person looking at a beautiful landscape and nodding approvingly](https://media.giphy.com/media/3oEjI6jCiYKdGCeSsg/giphy.gif)
+
+---
+
+## WS9: Polish is Not Optional
+
+Work stream 9 was labeled "Polish" in the plan. In practice it was about 30% of the total line count. Polish is never optional if you want a game that feels finished.
+
+**Achievements** are the most visible piece. 22 achievements across five categories: military, economic, diplomatic, exploration, and special.
+
+```typescript
+export const ACHIEVEMENTS: readonly Achievement[] = [
+  {
+    id: "first_blood",
+    name: "First Blood",
+    description: "Win your first space battle.",
+    category: "military",
+    check: (s) => s.combatResults.some(
+      (r) => r.attackerId === s.currentPlayer && !r.retreated
+    ),
+  },
+  {
+    id: "armada",
+    name: "Armada",
+    description: "Have 50 or more warships across all systems.",
+    category: "military",
+    check: (s) => {
+      const total = s.systems
+        .filter((sys) => sys.owner === s.currentPlayer)
+        .reduce((sum, sys) => sum + sys.units.warship, 0);
+      return total >= 50;
+    },
+  },
+  // ... 20 more
+```
+
+Every achievement is a pure function that takes game state and returns a boolean. The achievement system checks all 22 conditions at the end of each turn and surfaces any newly unlocked ones via a notification. Achievements persist across games via localStorage.
+
+**The advisor panel** is a new UI component that sits in the game HUD. It surfaces contextual suggestions: "System Arcturus has 0 production queued and a factory," "3 of your systems have morale below 40," "You have 120 unspent research points." These are things an experienced player would check routinely, surfaced automatically for newer players.
+
+**The categorized event log** replaced the flat chronological list with filter tabs: All, Military, Diplomatic, Economic, Exploration. When you have been playing for 80 turns and want to find out when exactly that war with the Hegemony started, you can filter to Diplomatic and scroll past far fewer entries.
+
+**Turn recap** now includes an economy summary and a next-turn preview. Before ending your turn, you can see what production will complete, what research will be finished, and what events are expected. This removes a category of frustration where you end your turn and immediately regret not doing something you forgot.
+
+**Visual polish** touched the battle visualization heavily. Units now drift slightly during combat rather than standing perfectly still. Hit flashes animate on the struck unit. Weapon projectiles are differentiated visually: laser shots look different from missiles, which look different from plasma bolts. The warp effect was overhauled with converging lines that pull toward the destination system. Ambient shooting stars arc across the background star field between turns.
+
+**Colorblind accessibility** added shape indicators to system ownership markers. Previously, systems were color-coded by faction. Now each faction also has a distinct shape (circle, triangle, square, diamond, etc.) so players who cannot distinguish the faction colors can still tell at a glance who controls what.
+
+---
+
+## How It Stayed Green
+
+The part that surprised me most about this session: 393 tests passed throughout. Not "393 tests pass in the final commit." They passed at every intermediate point. Adding the achievement system did not break the combat tests. The galaxy type overhaul did not break the hyperlane tests. The upkeep system did not break the production tests.
+
+This is not magic. It is the payoff from the pure functional architecture.
+
+Every engine function is `(GameState, inputs) => GameState`. Tests for combat pass in a constructed `GameState` and assert on the returned state. Tests for achievements pass in a state and check which achievements unlock. Tests for galaxy generation call the generator with a fixed seed and assert on the structure of the output.
+
+None of these tests depend on React, the DOM, or the audio system. They do not care whether the UI has been modified. Adding `achievementState: AchievementState` to `GameState` types does not break any existing test unless a test was specifically depending on the absence of that field.
+
+The result is a test suite that stays green through large structural changes, because the tests are testing behavior (given this state, what state comes out?) rather than implementation details (does this specific variable get set?).
+
+<Tip title="Coverage on a Cumulative Feature">
+When you add 22 achievements, you need tests for at least a representative sample of them. The approach that worked: create a `buildTestState()` helper that returns a minimal valid GameState, then write tests that modify specific fields and assert specific achievements unlock or do not unlock. Each test is 5-10 lines. The 22 achievements got covered with about 15 targeted tests.
+</Tip>
+
+The TypeScript strictness did significant work here too. Adding a new field to `GameState` without initializing it in `galaxy-generator.ts` is a compile error, not a runtime crash. The compiler finds all call sites that construct a `GameState` and flags every one that is missing the new field. This is what strict mode is for.
+
+---
+
+## The Architecture That Made It Possible
+
+I want to dwell on something, because it keeps coming up as the reason things worked.
+
+The engine is `(GameState, Action) => GameState`. The rendering layer is `(CanvasContext, GameState, Camera) => void`. The store wraps the engine and exposes state via React hooks.
+
+Adding the fleet stance system meant:
+1. Adding `stance: CombatStance` to the fleet type in `types.ts`
+2. Writing `getStanceModifiers()` in `formations.ts`
+3. Calling it in `combat.ts`
+4. Surfacing the stance picker in the fleet dialog component
+
+Step 1 caused TypeScript to flag every place that constructs a fleet object and demand a `stance` value. Step 4 was a UI change completely independent of steps 1-3.
+
+The layers do not know about each other. You can change the rendering layer without touching the engine. You can change the engine without touching the component layer. Adding a new engine feature is mostly just adding a new pure function and wiring it into `turn-processor.ts`.
+
+This matters when you are adding seven feature clusters in a single session. Without clean layering, every feature addition risks breaking the features already there. With it, the risk is much lower because each feature lives in its own module and communicates only through the shared `GameState` type.
+
+<Info title="The Cost of This Architecture">
+The downside: it is more code to set up. Defining a complete `GameState` type, writing the galaxy generator that initializes every field, maintaining the pure function discipline across all engine modules. For a weekend prototype that might get abandoned, this overhead is probably not worth it. For a project you plan to iterate on for months, it pays for itself within two or three major feature additions.
+</Info>
+
+---
+
+## By the Numbers
+
+Here is the final state after the upgrade commit:
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Files changed in commit | - | 58 |
+| Lines added | - | +5,250 |
+| Lines removed | - | -358 |
+| Tests passing | 364 | 393 |
+| Tech tree nodes | 15 (linear) | 30+ (branching with choices) |
+| Galaxy types | 1 (random) | 4 (random/spiral/ring/clusters) |
+| Fleet stances | 0 | 4 |
+| Achievements | 0 | 22 |
+| Audio tracks | 0 | Procedural (peaceful/tense moods) |
+| Map overlay modes | 0 | 4 (military/economic/threat/diplomatic) |
+| Work streams implemented | 2 (WS1-2) | 9 (WS1-9) |
+
+---
+
+## What Still Surprised Me
+
+Adding audio from scratch with zero external assets was the most interesting technical challenge. The Web Audio API is powerful but not obviously approachable. The bus architecture is a professional audio engineering pattern that most web developers have never needed to think about.
+
+The thing that made it work was starting from the architecture first. Decide what buses you need, what flows into each bus, and how they connect to the master output. Then implement the synthesis for each sound type. If you try to synthesize sounds before deciding how they will be routed, you end up with a tangle of nodes that is hard to adjust.
+
+The hyperlane network via Delaunay triangulation was the second most interesting piece. Computational geometry in a browser game. The result produces much better maps than the old approach, with natural strategic variety that did not require hand-coding any specific configuration.
+
+And the achievement system reinforced something I have come to believe pretty firmly about pure functional architectures: they make features that feel complicated trivially easy to add. An achievement is just a function that checks whether the current state satisfies some condition. You do not need to hook into event systems, subscribe to state changes, or instrument existing code. You write a function, add it to the list, and the achievement system checks it at the end of every turn.
+
+That composability is not an accident. It is what you get when you design the architecture correctly from the start.
+
+![Man saying "That's the good stuff"](https://media.giphy.com/media/l0HlNQ03j5d1Y2hAQ/giphy.gif)
+
+---
+
+## Lessons Learned
+
+**Procedural audio is more viable than you think.** If you have been avoiding audio in a browser project because you do not want to manage asset files, the Web Audio API is a legitimate alternative. It takes time to learn, but it produces sounds that are unique to your application and cost zero bytes to ship.
+
+**Choice nodes transform linear progressions into decisions.** A 15-node linear tech tree is a race. A 30-node branching tree with choice nodes is a strategic commitment. The second is much more interesting, and the implementation difference is one `choiceGroup` field and a small mutual exclusion check.
+
+**Hyperlane networks are worth the computational geometry.** Free-form movement feels like a 1991 game. Hyperlanes feel like a modern 4X. The Delaunay + pruning approach produces varied, interesting graphs without requiring hand-placement of any edges.
+
+**Polish is where games go from "done" to "good."** The achievement system, advisor panel, turn recap, colorblind indicators, ambient effects: none of them change the core gameplay. All of them change whether the game feels finished. Players notice polish more than they notice individual features.
+
+<Tip title="Ship Work Streams in Order">
+The upgrade plan had ten work streams in priority order. Working through them sequentially meant that each work stream built on a stable foundation from the previous ones. If I had jumped to the galaxy overhaul before the audio and combat upgrades, I would have been refactoring in progress rather than extending a stable base.
+</Tip>
+
+<Warning title="Upkeep Must Be Balanced Carefully">
+The first version of the upkeep system made the game noticeably harder in a way that felt punishing rather than strategic. The formula needed two rounds of tuning before it felt right: difficult enough to force trade-offs, forgiving enough to not feel arbitrary. If you add resource costs to previously-free units, test with both passive and aggressive playstyles before shipping.
+</Warning>
+
+---
+
+## What Comes Next
+
+Work stream 10 is launch readiness. That means CI/CD, a landing page, a public domain name, and an itch.io listing.
+
+The game is currently deployed on Vercel in a private repo. Somewhere in the near future it goes public.
+
+Third Conflict in 2026: a 4X space strategy game in a browser tab, playable in 30 seconds, with procedural music, branching tech trees, fleet tactics, and no install required. Jerry Galloway's 1991 shareware would probably be baffled. In the best possible way.
+
+---
+
+*Written by Chris Johnson. Third Conflict is a web remake of Second Conflict (1991), rebuilt as a modern browser game using Next.js 15, React 19, TypeScript, Zustand, Vitest, and the Canvas API. Previous posts in this series: [Time Travel at 4X Speed](/blog/rebuilding-a-1991-space-game-with-ai-agents) and [Securing a Retro Game: 26 Findings, 9 Agents, 15 Minutes](/blog/securing-a-retro-game-26-findings-9-agents).*
