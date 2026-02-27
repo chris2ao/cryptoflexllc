@@ -1,0 +1,566 @@
+---
+title: "Five Phases, Fourteen Weapons, and 404 Tests: Upgrading Cann Cann with Parallel Agents"
+date: "2026-02-27T10:00:00"
+description: "How I upgraded a working artillery game prototype across five phases using parallel AI agent teams, adding a campaign mode, 8 new weapons, procedural music, time-of-day rendering, and weather systems. Plus 12 merge conflicts I did not see coming."
+tags: ["Claude Code", "Game Development", "AI Agents", "Canvas API", "TypeScript", "Web Audio"]
+author: "Chris Johnson"
+readingTime: "20 min read"
+series: 'Game Development with Claude Code'
+seriesOrder: 6
+---
+
+import { Tip, Info, Warning, Stop, Security } from '@/components/ui/callout';
+
+## The Sequel Nobody Asked For (But That Was Going to Happen Anyway)
+
+In the previous post in this series, I built [Cann Cann](https://cann-cann.vercel.app) from scratch: a modern web remake of the 1990 Windows 3.1 artillery game Bang! Bang! One session, three-layer architecture, six weapons, four terrain biomes, procedural audio, and a security audit. Deployed and playable.
+
+Then I made the mistake of playing it for a while.
+
+It was good. It was also obviously missing things. The campaign mode I'd sketched out in my head but never implemented. More weapons. An environment that actually changed based on time of day. Music that reacted to what was happening in the game.
+
+The kind of features that separate a tech demo from something people actually come back to.
+
+So I ran five more upgrade phases. Each one used parallel AI agent teams working in isolated git worktrees. Each phase added substantially more than I expected. And Phase 5 produced twelve merge conflicts in a single integration pass.
+
+Here's how all of it went.
+
+---
+
+## What We Were Upgrading
+
+Before diving into the phases, here's a quick snapshot of where Cann Cann stood before the upgrade. If you read the previous post, this will look familiar.
+
+| Metric | Pre-Upgrade |
+|--------|-------------|
+| Weapons | 6 (Standard, Heavy, Cluster, Bouncer, Dirt Bomb, Sniper) |
+| Terrain themes | 4 (Grasslands, Desert, Arctic, Volcanic) |
+| Game modifiers | 0 |
+| Campaign mode | No |
+| Music | No (procedural sound effects only) |
+| Time of day | No |
+| Weather | No |
+| Tests | ~25 |
+| Source files | ~45 |
+
+The stack: Next.js 15, React 19, TypeScript, Canvas 2D, Zustand v5. Pure engine functions, three-layer architecture, seeded RNG (xoshiro128**) throughout.
+
+The goal: turn a solid prototype into something genuinely complete.
+
+![Man typing furiously at a keyboard](https://media.giphy.com/media/LmNwrBhejkK9EFP504/giphy.gif)
+
+---
+
+## The Agent Worktree Strategy
+
+Every phase used the same structure: four parallel agents, each working in an isolated git worktree. This is the pattern I've refined across multiple game projects.
+
+The key insight is that merge conflicts happen when two agents edit the same file. The solution is to design the work split so agents touch mostly different files. Each agent gets a clearly bounded domain (weapons, audio, campaign, etc.) and works in its own branch. When they're done, the main session merges them sequentially, resolving any conflicts that arise at the seams.
+
+Why worktrees instead of just branches? Worktrees let each agent have its own working directory on disk. No file lock contention, no accidentally working from stale state, no weird git checkout behavior. Each agent clones the same commit, builds independently, and produces a clean diff.
+
+The tradeoff: merging N completed worktrees means N rounds of conflict resolution. For Phase 1 with mostly new files, that's trivial. For Phase 5 with four agents all touching the same shared type definitions, that's twelve conflicts.
+
+<Info title="Git Worktrees Explained">
+A git worktree creates an additional working directory linked to the same repository. You can have multiple branches checked out simultaneously in different directories. This lets parallel agents each have their own isolated environment without interfering with each other or requiring separate repo clones.
+</Info>
+
+---
+
+## Phase 1: Foundation
+
+Phase 1 was about correctness and maintainability. Not glamorous. Absolutely necessary.
+
+The game worked, but some of the implementation shortcuts from the initial build were going to cause problems at scale. Four agents tackled this in parallel.
+
+### Fixed Timestep Game Loop
+
+The original game loop used `requestAnimationFrame` and computed delta time each frame, which meant the physics ran differently at 30fps vs 144fps. High refresh rate monitors made projectiles fly faster.
+
+The fix: a fixed timestep accumulator. Simulate physics in 16ms chunks regardless of frame rate. Render at whatever rate the screen allows.
+
+```typescript
+// hooks/useGameLoop.ts
+function tick(timestamp: number) {
+  const elapsed = timestamp - lastTimestamp;
+  accumulator += Math.min(elapsed, MAX_FRAME_TIME); // clamp to prevent spiral of death
+
+  while (accumulator >= FIXED_STEP) {
+    simulateStep(FIXED_STEP);
+    accumulator -= FIXED_STEP;
+  }
+
+  renderFrame(accumulator / FIXED_STEP); // interpolation alpha for smooth rendering
+  lastTimestamp = timestamp;
+  animFrameId = requestAnimationFrame(tick);
+}
+```
+
+The `MAX_FRAME_TIME` cap is important. Without it, a tab that loses focus for 10 seconds will try to simulate 10 seconds of physics in one frame when it regains focus, which produces chaotic results.
+
+<Warning title="The Spiral of Death">
+Without capping delta time, a frame that takes too long causes more simulation steps, which takes longer, which causes even more steps. This is called the "spiral of death." Cap your delta time to something like 200ms. If the frame took longer than that, just discard the excess time rather than catching up.
+</Warning>
+
+### Projectile Hook Refactoring
+
+The original `useProjectile.ts` was 443 lines and did everything: physics simulation, collision detection, animation scheduling, state updates, explosion effects, and turn advancement. One hook, seven concerns.
+
+Four agents split it into three focused files:
+
+- `useProjectilePhysics.ts`: pure simulation, no side effects
+- `useProjectileAnimation.ts`: requestAnimationFrame scheduling
+- `useProjectileEffects.ts`: explosions, screen shake, damage numbers
+
+The refactor didn't add any features. It made the code readable enough that the next four phases could add features without navigating a 443-line maze.
+
+### Layer Caching with OffscreenCanvas
+
+Terrain and sky don't change every frame. But both were being redrawn on every frame anyway, which was wasteful, especially for terrain with detailed grass blade rendering.
+
+The solution: render terrain and sky to an `OffscreenCanvas` once, then blit the cached image each frame. Only invalidate the cache when terrain actually changes (craters, terrain effects).
+
+```typescript
+// rendering/terrain-cache.ts
+let cachedTerrain: OffscreenCanvas | null = null;
+let cachedTerrainHash: string | null = null;
+
+export function drawCachedTerrain(
+  ctx: CanvasRenderingContext2D,
+  terrain: readonly number[],
+  theme: TerrainTheme
+): void {
+  const hash = computeTerrainHash(terrain, theme.id);
+
+  if (cachedTerrain === null || cachedTerrainHash !== hash) {
+    cachedTerrain = new OffscreenCanvas(GAME_WIDTH, GAME_HEIGHT);
+    const offCtx = cachedTerrain.getContext('2d')!;
+    renderTerrainToContext(offCtx, terrain, theme);
+    cachedTerrainHash = hash;
+  }
+
+  ctx.drawImage(cachedTerrain, 0, 0);
+}
+```
+
+The `computeTerrainHash` is a fast hash of the terrain height array. If nothing changed, no re-render.
+
+<Tip title="Cache Expensive Canvas Renders">
+Any visual element that doesn't change every frame is a candidate for OffscreenCanvas caching. The terrain in an artillery game changes rarely (only on explosion impact), making it a perfect cache target. Sky gradients are also good candidates.
+</Tip>
+
+### Other Phase 1 Work
+
+- ESLint + Prettier configured with consistent rules
+- xoshiro128** seeded RNG verified deterministic across all usage sites
+- TypeScript strict mode enabled (this found three subtle type bugs)
+
+---
+
+## Phase 2: Strategic Gameplay
+
+Phase 2 was where the game got interesting. Three new weapons, a completely rebalanced weapon roster, terrain hazards, a fall damage system, burn zones, and seven game modifiers.
+
+### New Weapons
+
+The original six weapons covered the basics. Phase 2 added three more with distinct gameplay roles:
+
+**Napalm:** Creates a burn zone on terrain impact. The zone deals damage-over-time to any unit that passes through or sits inside it. Combined with oil slicks (more on those below), napalm enables real area denial tactics.
+
+**Mega Bomb:** High damage (80), large blast radius, slow and heavy. The trade: you need a high arc to compensate for the poor trajectory. Worth saving for an entrenched opponent who doesn't move.
+
+**Mortar:** Short range, very high arc, 2x gravity. Great for lobbing shells over the central mountain peak that terrain generation tends to create. Terrible for anything that requires distance.
+
+Each weapon is a pure data object in `weapons.ts`:
+
+```typescript
+export const WEAPONS: Record<WeaponId, WeaponDefinition> = {
+  napalm: {
+    id: 'napalm',
+    name: 'Napalm',
+    damage: 30,
+    blastRadius: 35,
+    speedMult: 0.9,
+    gravityMult: 1.0,
+    ammo: 2,
+    special: { type: 'burn_zone', radius: 60, duration: 5, dps: 8 },
+  },
+  mega_bomb: {
+    id: 'mega_bomb',
+    name: 'Mega Bomb',
+    damage: 80,
+    blastRadius: 60,
+    speedMult: 0.6,
+    gravityMult: 1.2,
+    ammo: 1,
+    special: null,
+  },
+  mortar: {
+    id: 'mortar',
+    name: 'Mortar',
+    damage: 45,
+    blastRadius: 30,
+    speedMult: 0.7,
+    gravityMult: 2.0,
+    ammo: 3,
+    special: null,
+  },
+};
+```
+
+### Weapon Balance Pass
+
+The original six weapons were functional but not balanced. Phase 2 also corrected several values that playtesting revealed:
+
+| Weapon | Before | After | Rationale |
+|--------|--------|-------|-----------|
+| Sniper damage | 55 | 40 | One-shotting at max range with no counterplay was unfun |
+| Heavy Bomb damage | 50 | 60 | Wasn't worth the ammo cost vs Standard Shell |
+| Bouncer bounces | 1 | 3 | One bounce was too situational to justify using |
+| Cluster submunitions | 3 | 5 | Blast pattern was too sparse to threaten |
+
+Balance passes are humbling. Numbers that seemed reasonable in isolation often don't feel right in practice. Playtesting with the adjusted values confirmed the changes.
+
+### Terrain Hazards
+
+Three new terrain features spawn randomly at game start:
+
+**Landmines:** Hidden in the terrain, revealed on contact. Explode for 40 damage. Adds genuine uncertainty to terrain navigation and makes the map feel lived-in.
+
+**Ammo Crates:** Supply pickups containing random weapon ammo. Shooting one grants the ammo to whoever destroys it. Creates interesting situations where a player might want to deny a crate to the opponent.
+
+**Oil Slicks:** Create persistent hazard zones that combine with napalm. A napalm shell landing on an oil slick produces an enhanced burn effect. Alone, oil slicks don't do direct damage, but they slow movement effects and interact with fire.
+
+### Fall Damage
+
+When terrain destruction drops a cannon into a lower position (because you blew away the ground underneath it), that cannon takes fall damage scaled to the height difference. Small craters don't matter much. A lucky direct hit on the terrain at the opponent's base can cascade: destroy terrain, drop cannon, deal fall damage, then take your turn.
+
+```typescript
+export function computeFallDamage(
+  heightBefore: number,
+  heightAfter: number,
+): number {
+  const drop = heightAfter - heightBefore; // positive = falling
+  if (drop < FALL_DAMAGE_THRESHOLD) return 0;
+  return Math.floor(drop * FALL_DAMAGE_MULTIPLIER);
+}
+```
+
+### Game Modifiers
+
+Seven modifiers selectable at game start:
+
+| Modifier | Effect |
+|----------|--------|
+| No Wind | Wind always zero |
+| Hurricane | Wind 3x strength, changes direction each turn |
+| Infinite Ammo | No ammo limits on any weapon |
+| One-Shot Kill | Any hit is fatal regardless of damage |
+| Random Weapons | Weapon selection randomized each turn |
+| Mirror Mode | Terrain and cannon positions mirrored |
+| Persistent Terrain | Craters don't fill between rounds |
+
+These stack. "Hurricane + One-Shot Kill" is chaos. "Mirror Mode + Persistent Terrain" on later rounds produces a heavily cratered symmetric battlefield that forces very different shots than round one.
+
+---
+
+## Phases 3 and 4: Polish, Infrastructure, Platform
+
+Phases 3 and 4 addressed the "this is technically a game but it's not quite a product" gap.
+
+**Accessibility:** Colorblind mode adds pattern overlays (diagonal stripes for Player 1, dot patterns for Player 2) so the game is playable without relying on color alone. Reduced motion disables screen shake, particle explosions, and ambient animations. Keyboard navigation works throughout all menus and settings.
+
+**PWA Support:** Service worker, offline capability, web app manifest. The game is installable on mobile and desktop. Cache strategy: network-first for navigation (to pick up updates), stale-while-revalidate for static assets.
+
+**Touch Controls:** Tap-to-aim on the canvas (angle computed from cannon position to touch point), swipe gestures for power adjustment, larger hit targets on all sliders.
+
+**Help Manual:** Seven sections covering controls, weapons, terrain hazards, game modifiers, AI difficulty, campaign mode (added in Phase 5), and scoring. Accessible from the main menu.
+
+**Animation Speed:** 1x, 2x, and 4x controls for projectile flight speed. At 4x, a long shot resolves in about a second. Useful when playing against an experienced opponent who doesn't need to watch the full trajectory arc.
+
+**Fullscreen Mode:** One button, no tricks. Uses the Fullscreen API with appropriate cleanup on escape.
+
+<Tip title="PWA Is Worth the Setup Time">
+Adding PWA support to a Canvas game is a significant quality-of-life upgrade for mobile users. The web app manifest enables "Add to Home Screen" on iOS and Android, giving the game an icon on the home screen and a fullscreen launch experience without the browser chrome. The service worker work for offline caching takes about an afternoon and pays off every time someone plays on a spotty connection.
+</Tip>
+
+---
+
+## Phase 5: The Heavy Stuff
+
+Phase 5 was where I decided to swing for the fences. Four completely independent features, each complex enough to be its own project. Four parallel agent streams in four separate worktrees.
+
+I expected maybe six merge conflicts. I got twelve.
+
+![Person staring at a screen looking shocked](https://media.giphy.com/media/NaboQwhxK3gMU/giphy.gif)
+
+### Feature 1: Campaign Mode
+
+The "Artillery Academy" campaign is 20 levels across four chapters:
+
+| Chapter | Name | Levels | Theme |
+|---------|------|--------|-------|
+| 1 | Boot Camp | 1-5 | Core skills, Easy AI |
+| 2 | Advanced | 6-10 | Terrain hazards introduced |
+| 3 | Specialist | 11-15 | All modifiers, weapon variety required |
+| 4 | Commander | 16-20 | Boss battles, Hard AI only |
+
+Each level has an objective (win by round X, achieve accuracy above Y%, defeat boss with specific weapon), a star rating system, and a briefing screen that sets up the narrative context.
+
+Boss battles in Chapter 4 give the AI enhanced accuracy and pre-load it with the Mega Bomb and Sniper weapons at full ammo, making each confrontation a resource management puzzle: you need to take the shot that forces the AI to spend its best weapons while preserving your own.
+
+The star system (1-3 stars per level) gives returning players a reason to replay earlier levels. Stars are based on objective quality: did you win? How few shots did it take? Any rounds dropped?
+
+```typescript
+// engine/campaign.ts
+export function evaluateLevelCompletion(
+  state: GameState,
+  levelConfig: CampaignLevel,
+): StarRating {
+  if (!levelConfig.objective.check(state)) return 0;
+
+  const parShots = levelConfig.par.shots;
+  const actualShots = state.totalShotsFired;
+  const roundsDropped = state.roundsDropped;
+
+  if (actualShots <= parShots && roundsDropped === 0) return 3;
+  if (actualShots <= parShots * 1.5) return 2;
+  return 1;
+}
+```
+
+### Feature 2: Weapons Batch 2
+
+Five more weapons, for a total of fourteen. Each one fills a gap in the tactical options available.
+
+**Laser:** Zero travel time, instant hit, no wind effect. Very low damage (20) and tiny blast radius. Counters the Hurricane modifier, where predicting wind effects is nearly impossible. No physics, just draw a line.
+
+**Tunneler:** Burrows into terrain on impact, then explodes from below. The explosion happens underground, meaning blast radius goes upward and catches cannons sitting on flat terrain with no escape. Counters entrenched positioning.
+
+**EMP:** Non-lethal but disables the AI's weapon selection for two turns (forces it to use Standard Shell only). In a campaign context where the AI has powerful weapons, buying two turns of neutered fire can be decisive.
+
+**Earthquake:** Shakes and reshapes the terrain across a wide area. Doesn't deal direct damage but can collapse the ground under an opponent's cannon, triggering fall damage and forcing a repositioning they didn't plan for.
+
+**Homing:** Slow projectile that steers toward the enemy cannon. Not accurate enough to guarantee a hit, but it applies pressure that makes opponents feel like they can't just sit in a corner. Costs two ammo per shot.
+
+```typescript
+// engine/projectile-special.ts
+export function applyHomingGuidance(
+  proj: Projectile,
+  target: Cannon,
+  dt: number,
+): Projectile {
+  const dx = target.x - proj.x;
+  const dy = target.y - proj.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const guidanceForce = HOMING_STRENGTH / Math.max(dist, 1);
+
+  return {
+    ...proj,
+    vx: proj.vx + (dx / dist) * guidanceForce * dt,
+    vy: proj.vy + (dy / dist) * guidanceForce * dt,
+  };
+}
+```
+
+### Feature 3: Procedural Music
+
+The sound system from the initial build produced good effects (cannon fire, explosions, victory fanfare), but the game was silent between shots. Silence is fine for a game session or two. After that, it starts to feel like something's missing.
+
+The Phase 5 audio agent built a mood-based generative music system with six moods:
+
+| Mood | Trigger | Character |
+|------|---------|-----------|
+| `menu` | Main menu, campaign select | Calm, ambient, slow attack |
+| `idle` | Waiting for player input | Light, low tension |
+| `aiming` | Adjusting angle/power | Building intensity |
+| `firing` | Projectile in flight | Percussive, higher energy |
+| `impact` | Explosion resolution | Sharp, brief |
+| `victory` | Round/match win | Triumphant, harmonic |
+
+Each mood generates a harmonic background pad using layered sine oscillators tuned to the terrain theme's key signature. Desert terrain uses a minor pentatonic. Arctic uses a major scale with wider voicing. Volcanic uses a diminished chord with low bass.
+
+The moods crossfade over 500ms so transitions don't click.
+
+```typescript
+// audio/music-engine.ts
+export class MusicEngine {
+  private currentMood: Mood = 'menu';
+  private oscillators: OscillatorNode[] = [];
+
+  transitionTo(mood: Mood, theme: TerrainTheme): void {
+    if (mood === this.currentMood) return;
+
+    const outGain = this.ctx.createGain();
+    outGain.gain.setValueAtTime(1, this.ctx.currentTime);
+    outGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + CROSSFADE_MS / 1000);
+
+    this.startMood(mood, theme);
+    this.currentMood = mood;
+  }
+
+  private startMood(mood: Mood, theme: TerrainTheme): void {
+    const notes = MOOD_NOTES[mood][theme.musicalKey];
+    notes.forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      osc.frequency.value = freq;
+      osc.type = MOOD_WAVEFORMS[mood];
+      // ... gain envelope, filter, connect
+    });
+  }
+}
+```
+
+The `theme.musicalKey` property is new to Phase 5. Each terrain theme got a `musicalKey` field that maps to a set of frequencies. The music system then uses theme-appropriate keys without any hardcoded values.
+
+<Info title="Web Audio for Generative Music">
+The Web Audio API is well-suited for simple generative music. You create oscillator nodes, set their frequency and waveform type, run them through gain and filter nodes, and connect to the destination. The key to making it sound musical rather than beepy is layering multiple oscillators (3-4 per chord), detuning them slightly (a few cents), and using a lowpass filter to soften the attack.
+</Info>
+
+### Feature 4: Time of Day and Weather
+
+This was the most visually impressive Phase 5 addition and also the one that touched the most shared code.
+
+**Time of Day:** Four states (dawn, midday, sunset, night) with different sky color palettes applied as gradients. Night adds a star field and a moon with proper phase rendering. Dawn and sunset have orange/pink atmospheric tinting. Time advances slowly over a real-time session, so a long match will cycle through the full day.
+
+**Weather:** Four conditions (clear, rain, gale, fog) with both visual and gameplay effects:
+
+| Weather | Visual | Gameplay |
+|---------|--------|----------|
+| Clear | None | None |
+| Rain | Falling rain particles, wet sheen | +0.3 wind multiplier |
+| Gale | Visible wind gusts as particle streams | Wind reversal each turn |
+| Fog | Fog overlay, reduced terrain visibility | Trajectory preview range cut in half |
+
+The fog visibility reduction is the most impactful gameplay modifier. You can still see the cannon and the near-field terrain, but the far end of the map becomes obscured. Landing a shot you can't fully track requires genuine skill.
+
+```typescript
+// engine/weather.ts
+export interface WeatherState {
+  readonly condition: WeatherCondition;
+  readonly windMultiplier: number;
+  readonly reverseWindEachTurn: boolean;
+  readonly visibilityRange: number; // 1.0 = full, 0.5 = fog
+}
+
+export function applyWeatherToWind(
+  wind: Wind,
+  weather: WeatherState,
+  turnNumber: number,
+): Wind {
+  const multiplied = {
+    ...wind,
+    strength: wind.strength * weather.windMultiplier,
+  };
+
+  if (weather.reverseWindEachTurn && turnNumber % 2 === 1) {
+    return { ...multiplied, direction: multiplied.direction * -1 };
+  }
+
+  return multiplied;
+}
+```
+
+---
+
+## The Merge Conflict Chronicles
+
+Four agents, four worktrees, 100% parallel execution. Then integration time.
+
+Every agent touched `types.ts` and `weapons.ts` in some way. The campaign agent added `CampaignState` to `GameState`. The weapons agent added five new `WeaponId` values. The music agent added `musicalKey` to `TerrainTheme`. The time-of-day agent added `TimeOfDay` and `WeatherCondition` to the game state.
+
+All four agents started from the same commit. All four added to the same interfaces. Four-way divergence on the same structs.
+
+The resolution was mechanical but tedious. Accept both changes. Verify the merged interface makes sense. Move to the next file. The files that required conflict resolution:
+
+- `types.ts` (5 conflicts)
+- `weapons.ts` (2 conflicts)
+- `turn.ts` (2 conflicts: campaign progression and weather application both hook into turn resolution)
+- `audio-bus.ts` (1 conflict: both music and weather systems registered audio events)
+- `constants.ts` (2 conflicts)
+
+Total: 12 conflicts, all resolved. No data loss, no lost agent work. But I was not expecting to spend 45 minutes in the merge resolution layer.
+
+<Warning title="Shared Type Files Are Conflict Magnets">
+When parallel agents all need to extend the same TypeScript interfaces, conflicts are inevitable. Plan for this. Either designate one agent to own shared types (and have others wait), or accept that integration will require manual conflict resolution. The latter is faster overall for truly independent features.
+</Warning>
+
+<Tip title="Resolve Conflicts Sequentially">
+When merging multiple worktrees, merge them one at a time rather than all at once. Resolve conflicts after each merge before starting the next. This keeps the conflict scope small and avoids cascading conflicts where the fix for conflict A creates a new conflict with the yet-to-be-merged worktree C.
+</Tip>
+
+---
+
+## What the Numbers Look Like Now
+
+After five phases, here's where the project stands:
+
+| Metric | Pre-Upgrade | Post-Upgrade |
+|--------|-------------|--------------|
+| Weapons | 6 | 14 |
+| Terrain themes | 4 | 7 |
+| Game modifiers | 0 | 7 |
+| Campaign levels | 0 | 20 |
+| Music moods | 0 | 6 |
+| Weather conditions | 0 | 4 |
+| Time-of-day states | 0 | 4 |
+| Tests | ~25 | 404 |
+| Test files | ~8 | 20 |
+| Source files | ~45 | 106 |
+| TypeScript errors | 0 | 0 |
+
+404 tests passing across 20 test files. Zero TypeScript errors. All the added complexity is tested, typed, and working.
+
+![Person doing a victory fist pump](https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif)
+
+The test count jump (25 to 404) is almost entirely due to the campaign system and weather/time-of-day mechanics having complex logic that needed coverage. Pure functions are easy to test at scale, and the architecture made adding tests straightforward.
+
+---
+
+## Lessons Learned
+
+### Parallel agents need a clear seam analysis before you start
+
+Before Phase 5, I identified the four features I wanted to build and assigned them to agents. What I should have done first was map out exactly which shared files each feature would touch, then decide how to handle those conflicts.
+
+For Phase 5, every agent touched `types.ts`. The pragmatic fix would have been to designate the types file as "agent 1 owns it, everyone else waits." Instead, I let all four agents modify it simultaneously and resolved the fallout at merge time. It worked, but it was avoidable.
+
+### The pure functions architecture becomes more valuable over time
+
+After five upgrade phases, the engine layer is significantly larger (14 weapons, campaign system, weather, time-of-day). But the structure hasn't degraded. Adding new features still means writing a new pure function, testing it, then wiring it into the store. No surprise side effects, no mysterious state corruption, no need to understand the rendering layer to add a new weapon.
+
+The discipline of "engine functions return new state and have no side effects" is annoying to maintain during initial development. It pays compounding dividends when you're on your fifth upgrade phase and adding your fourteenth weapon.
+
+<Tip title="Architecture Quality Shows in the Fifth Phase">
+Clean architecture doesn't really prove itself on the first version of a feature. It proves itself when you're adding the fifth related feature, the second team of agents is working in parallel, and you still understand exactly where to make the change. If your fifth weapon is as easy to add as your first, the architecture is working.
+</Tip>
+
+### Seeded RNG everywhere prevents an entire class of bugs
+
+The xoshiro128** PRNG threads through all of Phase 5: weather conditions are seeded, time-of-day progression is deterministic, campaign level layouts are reproducible. Any bug that involves randomness can be reproduced by replaying from the seed. This saved me twice during Phase 5 testing when an edge case in fog visibility appeared only in certain weather/turn combinations.
+
+### Procedural music is a bigger player retention feature than I expected
+
+Adding background music to a game you've been playing in silence feels more significant than the feature's implementation complexity suggests. The mood transitions mean the game communicates its state through audio as well as visuals. When the music shifts from idle to firing as a projectile arcs across the screen, the player feels the moment more.
+
+Zero audio files. All synthesized at runtime. Every sound and piece of music in the game is computed code.
+
+<Info title="Theme-Key Pairing for Coherent Audio">
+Pairing terrain themes with musical keys (Desert = minor pentatonic, Arctic = major, Volcanic = diminished) gives the audio a coherent personality without requiring a composer or audio files. The Web Audio API generates the notes; the key system ensures they fit together. The same approach works for mood-specific waveforms: use sawtooth for intense moods, sine for calm ones.
+</Info>
+
+### Fog weather is more interesting than "reduced visibility" sounds
+
+When I designed the fog condition, "cuts trajectory preview range in half" sounded like a mild inconvenience. In practice, it fundamentally changes how you aim. You can no longer rely on the ghosted previous trajectory. You have to estimate the second half of the arc from context clues (wind direction, terrain shape, approximate distance). It produces genuinely different gameplay.
+
+The best game modifiers change how you think, not just what you can do.
+
+---
+
+## Play It
+
+Cann Cann is live at [cann-cann.vercel.app](https://cann-cann.vercel.app). Two-player hot seat, solo vs AI (Easy, Medium, Hard), Practice mode, and now a full 20-level campaign.
+
+If you want to see the parallel agent workflow in action without building a game yourself, Phase 5's four-stream parallel execution is the clearest example I've run. Four distinct features, fully isolated development, 12 merge conflicts, one clean integration.
+
+The artillery still won't fire itself. But fourteen weapons and procedural music make the waiting considerably more enjoyable.
