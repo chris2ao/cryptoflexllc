@@ -9,11 +9,11 @@ series: 'OpenClaw Deployment'
 seriesOrder: 1
 ---
 
-It's 9:30pm on a Tuesday. The kids are in bed. My wife and I just finished a TV show. I kissed her goodnight, she went upstairs, and I sat down at my desk with a singular mission: deploy OpenClaw securely on my M4 Mac Mini, using local AI with Ollama, locked down to the point where it would take a nation-state threat actor and a bad day at CISA to break in.
+It's 9:30pm on a Tuesday. After entertaining the kids and spending some time with my wife talking about our days, I sat down at my desk with a singular mission: deploy OpenClaw securely on my M4 Mac Mini, using local AI with Ollama, locked down to the point where it would take a nation-state threat actor and a bad day at CISA to break in.
 
 *How hard could it be?*
 
-![A confident dog at a laptop surrounded by fire, with the caption "This is fine"](https://media.giphy.com/media/QMHoU66sBXqqLqYvGO/giphy.gif)
+![Overconfident man putting on sunglasses like a boss](https://media.giphy.com/media/62PP2yEIAZF6g/giphy.gif)
 
 By 1:30am, I had learned three things: security and usability exist on a seesaw, AI tools are not inherently safe to run wide open, and Bob Ross was a wiser man than most security architects.
 
@@ -203,7 +203,7 @@ Each attack was rated for likelihood and impact, with mitigations mapped to conf
 
 ## The Deployment: When Theory Meets Reality
 
-It is 9:30pm. I have the guide open in one terminal window and a fresh SSH session to the `openclaw` user in another.
+It is 9:30pm. I have the guide open in one terminal window and Claude Code ready to help in another.
 
 ### Phase 1: Docker Setup (Mostly Fine)
 
@@ -308,7 +308,7 @@ Could not be run by the `openclaw` user. Required admin access to inspect Docker
 
 I had two of five verification checks failing before I even reached the first conversation.
 
-![Dominos falling in a long chain](https://media.giphy.com/media/l4FGuhL4U2WyjdkaY/giphy.gif)
+![Jenga tower collapsing spectacularly](https://media.giphy.com/media/3o6wrebnKWlBOYUVO0/giphy.gif)
 
 ---
 
@@ -465,7 +465,7 @@ I tried `openclaw config set` to add the channel programmatically. Sent another 
 
 It was 1:27am.
 
-![A developer sitting at a computer looking exhausted, head on keyboard](https://media.giphy.com/media/13GIgrGdslD9oQ/giphy.gif)
+![Man staring blankly at screen, completely defeated](https://media.giphy.com/media/tJeGZumxDB01q/giphy.gif)
 
 ---
 
@@ -522,7 +522,7 @@ My 9:30pm-to-1:30am OpenClaw disaster was not a wasted evening. It was a very ex
 4. **Channels must be configured before messages can be routed.** (The onboard wizard's "Skip for now" option skips things you actually need.)
 5. **My security architecture was designed for the last step, not the first.** (You cannot secure something you do not yet understand how to run.)
 
-![Rocky Balboa getting back up in the ring](https://media.giphy.com/media/9Y5BbDSkSTiY8/giphy.gif)
+![Bob Ross painting happily, turning a mistake into a tree](https://media.giphy.com/media/d31vTpVi1LAcDvdm/giphy.gif)
 
 ---
 
@@ -598,4 +598,4 @@ And if you have spent a night watching a terminal do nothing at 1:30am, you are 
 
 ---
 
-*Written by Chris Johnson. Every error message in this post was real. Every command was actually run. Every failure was actually experienced, at the actual hours listed, after the kids were actually in bed. The security architecture was designed with Claude Code agents and is documented in [the companion guide](/blog/secure-openclaw-deployment-m4-mac-mini). Part 2 of this series is in progress.*
+*Written by Chris Johnson. Every error message in this post was real. Every command was actually run. Every failure was actually experienced, at the actual hours listed, on an actual Tuesday night. The security architecture was designed with Claude Code agents and is documented in [the companion guide](/blog/secure-openclaw-deployment-m4-mac-mini). Part 2 of this series is in progress.*
