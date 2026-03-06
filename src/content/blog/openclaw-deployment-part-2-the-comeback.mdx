@@ -1,0 +1,849 @@
+---
+title: 'OpenClaw Deployment Part 2: The Comeback'
+date: '2026-03-06'
+description: >-
+  After Part 1's fortress locked itself out, I rebuilt OpenClaw incrementally:
+  one security control at a time, with 7 agents, 6 Telegram bots, and
+  verification after every step.
+tags:
+  - Claude Code
+  - OpenClaw
+  - Security
+  - Ollama
+  - Multi-Agent
+  - Telegram
+author: Chris Johnson
+readingTime: 28 min read
+series: OpenClaw Deployment
+seriesOrder: 2
+---
+
+If you read [Part 1](/blog/openclaw-deployment-part-1-the-fortress-that-locked-itself), you know how this story started: me, a Mac Mini, a five-agent security team, and a beautiful hardened deployment plan that locked itself out before it ever said a single word.
+
+I left that post at 1:30am having typed `openclaw uninstall` and wiped everything clean. Then I outlined a different philosophy on my commute the next morning: start simple, add one layer at a time, understand each piece before stacking the next one.
+
+This is Part 2. The comeback.
+
+![Rocky Balboa running up the steps in Philadelphia](https://media.giphy.com/media/3o7TKRwpns23QMNNiE/giphy.gif)
+
+By the end of this post, I had:
+
+- 7 specialized agents running, each with its own workspace, persona, and model assignment
+- 6 Telegram bots paired and responding (the 7th is pending bot creation)
+- Security controls that actually work with the functionality they are protecting
+- A configuration I understand well enough to debug when something breaks
+
+Let me show you how we got there.
+
+---
+
+## The Philosophy Shift: Incremental Over Absolute
+
+Part 1's failure had a specific cause: I tried to apply a production-hardened security configuration to a system I had never successfully run in any configuration. When something broke, I did not know if it was the software, my config, the security controls, or some interaction between all three.
+
+The new plan was simple:
+
+1. Get it running with zero security changes
+2. Add one control, verify it still works, understand what changed
+3. Repeat until the system is as secure as the functionality allows
+
+That last clause is critical. "As secure as the functionality allows" is doing a lot of work. Some of the controls from Part 1 (network: none for sandbox containers, for example) are fundamentally incompatible with features I actually want (agents that can search the web and call Telegram APIs). When you hit that conflict, you have two choices: remove the feature, or modify the control to be compatible with the feature.
+
+I was not going to remove the features. So I had to think more carefully about the controls.
+
+<Tip title="Security Controls Must Be Compatible with Functionality">
+A security control that prevents the system from working will be disabled under pressure, usually at 1am, probably without documentation. Better to implement a control that is 80% as strong but 100% compatible with the system's purpose than one that is theoretically perfect but practically impossible to maintain.
+</Tip>
+
+---
+
+## Phase 1: Get It Running (No Security Theater)
+
+Installing OpenClaw this time was a 15-minute exercise instead of a four-hour odyssey. The difference: I was my own user, no switching accounts, no Docker socket permission games.
+
+```bash
+brew install node
+npm install -g openclaw@latest
+openclaw --version
+# 2026.3.2
+```
+
+Ollama was already installed from Part 1 (I had re-installed it). I just needed to pull the right model.
+
+```bash
+ollama pull qwen2.5:14b
+ollama serve
+```
+
+<Info title="Why qwen2.5:14b Instead of llama3.2:3b?">
+In Part 1, I pulled `llama3.2:3b` because it was fast and small. For this deployment, I wanted a model capable enough to serve as a specialist agent. Qwen 2.5 at 14 billion parameters runs well on the M4's unified memory architecture and handles complex instructions better than the smaller Llama model. The tradeoff is about 9GB of RAM versus 2GB, which the M4 handles without complaint.
+</Info>
+
+### The Onboard Wizard (For Real This Time)
+
+I ran the wizard with the intention of actually reading every prompt:
+
+```bash
+openclaw wizard
+```
+
+First question: model provider. This time I did not skip it. I selected Ollama, entered `http://127.0.0.1:11434` as the base URL, and used `ollama-local` as the API key (a placeholder value the schema requires even though Ollama does not actually validate it).
+
+Second question: default workspace. I accepted the default `~/.openclaw/workspace`.
+
+The wizard completed and dropped me into the TUI. I typed "hello."
+
+The model responded.
+
+![A man pumping his fist in triumph](https://media.giphy.com/media/3oEdv9Y8md1SwyOMYE/giphy.gif)
+
+It sounds anticlimactic written down. After four hours of silence the night before, seeing actual text come back from the model felt like something. I sent a few more messages to confirm it was not a fluke, then moved to Phase 2.
+
+---
+
+## Phase 2: Security Controls, One at a Time
+
+### Security Control 1: Gateway Binding
+
+The most important single setting in the entire config. By default, the gateway binds to `0.0.0.0:18789`, which means it listens on every network interface on the machine. If you have any port forwarding on your router, or if you are on a shared network, your AI agent's API is exposed.
+
+```bash
+openclaw config set gateway.bind loopback
+```
+
+Verified it worked by checking the gateway process binding:
+
+```bash
+lsof -i :18789
+# COMMAND   PID        USER   TYPE    DEVICE SIZE/OFF NODE NAME
+# node    12847  chris2ao  IPv4  0x...       0t0  TCP localhost:18789 (LISTEN)
+```
+
+`localhost:18789` not `*:18789`. The gateway is now only reachable from the machine itself. Sent a message to confirm the TUI still worked. Still working.
+
+<Security title="Loopback Binding Directly Mitigates the 40,000 Exposed Instances Problem">
+The research cited in Part 1 found 40,000+ OpenClaw deployments accessible from the network. All of them had the default `0.0.0.0` binding. This one config line eliminates that entire class of exposure. It costs nothing and breaks nothing. It should be the first thing you configure.
+</Security>
+
+### Security Control 2: Gateway Auth Token
+
+With the gateway bound to loopback, only processes on the same machine can reach it. But if something malicious is running on the same machine (or if a browser is open to a page exploiting CVE-2026-25253 style cross-origin attacks), a token adds a second layer.
+
+```bash
+# Generate 32 bytes of cryptographic randomness and set it
+openclaw config set gateway.auth.mode token
+openclaw config set gateway.auth.token "$(openssl rand -hex 32)"
+```
+
+The TUI automatically uses this token from its config. External processes trying to talk to the gateway need the token. Verified: TUI still works, unauthorized curl without the token gets 401.
+
+```bash
+curl http://localhost:18789/api/v1/health
+# {"error":"Unauthorized"}
+
+# With the token:
+curl -H "Authorization: Bearer <token>" http://localhost:18789/api/v1/health
+# {"status":"ok","version":"2026.3.2"}
+```
+
+### Security Control 3: mDNS Discovery Off
+
+By default, OpenClaw uses mDNS to advertise its presence on the local network. This is useful for multi-machine setups. I had no multi-machine setup and no desire to broadcast that I was running an AI agent.
+
+The config syntax here is slightly different from what you might expect. It is not a boolean flag:
+
+```bash
+openclaw config set discovery.mdns.mode off
+```
+
+<Warning title="The mdns Config Is an Object, Not a Boolean">
+I tried `openclaw config set discovery.mdns false` and got a schema validation error. The `mdns` field expects an object with a `mode` property. The valid values for `mode` are `"off"`, `"local"`, and `"lan"`. This is the kind of thing that causes fifteen minutes of confusion if you are not reading the schema output carefully.
+</Warning>
+
+Verified: `avahi-browse` (well, `dns-sd -B _openclaw._tcp local` on macOS) showed no OpenClaw service. mDNS off.
+
+### Security Control 4: Human-in-the-Loop Approvals
+
+This one I wanted most from Part 1. Every time the agent wants to run a command, it has to ask me first. No silent background execution.
+
+Looking at the actual config structure, this is set at the command level:
+
+```bash
+openclaw config set commands.native auto
+```
+
+Wait, that enables native commands. What I actually want is approval required for exec operations. In the working config, this is handled at the tool profile level. With `tools.profile: "full"`, agents get access to all tools, but the gateway's `commands.native: "auto"` setting means it will run native OS commands. The human-in-the-loop piece comes from the TUI's approval prompts, which are on by default when interacting through the operator session.
+
+The key insight: approval flow is not a config toggle you flip. It is the default interaction model of the TUI. If an agent (in a Telegram session, say) requests a destructive command, it goes into a pending queue that requires operator approval via the TUI or the approval API. This is already wired up through the `operator.approvals` scope in the device pairing.
+
+<Info title="How OpenClaw Approval Works">
+When an agent session generates an action requiring approval (destructive commands, file writes outside the workspace, external API calls flagged as sensitive), OpenClaw queues the action with `pending` status. The paired operator device (the TUI logged in with `operator.approvals` scope) sees the pending action and can approve or reject it. The agent waits. Nothing executes until the operator responds. This is the human-in-the-loop control, and it is architectural, not a config flag.
+</Info>
+
+### Security Control 5: Filesystem Access Scoping
+
+By default, agents can request access to any path. I wanted to scope that to `~/.openclaw/` paths so agents could read and write their own workspaces but could not casually reach into my home directory.
+
+In the working config, this is done through the `allowedPaths` setting in the filesystem section:
+
+```json
+"filesystem": {
+  "allowedPaths": [
+    "/Users/chris2ao/.openclaw/workspace",
+    "/Users/chris2ao/.openclaw/workspace-jclaw",
+    "/Users/chris2ao/.openclaw/workspace-builder",
+    "/Users/chris2ao/.openclaw/workspace-writer",
+    "/Users/chris2ao/.openclaw/workspace-security",
+    "/Users/chris2ao/.openclaw/workspace-researcher",
+    "/Users/chris2ao/.openclaw/workspace-sysadmin",
+    "/Users/chris2ao/.openclaw/workspace-secretary"
+  ]
+}
+```
+
+Agents can write to their own workspace directories. They cannot write to `~/Documents` or `~/Desktop` or anywhere else. Verified by asking an agent to write a test file to `~/test.txt`: the request was blocked. Writing to `~/.openclaw/workspace/test.txt`: allowed.
+
+### Security Control 6: Browser Profile Isolation
+
+The browser is enabled. I want it enabled. Agents that can search the web and automate browser tasks are significantly more useful than ones that cannot. But I did not want agent browser sessions mixing with my personal browsing history, cookies, and logins.
+
+OpenClaw supports named browser profiles. I set the default agent browser profile to `openclaw`:
+
+```bash
+openclaw config set browser.enabled true
+openclaw config set browser.defaultProfile openclaw
+```
+
+The first time an agent launches a browser session, it creates a fresh profile at `~/.openclaw/browser/openclaw/`. Completely isolated from my personal Chrome or Safari profiles. If an agent's browser session is somehow compromised, it has no access to my actual browser credentials.
+
+<Tip title="Browser Profile Isolation Is Underrated">
+The browser profile setting does not get mentioned in most OpenClaw deployment guides, probably because it seems like a minor convenience feature. It is actually a meaningful security boundary. Your browser profile contains session cookies for every website you use. An isolated agent profile contains only what the agent has touched, which should be nothing sensitive.
+</Tip>
+
+### What I Did NOT Implement (And Why)
+
+**Docker sandbox with `network: none`**: Part 1 was going to sandbox every command execution inside a Docker container with no network access. I did not implement this, and the reason matters: my agents need network access. They need to talk to Ollama (localhost), to OpenAI Codex (external API), to Brave Search (external API), and to Telegram (external API). A `network: none` sandbox that blocks all of these is not a sandbox for my use case. It is a brick wall.
+
+The proper implementation would be an allowlist-based outbound firewall at the OS level. Something like Little Snitch or a custom pf rule set that allows `127.0.0.1:11434` (Ollama), `api.openai.com`, `api.search.brave.com`, and `api.telegram.org`, while blocking everything else. I have this on my roadmap but did not implement it in this phase. I am documenting it as a known gap rather than pretending I solved it.
+
+**Dedicated `openclaw` user account**: This was Part 1's central failure. The conclusion I reached: the macOS GUI session requirement makes a headless service account significantly more complex to operate than the security benefit justifies for a single-user machine. The actual isolation I care about (filesystem scoping, network controls, browser profile isolation) is implemented through other means. A dedicated user would add another layer, but it would also reintroduce the Docker socket access problem and the `launchctl` GUI session problem. I documented the tradeoff and moved on.
+
+<Stop title="Know Which Security Controls Actually Reduce Your Risk">
+Not every security control on the checklist applies to your threat model. A dedicated service account makes sense for a multi-user server. For a single-user personal machine where you are the only human who can log in, the attack scenarios it defends against are different from what you actually need to worry about. Apply controls that match your threat model, not controls that satisfy a checklist.
+</Stop>
+
+---
+
+## Phase 3: The Multi-Agent Architecture
+
+Here is where it gets interesting. A single agent that can chat is useful. Seven specialized agents with distinct personas, model assignments, and workspaces is a system.
+
+The architecture I built:
+
+| ID | Name | Emoji | Model | Role |
+|----|------|-------|-------|------|
+| main | JClaw27 | Target | openai-codex/gpt-5.3-codex | Orchestrator, front door |
+| sysadmin | JClaw_SysAdmin | Wrench | openai-codex/gpt-5.3-codex | Infrastructure, server ops |
+| builder | JClaw_BobTheBuilder | Hammer | openai-codex/gpt-5.3-codex | Development, code, skills |
+| writer | CJClaw_Writer | Pencil | ollama/qwen2.5:14b | Content, blog, social |
+| security | JClaw_Security | Shield | openai-codex/gpt-5.3-codex | Security review, threat analysis |
+| researcher | JClaw_Researcher | Magnifier | ollama/qwen2.5:14b | Research, web search, synthesis |
+| secretary | JClaw_Secretary | Clipboard | ollama/qwen2.5:14b | Admin, scheduling, coordination |
+
+The model split is intentional. OpenAI Codex (gpt-5.3-codex) for agents that need strong code generation and reasoning: the orchestrator, infrastructure, developer, and security roles. Ollama's local `qwen2.5:14b` for agents whose primary work is reading, writing, and research where local inference is cost-effective and data stays on the machine.
+
+<Info title="Why Split Between Cloud and Local Models?">
+Running seven agents on a cloud model exclusively would generate real API costs at scale, especially for the high-frequency agents. Local models via Ollama have zero marginal cost per token, zero data leaving the machine, and acceptable quality for content and research tasks. The tradeoff is response time (local inference is slower) and reasoning ceiling (14B parameters versus gpt-5.3-codex). Routing task types to the appropriate tier balances cost, privacy, and capability.
+</Info>
+
+### Setting Up the Agent List
+
+The full agent configuration goes into `openclaw.json` under `agents.list`. Here is the actual structure (simplified and with tokens redacted):
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "openai-codex/gpt-5.3-codex"
+      },
+      "models": {
+        "ollama/qwen2.5:14b": {},
+        "openai-codex/gpt-5.3-codex": {}
+      },
+      "workspace": "/Users/chris2ao/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "timeoutSeconds": 600,
+      "subagents": {
+        "maxConcurrent": 8,
+        "maxSpawnDepth": 2,
+        "maxChildrenPerAgent": 5
+      }
+    },
+    "list": [
+      {
+        "id": "main",
+        "default": true,
+        "name": "JClaw27",
+        "workspace": "/Users/chris2ao/.openclaw/workspace-jclaw",
+        "model": { "primary": "openai-codex/gpt-5.3-codex" },
+        "tools": { "profile": "full" }
+      },
+      {
+        "id": "sysadmin",
+        "name": "JClaw_SysAdmin",
+        "workspace": "/Users/chris2ao/.openclaw/workspace-sysadmin",
+        "model": { "primary": "openai-codex/gpt-5.3-codex" },
+        "tools": { "profile": "full" }
+      },
+      {
+        "id": "builder",
+        "name": "JClaw_BobTheBuilder",
+        "workspace": "/Users/chris2ao/.openclaw/workspace-builder",
+        "model": { "primary": "openai-codex/gpt-5.3-codex" },
+        "tools": { "profile": "full" }
+      },
+      {
+        "id": "writer",
+        "name": "CJClaw_Writer",
+        "workspace": "/Users/chris2ao/.openclaw/workspace-writer",
+        "model": { "primary": "ollama/qwen2.5:14b" },
+        "tools": { "profile": "full" }
+      },
+      {
+        "id": "security",
+        "name": "JClaw_Security",
+        "workspace": "/Users/chris2ao/.openclaw/workspace-security",
+        "model": { "primary": "openai-codex/gpt-5.3-codex" },
+        "tools": { "profile": "full" }
+      },
+      {
+        "id": "researcher",
+        "name": "JClaw_Researcher",
+        "workspace": "/Users/chris2ao/.openclaw/workspace-researcher",
+        "model": { "primary": "ollama/qwen2.5:14b" },
+        "tools": { "profile": "full" }
+      },
+      {
+        "id": "secretary",
+        "name": "JClaw_Secretary",
+        "workspace": "/Users/chris2ao/.openclaw/workspace-secretary",
+        "model": { "primary": "ollama/qwen2.5:14b" },
+        "tools": { "profile": "full" }
+      }
+    ]
+  }
+}
+```
+
+Each agent gets its own workspace directory: `workspace-jclaw`, `workspace-sysadmin`, and so on. These are isolated directories where the agent stores memory files, work artifacts, and persona files. They cannot read each other's workspaces unless they explicitly request cross-workspace access (which goes through the approval queue).
+
+### Running `openclaw doctor --fix`
+
+After adding the multi-agent config, I ran the built-in health check:
+
+```bash
+openclaw doctor --fix
+```
+
+Part 1's catastrophic failure here was `Error: launchctl failed - no GUI session`. This time, running as my own user with a normal GUI session: it passed. The doctor command checked:
+
+- Gateway connectivity (passed)
+- Model provider reachability (passed for both Ollama and OpenAI Codex)
+- Workspace directory existence and permissions (flagged two missing directories)
+- Auth profile validity (passed)
+- Config schema validation (passed)
+
+The missing directory issue was easy: the doctor's `--fix` flag created the workspace directories it could not find. After the fix run, all checks passed green.
+
+<Tip title="openclaw doctor --fix Is Your Friend">
+Run `openclaw doctor --fix` after any significant config change. It validates the config schema, tests provider connectivity, and creates missing directories. The `--fix` flag is not destructive; it only creates things that are missing, it does not delete or modify existing config. Think of it as the deployment equivalent of running tests after a code change.
+</Tip>
+
+---
+
+## Phase 4: The Workspace Persona Files
+
+This was one of the most interesting parts of the build. Each agent workspace contains a set of markdown files that define the agent's identity and behavior. Think of them as the agent's long-term memory and core values, persisted across sessions.
+
+The standard set of files for each workspace:
+
+```
+workspace-builder/
+  AGENTS.md      # Workspace rules and conventions (shared template)
+  IDENTITY.md    # Who am I? Name, vibe, emoji
+  SOUL.md        # Detailed values, responsibilities, boundaries
+  MEMORY.md      # Long-term curated memory (starts empty)
+  HEARTBEAT.md   # Session continuity marker
+  USER.md        # Who is the human I work for?
+  memory/        # Daily notes (memory/YYYY-MM-DD.md)
+```
+
+The `AGENTS.md` file is a shared template installed in every workspace. It tells the agent how to operate: read SOUL.md first, read USER.md second, check today's memory file, write daily notes. The agent is expected to follow these conventions at the start of every session.
+
+Here is the `IDENTITY.md` for BobTheBuilder as an example:
+
+```markdown
+# IDENTITY.md - Who Am I?
+
+- **Name:** JClaw_BobTheBuilder
+- **Creature:** AI developer, builder of things
+- **Vibe:** Enthusiastic, creative, solution-oriented. "Can we build it? Yes we can!"
+- **Emoji:** Hammer
+- **Avatar:** (not set)
+
+---
+
+I write code, build tools, create skills, and implement features.
+Give me specs and I'll make it real.
+```
+
+And the `SOUL.md` establishes what BobTheBuilder actually believes:
+
+```markdown
+## Core Truths
+
+**Specs before code.** Don't start building until you understand what
+you're building.
+
+**Test what you build.** Every feature gets tests. Every tool gets
+validation. If it's not tested, it's not done.
+
+**Keep it simple.** The best code is the simplest code that solves the
+problem.
+
+## Boundaries
+
+- Submit code for Security review before deployment
+- Don't deploy or push without approval
+- Don't modify infrastructure (that's SysAdmin's domain)
+- Don't write content/blog posts (that's Writer's domain)
+```
+
+That last section, "Boundaries," is doing real coordination work. Each agent has explicit boundaries that reference the other agents by role. BobTheBuilder knows it should not step on SysAdmin's infrastructure responsibilities. Security knows it should not write content. This prevents agents from overstepping in multi-agent sessions.
+
+<Info title="Persona Files as Coordination Protocol">
+In a multi-agent system, the agents need to know what they are responsible for and, equally important, what they are not responsible for. The SOUL.md files serve as a lightweight coordination protocol. When JClaw27 (the orchestrator) delegates a task to BobTheBuilder, BobTheBuilder's soul file tells it to submit the result for Security review before deployment. That constraint is baked in, not enforced by the orchestrator remembering to ask.
+</Info>
+
+---
+
+## Phase 5: Telegram Integration
+
+This is the part that transforms OpenClaw from a local terminal tool into something genuinely different. Telegram integration lets you message your agents from your phone, from any location, and have them respond. Six agents, six Telegram bots, one group chat.
+
+### Creating the Bots
+
+Each agent needs its own Telegram bot. You create bots through BotFather, Telegram's official bot management account. The process:
+
+1. Open Telegram, search for `@BotFather`
+2. Send `/newbot`
+3. Follow the prompts: choose a display name, then a username (must end in `bot`)
+4. BotFather returns a bot token in the format `123456789:ABCdefGhIjKlmNopQrsTUVwxyZ`
+5. Repeat for each agent
+
+I created six bots:
+- `@JClaw27Bot` for main (JClaw27)
+- `@JClaw_SysAdmin_Bot` for sysadmin
+- `@JClaw_BobTheBuilderBot` for builder
+- `@CJClaw_WriterBot` for writer
+- `@JClaw_SecurityBot` for security
+- `@JClaw_ResearcherBot` for researcher
+
+The secretary bot is pending because creating a seventh bot on the same BotFather account triggered a cooldown. It is on the roadmap.
+
+### Configuring the Telegram Channel
+
+The Telegram configuration goes in the `channels` section of `openclaw.json`. Each bot gets an `accountId` that maps to its bot token:
+
+```json
+{
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "groupPolicy": "open",
+      "streaming": "partial",
+      "accounts": {
+        "jclaw": {
+          "dmPolicy": "pairing",
+          "botToken": "REDACTED_JCLAW_BOT_TOKEN",
+          "groupPolicy": "open",
+          "streaming": "partial"
+        },
+        "sysadmin": {
+          "dmPolicy": "pairing",
+          "botToken": "REDACTED_SYSADMIN_BOT_TOKEN",
+          "groupPolicy": "open",
+          "streaming": "partial"
+        }
+        // ... etc for each agent
+      }
+    }
+  }
+}
+```
+
+The `dmPolicy: "pairing"` setting is the security control here. It means the bot will not respond to direct messages from anyone unless they have been explicitly paired (approved) by the operator. Cold-start a new bot and message it from an unknown account? Silence. Your account has to be in the bot's paired list before it will talk to you.
+
+<Security title="Telegram Pairing Mode: Allowlist for Bot Access">
+The `dmPolicy: "pairing"` setting is equivalent to a network allowlist. Only accounts that have been through the pairing handshake can send direct messages to the bot. The pairing process requires operator approval: the person pairing has to send a pairing command, and the system operator has to approve the pairing request through the operator console. This prevents someone who discovers the bot username from being able to interact with your agent.
+</Security>
+
+The `groupPolicy: "open"` setting allows the bots to participate in group chats they have been added to. This is how the group orchestration test later in this post works.
+
+### The Bindings: Routing Telegram Messages to Agents
+
+With six bots configured, I needed to tell OpenClaw which agent handles messages from which bot. This is the `bindings` section:
+
+```json
+{
+  "bindings": [
+    {
+      "agentId": "main",
+      "match": {
+        "channel": "telegram",
+        "accountId": "jclaw"
+      }
+    },
+    {
+      "agentId": "sysadmin",
+      "match": {
+        "channel": "telegram",
+        "accountId": "sysadmin"
+      }
+    },
+    {
+      "agentId": "builder",
+      "match": {
+        "channel": "telegram",
+        "accountId": "builder"
+      }
+    }
+    // ... etc
+  ]
+}
+```
+
+When a message comes in on the Telegram channel through the `jclaw` account, it gets routed to the `main` agent. When a message comes in through the `builder` account, it goes to `builder`. Each bot is a front door to a specific agent.
+
+<Warning title="The channel vs provider Gotcha in Bindings">
+I initially wrote the bindings with `"provider": "telegram"` instead of `"channel": "telegram"`. The schema validation error message was not helpful: "unknown match field 'provider'". The correct key is `channel`, which maps to the top-level key in the `channels` object. This is a 30-second fix if you know what to look for, and a 20-minute rabbit hole if you do not.
+</Warning>
+
+### Pairing Your Account
+
+With the gateway running and the Telegram channel configured, pairing your Telegram account to the bots is a one-time handshake:
+
+1. Open Telegram, find the bot (e.g., `@JClaw27Bot`)
+2. Send `/pair`
+3. The bot responds with a pairing code or request
+4. In the OpenClaw TUI, you will see a pending pairing request appear
+5. Approve it with the operator console: `openclaw devices approve <pairing-id>`
+
+After approval, your Telegram account is in the bot's paired list. You can now DM the bot and it will respond.
+
+Repeat for each of the six bots.
+
+I now had six individual AI agents accessible from my phone. Each one a specialist in its domain, each running under its own workspace and persona files, each connected via its own Telegram bot.
+
+![Somebody popping champagne and celebrating](https://media.giphy.com/media/l0HlFZ3H0W4DYqVkk/giphy.gif)
+
+---
+
+## Phase 6: The OpenAI Codex Auth Profiles
+
+Four of the seven agents use OpenAI Codex (gpt-5.3-codex) as their primary model. Codex uses OAuth rather than a simple API key. Each agent needs its own auth profile file at:
+
+```
+~/.openclaw/agents/<agent-id>/agent/auth-profiles.json
+```
+
+The structure:
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "openai-codex:default": {
+      "type": "oauth",
+      "provider": "openai-codex",
+      "access": "REDACTED_OAUTH_ACCESS_TOKEN",
+      "refresh": "REDACTED_OAUTH_REFRESH_TOKEN",
+      "expires": 1773544177751,
+      "accountId": "REDACTED_ACCOUNT_ID"
+    }
+  }
+}
+```
+
+The OAuth flow itself is handled by `openclaw auth login openai-codex`, which opens a browser for the OAuth handshake and then writes the profile file. I ran this once, it created the profile for the `main` agent. For the other agents (sysadmin, builder, security), I copied the auth profile file into each agent's directory. They all authenticate against the same OpenAI account.
+
+<Info title="Why Copy Auth Profiles Instead of Sharing?">
+The auth profile file includes access and refresh tokens. OpenClaw expects each agent to have its own copy of this file in its agent-specific directory. There is no config option to point multiple agents at a shared auth profile location. Copying the file is not ideal from a credential management standpoint (updates to the token need to propagate to all copies), but it is the practical approach given the current architecture.
+</Info>
+
+The three Ollama agents (writer, researcher, secretary) do not need OAuth. Their auth profile is simpler:
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "ollama:default": {
+      "type": "apikey",
+      "provider": "ollama",
+      "apiKey": "ollama-local"
+    }
+  }
+}
+```
+
+The `ollama-local` API key is a placeholder that satisfies the schema requirement. Ollama does not actually validate it.
+
+---
+
+## Phase 7: Testing and Verification
+
+### Single Agent Test
+
+Opened the TUI, sent a message to the main agent:
+
+```
+Me: What is your name and what model are you running on?
+
+JClaw27: I'm JClaw27, your orchestrator. I'm running on OpenAI Codex
+(gpt-5.3-codex). I'm the front door for the team — when you have something
+to delegate, I figure out who handles it and make sure it gets done.
+
+What do you need?
+```
+
+The persona files were working. JClaw27 identified itself correctly and described its role accurately without me prompting it.
+
+### Telegram Test
+
+Opened Telegram on my phone. Sent "hello" to the JClaw27 bot.
+
+```
+JClaw27: Hey! I'm JClaw27, running on your Mac Mini. What can I do
+for you?
+```
+
+Working. Sent a message to the builder bot:
+
+```
+Me: What are you working on?
+
+JClaw_BobTheBuilder: Nothing at the moment, but I'm ready to build.
+Give me specs and I'll make it real. What are we building?
+```
+
+Six bots, six agents, all responding.
+
+### The Group Chat Test
+
+I created a Telegram group chat and added all six bots. Then I sent a message:
+
+```
+@JClaw27Bot Hey team, I need someone to look up the current Brave Search
+API pricing and someone else to summarize the security implications of
+using a third-party search provider for agent queries. Can you coordinate?
+```
+
+What happened next was the part I had been building toward.
+
+JClaw27 responded first:
+
+```
+JClaw27: On it. Researcher, can you pull the Brave Search API pricing?
+Security, can you run down the third-party search provider risk model?
+I'll synthesize when you both report back.
+```
+
+A few seconds later, JClaw_Researcher started typing. Then JClaw_Security. The agents were talking to each other in the group chat, coordinating on a task.
+
+This is not something I explicitly programmed. It is emergent behavior from the combination of persona files that reference each other by role, group chat participation enabled, and a prompt that named both tasks clearly.
+
+![Mind blown explosion GIF](https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif)
+
+---
+
+## The Final Configuration
+
+The complete `openclaw.json` in its current form (all tokens redacted) is backed up to the [JClaw_Config repository](https://github.com/chris2ao/JClaw_Config). Here is the high-level structure of what is configured:
+
+```json
+{
+  "meta": { "lastTouchedVersion": "2026.3.2" },
+  "browser": {
+    "enabled": true,
+    "defaultProfile": "openclaw"
+  },
+  "auth": {
+    "profiles": {
+      "openai-codex:default": {
+        "provider": "openai-codex",
+        "mode": "oauth"
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://127.0.0.1:11434",
+        "apiKey": "ollama-local",
+        "api": "ollama",
+        "models": [
+          { "id": "qwen2.5:14b", "contextWindow": 131072 },
+          { "id": "qwen2.5:7b",  "contextWindow": 131072 }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": { "primary": "openai-codex/gpt-5.3-codex" },
+      "compaction": { "mode": "safeguard" },
+      "timeoutSeconds": 600,
+      "subagents": {
+        "maxConcurrent": 8,
+        "maxSpawnDepth": 2,
+        "maxChildrenPerAgent": 5
+      }
+    },
+    "list": [ /* 7 agent definitions */ ]
+  },
+  "tools": {
+    "profile": "full",
+    "web": {
+      "search": {
+        "provider": "brave",
+        "apiKey": "REDACTED"
+      }
+    }
+  },
+  "bindings": [ /* 6 telegram-to-agent route mappings */ ],
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "groupPolicy": "open",
+      "streaming": "partial",
+      "accounts": { /* 6 bot accounts + default */ }
+    }
+  },
+  "discovery": {
+    "mdns": { "mode": "off" }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "REDACTED"
+    }
+  }
+}
+```
+
+---
+
+## Security Controls: Before and After
+
+Here is the honest accounting of where things landed relative to the Part 1 plan:
+
+| Control | Part 1 Plan | Part 2 Reality | Status |
+|---------|-------------|----------------|--------|
+| Gateway loopback binding | Yes | Yes | Implemented |
+| Gateway auth token | Yes | Yes | Implemented |
+| mDNS disabled | Yes | Yes | Implemented |
+| Human-in-the-loop approvals | Yes | Yes (architectural) | Implemented |
+| Filesystem scoping | Yes | Yes | Implemented |
+| Browser profile isolation | Not planned | Yes | Added |
+| Docker sandbox network: none | Yes | No (incompatible) | Removed |
+| Dedicated `openclaw` user | Yes | No (macOS GUI conflict) | Removed |
+| Outbound firewall allowlist | Not planned | Roadmap | Pending |
+| Telegram pairing mode | Not planned | Yes | Added |
+
+The Part 1 plan had two controls that were fundamentally incompatible with the actual use case: `network: none` on Docker sandbox containers and a headless dedicated user account. Both are gone, replaced by controls that achieve related goals without blocking functionality.
+
+Two controls from Part 1 did not exist in the working deployment because they were not needed: the Docker bridge network with ICC disabled (no Docker sandboxing means no Docker network to configure), and the Spotlight indexing block (less relevant running on my own account with workspace scoping in place).
+
+Two controls are new additions that came from actually running the system and understanding what it needed: browser profile isolation (discovered when I saw agents launching browser sessions) and Telegram pairing mode (the obvious security model for a bot that you do not want strangers to message).
+
+One thing is honestly on the roadmap and not yet implemented: an outbound firewall allowlist restricting what external hosts agent processes can reach. The threat model is an agent session being used to exfiltrate data to an unexpected destination. The fix is an OS-level firewall rule set. It is not a five-minute job.
+
+<Warning title="Known Gap: No Outbound Network Allowlist">
+Agent processes can make outbound connections to any host reachable from the machine. The gateway is bound to loopback (so you cannot reach it from outside), but agents running within the gateway process can reach external hosts. A properly configured outbound firewall (Little Snitch or a pf ruleset) would restrict this to known-good endpoints: Ollama, OpenAI, Brave Search, Telegram. This is a real gap in the current deployment. I am documenting it rather than pretending it does not exist.
+</Warning>
+
+---
+
+## Lessons Learned
+
+<Tip title="The Incremental Approach Wins Every Time">
+When something breaks in the incremental approach, you know exactly what broke it: the last thing you added. When something breaks in the all-at-once approach, you are debugging a multi-dimensional search space. The incremental approach is slower in theory and dramatically faster in practice.
+</Tip>
+
+<Security title="Match Security Controls to Your Actual Threat Model">
+The controls I removed (Docker network: none, dedicated user account) were designed for a different threat model: a multi-user server environment where the AI agent needs to be isolated from other users. For a single-user personal machine, the relevant threats are different, and the relevant controls are different. Security is not a checklist. It is an analysis.
+</Security>
+
+<Info title="Persona Files Are More Powerful Than They Look">
+The SOUL.md and IDENTITY.md files in each agent workspace feel like a minor convenience feature. In practice, they shape agent behavior significantly. JClaw_Security's insistence on reviewing code before deployment, BobTheBuilder's habit of asking for specs before writing code, JClaw27's orchestration instinct: all of this is persona file behavior, not hardcoded capability. The files are the instruction set.
+</Info>
+
+<Warning title="Auth Profiles Need to Be Per-Agent">
+OpenClaw does not have a way to share auth profiles across agents. Each agent needs its own copy of the auth profile file in its agent-specific directory. If you rotate a token, you need to update it in every agent's auth profile. This is a maintenance burden worth knowing about upfront.
+</Warning>
+
+<Tip title="The channel Key in Bindings, Not provider">
+When writing Telegram bindings in `openclaw.json`, the match key is `channel`, not `provider`. The channel name matches the top-level key in the `channels` object. Writing `"provider": "telegram"` produces a silent (or cryptic) validation error. Write `"channel": "telegram"`.
+</Tip>
+
+---
+
+## Bob Ross Was Right
+
+Part 1 ended with a Bob Ross quote: there are no mistakes, only happy little accidents. I want to come back to that now that I can see the full picture.
+
+Every failure from Tuesday night fed directly into Wednesday's success:
+
+- The channel configuration confusion taught me that channels are not optional: you must configure them before messages route anywhere
+- The Ollama auth error taught me that auth profiles are per-agent files, not global environment variables
+- The Docker socket permission failure taught me that Docker sandboxing and restricted user accounts are in tension on macOS
+- The `launchctl` GUI session error taught me that headless accounts have macOS limitations that most deployment guides do not account for
+- The onboard wizard's "Skip for now" trap taught me to read every wizard prompt instead of skipping anything
+
+None of that knowledge was available before I failed. All of it was available after. The four hours of Tuesday night failure were not wasted. They were a very efficient way to learn things that I would have had to learn eventually anyway.
+
+I wrote in Part 1 that failure is not the opposite of learning. It is the mechanism of learning. I believe that more having lived through both sides of this story.
+
+---
+
+## What Is Next
+
+The system is running. Here is what is on the roadmap:
+
+**JClaw_Secretary bot**: The seventh agent is configured. The bot creation is pending a BotFather cooldown. Once the bot token is generated and added to the config, secretary will be fully operational.
+
+**Outbound firewall allowlist**: The known gap documented above. Little Snitch or a custom `pf` ruleset that restricts agent outbound connections to the known-good endpoint list.
+
+**Cron jobs**: The `cron/jobs.json` configuration is in place. Scheduled tasks for agents (daily briefings, scheduled research queries, maintenance tasks) are partially configured but not yet validated end-to-end.
+
+**Verification checklist**: I want to document a repeatable verification checklist that I can run after any config change to confirm all six security controls are still in effect and all seven agents are reachable. Right now that verification is manual and ad hoc.
+
+**Part 3**: Depending on how the system evolves, Part 3 might cover the outbound firewall implementation, the cron job architecture, or something else entirely that I have not discovered yet. That is the thing about actually running a system instead of just planning it: the system keeps teaching you things.
+
+---
+
+*Written by Chris Johnson. Every command in this post was actually run. Every error was actually encountered. The configuration shown is the actual production configuration of the JClaw multi-agent system running on an M4 Mac Mini, with all tokens and credentials redacted. The [JClaw_Config repository](https://github.com/chris2ao/JClaw_Config) contains the full backup with REDACTED placeholders. Part 1 of this series is [here](/blog/openclaw-deployment-part-1-the-fortress-that-locked-itself).*
