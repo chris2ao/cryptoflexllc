@@ -2,6 +2,31 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
+  redirects: async () => [
+    // Renamed blog post (old slug 404s in GSC)
+    {
+      source: "/blog/adding-blog-comments-likes-and-a-belated-welcome-email",
+      destination: "/blog/adding-comments-likes-and-subscriber-welcome-emails",
+      permanent: true,
+    },
+    // Common bot probes and garbage URLs from GSC 404 report
+    {
+      source: "/blog-post",
+      destination: "/blog",
+      permanent: true,
+    },
+    // Literal template bracket leaked to crawlers
+    {
+      source: "/resources/%5Bslug%5D",
+      destination: "/resources",
+      permanent: true,
+    },
+    {
+      source: "/resources/[slug]",
+      destination: "/resources",
+      permanent: true,
+    },
+  ],
   outputFileTracingIncludes: {
     "/*": ["src/content/**/*"],
   },

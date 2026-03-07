@@ -16,8 +16,26 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+// Patterns that are clearly bot probes or garbage (from GSC 404 report)
+const GARBAGE_PATHS = [
+  "/dev/tty",
+  "/doctor",
+  "/some/path",
+  "/wrap-up",
+];
+
 export function middleware(request: NextRequest) {
-  const response = NextResponse.next();
+  const { pathname } = request.nextUrl;
+
+  // Block known garbage paths early with 404 (saves server resources)
+  if (GARBAGE_PATHS.includes(pathname)) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
+  // Block regex-like paths that bots/scanners probe
+  if (pathname === "/*" || pathname === "/(.*)" || pathname.startsWith("/c/Users")) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
 
   // Enforce HTTPS in production
   if (
@@ -27,13 +45,13 @@ export function middleware(request: NextRequest) {
     const host = request.headers.get("host");
     if (host) {
       return NextResponse.redirect(
-        `https://${host}${request.nextUrl.pathname}${request.nextUrl.search}`,
+        `https://${host}${pathname}${request.nextUrl.search}`,
         301
       );
     }
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
