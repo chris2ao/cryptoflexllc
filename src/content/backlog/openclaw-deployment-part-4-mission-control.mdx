@@ -1,0 +1,680 @@
+---
+title: "OpenClaw Deployment Part 4: Mission Control"
+date: "2026-03-07T08:00:00"
+description: "Building a pixel-art retro dashboard to command 7 AI agents on an M4 Mac Mini: System Health, Agent Fleet, Team org chart with role card modals, Telegram monitoring, cron jobs, and more."
+tags: ["OpenClaw", "Next.js", "Multi-Agent", "Dashboard", "TypeScript", "Claude Code"]
+author: "Chris Johnson"
+readingTime: "22 min read"
+series: 'OpenClaw Deployment'
+seriesOrder: 4
+---
+
+After three parts covering a locked-out fortress, a comeback, and the memory architecture that keeps seven agents thinking across sessions, we arrive at the part I did not know I needed until I was running seven agents and had no good way to see what any of them were doing.
+
+The OpenClaw TUI is great for chatting with a single agent. It is not great for glancing at a screen and knowing at a glance whether your fleet is healthy, which bots are connected, who is burning through tokens, and whether the gateway is still alive after one of its famous long-polling timeouts. I needed a dashboard. I built one.
+
+This is Mission Control.
+
+![Person sliding into a command center chair and cracking knuckles](https://media.giphy.com/media/3oKIPsx2VAYAgEHC12/giphy.gif)
+
+By the end of this post, you will understand how the dashboard is architected, what every panel does, how the Team page pulls agent personas from workspace files, and why building custom CSS pixel sprites for seven AI agents at 2am is a completely reasonable use of your time.
+
+---
+
+## The Stack
+
+Before we get into the features, the "why this, not that" stack explanation:
+
+- **<Nextjs /> 15 App Router**: file-based routing, React Server Components for static panels, client components where real-time data is needed
+- **TypeScript**: no surprises about what the OpenClaw API returns
+- **No CSS framework**: the pixel-art retro theme required custom CSS variables and hand-rolled utility classes. Tailwind would fight this aesthetic constantly. Custom CSS variables won.
+- **WebSocket to `ws://localhost:18789`**: the OpenClaw gateway API. The dashboard polls this for live agent status, system metrics, and log streams.
+
+The entire dashboard runs client-side and talks directly to the local gateway. No backend server, no API routes, no database. It is a React app that talks to `localhost`. This means it can only be used from the same machine running OpenClaw, which is exactly the right threat model for a personal fleet dashboard.
+
+<Info title="Why No Backend Server?">
+The OpenClaw gateway already handles auth via its bearer token. Adding a Next.js API layer between the dashboard and the gateway would add latency, another auth layer to manage, and another process to keep alive. Connecting the dashboard directly to the gateway (which is already loopback-bound and token-protected) is simpler and faster.
+</Info>
+
+---
+
+## The Visual Language: Pixel-Art Retro
+
+Every element in Mission Control is built in a pixel-art aesthetic. No rounded corners, no drop shadows, no glass morphism. Sharp edges, scanline textures, monospace fonts, and a green-on-black color palette pulled from 1980s command terminals.
+
+The core design tokens:
+
+```css
+:root {
+  --mc-bg: #0a0a0a;
+  --mc-surface: #111111;
+  --mc-border: #1a4a1a;
+  --mc-accent: #00ff41;       /* Matrix green */
+  --mc-accent-dim: #00aa2a;
+  --mc-warning: #ffaa00;
+  --mc-error: #ff3333;
+  --mc-text: #c8ffc8;
+  --mc-text-dim: #5a8a5a;
+  --mc-font: 'Courier New', Courier, monospace;
+  --mc-pixel-size: 2px;       /* Base pixel unit for sprite scaling */
+}
+```
+
+The "pixel" visual effect on cards and panels comes from a CSS property combination:
+
+```css
+.pixel-card {
+  border: var(--mc-pixel-size) solid var(--mc-border);
+  box-shadow:
+    0 0 0 var(--mc-pixel-size) #000,
+    var(--mc-pixel-size) var(--mc-pixel-size) 0 var(--mc-pixel-size) var(--mc-accent-dim);
+  image-rendering: pixelated;
+}
+```
+
+The double box-shadow creates a "lifted pixel" effect: a black outline followed by a green drop on two sides, making every card look like it exists in a flat 2D world with no physics.
+
+<Tip title="CSS Custom Properties Beat Any CSS Framework for Niche Aesthetics">
+If your design language is unconventional (pixel art, glassmorphism, brutalism, anything that fights a framework's defaults), just use CSS custom properties directly. Tailwind or other frameworks spend their first hundred lines fighting your theme back to their defaults. Custom properties give you zero-overhead design tokens with full cascade support.
+</Tip>
+
+---
+
+## The PixelSprite System
+
+This is the part that absolutely did not need to be this complex, and yet here we are.
+
+Each of the seven agents has a unique 12x16 pixel art character sprite. Not an image file. Not an SVG. Pure CSS `box-shadow` properties that paint pixels at specific offsets from a 1x1 `<div>` element.
+
+Here is how the Commander sprite (JClaw27) is built:
+
+```tsx
+// src/components/PixelSprite.tsx
+interface PixelSpriteProps {
+  agentId: string;
+  size?: number;  // pixel scale multiplier
+}
+
+const SPRITE_DEFINITIONS: Record<string, string[]> = {
+  main: [
+    // Each string is "x,y,color" for one pixel
+    // Head with headset
+    '4,0,#ffd4aa', '5,0,#ffd4aa', '6,0,#ffd4aa', '7,0,#ffd4aa',
+    '3,1,#222222', '4,1,#ffd4aa', '5,1,#ffd4aa', '6,1,#ffd4aa',
+    '7,1,#ffd4aa', '8,1,#222222',
+    // ... 192 more pixels
+    // Star insignia on chest
+    '5,8,#ffff00', '6,8,#ffff00', '7,8,#ffff00',
+  ],
+  // ... 6 more agents
+};
+
+export function PixelSprite({ agentId, size = 2 }: PixelSpriteProps) {
+  const pixels = SPRITE_DEFINITIONS[agentId] ?? SPRITE_DEFINITIONS['main'];
+
+  const boxShadow = pixels
+    .map(p => {
+      const [x, y, color] = p.split(',');
+      return `${parseInt(x) * size}px ${parseInt(y) * size}px 0 ${color}`;
+    })
+    .join(', ');
+
+  return (
+    <div
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        boxShadow,
+        imageRendering: 'pixelated',
+      }}
+      aria-hidden="true"
+    />
+  );
+}
+```
+
+The result is a floating grid of colored squares, positioned entirely through `box-shadow` offsets. The wrapper `div` is literally one pixel wide. Everything you see is a shadow of that one pixel, cast at different positions and colors.
+
+Each agent has a distinct silhouette:
+
+| Agent | Description |
+|-------|-------------|
+| JClaw27 (Commander) | Headset, star insignia on chest, command posture |
+| JClaw_SysAdmin | Robot body, hard hat, wrench tool |
+| JClaw_BobTheBuilder | Construction gear, hammer in hand, work boots |
+| CJClaw_Writer | Wizard robe, quill pen, scroll at feet |
+| JClaw_Security | Knight armor, shield on arm, visor up |
+| JClaw_Researcher | Lab coat, magnifying glass, goggles on head |
+| JClaw_Secretary | Ninja outfit, clipboard, two pencils crossed |
+
+The sprites animate on hover with a CSS keyframe that shifts the whole shadow stack up by two pixels, creating a "jump" effect. It is exactly as delightful as it sounds.
+
+---
+
+## Dashboard Overview
+
+The main dashboard view is a single-page layout with six panels arranged in a responsive CSS grid. Here is what you see when you open Mission Control:
+
+![OpenClaw Mission Control main dashboard showing System Health bars, Gateway status, Crew Roster sprites, and Agent Fleet grid](https://media.giphy.com/media/26ufcYAkp8e2zK6zm/giphy.gif)
+
+![Mission Control main dashboard: System Health panel with CPU/Memory/Disk pixel bars, Gateway connected status, 7-agent Crew Roster with pixel sprites, and Agent Fleet status grid](/images/blog/mission-control-dashboard.png)
+
+The six panels, left-to-right, top-to-bottom:
+
+1. **System Health**: CPU, Memory, Disk, Load Average with pixel progress bars
+2. **Gateway Status**: WebSocket connection state, uptime, last message timestamp
+3. **Crew Roster**: All 7 agents as animated pixel sprites with status indicators
+4. **Agent Fleet**: Detailed per-agent table with model, session count, last activity
+5. **Log Viewer**: Streaming gateway log tail with severity filtering
+6. **Quick Actions**: Restart gateway, force agent compaction, clear logs
+
+Let me walk through each one.
+
+---
+
+## Panel 1: System Health
+
+The System Health panel polls `ws://localhost:18789/api/v1/system` every 5 seconds and displays CPU percentage, memory usage (used/total GB), disk usage, and 1-minute load average as pixel-style progress bars.
+
+The pixel progress bars are CSS-only. No canvas, no SVG, no JavaScript animation:
+
+```css
+.pixel-bar {
+  height: 8px;
+  background: var(--mc-surface);
+  border: 1px solid var(--mc-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.pixel-bar-fill {
+  height: 100%;
+  background: var(--mc-accent);
+  transition: width 0.3s ease;
+  /* The "pixelated" fill: a repeating pattern of slightly darker blocks */
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.2) 3px,
+    rgba(0,0,0,0.2) 4px
+  );
+}
+
+.pixel-bar-fill.warning {
+  background: var(--mc-warning);
+}
+
+.pixel-bar-fill.danger {
+  background: var(--mc-error);
+}
+```
+
+Color thresholds: green under 70%, amber from 70-89%, red at 90+. The fill transitions smoothly on update, but because it is a pixel bar (no antialiasing), the movement looks like blocks sliding in from the left. It feels correct in a retro context.
+
+<Warning title="WebSocket Polling vs. Server-Sent Events">
+The OpenClaw gateway supports both WebSocket and HTTP polling for system metrics. WebSocket gives you push-based updates but requires reconnection handling when the gateway restarts (which happens more often than you would like, thanks to the long-polling timeout bug documented in Part 2). HTTP polling is simpler to implement with automatic retry. Mission Control uses WebSocket with an exponential backoff reconnection strategy. If the WebSocket drops, the System Health panel shows a "SIGNAL LOST" indicator until reconnect succeeds.
+</Warning>
+
+---
+
+## Panel 2: Gateway Status
+
+The Gateway Status panel is the dashboard's canary. If this panel is red, nothing else matters.
+
+It shows:
+
+- Connection state: CONNECTED (green), RECONNECTING (amber), OFFLINE (red)
+- Gateway version (from `/api/v1/health` response)
+- Uptime: how long since the gateway last started
+- Polling lag: time since last successful message (alerts if over 8 minutes)
+
+The 8-minute polling lag alert directly addresses the documented OpenClaw Telegram long-polling timeout bug. If the gateway has been silent for more than 8 minutes, there is a good chance Telegram has stopped delivering messages and the gateway watchdog cron is about to fire. The alert lets me know before the bots go quiet.
+
+```tsx
+// The Gateway status indicator component
+function GatewayStatusBadge({ state, pollingLagMs }: {
+  state: 'connected' | 'reconnecting' | 'offline';
+  pollingLagMs: number;
+}) {
+  const lagging = pollingLagMs > 8 * 60 * 1000;
+
+  return (
+    <div className={`pixel-badge ${state} ${lagging ? 'lagging' : ''}`}>
+      <span className="pixel-blink-dot" />
+      <span>{state.toUpperCase()}</span>
+      {lagging && <span className="lag-warn">[LAG: {Math.round(pollingLagMs / 60000)}m]</span>}
+    </div>
+  );
+}
+```
+
+The blinking dot is a CSS animation: a `<span>` that alternates between `opacity: 1` and `opacity: 0` on a 1-second cycle. Purely decorative. Correctly retro.
+
+---
+
+## Panel 3: Crew Roster
+
+The Crew Roster is the most visually distinctive element of the dashboard. Seven pixel art sprites, each one rendered by `PixelSprite`, arranged in a horizontal row with status badges below each character.
+
+The status badges pull from the same WebSocket feed as the Agent Fleet panel:
+
+- **ACTIVE** (bright green): agent is processing a request right now
+- **IDLE** (dim green): agent is connected and waiting
+- **OFFLINE** (red): agent process is not running
+- **THINKING** (amber, blinking): agent has a pending action waiting for approval
+
+Hovering over a sprite shows the agent's name and last activity timestamp in a small tooltip. Clicking navigates to that agent's detail view in the Agent Fleet panel.
+
+The 7-sprite layout uses CSS Grid with a responsive collapse. On screens narrower than 768px, the roster drops to a 2x4 grid (4 top, 3 bottom). On very small screens (below 480px), it becomes a vertical list with the sprites replaced by smaller `AgentTitleCard` components that show just the name and status badge without the pixel art.
+
+<Info title="AgentTitleCard: The Mobile Fallback">
+`AgentTitleCard` is a simplified component used where the full `PixelSprite` treatment would not fit. It renders a small colored circle (using each agent's assigned team color) next to the agent name and role title. The team colors match the role groups used in the Team page org chart, so there is visual consistency between the roster and the team view even at mobile scale.
+</Info>
+
+---
+
+## Panel 4: Agent Fleet Grid
+
+The Agent Fleet grid is the most information-dense panel. It shows a table with one row per agent and the following columns:
+
+| Column | Source | Notes |
+|--------|--------|-------|
+| Agent | Static config | Name + role title |
+| Status | WebSocket | ACTIVE / IDLE / OFFLINE |
+| Model | Config | Primary model ID |
+| Sessions | Gateway API | Total sessions since last restart |
+| Tokens (session) | Gateway API | Tokens used in current session |
+| Tokens (total) | Gateway API | Cumulative total since tracking started |
+| Last Active | Gateway API | Relative time (2m ago, 1h ago) |
+
+![Agent Fleet page showing all 7 agents with status badges, model assignments, session counts, and last active timestamps](/images/blog/mission-control-agents.png)
+
+The "Tokens (total)" column is why the Usage/Token tracking panel exists as a separate view. The Fleet grid shows a summary; the dedicated usage panel shows per-agent burn rates, daily totals, and a bar chart of relative consumption across the fleet.
+
+The table rows are sortable by clicking any column header. Sort state is stored in `URLSearchParams` so a sorted view is bookmarkable. This detail is overkill for a single-user dashboard. I added it anyway.
+
+<Tip title="Put Sort State in the URL">
+Even for internal tools, putting filter and sort state in URL query params costs almost nothing and buys you shareable/bookmarkable views. The implementation is three lines of `useSearchParams` and `router.push`. You will thank yourself the first time you want to share a filtered view with someone or come back to a specific configuration.
+</Tip>
+
+---
+
+## Panel 5: Log Viewer
+
+The Log Viewer is a streaming terminal-style display of the OpenClaw gateway log. It tails the WebSocket log stream and renders each line with syntax-aware coloring.
+
+Log levels map to colors:
+
+```
+DEBUG   ->  dim green    (--mc-text-dim)
+INFO    ->  bright green (--mc-text)
+WARN    ->  amber        (--mc-warning)
+ERROR   ->  red          (--mc-error)
+```
+
+Filtering options: by log level (show only WARN and above), by agent ID (show only logs from `builder`), and a text search input that filters in real time. All three filters compose: the log viewer shows only lines that match all active filters simultaneously.
+
+The display is a `<pre>` element with `overflow-y: auto` and a fixed height. New lines are appended to the bottom and the element auto-scrolls, unless you have scrolled up manually (in which case auto-scroll pauses). Scrolling back to the bottom re-enables auto-scroll. This is the standard terminal behavior that users expect and that is slightly annoying to implement correctly.
+
+```tsx
+function useAutoScroll(ref: React.RefObject<HTMLElement>, enabled: boolean) {
+  useEffect(() => {
+    if (!enabled || !ref.current) return;
+    ref.current.scrollTop = ref.current.scrollHeight;
+  });
+}
+```
+
+The log buffer is capped at 2,000 lines. When the buffer fills, the oldest 500 lines are dropped. This prevents the log viewer from eating memory if you leave Mission Control open overnight.
+
+---
+
+## Panel 6: Chat and Telegram Monitor
+
+The Chat panel has two modes, toggled by a tab bar: Direct Chat and Telegram Monitor.
+
+**Direct Chat** sends messages directly to a selected agent through the gateway API. You pick the agent from a dropdown (showing all seven with their current status), type a message, and the response streams back. It is functionally equivalent to the TUI but styled as a terminal window. The streaming response renders token by token, with a blinking cursor at the end of the partial response.
+
+**Telegram Monitor** is a read-only view of the Telegram message stream. It shows all incoming Telegram DMs and group messages with the agent they were routed to, the sender's username, and the full message text. This is useful for confirming that Telegram messages are actually reaching the gateway and being routed correctly, without needing to open Telegram on a separate device.
+
+The Telegram Monitor does not let you send messages from the dashboard. Telegram responses go through the bot, not through the dashboard. The monitor is purely observational.
+
+---
+
+## Panel 7: Memory Health
+
+Memory Health is a dashboard-within-the-dashboard for the vector memory system documented in Part 3.
+
+It shows, per agent:
+
+- **DB size**: the size of the SQLite database holding the agent's vector store
+- **Embedding model**: which model is being used (should be `nomic-embed-text` for all seven)
+- **Last indexed**: timestamp of the last successful write to the vector store
+- **Dirty status**: whether there are pending memories not yet embedded
+- **MEMORY.md size**: how bloated the agent's curated memory file is getting
+
+The "dirty status" indicator is the most operationally useful one. An agent that has been running for several hours accumulates raw memories in the daily notes files faster than the embedding process indexes them. A dirty agent has memories that are not yet searchable. If all seven agents show dirty status, the Ollama embedding service may be down.
+
+Clicking any agent's memory row opens a detail panel that shows the 10 most recent memories with their cosine similarity scores against a test query ("most important recent events"). This lets you verify that the embedding process is actually producing meaningful vectors, not garbage.
+
+<Info title="Cosine Similarity as a Sanity Check">
+If your embedding model is working correctly, the 10 most recent memories should have relatively high cosine similarity scores to a general query about recent events. If you see scores uniformly below 0.3, something is wrong with the embedding model or the query vectorization. If you see scores uniformly above 0.95, the model is probably collapsing all inputs to similar vectors (a known pathology with some smaller embedding models). The Memory Health panel surfaces this without needing to query the SQLite database manually.
+</Info>
+
+---
+
+## Panel 8: Cron Jobs
+
+The Cron panel shows the schedule and last-run status of every cron job in `~/.openclaw/cron/jobs.json`.
+
+For the JClaw fleet, that means:
+
+| Schedule | Job | Agent |
+|----------|-----|-------|
+| `00:01 daily` | Create `memory/YYYY-MM-DD.md` | All 7 |
+| `*/5 * * * *` | Gateway watchdog (restart if Telegram stalls) | System |
+| `08:00 daily` | Morning briefing | JClaw27 |
+| `22:00 daily` | Memory compaction review | JClaw_Secretary |
+
+Each row shows the cron expression, a human-readable description, the last run timestamp, the last run result (success/failure), and a "Run Now" button that fires the job immediately through the gateway API.
+
+The "Run Now" button has a confirmation dialog because firing a cron job manually sometimes has side effects (the gateway watchdog, for example, kills and restarts the gateway process, which disconnects the dashboard WebSocket). The confirmation message describes the side effects of each job specifically:
+
+```tsx
+const CRON_WARNINGS: Record<string, string> = {
+  'gateway-watchdog': 'This will restart the gateway process. The dashboard will reconnect automatically within 10 seconds.',
+  'memory-create': 'Safe to run anytime. Creates empty daily memory files for all agents.',
+  // ...
+};
+```
+
+---
+
+## The Team Page
+
+Now we get to the feature I am most proud of, and also the one I spent the most time on.
+
+The Team page is a separate route (`/team`) that presents the seven agents as a human organization. Not as a config file. Not as a table. As a real team with names, roles, personalities, backstories, and organizational structure.
+
+![Mission Control Team page showing the MEET THE CREW hero section with pixel art banner, and the beginning of the org chart with JClaw27 as commander at the top](/images/blog/mission-control-team-page.png)
+
+The page has three sections:
+
+1. **Hero**: a pixel-art banner reading "MEET THE CREW" with a scrolling scanline effect and the JClaw27 Commander sprite prominently centered
+2. **Org Chart**: visual hierarchy of all seven agents across four functional groups
+3. **Role Cards**: clicking any agent in the org chart opens a modal with the agent's full bio
+
+### The Data Layer: Reading SOUL.md and IDENTITY.md
+
+The agent personas are not invented for the UI. They are sourced directly from the workspace files documented in Part 2: each agent's `SOUL.md` and `IDENTITY.md` in their respective workspace directories.
+
+`src/lib/team-data.ts` contains the static representation of that data, compiled once from the actual workspace files:
+
+```typescript
+// src/lib/team-data.ts
+
+export interface AgentBio {
+  id: string;
+  name: string;
+  title: string;
+  group: 'Engineering' | 'Operations' | 'Content' | 'Support';
+  model: string;
+  emoji: string;
+  personality: string;
+  backstory: string;
+  responsibilities: string[];
+  skills: string[];
+  boundaries: string[];
+  quote: string;
+}
+
+export const TEAM_DATA: AgentBio[] = [
+  {
+    id: 'main',
+    name: 'JClaw27',
+    title: 'Commander',
+    group: 'Operations',
+    model: 'openai-codex/gpt-5.3-codex',
+    emoji: '🎯',
+    personality: 'Strategic, decisive, calm under pressure. Delegates to specialists rather than doing everything himself. Synthesizes rather than executes.',
+    backstory: 'JClaw27 was the first agent online. He has been the face of the operation since Part 1\'s failed deployment. He remembers the fortress that locked itself out.',
+    responsibilities: [
+      'Receive and triage all incoming requests',
+      'Delegate to appropriate specialist agents',
+      'Synthesize multi-agent results for the operator',
+      'Escalate decisions that require human judgment',
+    ],
+    skills: ['Orchestration', 'Delegation', 'Synthesis', 'Strategic Planning'],
+    boundaries: [
+      'Does not write production code (delegates to Builder)',
+      'Does not conduct security reviews (delegates to Security)',
+      'Does not write content (delegates to Writer)',
+    ],
+    quote: 'Give me the problem. I\'ll figure out who solves it.',
+  },
+  // ... 6 more agents
+];
+
+export const GROUP_ORDER = ['Operations', 'Engineering', 'Content', 'Support'] as const;
+
+export const GROUPS = {
+  Engineering: ['builder', 'security'],
+  Operations: ['main', 'sysadmin'],
+  Content: ['writer', 'researcher'],
+  Support: ['secretary'],
+} as const;
+```
+
+The `backstory` fields reference real events from the deployment series. BobTheBuilder's backstory mentions being built during Part 2. JClaw_Security's backstory includes the Part 3 memory system because it was designed to give agents durable threat intelligence. These are not invented facts. They come from the actual `SOUL.md` files in each workspace.
+
+<Info title="Static Data vs. Dynamic File Reading">
+Mission Control reads `src/lib/team-data.ts` rather than dynamically reading the workspace SOUL.md files at runtime. Dynamic reading would require the Next.js server to have access to `~/.openclaw/workspace-*/SOUL.md` paths, which involves path configuration, potential hot-reload issues, and file watching complexity. Compiling the persona data to a TypeScript file trades dynamism for simplicity. When a SOUL.md changes, you update the TypeScript file and redeploy. For seven agents that rarely need persona changes, this is the right tradeoff.
+</Info>
+
+### The Org Chart: CSS Connector Lines
+
+The org chart is built entirely in CSS with no SVG, no canvas, and no JavaScript-positioned lines.
+
+The layout uses a three-level structure:
+
+```
+Level 0: Commander (JClaw27)
+            |
+Level 1: 4 Group Labels (Engineering, Operations, Content, Support)
+            |
+Level 2: Agents within each group
+```
+
+The connector lines from Commander to groups use CSS `::before` and `::after` pseudo-elements on a wrapper div:
+
+```css
+.org-chart-stem {
+  position: relative;
+}
+
+/* Vertical line down from Commander */
+.org-chart-stem::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 2px;
+  height: 24px;
+  background: var(--mc-border);
+  transform: translateX(-50%);
+}
+
+/* Horizontal rail connecting all group columns */
+.org-chart-rail {
+  position: relative;
+  display: flex;
+  gap: 2rem;
+}
+
+.org-chart-rail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12.5%;  /* Start at center of first column */
+  right: 12.5%; /* End at center of last column */
+  height: 2px;
+  background: var(--mc-border);
+}
+```
+
+Each group column then has its own vertical stem dropping from the rail to the agent cards. The entire connector geometry is CSS, which means it scales correctly at all viewport sizes without any JavaScript layout calculations.
+
+![Full org chart view showing all 7 agents organized into Engineering (Builder, Security), Operations (JClaw27, SysAdmin), Content (Writer, Researcher), and Support (Secretary) columns](/images/blog/mission-control-team-org-chart.png)
+
+The responsive behavior: on desktop (4 columns), each group is its own column. On tablet (2 columns), groups pair up (Engineering+Operations left, Content+Support right). On mobile (1 column), it collapses to a vertical list ordered by group. The connector lines hide on mobile (they would not make geometric sense in a vertical layout) and are replaced by section headers for each group.
+
+### Role Card Modals
+
+Clicking any agent card in the org chart opens a full-detail modal. This is the Role Card.
+
+![Role Card modal for JClaw_BobTheBuilder showing personality description, backstory paragraph, responsibilities list, skills tags, and boundaries section](/images/blog/mission-control-role-card-modal.png)
+
+The Role Card modal contains everything in the `AgentBio` interface:
+
+- The agent's `PixelSprite` at 4x scale in the modal header
+- Name, title, group, and model
+- A styled `personality` paragraph
+- A `backstory` paragraph (this is the narrative content sourced from SOUL.md)
+- A `responsibilities` list with pixel-style bullet points
+- A `skills` tag cloud (same pixel badge style as the rest of the dashboard)
+- A `boundaries` section (explicitly what this agent does NOT do, in a warning-colored box)
+- The agent's `quote` in a blockquote element with a pixel-art quotation mark
+
+The `boundaries` section is displayed in a warning-colored box deliberately. Those boundaries are the coordination protocol between agents. Showing them prominently in the UI reinforces that each agent has a defined lane, not just a list of things it can do.
+
+The modal uses a focus trap: keyboard focus stays inside the modal while it is open, Tab cycles through interactive elements, and Escape closes it. This is `dialog` element behavior in browsers, but implemented manually here because we need the pixel-art border styling that the native `dialog` element does not support cleanly.
+
+```tsx
+// Focus trap implementation
+useEffect(() => {
+  if (!isOpen) return;
+
+  const focusable = modalRef.current?.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+
+  const first = focusable?.[0] as HTMLElement;
+  const last = focusable?.[focusable.length - 1] as HTMLElement;
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') { onClose(); return; }
+    if (e.key !== 'Tab') return;
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last?.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first?.focus();
+    }
+  };
+
+  document.addEventListener('keydown', handleKeyDown);
+  first?.focus();
+
+  return () => document.removeEventListener('keydown', handleKeyDown);
+}, [isOpen, onClose]);
+```
+
+<Tip title="Always Implement Focus Traps in Modals">
+A modal without a focus trap is a broken modal for keyboard users. Tab key navigation should cycle within the modal, not escape to the page behind it. This is a WCAG requirement and a practical usability requirement. The implementation is 20 lines of code. There is no good reason to skip it.
+</Tip>
+
+---
+
+## Usage and Token Tracking
+
+The Usage panel aggregates token consumption data from the gateway API and visualizes it in two ways: a sortable agent table and a relative consumption bar chart.
+
+The table shows, per agent: model, tokens used today, tokens used this week, tokens used total since tracking started, and average tokens per session. The daily and weekly columns reset at midnight UTC (the gateway tracks this; the dashboard just displays it).
+
+The bar chart renders relative token consumption across all seven agents. The agent with the highest total consumption gets a full-width bar; all others are proportionally shorter. This quickly surfaces which agents are the most expensive to run.
+
+From my fleet: JClaw27 (Commander) and JClaw_Security consistently lead token consumption, because they receive and process every delegated task summary even when they are not the primary executor. The content agents (Writer, Researcher) use fewer tokens per session but generate more sessions per day. JClaw_Secretary barely shows up in the chart because secretarial coordination tasks are short and low-volume.
+
+<Info title="Token Tracking Starts at Gateway Restart">
+The gateway does not persist token totals across restarts. If the gateway restarts (due to the watchdog cron, a crash, or manual restart), the session and token counters reset to zero. The dashboard's "total since tracking started" column tracks a client-side cumulative total that persists across gateway restarts using `localStorage`. It is not perfect (clearing browser storage resets it), but it is better than losing everything on every gateway restart.
+</Info>
+
+---
+
+## Bringing It All Together
+
+Here is what Mission Control actually looks like when all seven agents are running, two of them active on tasks, and one Telegram conversation is in progress:
+
+The System Health panel shows 34% CPU (the M4's efficiency cores handling the load comfortably), 11.2 GB / 16 GB memory (Ollama has two models loaded), and 68% disk usage (the vector stores are growing).
+
+The Gateway Status shows CONNECTED with a 12-second polling lag (well within the 8-minute threshold).
+
+In the Crew Roster, the JClaw27 and JClaw_Researcher sprites have the ACTIVE indicator. The other five show IDLE.
+
+The Log Viewer is tailing a Researcher session searching Brave for API pricing information and writing the result to its workspace.
+
+The Telegram Monitor shows one incoming message from my Telegram account to the JClaw27 bot, already routed and in progress.
+
+This is the whole point. Across one screen, I can see the machine's health, the network's health, which agents are working, what they are doing, and whether anything needs attention. Before Mission Control, I was checking all of this through separate terminal windows and the OpenClaw TUI. The dashboard collapsed seven separate concerns into one view.
+
+![Mission Control fully operational with all systems green](https://media.giphy.com/media/l0HlFz3H0W4DYqVkk/giphy.gif)
+
+---
+
+## Lessons Learned
+
+<Tip title="Build the Dashboard Before You Need It">
+I should have built Mission Control during Part 2 when the agent fleet first came online. Running seven agents without a monitoring view means debugging problems reactively: noticing that Telegram stopped responding, then checking the gateway, then checking the logs, then restarting, then verifying. With the dashboard, the lag indicator and WebSocket status surface problems before I notice them in chat.
+</Tip>
+
+<Warning title="The WebSocket Reconnection Problem Is Real">
+The gateway's known long-polling timeout bug affects the dashboard's WebSocket connection too. The dashboard disconnects roughly every 8 minutes and must reconnect. If you do not implement exponential backoff reconnection with a visible RECONNECTING state, users will stare at a stale dashboard without knowing the data has stopped updating. Implement reconnection before you consider the WebSocket integration done.
+</Warning>
+
+<Info title="Static Team Data Is Fine for Slow-Changing Personas">
+The decision to compile agent persona data to `team-data.ts` rather than reading workspace files at runtime was correct. In three weeks of running the fleet, I have updated one agent's responsibilities list. One edit to `team-data.ts`, one redeploy. The alternative (dynamic file reading with hot-reload and path configuration) would have added complexity for a problem that happens roughly once a month.
+</Info>
+
+<Security title="Dashboard Auth: The Gateway Token Is Enough">
+Mission Control talks to `ws://localhost:18789` with the gateway auth token from `.env.local`. Because the gateway is loopback-bound (only accessible from the machine itself) and the token adds a second layer, no additional dashboard auth is needed. Anyone who can open Mission Control in a browser already has physical or remote access to the machine. Adding a separate dashboard login would be security theater. Know your threat model.
+</Security>
+
+<Tip title="The pixel-Art Theme Was Worth the Extra Work">
+I could have used a standard dark dashboard template and been done in a third of the time. The pixel-art theme took longer and required solving novel CSS problems (the box-shadow sprite system, the connector line geometry, the pixel bar animations). But the result is a dashboard I actually enjoy opening. A tool you enjoy using is a tool you will maintain. Aesthetic investment is operational investment.
+</Tip>
+
+---
+
+## What Is Next
+
+Mission Control is feature-complete for the current fleet, but the roadmap has a few remaining items:
+
+**Mobile-responsive dashboard**: the current layout is desktop-first. While the Team page is fully responsive, the main dashboard panels stack awkwardly on mobile. A dedicated mobile layout (possibly a simplified single-panel view with swipe navigation) is on the backlog.
+
+**Alert routing**: the dashboard surfaces anomalies visually but does not yet push alerts anywhere. The plan is to route high-severity alerts (gateway offline longer than 10 minutes, agent error rate above threshold) through the JClaw_Secretary Telegram bot, so I get a notification on my phone without needing to have the dashboard open.
+
+**Historical charts**: the current usage panel shows current-state data with no historical view. Adding a time-series chart of token consumption and agent activity over the past 7 days would make capacity planning much easier.
+
+**The outbound firewall**: still on the roadmap from Part 2. Still not implemented. Still documented as a known gap. At least now the Memory Health panel will show me if an agent is exfiltrating data to unexpected vector embedding endpoints. That is cold comfort, but it is something.
+
+---
+
+## The Series So Far
+
+If you are arriving here from a search engine and have not read the earlier parts:
+
+- **[Part 1](/blog/openclaw-deployment-part-1-the-fortress-that-locked-itself)**: A hardened deployment plan that locked itself out before the first message. What happens when you apply production security to a system you have never run.
+- **[Part 2](/blog/openclaw-deployment-part-2-the-comeback)**: The incremental rebuild. Seven agents, six Telegram bots, and the security controls that survived contact with reality.
+- **[Part 3](/blog/openclaw-deployment-part-3-how-agents-remember)**: The vector memory system. Ollama embeddings, sqlite-vec, hybrid search, and why your agents need to remember more than their context window holds.
+- **Part 4 (this post)**: Mission Control. The dashboard that ties it all together.
+
+The M4 Mac Mini is still running. All seven agents are still online. The gateway has been restarted by the watchdog cron thirty-one times in the past three weeks, which sounds alarming until you realize the watchdog is doing exactly its job.
+
+Mission Control tells me all of this at a glance. That was the whole point.
+
+---
+
+*Written by Chris Johnson. Every UI element described in this post exists in the actual running dashboard. The PixelSprite CSS box-shadow definitions for the seven agents total approximately 1,400 lines of compiled shadow values. The Commander sprite alone has 94 pixels. No, I do not regret it.*
