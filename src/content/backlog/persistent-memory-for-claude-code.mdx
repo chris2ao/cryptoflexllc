@@ -1,0 +1,288 @@
+---
+title: "Persistent Memory for Claude Code: A Two-Tier Approach That Actually Works"
+date: "2026-03-07T10:00:00"
+description: "How to give Claude Code real persistent memory using a global rule file and a vector database MCP server, so context survives across sessions without any manual effort."
+tags: ["Claude Code", "Memory", "MCP", "Workflow", "Configuration"]
+author: "Chris Johnson"
+readingTime: "11 min read"
+series: 'Claude Code Workflow'
+seriesOrder: 6
+---
+
+Every Claude Code session starts fresh. No memory of what you built last week, no recall of that workaround you discovered for the SQLite path issue, no context about the naming conventions specific to your project. You explain the same things over and over. Eventually you start writing everything into CLAUDE.md by hand, but that becomes its own maintenance burden.
+
+There's a better way, and I spent a session researching and implementing it properly. This post covers the four approaches I evaluated, the two-tier solution I settled on, and the specific gotchas that would have burned me if I hadn't thought through the design carefully first.
+
+## The Problem With "Just Use Hooks"
+
+Before diving into the solution, it's worth understanding why the obvious answer does not work.
+
+Hooks in Claude Code are shell scripts that run when events occur: PostToolUse, PreToolUse, SessionEnd, Stop. The natural instinct is to write a SessionEnd hook that dumps conversation context into some kind of memory store at the end of each session.
+
+The problem: hooks only run if the session ends cleanly.
+
+<Warning title="Hard Kills Lose Everything">
+If you close the terminal, kill the process, or lose connection mid-session, your SessionEnd hook never runs. Any context you intended to save from that session is gone. Designing your memory system around exit hooks creates a false sense of security.
+</Warning>
+
+This is why the architecture matters. The solution cannot be "save at the end." It has to be "save continuously throughout."
+
+## Evaluating Four Approaches
+
+I looked at four approaches before choosing. Here's the honest assessment of each:
+
+| Approach | Persistence | Effort to Query | Reliability | Cost |
+|----------|-------------|-----------------|-------------|------|
+| Hooks-based (SessionEnd) | Session boundary | High (raw files) | Fragile (hard kills) | Free |
+| Knowledge Graph MCP | Permanent | Medium (entity graph) | High | Free |
+| Vector Database MCP | Permanent | Low (semantic search) | High | Free (SQLite) |
+| Enterprise Graph (Neo4j) | Permanent | Low (rich queries) | High | Paid |
+
+The hooks approach fails on reliability. Enterprise graph is overkill for personal use. That left knowledge graph MCP and vector database MCP as the real contenders.
+
+**Knowledge graph MCP** (the `memory` MCP server) stores information as entities and relations. It is good at modeling explicit connections: "ServiceA depends on DatabaseB," "this bug was caused by that config." You interact with it deliberately by calling `create_entities` and `create_relations`.
+
+**Vector database MCP** stores text chunks with embeddings and lets you search by semantic similarity. You give it a description, it finds related memories. The retrieval is more natural for development context: "what do I know about the SQLite migration issue?" returns relevant results even if you did not use those exact words when saving.
+
+The key realization: vector search is what you actually want when you are trying to recall "what happened with X" at the start of a new session. Keyword matching on entity names requires you to remember exactly what you called something. Semantic search just works.
+
+<Info title="Both Tools Have a Role">
+I kept both MCP servers. The knowledge graph is good for explicit relationship modeling when you have a clear entity structure. Vector memory is better for general recall and context retrieval. The rule of thumb: use vector-memory for most things, use the knowledge graph only when you explicitly need to model connections.
+</Info>
+
+## The Two-Tier Solution
+
+The design I landed on has two layers that work together:
+
+**Tier 1: A global rule that tells Claude to save automatically.**
+
+**Tier 2: An MCP server that provides the actual storage and retrieval.**
+
+This combination solves the discipline problem. If memory-saving requires a human to remember to do it, it will not happen consistently. The global rule makes it Claude's job. Claude writes the memories; you just benefit from them later.
+
+### Tier 1: The Memory Rule
+
+I created `~/.claude/rules/core/memory-management.md` as a global instruction file. Because it lives in `~/.claude/rules/`, Claude reads it at the start of every project, not just one.
+
+The rule defines exactly when to save (the triggers) and what fields to include:
+
+```markdown
+## When to Save (Triggers)
+
+Save to vector-memory after ANY of these events:
+
+1. Completing a significant task (feature, bug fix, refactor, config change)
+2. Making an architectural decision (choosing a library, pattern, or approach)
+3. Discovering a gotcha or workaround (something that took effort to figure out)
+4. Resolving a bug (root cause, fix, and how it was found)
+5. Learning a project convention (naming patterns, file structure, build commands)
+6. Encountering an error and fixing it (error message, cause, solution)
+
+## How to Save
+
+Include these fields in every memory:
+
+- What: concise description of what happened
+- Why: the reasoning or root cause
+- Tags: relevant keywords (project name, technology, pattern type)
+```
+
+And at the start of sessions:
+
+```markdown
+## Session Start
+
+At the beginning of each session, if the user describes a task related to previous work:
+- Query vector-memory with relevant keywords to retrieve prior context
+- Use retrieved memories to avoid re-learning or re-investigating
+```
+
+<Tip title="Session Start Retrieval Is as Important as Saving">
+Writing memories is only half the system. The retrieval half requires Claude to proactively query relevant memories when a session starts and the user describes a task. Without the session-start instruction, memories accumulate but never surface. Both halves need to be in the rule.
+</Tip>
+
+### Tier 2: The MCP Server
+
+I installed `mcp-memory-service`, which provides a vector-based memory store backed by SQLite. No external database server required. The database file lives locally, and the MCP server exposes tools like `memory_store`, `memory_search`, `memory_list`, and `memory_delete`.
+
+**Why SQLite?** It runs locally with no cloud dependency, costs nothing, and is fast enough for personal use. The vector search uses embeddings stored in the same database file.
+
+#### Installation
+
+The service requires Python 3.11+. On macOS, install it via Homebrew:
+
+```bash
+brew install python@3.11
+```
+
+Then install the package:
+
+```bash
+pip3.11 install mcp-memory-service
+```
+
+Find where it installed:
+
+```bash
+which memory-service
+# or
+python3.11 -m mcp_memory_service --help
+```
+
+#### Global MCP Configuration
+
+The MCP server goes in `~/.claude.json` so it is available in every project, not just one:
+
+```json
+{
+  "mcpServers": {
+    "vector-memory": {
+      "command": "python3.11",
+      "args": ["-m", "mcp_memory_service"],
+      "env": {
+        "MCP_MEMORY_CHROMA_PATH": "/Users/yourname/.claude/memory/chroma",
+        "MCP_MEMORY_BACKUPS_PATH": "/Users/yourname/.claude/memory/backups"
+      }
+    }
+  }
+}
+```
+
+Two things worth noting about this configuration:
+
+First, the `python3.11` command must be the exact binary that has `mcp-memory-service` installed. If you installed it with `pip3.11`, use `python3.11`. If you used a virtual environment, point to that environment's Python binary. A mismatch here produces a cryptic "module not found" error.
+
+Second, the database is shared across all projects because the config is global. Project separation happens through tags. When saving a memory, include the project name as a tag: `["cryptoflexllc", "nextjs", "routing"]`. When searching, you can filter by tag to get project-specific results.
+
+<Info title="Global Database, Tag-Based Separation">
+One shared database is simpler than per-project databases. You only configure the MCP server once, you do not have to think about which database to use in each repo, and you can search across projects when the context genuinely spans them. Tags handle the separation.
+</Info>
+
+#### Auto-Approve Permissions
+
+Because the memory tools will be called frequently and automatically (not just when you explicitly ask), add auto-approve permissions in `~/.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__vector-memory__memory_store",
+      "mcp__vector-memory__memory_search",
+      "mcp__vector-memory__memory_list",
+      "mcp__vector-memory__memory_delete",
+      "mcp__vector-memory__memory_update"
+    ]
+  }
+}
+```
+
+Without these, Claude will ask for permission every time it tries to save a memory. That confirmation prompt is friction that defeats the purpose of automatic saving.
+
+## Why This Works When Other Approaches Do Not
+
+The design is shaped by two constraints that eliminated the obvious alternatives.
+
+**Constraint 1: Discipline does not scale.**
+
+If saving memories requires remembering to run a command, it will not happen reliably. The session gets busy, you close the terminal, you forget. The solution is to make it automatic by instructing Claude to do it. Claude is always running during the session; it does not forget.
+
+**Constraint 2: Hard kills are real.**
+
+Any approach that saves at session end is incomplete. The memory rule instructs Claude to save continuously: after completing a task, after making a decision, after discovering a workaround. If the session ends abruptly after step 7 of 10, steps 1 through 6 are already saved. You lose step 7, not everything.
+
+<Warning title="Save During, Not After">
+Design your memory system around continuous saving, not exit-time saving. A SessionEnd hook is still useful for archiving the full transcript, but it should not be the primary mechanism for capturing development context.
+</Warning>
+
+## What Gets Saved in Practice
+
+Here's an example of what the system saves after a typical bug fix:
+
+```
+What: Fixed SQLite UNIQUE constraint error on user table migration
+Why: Migration ran twice because the CI pipeline did not check for existing schema
+Tags: ["cryptoflexllc", "sqlite", "migration", "ci", "bug"]
+```
+
+Or after an architectural decision:
+
+```
+What: Chose React Query over SWR for data fetching in the dashboard
+Why: React Query has better cache invalidation controls and devtools.
+     SWR's mutation model does not fit the optimistic update patterns we need.
+Tags: ["cryptoflexllc", "react-query", "architecture", "data-fetching"]
+```
+
+When the next session starts and the user mentions the dashboard, Claude queries vector-memory and surfaces the React Query decision. No re-explaining required.
+
+<Tip title="Tags Are How You Find Things Later">
+The quality of retrieval depends on the quality of tags. Include the project name, the technology involved, and the type of memory (bug, decision, workaround, convention). Three to five tags per memory is enough. More than eight and you are over-engineering it.
+</Tip>
+
+## The Knowledge Graph: Still Useful, Different Job
+
+The vector-memory MCP handles general recall well. But there is still a role for the knowledge graph MCP (the `memory` server).
+
+The knowledge graph is the right tool when you need to model explicit relationships between named entities. For example, if you are building a multi-service system and want to track "AuthService depends on UserDatabase, which is also used by ProfileService," that relational structure is exactly what the knowledge graph is designed for.
+
+The distinction in practice:
+
+- **Vector memory:** "What do I know about the SQLite issues I ran into?" (free-text recall)
+- **Knowledge graph:** "Show me all services that depend on UserDatabase" (explicit relationship query)
+
+For most development work, vector memory handles everything. The knowledge graph supplements it when your domain has clear entity relationships you want to navigate structurally.
+
+## Verifying the Setup
+
+After configuration, verify the MCP server is running:
+
+```bash
+claude mcp list
+```
+
+You should see `vector-memory` in the list. If it is missing, check that:
+1. The Python path in `~/.claude.json` is the binary with `mcp-memory-service` installed
+2. The `env` paths exist (create the directories if needed)
+3. There are no JSON syntax errors in `~/.claude.json`
+
+Start a new Claude Code session and ask it to save a test memory:
+
+```
+Save a memory: this is a test memory with tags ["test", "setup"]
+```
+
+Then retrieve it:
+
+```
+Search my memories for "test memory"
+```
+
+If both work, the system is operational.
+
+<Stop title="Restart Required After Config Changes">
+Changes to `~/.claude.json` require restarting Claude Code to take effect. If the MCP server is not appearing, close and reopen the session completely.
+</Stop>
+
+## Lessons Learned
+
+This session had several moments where the obvious approach turned out to be wrong.
+
+**The discipline trap is real.** Every memory system I found online assumed you would manually call `create_entities`. Nobody does this consistently after the novelty wears off. The global rule that instructs Claude to save automatically is the only approach that survives contact with actual workflow patterns.
+
+**Hooks are not the answer for memory.** Hooks are excellent for logging (PostToolUse for activity logs is great), but they are the wrong tool for memory persistence because hard kills skip them.
+
+**Global configuration is the right scope for memory.** A per-project memory system means setting it up repeatedly and missing cross-project context. Global configuration with tag-based separation gives you both.
+
+**Python version precision matters.** When you install a Python package and then reference it in an MCP config, the Python binary in the config must be the same one you used for installation. `python3` might resolve to 3.9 on your system even if 3.11 is installed. Be explicit.
+
+## Summary: What Was Built
+
+By the end of the session, the memory system consisted of three pieces:
+
+1. `~/.claude/rules/core/memory-management.md` - global rule instructing Claude when and how to save memories, and to query them at session start
+2. `mcp-memory-service` installed via Python 3.11, configured in `~/.claude.json` as a global MCP server
+3. Auto-approve permissions in `~/.claude/settings.json` for all vector-memory tools
+
+The result: development context now persists across sessions automatically, without any manual effort beyond doing the actual work. Claude saves what matters as it happens, and retrieves it when it is relevant.
+
+That is the whole system. Simple in principle, with just enough implementation detail to make it actually work.
