@@ -1,0 +1,245 @@
+---
+title: "Headless Mac Mini as an AI Server: Power Tips for Running OpenClaw 24/7"
+date: "2026-03-06T10:00:00"
+author: "Chris Johnson"
+readingTime: "9 min read"
+description: "Running OpenClaw locally on a headless Mac Mini sounds simple until your bots go silent at 2am. Here are the pmset settings, watchdog cron, and daily log setup that actually keep it running."
+tags: ["OpenClaw", "Mac Mini", "AI Agents", "Telegram", "Self-Hosted", "Quick Tips"]
+series: 'Quick Tips'
+seriesOrder: 1
+---
+
+Running a locally-hosted AI agent platform sounds great on paper. No cloud costs, no latency surprises, full control over your models. Plug in a Mac Mini, run `openclaw gateway start`, and your agents are live on Telegram 24/7.
+
+Then you wake up the next morning and your bots haven't replied to anything since midnight.
+
+This is the story of what went wrong and the three fixes that made it stop.
+
+## The Setup
+
+I'm running OpenClaw on an M4 Mac Mini. The machine has no monitor, keyboard, or mouse attached (headless mode). It sits in a corner and is supposed to just work. The agents use a mix of local Ollama models and OpenAI API calls, and they communicate with users via Telegram.
+
+The problems I hit:
+
+1. The Mac would go to sleep, silencing every agent until I SSH in and wake it up
+2. The Telegram gateway would silently stall after about 8 minutes, looking alive but not polling
+3. Agent memory reads would crash overnight because daily log files didn't exist yet
+
+Three problems, three fixes. Let's go.
+
+---
+
+## Fix 1: Power Management
+
+A Mac Mini in headless mode is just a computer waiting for an excuse to sleep. Without a monitor attached, macOS doesn't always register it as an "active display" device, and the default power settings are tuned for a desktop someone is actually sitting in front of.
+
+Run this once and you're done:
+
+```bash
+sudo pmset -a sleep 0 disksleep 0 displaysleep 0 ttyskeepawake 0 autorestart 1
+```
+
+Here's what each flag does:
+
+| Flag | Value | Effect |
+|------|-------|--------|
+| `sleep` | `0` | Disables system sleep entirely |
+| `disksleep` | `0` | Keeps disks spinning (no spindown on idle) |
+| `displaysleep` | `0` | Disables display sleep (harmless without a monitor) |
+| `ttyskeepawake` | `0` | Prevents TTY/terminal sessions from keeping the system awake (we want it always on, not just when SSH is open) |
+| `autorestart` | `1` | Automatically restarts after a power failure |
+
+The `-a` flag applies settings to all power modes (AC, battery, UPS). On a Mac Mini there's only AC, but it's a good habit.
+
+<Tip title="Verify Your Settings">
+After running the command, use `pmset -g` to print the current power settings and confirm each value took effect. You're looking for all zeros across sleep, disksleep, and displaysleep.
+</Tip>
+
+<Warning title="This Disables Sleep Completely">
+`sleep 0` means the Mac will never sleep while plugged in. This is exactly what you want for a server, but make sure you're running on wired power, not battery. On a MacBook, these settings would drain your battery while closed.
+</Warning>
+
+After this change, the Mac stays awake indefinitely. SSH sessions connect instantly. Agents stop going silent overnight. Problem one solved.
+
+---
+
+## Fix 2: The Telegram Polling Bug
+
+This one is more subtle and more annoying.
+
+OpenClaw uses Telegram's long-polling API to receive messages. The gateway opens a connection to Telegram's servers and waits. When a message arrives, the connection returns it. The gateway processes it and opens another connection.
+
+The problem: Telegram's long-polling connections have a timeout. After roughly 8 minutes of no activity, the connection dies. OpenClaw's gateway doesn't always notice this gracefully. The process keeps running, everything looks fine, but it has silently stopped polling. Your bots are deaf.
+
+<Info title="Why 8 Minutes?">
+Telegram's `getUpdates` API has a default timeout parameter. Clients are supposed to re-open the connection after each response, but network middleboxes (NAT routers, firewalls) often drop idle TCP connections before the application-level timeout fires. The exact cutoff depends on your network gear, but 8-10 minutes is typical for consumer routers with aggressive NAT tables.
+</Info>
+
+The fix is a watchdog cron that checks whether the gateway is still polling and restarts it if it isn't. Here's the script at `~/.openclaw/scripts/gateway-watchdog.sh`:
+
+```bash
+#!/bin/bash
+# gateway-watchdog.sh - Restart OpenClaw gateway if Telegram polling has stalled
+set -euo pipefail
+
+LOG_FILE="$HOME/.openclaw/logs/watchdog.log"
+MAX_SILENT_SECONDS=600  # 10 minutes without Telegram activity = stalled
+
+# Find the active gateway log (date-based filename in temp dir)
+TMPDIR_BASE="/var/folders"
+TODAY=$(date +%Y-%m-%d)
+GATEWAY_LOG=$(find "$TMPDIR_BASE" -path "*/openclaw-*/openclaw-${TODAY}.log" -readable 2>/dev/null | head -1)
+
+# Fallback to static log location
+if [ -z "$GATEWAY_LOG" ]; then
+    GATEWAY_LOG="$HOME/.openclaw/logs/gateway.log"
+fi
+
+log() {
+    echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") $1" >> "$LOG_FILE"
+}
+
+# Check if gateway is running
+if ! pgrep -f "openclaw.*gateway" > /dev/null 2>&1; then
+    log "WARN: Gateway not running. Starting..."
+    openclaw gateway install > /dev/null 2>&1
+    openclaw gateway start > /dev/null 2>&1
+    log "INFO: Gateway started."
+    exit 0
+fi
+
+# Check last Telegram activity in gateway log
+if [ -f "$GATEWAY_LOG" ]; then
+    LAST_TELEGRAM=$(grep -E "\[telegram\]" "$GATEWAY_LOG" 2>/dev/null | tail -1 \
+        | grep -oE "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}" || echo "")
+
+    if [ -n "$LAST_TELEGRAM" ]; then
+        LAST_EPOCH=$(date -j -f "%Y-%m-%dT%H:%M:%S" "$LAST_TELEGRAM" +%s 2>/dev/null || echo 0)
+        NOW_EPOCH=$(date +%s)
+        SILENT=$((NOW_EPOCH - LAST_EPOCH))
+
+        if [ "$SILENT" -gt "$MAX_SILENT_SECONDS" ]; then
+            log "WARN: Telegram silent for ${SILENT}s. Restarting gateway..."
+            openclaw gateway stop > /dev/null 2>&1
+            sleep 3
+            openclaw gateway install > /dev/null 2>&1
+            openclaw gateway start > /dev/null 2>&1
+            log "INFO: Gateway restarted after ${SILENT}s silence."
+        fi
+    fi
+fi
+
+# Rotate watchdog log if over 1MB
+if [ -f "$LOG_FILE" ]; then
+    LOG_SIZE=$(stat -f%z "$LOG_FILE" 2>/dev/null || echo 0)
+    if [ "$LOG_SIZE" -gt 1048576 ]; then
+        tail -100 "$LOG_FILE" > "$LOG_FILE.tmp"
+        mv "$LOG_FILE.tmp" "$LOG_FILE"
+        log "INFO: Watchdog log rotated."
+    fi
+fi
+```
+
+The logic is straightforward: grep the gateway log for the last `[telegram]` line, parse its timestamp, and if it's more than 600 seconds ago, restart the gateway. It also handles the case where the gateway isn't running at all (which can happen after a power cycle if autorestart didn't catch it).
+
+Make it executable and add it to cron:
+
+```bash
+chmod +x ~/.openclaw/scripts/gateway-watchdog.sh
+
+# Add to crontab (runs every 5 minutes)
+crontab -e
+```
+
+Add this line:
+
+```
+*/5 * * * * /Users/your-username/.openclaw/scripts/gateway-watchdog.sh
+```
+
+<Warning title="Use the Full Path in Cron">
+Cron runs with a minimal environment. `~` expansion doesn't always work, and `openclaw` may not be in the PATH. Use absolute paths throughout the script and verify that `which openclaw` gives you the full path to add to your crontab's `PATH` variable if needed.
+</Warning>
+
+<Tip title="Check the Watchdog Log">
+The script logs to `~/.openclaw/logs/watchdog.log`. After a day of operation, tail that file to see how often the gateway is actually stalling. If it's restarting every 15-20 minutes, something deeper is wrong with your network config. If it's restarting once or twice a day, the cron is doing exactly what it should.
+</Tip>
+
+With this running, the worst case is a bot that's silent for up to 5 minutes before the watchdog notices and fixes it. In practice, agents are usually back within a minute of the cron firing.
+
+---
+
+## Fix 3: Daily Memory Log Creation
+
+This one is a smaller gotcha but caused genuine confusion before I tracked it down.
+
+OpenClaw agents write to daily log files for memory and activity tracking. The file path typically includes the current date, something like `~/.openclaw/logs/memory-2026-03-06.log`. The agents expect these files to exist before they try to append to them.
+
+When they don't exist (first write of the day), the agent crashes with `ENOENT: no such file or directory`. The error happens at whatever time the first agent wakes up and tries to write. If that's 3am, you have a quiet night. If an agent is actively talking to someone, it looks like a crash.
+
+The fix is a cron that creates the daily log file at midnight:
+
+```bash
+# Create daily memory log before agents try to write to it
+0 0 * * * touch /Users/your-username/.openclaw/logs/memory-$(date +\%Y-\%m-\%d).log
+```
+
+<Info title="Why Not Just Handle It in Code?">
+Ideally, yes, the application would create the file if it doesn't exist. But "ideally" is not where you are at midnight when your security agent just errored out. The `touch` cron is a one-line fix that works right now. File it under "pragmatic over perfect."
+</Info>
+
+One note on the `date` command in cron: the `%` character has special meaning in crontab and must be escaped as `\%`. That's why the line uses `\%Y-\%m-\%d` instead of `%Y-%m-%d`.
+
+---
+
+## The Combined Crontab
+
+Here's what the full crontab looks like after all three fixes (the pmset command is a one-time setup, not a cron):
+
+```
+# OpenClaw maintenance jobs
+*/5 * * * * /Users/your-username/.openclaw/scripts/gateway-watchdog.sh
+0 0 * * * touch /Users/your-username/.openclaw/logs/memory-$(date +\%Y-\%m-\%d).log
+```
+
+Clean. Two jobs. One keeps the gateway alive, one makes sure daily files exist before agents need them.
+
+---
+
+## The Result
+
+After these three changes, the Mac Mini has been running continuously for several days with zero intervention. The bots respond. The agents write their logs. The watchdog fires occasionally (always successfully), and the power management keeps the whole thing awake and ready.
+
+<Tip title="Monitor the First Week">
+After initial setup, tail your watchdog log daily for the first week. You'll quickly see patterns: how often the gateway stalls, whether the daily cron is firing on time, whether the pmset settings survived a reboot. Once you've validated stable operation for a week, you can mostly ignore it.
+</Tip>
+
+<Info title="OpenClaw Gateway Restart Is Non-Destructive">
+Restarting the OpenClaw gateway doesn't lose any state. Agents pick up right where they left off on the next incoming message. The `openclaw gateway install && openclaw gateway start` sequence just re-registers the service and brings it back up cleanly.
+</Info>
+
+<Warning title="Reboot to Verify pmset">
+After setting your power management config, reboot the Mac Mini and SSH back in to verify the settings persisted. Some system updates can reset pmset values. It's worth confirming once that your server will actually stay awake after a restart.
+</Warning>
+
+## Lessons Learned
+
+<Tip title="1. Default Power Settings Are Not Server Settings">
+macOS defaults are designed for a laptop or desktop someone is using interactively. Running a headless server requires explicitly opting out of every sleep and idle behavior. Don't assume `sleep 0` is the default just because the machine is plugged in.
+</Tip>
+
+<Info title="2. Long-Polling Bugs Are Invisible">
+The gateway doesn't crash, doesn't log an error, and doesn't exit. It just stops polling. The only way to catch it is to monitor for silence in the activity log and treat prolonged silence as a failure signal. That pattern generalizes: for any polling-based service, silence for too long is an error state.
+</Info>
+
+<Warning title="3. ENOENT at 3am Is a Scheduling Problem">
+If your application expects files that only exist after some other process creates them, add a scheduled job to create them before they're needed. This is especially true for date-stamped files where "first write of the day" is a real race condition.
+</Warning>
+
+---
+
+The whole setup took maybe two hours to get right, including the time spent debugging the polling stall. The Mac Mini has been silent in the corner ever since, doing its job.
+
+That's the goal.
+
+*Written by Chris Johnson and edited by Claude Code (Sonnet 4.6). Part of the Quick Tips series: short, practical posts about things I actually ran into and fixed. The OpenClaw deployment series (parts 1-3) covers the full setup story if you want the longer version.*
