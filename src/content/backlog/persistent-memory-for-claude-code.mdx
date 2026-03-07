@@ -4,7 +4,7 @@ date: "2026-03-07T10:00:00"
 description: "How to give Claude Code real persistent memory using a global rule file and a vector database MCP server, so context survives across sessions without any manual effort."
 tags: ["Claude Code", "Memory", "MCP", "Workflow", "Configuration"]
 author: "Chris Johnson"
-readingTime: "11 min read"
+readingTime: "14 min read"
 series: 'Claude Code Workflow'
 seriesOrder: 6
 ---
@@ -138,7 +138,7 @@ The MCP server goes in `~/.claude.json` so it is available in every project, not
   "mcpServers": {
     "vector-memory": {
       "command": "python3.11",
-      "args": ["-m", "mcp_memory_service"],
+      "args": ["-m", "mcp_memory_service.server"],
       "env": {
         "MCP_MEMORY_CHROMA_PATH": "/Users/yourname/.claude/memory/chroma",
         "MCP_MEMORY_BACKUPS_PATH": "/Users/yourname/.claude/memory/backups"
@@ -148,11 +148,13 @@ The MCP server goes in `~/.claude.json` so it is available in every project, not
 }
 ```
 
-Two things worth noting about this configuration:
+Three things worth noting about this configuration:
 
-First, the `python3.11` command must be the exact binary that has `mcp-memory-service` installed. If you installed it with `pip3.11`, use `python3.11`. If you used a virtual environment, point to that environment's Python binary. A mismatch here produces a cryptic "module not found" error.
+First, the module is `mcp_memory_service.server`, not `mcp_memory_service`. The top-level package does not have a `__main__` module. Running `python -m mcp_memory_service` produces a "cannot be directly executed" error. The `.server` submodule is the stdio transport that Claude Code expects. The package also ships an HTTP server (`mcp-memory-server` executable), but that is for web clients, not Claude Code.
 
-Second, the database is shared across all projects because the config is global. Project separation happens through tags. When saving a memory, include the project name as a tag: `["cryptoflexllc", "nextjs", "routing"]`. When searching, you can filter by tag to get project-specific results.
+Second, the `python3.11` command must be the exact binary that has `mcp-memory-service` installed. If you installed it with `pip3.11`, use `python3.11`. If you used a virtual environment, point to that environment's Python binary. A mismatch here produces a cryptic "module not found" error. On Windows, use the full path to the Python executable to avoid ambiguity.
+
+Third, the database is shared across all projects because the config is global. Project separation happens through tags. When saving a memory, include the project name as a tag: `["cryptoflexllc", "nextjs", "routing"]`. When searching, you can filter by tag to get project-specific results.
 
 <Info title="Global Database, Tag-Based Separation">
 One shared database is simpler than per-project databases. You only configure the MCP server once, you do not have to think about which database to use in each repo, and you can search across projects when the context genuinely spans them. Tags handle the separation.
@@ -177,6 +179,127 @@ Because the memory tools will be called frequently and automatically (not just w
 ```
 
 Without these, Claude will ask for permission every time it tries to save a memory. That confirmation prompt is friction that defeats the purpose of automatic saving.
+
+#### Windows Configuration
+
+On Windows with Git Bash, the configuration is slightly different. Use the full path to Python and wrap the command for `cmd.exe`:
+
+```json
+{
+  "mcpServers": {
+    "vector-memory": {
+      "type": "stdio",
+      "command": "C:\\Users\\yourname\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "args": ["-m", "mcp_memory_service.server"],
+      "env": {
+        "MCP_MEMORY_CHROMA_PATH": "C:/Users/yourname/.claude/memory/chroma",
+        "MCP_MEMORY_BACKUPS_PATH": "C:/Users/yourname/.claude/memory/backups"
+      }
+    }
+  }
+}
+```
+
+Use the full Python path because `python` or `python3` may resolve to a different version through the Windows App Installer shim. You can also optionally install `onnxruntime` (`pip install onnxruntime`) for better memory quality ranking, though it is not required.
+
+## Making It Fully Automatic With Hooks
+
+The global rule tells Claude when to save memories, but there is a subtlety worth understanding: the rule works through Claude's instruction-following, not through a deterministic mechanism. Claude reads the rule and acts on it, which means it saves memories most of the time, but it is not guaranteed on every single event.
+
+For most users, the rule alone is enough. Claude is reliable about following global rules, and the continuous-saving approach means a missed save here and there does not matter much. But if you want belt-and-suspenders automation, hooks add a complementary layer.
+
+### Why Hooks Cannot Replace the Rule
+
+Hooks are shell scripts. They run outside of Claude's context, which means they cannot call MCP tools. A PostToolUse hook can capture what Claude did (tool name, input, output) and write it to a log file, but it cannot call `memory_store` to save a structured memory to the vector database.
+
+This is the key architectural distinction:
+
+- **The global rule** drives memory saving. It instructs Claude to call `memory_store` as it works, using Claude's own judgment about what is worth saving.
+- **Hooks** capture raw activity data. They log tool usage, archive transcripts, and provide the raw material that a background analysis agent can later process into insights.
+
+Both are valuable, but they serve different roles. The rule is the primary memory system. Hooks are the safety net and the observation layer.
+
+### Complementary Hook Setup
+
+Here are the hooks that complement the memory system. Each one runs as a shell script (or PowerShell on Windows) triggered by Claude Code events.
+
+**File Guard (PreToolUse):** Blocks edits to sensitive files like `.env`, `.pem`, and `credentials.json`. Not directly related to memory, but essential for any automated setup where Claude is acting with fewer permission prompts.
+
+**Activity Logger (PostToolUse):** Logs every file edit, bash command, and write operation to `activity_log.txt` in the project root. This gives you a human-readable audit trail of what happened in each session.
+
+**Observation Capture (PostToolUse):** Captures tool usage as JSONL to `~/.claude/homunculus/observations.jsonl`. This feeds a separate learning system that can analyze patterns across sessions and extract reusable insights. The observations are raw data; the analysis happens later.
+
+**Session Archive (SessionEnd):** Copies the conversation transcript into `.claude/session_archive/` when a session ends cleanly. Yes, this depends on clean exit, which is why it is a supplement, not the primary system.
+
+**Notification Sound (Stop):** Plays a system sound when Claude finishes its turn and needs your input. A small quality-of-life improvement that has nothing to do with memory but is worth including.
+
+### Registering Hooks in settings.json
+
+Having hook scripts in `~/.claude/hooks/` is not enough. They must be registered in `~/.claude/settings.json` to actually fire. Without registration, the scripts sit idle and never execute.
+
+On macOS/Linux, hook registration looks like this:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/file-guard.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|Bash|Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/observe-homunculus.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/save-session.sh",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+On Windows, replace `bash` with `powershell -Command ". 'full/path/to/script.ps1'"` and use the full path to the hook script. Git Bash's MSYS2 layer can mangle paths, so explicit paths are safer than relying on `~` expansion inside PowerShell.
+
+<Warning title="Hook Scripts Exist but Do Not Fire Without Registration">
+This is the most common setup mistake. You can have perfectly written hook scripts in `~/.claude/hooks/` and they will never run unless they are registered in the `hooks` section of `~/.claude/settings.json`. If your hooks are not working, check registration first.
+</Warning>
+
+The `matcher` field controls which tools trigger the hook. `"Edit|Write"` fires only on file edits and writes. An empty string `""` matches all events for that hook type. The `timeout` field prevents slow hooks from blocking Claude's workflow.
+
+### The Complete Automation Stack
+
+When everything is wired together, the automation has three layers working in parallel:
+
+1. **Claude saves memories via the global rule** (primary system). Structured memories with tags go into the vector database as Claude works. These survive hard kills because they are saved continuously.
+
+2. **Hooks capture raw activity** (observation layer). Every tool call is logged to JSONL for later analysis. Session transcripts are archived on clean exit. This data feeds pattern detection and learning systems.
+
+3. **Auto-approve permissions remove friction** (enablement layer). Without auto-approve, Claude would prompt for confirmation on every `memory_store` call. The permissions in `settings.json` let it save silently.
+
+No single layer handles everything. The rule handles intent (what is worth remembering). Hooks handle completeness (capture everything, analyze later). Permissions handle ergonomics (no interruptions).
 
 ## Why This Works When Other Approaches Do Not
 
@@ -273,16 +396,24 @@ This session had several moments where the obvious approach turned out to be wro
 
 **Global configuration is the right scope for memory.** A per-project memory system means setting it up repeatedly and missing cross-project context. Global configuration with tag-based separation gives you both.
 
-**Python version precision matters.** When you install a Python package and then reference it in an MCP config, the Python binary in the config must be the same one you used for installation. `python3` might resolve to 3.9 on your system even if 3.11 is installed. Be explicit.
+**Python version precision matters.** When you install a Python package and then reference it in an MCP config, the Python binary in the config must be the same one you used for installation. `python3` might resolve to 3.9 on your system even if 3.11 is installed. Be explicit. On Windows, use the full path to the executable.
+
+**The module name has a gotcha.** The MCP config must reference `mcp_memory_service.server`, not `mcp_memory_service`. The top-level package is not directly executable. Running the wrong module gives a confusing "cannot be directly executed" error that does not mention the correct submodule.
+
+**Hook scripts do not fire without registration.** Having scripts in `~/.claude/hooks/` is not enough. They must be registered in the `hooks` section of `~/.claude/settings.json` with the right event type and matcher pattern. I had five fully working scripts sitting dormant because I forgot this step.
+
+**Hooks and rules serve different roles.** Hooks cannot call MCP tools because they are external shell scripts. The global rule drives memory saving through Claude's instruction-following. Hooks capture raw data for separate analysis. Trying to build memory saving entirely on hooks is a dead end.
 
 ## Summary: What Was Built
 
-By the end of the session, the memory system consisted of three pieces:
+By the end of the session, the memory system consisted of five pieces:
 
 1. `~/.claude/rules/core/memory-management.md` - global rule instructing Claude when and how to save memories, and to query them at session start
-2. `mcp-memory-service` installed via Python 3.11, configured in `~/.claude.json` as a global MCP server
+2. `mcp-memory-service` installed via Python 3.11+, configured in `~/.claude.json` as a global MCP server (using the `mcp_memory_service.server` module for stdio transport)
 3. Auto-approve permissions in `~/.claude/settings.json` for all vector-memory tools
+4. Hook scripts in `~/.claude/hooks/` for activity logging, observation capture, file protection, session archiving, and notification
+5. Hook registration in `~/.claude/settings.json` mapping each script to the right event type and tool matcher
 
-The result: development context now persists across sessions automatically, without any manual effort beyond doing the actual work. Claude saves what matters as it happens, and retrieves it when it is relevant.
+The first three pieces are the core memory system. The last two are the automation and observation layer that makes it fully hands-off.
 
-That is the whole system. Simple in principle, with just enough implementation detail to make it actually work.
+The result: development context now persists across sessions automatically, without any manual effort beyond doing the actual work. Claude saves what matters as it happens, hooks capture the raw activity for deeper analysis, and everything retrieves when it is relevant. No manual saves, no exit-time scripts to forget, no discipline required.
