@@ -116,7 +116,7 @@ Verified it worked by checking the gateway process binding:
 ```bash
 lsof -i :18789
 # COMMAND   PID        USER   TYPE    DEVICE SIZE/OFF NODE NAME
-# node    12847  chris2ao  IPv4  0x...       0t0  TCP localhost:18789 (LISTEN)
+# node    12847  your-username  IPv4  0x...       0t0  TCP localhost:18789 (LISTEN)
 ```
 
 `localhost:18789` not `*:18789`. The gateway is now only reachable from the machine itself. Sent a message to confirm the TUI still worked. Still working.
@@ -189,14 +189,14 @@ In the working config, this is done through the `allowedPaths` setting in the fi
 ```json
 "filesystem": {
   "allowedPaths": [
-    "/Users/chris2ao/.openclaw/workspace",
-    "/Users/chris2ao/.openclaw/workspace-jclaw",
-    "/Users/chris2ao/.openclaw/workspace-builder",
-    "/Users/chris2ao/.openclaw/workspace-writer",
-    "/Users/chris2ao/.openclaw/workspace-security",
-    "/Users/chris2ao/.openclaw/workspace-researcher",
-    "/Users/chris2ao/.openclaw/workspace-sysadmin",
-    "/Users/chris2ao/.openclaw/workspace-secretary"
+    "/Users/your-username/.openclaw/workspace",
+    "/Users/your-username/.openclaw/workspace-jclaw",
+    "/Users/your-username/.openclaw/workspace-builder",
+    "/Users/your-username/.openclaw/workspace-writer",
+    "/Users/your-username/.openclaw/workspace-security",
+    "/Users/your-username/.openclaw/workspace-researcher",
+    "/Users/your-username/.openclaw/workspace-sysadmin",
+    "/Users/your-username/.openclaw/workspace-secretary"
   ]
 }
 ```
@@ -271,7 +271,7 @@ The full agent configuration goes into `openclaw.json` under `agents.list`. Here
         "ollama/qwen2.5:14b": {},
         "openai-codex/gpt-5.3-codex": {}
       },
-      "workspace": "/Users/chris2ao/.openclaw/workspace",
+      "workspace": "/Users/your-username/.openclaw/workspace",
       "compaction": {
         "mode": "safeguard"
       },
@@ -287,49 +287,49 @@ The full agent configuration goes into `openclaw.json` under `agents.list`. Here
         "id": "main",
         "default": true,
         "name": "JClaw27",
-        "workspace": "/Users/chris2ao/.openclaw/workspace-jclaw",
+        "workspace": "/Users/your-username/.openclaw/workspace-jclaw",
         "model": { "primary": "openai-codex/gpt-5.3-codex" },
         "tools": { "profile": "full" }
       },
       {
         "id": "sysadmin",
         "name": "JClaw_SysAdmin",
-        "workspace": "/Users/chris2ao/.openclaw/workspace-sysadmin",
+        "workspace": "/Users/your-username/.openclaw/workspace-sysadmin",
         "model": { "primary": "openai-codex/gpt-5.3-codex" },
         "tools": { "profile": "full" }
       },
       {
         "id": "builder",
         "name": "JClaw_BobTheBuilder",
-        "workspace": "/Users/chris2ao/.openclaw/workspace-builder",
+        "workspace": "/Users/your-username/.openclaw/workspace-builder",
         "model": { "primary": "openai-codex/gpt-5.3-codex" },
         "tools": { "profile": "full" }
       },
       {
         "id": "writer",
         "name": "CJClaw_Writer",
-        "workspace": "/Users/chris2ao/.openclaw/workspace-writer",
+        "workspace": "/Users/your-username/.openclaw/workspace-writer",
         "model": { "primary": "ollama/qwen2.5:14b" },
         "tools": { "profile": "full" }
       },
       {
         "id": "security",
         "name": "JClaw_Security",
-        "workspace": "/Users/chris2ao/.openclaw/workspace-security",
+        "workspace": "/Users/your-username/.openclaw/workspace-security",
         "model": { "primary": "openai-codex/gpt-5.3-codex" },
         "tools": { "profile": "full" }
       },
       {
         "id": "researcher",
         "name": "JClaw_Researcher",
-        "workspace": "/Users/chris2ao/.openclaw/workspace-researcher",
+        "workspace": "/Users/your-username/.openclaw/workspace-researcher",
         "model": { "primary": "ollama/qwen2.5:14b" },
         "tools": { "profile": "full" }
       },
       {
         "id": "secretary",
         "name": "JClaw_Secretary",
-        "workspace": "/Users/chris2ao/.openclaw/workspace-secretary",
+        "workspace": "/Users/your-username/.openclaw/workspace-secretary",
         "model": { "primary": "ollama/qwen2.5:14b" },
         "tools": { "profile": "full" }
       }
