@@ -15,7 +15,7 @@ The OpenClaw TUI is great for chatting with a single agent. It is not great for 
 
 This is Mission Control.
 
-![Person sliding into a command center chair and cracking knuckles](https://media.giphy.com/media/3oKIPsx2VAYAgEHC12/giphy.gif)
+![U.S. Army soldiers greeting with a friendly HI](https://media.giphy.com/media/Q6sK9NXOMtWGLG14A6/giphy.gif)
 
 By the end of this post, you will understand how the dashboard is architected, what every panel does, how the Team page pulls agent personas from workspace files, and why building custom CSS pixel sprites for seven AI agents at 2am is a completely reasonable use of your time.
 
@@ -154,8 +154,6 @@ The sprites animate on hover with a CSS keyframe that shifts the whole shadow st
 ## Dashboard Overview
 
 The main dashboard view is a single-page layout with six panels arranged in a responsive CSS grid. Here is what you see when you open Mission Control:
-
-![OpenClaw Mission Control main dashboard showing System Health bars, Gateway status, Crew Roster sprites, and Agent Fleet grid](https://media.giphy.com/media/26ufcYAkp8e2zK6zm/giphy.gif)
 
 ![Mission Control main dashboard: System Health panel with CPU/Memory/Disk pixel bars, Gateway connected status, 7-agent Crew Roster with pixel sprites, and Agent Fleet status grid](/images/blog/mission-control-dashboard.png)
 
@@ -397,6 +395,8 @@ Now we get to the feature I am most proud of, and also the one I spent the most 
 
 The Team page is a separate route (`/team`) that presents the seven agents as a human organization. Not as a config file. Not as a table. As a real team with names, roles, personalities, backstories, and organizational structure.
 
+![8-bit pixel art roster of all 7 OpenClaw agents organized by team: Engineering, Operations, Content, and Support, with roles, descriptions, skills, and mottos in retro terminal style](/images/blog/mission-control-meet-the-crew.png)
+
 ![Mission Control Team page showing the MEET THE CREW hero section with pixel art banner, and the beginning of the org chart with JClaw27 as commander at the top](/images/blog/mission-control-team-page.png)
 
 The page has three sections:
@@ -620,7 +620,7 @@ The Telegram Monitor shows one incoming message from my Telegram account to the 
 
 This is the whole point. Across one screen, I can see the machine's health, the network's health, which agents are working, what they are doing, and whether anything needs attention. Before Mission Control, I was checking all of this through separate terminal windows and the OpenClaw TUI. The dashboard collapsed seven separate concerns into one view.
 
-![Mission Control fully operational with all systems green](https://media.giphy.com/media/l0HlFz3H0W4DYqVkk/giphy.gif)
+![Vintage NASA all systems go thumbs up](https://media.giphy.com/media/26wkxgyXD6PNvnxDO/giphy.gif)
 
 ---
 
