@@ -1098,7 +1098,7 @@ claude mcp add --scope user vector-memory \\
 # Key tools: memory_store, memory_search, memory_list,
 # memory_delete, memory_ingest, memory_quality, memory_graph`,
     author: "Community",
-    repo: "vector-memory-mcp",
+    repo: "chris2ao/claude-code-config",
   },
   {
     id: "mcp-github",
@@ -1175,7 +1175,7 @@ claude mcp list`,
 # gmail_list_labels — see your label structure
 # gmail_list_drafts — review unsent drafts`,
     author: "Community",
-    repo: "gmail-mcp-server",
+    repo: "chris2ao/claude-code-config",
   },
   {
     id: "mcp-google-calendar",
@@ -1201,7 +1201,7 @@ claude mcp list`,
 # gcal_update_event — modify existing events
 # gcal_respond_to_event — accept/decline invitations`,
     author: "Community",
-    repo: "google-calendar-mcp",
+    repo: "chris2ao/claude-code-config",
   },
   {
     id: "mcp-vercel",
@@ -1226,7 +1226,7 @@ claude mcp list`,
 # search_vercel_documentation — query Vercel docs
 # check_domain_availability_and_price — domain lookup`,
     author: "Vercel",
-    repo: "vercel/mcp",
+    repo: "chris2ao/claude-code-config",
   },
   {
     id: "mcp-obsidian",
@@ -1256,7 +1256,7 @@ claude mcp list`,
 # execute_template — run Templater templates
 # list_vault_files — browse vault structure`,
     author: "Community",
-    repo: "obsidian-local-rest-api",
+    repo: "chris2ao/claude-code-config",
   },
   {
     id: "mcp-excalidraw",
@@ -1282,7 +1282,7 @@ claude mcp list`,
 # 2. Build element JSON array
 # 3. Call create_view with the elements`,
     author: "Community",
-    repo: "excalidraw-mcp",
+    repo: "chris2ao/claude-code-config",
   },
   {
     id: "mcp-claude-in-chrome",
@@ -1311,7 +1311,7 @@ claude mcp list`,
 # read_console_messages — browser console output
 # gif_creator — record browser session GIFs`,
     author: "ArcadeAI",
-    repo: "ArcadeAI/claude-in-chrome",
+    repo: "chris2ao/claude-code-config",
   },
   {
     id: "mcp-project-tools",
@@ -1370,7 +1370,7 @@ claude mcp list`,
 # preview_snapshot, preview_inspect, preview_click,
 # preview_logs, preview_network, preview_resize`,
     author: "Anthropic",
-    repo: "anthropic/claude-code",
+    repo: "anthropics/claude-code",
   },
   {
     id: "mcp-mermaid",
@@ -1398,7 +1398,7 @@ claude mcp list`,
 #   title: "Simple Flow"
 # )`,
     author: "Community",
-    repo: "mermaid-mcp",
+    repo: "chris2ao/claude-code-config",
   },
   {
     id: "mcp-registry",
@@ -1425,7 +1425,7 @@ claude mcp list`,
 # 2. suggest_connectors(uuids: ["<asana-uuid>"])
 # 3. User clicks Connect to authenticate`,
     author: "Community",
-    repo: "mcp-registry",
+    repo: "chris2ao/claude-code-config",
   },
 
   // ── Learned Skills (23) ────────────────────────────────────────
