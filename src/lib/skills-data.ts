@@ -169,6 +169,36 @@ cp skills/skill-catalog/SKILL.md \\
     repo: "chris2ao/claude-code-config",
   },
 
+  {
+    id: "ingest-sessions",
+    name: "/ingest-sessions",
+    category: "skill",
+    description:
+      "Processes session archive transcripts, extracts insights, and stores them in vector memory.",
+    summary:
+      "A session ingestion skill that reads archived Claude Code session transcripts and extracts actionable insights, debugging patterns, and workflow learnings. Stores the extracted knowledge in vector memory with proper tags for later retrieval. Works with the session-analyzer agent to identify recurring patterns and the skill-extractor agent to produce reusable learned skills from raw transcripts.",
+    tags: ["Session Management", "Memory", "Learning", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "vector-memory MCP server",
+      "Session archive transcripts",
+    ],
+    integrationSteps: [
+      "Ensure session transcripts are archived in .claude/session_archive/",
+      "Ensure vector-memory MCP server is configured",
+      "Run /ingest-sessions to process new transcripts",
+      "Query vector-memory later to retrieve extracted insights",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/commands
+cp commands/ingest-sessions.md ~/.claude/commands/
+
+# Usage
+/ingest-sessions`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
   // ── Custom Agents ──────────────────────────────────────────────
   {
     id: "changelog-writer",
@@ -946,6 +976,53 @@ cp rules/agents.md ~/.claude/rules/
     repo: "chris2ao/claude-code-config",
   },
 
+  {
+    id: "rule-memory-management",
+    name: "Memory Management Rules",
+    category: "configuration",
+    description:
+      "Five-layer memory system coordination: auto memory, vector memory, knowledge graph, homunculus, and session archive.",
+    summary:
+      "Defines how five distinct memory systems work together without duplication. Auto memory (MEMORY.md) handles stable per-project facts. Vector memory stores detailed context queried on demand. The knowledge graph models entity relationships. Homunculus captures behavioral patterns via hooks. Session archives preserve full transcripts. Each system has clear boundaries for what to save and when, plus triggers for writing to vector memory after significant events.",
+    tags: ["Memory", "Architecture", "Core"],
+    dependencies: [
+      "Claude Code CLI",
+      "vector-memory MCP server",
+      "memory MCP server (knowledge graph)",
+    ],
+    integrationSteps: [
+      "Copy rules/core/memory-management.md to ~/.claude/rules/core/",
+      "Ensure vector-memory and memory MCP servers are configured",
+      "Automatically active in all sessions",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/rules/core
+cp rules/core/memory-management.md ~/.claude/rules/core/`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "rule-blog-content",
+    name: "Blog Content Rules",
+    category: "configuration",
+    description:
+      "Blog writing guardrails: no private repo links, public repo allowlist, link safety checks.",
+    summary:
+      "Prevents broken links in blog posts by enforcing rules about which GitHub repositories can be linked. Only public repos (chris2ao/cryptoflexllc, chris2ao/claude-code-config) may be linked directly. All other repos are private and must be referenced as inline code without hyperlinks. This rule prevents readers from encountering 404 errors when clicking repository links in published posts.",
+    tags: ["Blog", "Content", "Security", "Core"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy rules/content/blog-content.md to ~/.claude/rules/content/",
+      "Automatically active in all sessions",
+      "Applies when writing or editing blog posts",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/rules/content
+cp rules/content/blog-content.md ~/.claude/rules/content/`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
   // ── MCP Servers ────────────────────────────────────────────────
   {
     id: "mcp-memory",
@@ -995,6 +1072,360 @@ claude mcp add --scope user context7 \\
 claude mcp list`,
     author: "Upstash",
     repo: "upstash/context7-mcp",
+  },
+
+  {
+    id: "mcp-vector-memory",
+    name: "Vector Memory",
+    category: "mcp",
+    description:
+      "Semantic vector memory for storing, searching, and managing long-term knowledge with embeddings.",
+    summary:
+      "A persistent vector database MCP server that gives Claude Code semantic memory. Stores memories with embeddings for similarity search, supports tags, quality ratings, and association graphs between related memories. Includes ingestion for bulk-loading documents (PDF, TXT, MD, JSON) and deduplication cleanup. This is the backbone of the five-layer memory system, handling detailed context that auto memory is too small for.",
+    tags: ["MCP", "Memory", "Persistence", "Embeddings"],
+    dependencies: ["Python 3.10+", "uv (Python package manager)"],
+    integrationSteps: [
+      "Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh",
+      "Clone the vector-memory-mcp repo",
+      "Run via: uv run vector-memory-mcp --db-path ~/.claude/memory.db",
+      "Add to claude mcp config with appropriate args",
+    ],
+    codeSnippet: `# Install
+claude mcp add --scope user vector-memory \\
+  -- uv run --directory /path/to/vector-memory-mcp \\
+  vector-memory-mcp --db-path ~/.claude/memory.db
+
+# Key tools: memory_store, memory_search, memory_list,
+# memory_delete, memory_ingest, memory_quality, memory_graph`,
+    author: "Community",
+    repo: "vector-memory-mcp",
+  },
+  {
+    id: "mcp-github",
+    name: "GitHub",
+    category: "mcp",
+    description:
+      "Full GitHub API access: repos, issues, PRs, code search, file contents, and commits.",
+    summary:
+      "The official GitHub MCP server provides Claude Code with direct access to the GitHub API. Supports repository operations (search, create, fork), issue management (create, update, list, comment), pull request workflows (create, review, merge, list files), code search across repositories, file content retrieval, branch management, and commit history. Essential for any workflow that interacts with GitHub beyond basic git operations.",
+    tags: ["MCP", "GitHub", "Git", "DevOps"],
+    dependencies: ["GitHub Personal Access Token"],
+    integrationSteps: [
+      "Generate a GitHub PAT with appropriate scopes",
+      "Add the MCP server with your token as an environment variable",
+      "Claude Code can now manage repos, issues, and PRs directly",
+    ],
+    codeSnippet: `# Install
+claude mcp add --scope user github \\
+  -- npx -y @modelcontextprotocol/server-github
+
+# Set token in environment
+export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...
+
+# Key tools: create_pull_request, search_code,
+# list_issues, get_file_contents, create_branch`,
+    author: "Anthropic / MCP Community",
+    repo: "modelcontextprotocol/servers",
+  },
+  {
+    id: "mcp-sequential-thinking",
+    name: "Sequential Thinking",
+    category: "mcp",
+    description:
+      "Chain-of-thought reasoning engine for breaking down complex problems step by step.",
+    summary:
+      "An MCP server that provides structured, multi-step reasoning for complex problems. Supports branching, revision of previous thoughts, and dynamic adjustment of the reasoning depth. Useful for architectural decisions, debugging strategies, and any problem that benefits from explicit step-by-step analysis with the ability to course-correct mid-reasoning.",
+    tags: ["MCP", "Reasoning", "Analysis"],
+    dependencies: ["Node.js", "npx"],
+    integrationSteps: [
+      "Install via claude mcp add",
+      "Claude uses it automatically for complex reasoning tasks",
+      "Supports branching and revision of thought chains",
+    ],
+    codeSnippet: `# Install
+claude mcp add --scope user sequential-thinking \\
+  -- npx -y @modelcontextprotocol/server-sequential-thinking
+
+# Verify
+claude mcp list`,
+    author: "Anthropic / MCP Community",
+    repo: "modelcontextprotocol/servers",
+  },
+  {
+    id: "mcp-gmail",
+    name: "Gmail",
+    category: "mcp",
+    description:
+      "Gmail integration for searching, reading, drafting, and managing email from Claude Code.",
+    summary:
+      "Connects Claude Code to your Gmail account for email management. Supports searching with Gmail's full query syntax, reading individual messages and full threads, creating drafts (including replies), listing labels, and viewing your profile. Read-focused by design to prevent accidental sends. Pair with explicit user confirmation for any email actions.",
+    tags: ["MCP", "Email", "Gmail", "Productivity"],
+    dependencies: ["Google OAuth credentials"],
+    integrationSteps: [
+      "Configure Google OAuth for Gmail API access",
+      "Add the Gmail MCP server to your config",
+      "Claude can search, read, and draft emails",
+      "Sending requires explicit user confirmation",
+    ],
+    codeSnippet: `# Key tools available:
+# gmail_search_messages — full Gmail search syntax
+# gmail_read_message — read a specific email
+# gmail_read_thread — read full conversation
+# gmail_create_draft — compose draft emails
+# gmail_list_labels — see your label structure
+# gmail_list_drafts — review unsent drafts`,
+    author: "Community",
+    repo: "gmail-mcp-server",
+  },
+  {
+    id: "mcp-google-calendar",
+    name: "Google Calendar",
+    category: "mcp",
+    description:
+      "Google Calendar integration for viewing, creating, and managing events and finding meeting times.",
+    summary:
+      "Full Google Calendar integration that lets Claude Code manage your schedule. List events across calendars, create and update events with attendees and video conferencing, find mutual availability for meetings, check your free time, respond to invitations, and delete events. Supports recurring events, conference room booking, and multi-calendar queries.",
+    tags: ["MCP", "Calendar", "Google", "Productivity"],
+    dependencies: ["Google OAuth credentials"],
+    integrationSteps: [
+      "Configure Google OAuth for Calendar API access",
+      "Add the Google Calendar MCP server to your config",
+      "Claude can view, create, and manage calendar events",
+      "Event creation and deletion require user confirmation",
+    ],
+    codeSnippet: `# Key tools available:
+# gcal_list_events — view events in any calendar
+# gcal_create_event — schedule with attendees + Meet
+# gcal_find_meeting_times — mutual availability
+# gcal_find_my_free_time — personal schedule gaps
+# gcal_update_event — modify existing events
+# gcal_respond_to_event — accept/decline invitations`,
+    author: "Community",
+    repo: "google-calendar-mcp",
+  },
+  {
+    id: "mcp-vercel",
+    name: "Vercel",
+    category: "mcp",
+    description:
+      "Vercel deployment management: deploy, inspect builds, view logs, and search Vercel docs.",
+    summary:
+      "Integrates Claude Code with the Vercel platform for deployment and hosting operations. Deploy projects directly, inspect deployment details and build logs, view runtime logs with filtering, manage projects and teams, check domain availability, and search Vercel documentation. Supports both production and preview deployments with authentication for protected URLs.",
+    tags: ["MCP", "Vercel", "DevOps", "Deployment"],
+    dependencies: ["Vercel account and token"],
+    integrationSteps: [
+      "Configure Vercel authentication token",
+      "Add the Vercel MCP server to your config",
+      "Claude can deploy, inspect, and debug Vercel deployments",
+    ],
+    codeSnippet: `# Key tools available:
+# deploy_to_vercel — deploy current project
+# get_deployment_build_logs — debug build failures
+# get_runtime_logs — view application output
+# list_deployments — see deployment history
+# search_vercel_documentation — query Vercel docs
+# check_domain_availability_and_price — domain lookup`,
+    author: "Vercel",
+    repo: "vercel/mcp",
+  },
+  {
+    id: "mcp-obsidian",
+    name: "Obsidian",
+    category: "mcp",
+    description:
+      "Obsidian vault integration for reading, writing, and searching notes with smart semantic search.",
+    summary:
+      "Connects Claude Code to your Obsidian knowledge base via the Local REST API plugin. Read and write vault files, search with text or semantic queries, use Dataview DQL for structured queries, patch content relative to headings or blocks, and execute Templater templates. Turns Obsidian into a programmable knowledge layer that Claude Code can query and update during development sessions.",
+    tags: ["MCP", "Obsidian", "Notes", "Knowledge"],
+    dependencies: [
+      "Obsidian with Local REST API plugin",
+      "Smart Connections plugin (for semantic search)",
+    ],
+    integrationSteps: [
+      "Install the Local REST API plugin in Obsidian",
+      "Enable the API and note the port and API key",
+      "Add the Obsidian MCP server to your Claude config",
+      "Optionally install Smart Connections for semantic search",
+    ],
+    codeSnippet: `# Key tools available:
+# get_vault_file — read any note
+# create_vault_file — create/update notes
+# search_vault_simple — text search
+# search_vault_smart — semantic search
+# patch_vault_file — insert at headings/blocks
+# execute_template — run Templater templates
+# list_vault_files — browse vault structure`,
+    author: "Community",
+    repo: "obsidian-local-rest-api",
+  },
+  {
+    id: "mcp-excalidraw",
+    name: "Excalidraw",
+    category: "mcp",
+    description:
+      "Hand-drawn diagram creation with Excalidraw elements rendered with draw-on animations.",
+    summary:
+      "An MCP server that lets Claude Code create hand-drawn style diagrams using Excalidraw. Elements stream in one by one with draw-on animations for a polished presentation effect. Useful for architecture diagrams, flowcharts, data models, and system designs directly from your Claude Code session without leaving the terminal.",
+    tags: ["MCP", "Diagrams", "Visualization"],
+    dependencies: ["Excalidraw MCP server"],
+    integrationSteps: [
+      "Add the Excalidraw MCP server to your config",
+      "Call read_me first to learn the element format",
+      "Use create_view to render diagrams with JSON element arrays",
+    ],
+    codeSnippet: `# Key tools available:
+# read_me — get element format reference + color palettes
+# create_view — render hand-drawn diagram from elements
+
+# Usage pattern:
+# 1. Call read_me to learn the format
+# 2. Build element JSON array
+# 3. Call create_view with the elements`,
+    author: "Community",
+    repo: "excalidraw-mcp",
+  },
+  {
+    id: "mcp-claude-in-chrome",
+    name: "Claude in Chrome",
+    category: "mcp",
+    description:
+      "Full browser automation: click, type, screenshot, navigate, read pages, and execute JavaScript.",
+    summary:
+      "A Chrome extension MCP server that gives Claude Code full browser automation capabilities. Take screenshots, read page accessibility trees, find elements by natural language, fill forms, click buttons, navigate URLs, execute JavaScript, read console logs and network requests, record GIF animations, and manage browser tabs. Essential for web testing, scraping, and any task requiring visual browser interaction.",
+    tags: ["MCP", "Browser", "Automation", "Testing"],
+    dependencies: ["Chrome browser", "Claude in Chrome extension"],
+    integrationSteps: [
+      "Install the Claude in Chrome extension from the Chrome Web Store",
+      "The MCP server connects automatically when the extension is active",
+      "Use tabs_context_mcp first to discover available tabs",
+      "Take screenshots, interact with pages, and automate workflows",
+    ],
+    codeSnippet: `# Key tools available:
+# computer — mouse/keyboard actions + screenshots
+# read_page — accessibility tree of page elements
+# find — natural language element search
+# form_input — fill form fields
+# navigate — go to URLs, back/forward
+# javascript_tool — execute JS in page context
+# get_page_text — extract article text
+# read_console_messages — browser console output
+# gif_creator — record browser session GIFs`,
+    author: "ArcadeAI",
+    repo: "ArcadeAI/claude-in-chrome",
+  },
+  {
+    id: "mcp-project-tools",
+    name: "Project Tools",
+    category: "mcp",
+    description:
+      "Custom MCP server with cached repo status, blog post inventory, style guide, and validation.",
+    summary:
+      "A custom-built MCP server providing project-specific utilities. Includes cached git status across all project repos (faster than running git commands), blog post inventory with frontmatter metadata, blog style guide access, MDX validation against style rules, and session artifact counting. Designed to reduce repeated boilerplate queries during development sessions.",
+    tags: ["MCP", "DevOps", "Blog", "Custom"],
+    dependencies: ["Node.js", "Project repository access"],
+    integrationSteps: [
+      "The server is configured in the project's MCP settings",
+      "Provides faster access to frequently-queried project data",
+      "Results are cached for performance",
+    ],
+    codeSnippet: `# Key tools available:
+# repo_status — cached git status across all repos
+# blog_posts — blog inventory with metadata
+# style_guide — cached blog reference docs
+# validate_blog_post — check MDX against style rules
+# session_artifacts — count session outputs`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "mcp-claude-preview",
+    name: "Claude Preview",
+    category: "mcp",
+    description:
+      "Dev server management with live preview: screenshots, accessibility snapshots, DOM inspection, and interaction.",
+    summary:
+      "An MCP server for managing development servers and previewing web applications. Start dev servers from a launch.json config, take screenshots, inspect DOM elements with computed styles, click elements, fill forms, check console and server logs, view network requests, and resize viewports for responsive testing. Replaces the need to switch between terminal and browser during development.",
+    tags: ["MCP", "Development", "Preview", "Testing"],
+    dependencies: [".claude/launch.json configuration"],
+    integrationSteps: [
+      "Create .claude/launch.json with your dev server configurations",
+      "Use preview_start to launch servers",
+      "Take screenshots and inspect elements without leaving Claude Code",
+      "Check build logs and console output directly",
+    ],
+    codeSnippet: `# .claude/launch.json
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    }
+  ]
+}
+
+# Key tools: preview_start, preview_screenshot,
+# preview_snapshot, preview_inspect, preview_click,
+# preview_logs, preview_network, preview_resize`,
+    author: "Anthropic",
+    repo: "anthropic/claude-code",
+  },
+  {
+    id: "mcp-mermaid",
+    name: "Mermaid Diagrams",
+    category: "mcp",
+    description:
+      "Validate and render Mermaid diagrams with syntax checking and interactive UI widgets.",
+    summary:
+      "An MCP server that validates Mermaid diagram syntax and renders diagrams to interactive UI widgets. Each rendered diagram includes the diagram code, a Copy Code button, and the visual output. Invalid syntax provides a link to repair the diagram in Mermaid Live. Supports all Mermaid diagram types: flowcharts, sequence diagrams, class diagrams, state diagrams, ERDs, Gantt charts, and more.",
+    tags: ["MCP", "Diagrams", "Visualization", "Documentation"],
+    dependencies: ["Mermaid MCP server"],
+    integrationSteps: [
+      "Add the Mermaid MCP server to your config",
+      "Use validate_and_render_mermaid_diagram with diagram code",
+      "Rendered diagrams appear as interactive widgets",
+    ],
+    codeSnippet: `# Key tool: validate_and_render_mermaid_diagram
+# Supports all Mermaid diagram types:
+# - flowchart, sequence, class, state
+# - ERD, Gantt, pie, mindmap, timeline
+
+# Example usage:
+# validate_and_render_mermaid_diagram(
+#   diagramCode: "graph TD; A-->B; B-->C",
+#   title: "Simple Flow"
+# )`,
+    author: "Community",
+    repo: "mermaid-mcp",
+  },
+  {
+    id: "mcp-registry",
+    name: "MCP Registry",
+    category: "mcp",
+    description:
+      "Discover and connect new MCP servers from a searchable registry of available integrations.",
+    summary:
+      "A meta-MCP server that helps discover and connect new MCP integrations. Search the registry by keywords to find connectors for external services (Asana, Jira, Slack, etc.), then suggest connectors to the user with one-click Connect buttons. Also handles re-authentication when tool calls fail with credential errors. The gateway to expanding Claude Code's integration surface.",
+    tags: ["MCP", "Discovery", "Integration"],
+    dependencies: ["MCP Registry account"],
+    integrationSteps: [
+      "The registry server is pre-configured",
+      "Use search_mcp_registry to find available connectors",
+      "Use suggest_connectors to present options to the user",
+      "User clicks Connect to authenticate and enable new integrations",
+    ],
+    codeSnippet: `# Key tools available:
+# search_mcp_registry — find connectors by keyword
+# suggest_connectors — show Connect buttons to user
+
+# Example: user says "check my Asana tasks"
+# 1. search_mcp_registry(keywords: ["asana", "tasks"])
+# 2. suggest_connectors(uuids: ["<asana-uuid>"])
+# 3. User clicks Connect to authenticate`,
+    author: "Community",
+    repo: "mcp-registry",
   },
 
   // ── Learned Skills (23) ────────────────────────────────────────
