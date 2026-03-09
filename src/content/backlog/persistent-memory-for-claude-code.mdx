@@ -103,9 +103,11 @@ Writing memories is only half the system. The retrieval half requires Claude to 
 
 ### Tier 2: The MCP Server
 
-I installed `mcp-memory-service`, which provides a vector-based memory store backed by SQLite. No external database server required. The database file lives locally, and the MCP server exposes tools like `memory_store`, `memory_search`, `memory_list`, and `memory_delete`.
+I installed `mcp-memory-service`, which provides a vector-based memory store backed by SQLite with the `sqlite-vec` extension. No external database server required. The database file lives at `~/Library/Application Support/mcp-memory/sqlite_vec.db` on macOS, and the MCP server exposes tools like `memory_store`, `memory_search`, `memory_list`, and `memory_delete`.
 
-**Why SQLite?** It runs locally with no cloud dependency, costs nothing, and is fast enough for personal use. The vector search uses embeddings stored in the same database file.
+**Why SQLite?** It runs locally with no cloud dependency, costs nothing, and is fast enough for personal use. The embedding model (`all-MiniLM-L6-v2`, 384 dimensions) runs in-process via PyTorch and sentence-transformers, so there are no external API calls for embedding or search.
+
+The search is more capable than simple keyword matching. It supports three modes: **semantic** (cosine similarity on embeddings, finds "deployment failures" when you search "release problems"), **exact** (traditional BM25 keyword matching), and **hybrid** (70% semantic + 30% keyword, recommended). Results are further refined by MMR deduplication (suppresses near-duplicate results) and temporal decay (30-day half-life, so recent memories rank higher). Automated daily backups with 7-day retention protect against database corruption.
 
 #### Installation
 
@@ -137,16 +139,21 @@ The MCP server goes in `~/.claude.json` so it is available in every project, not
 {
   "mcpServers": {
     "vector-memory": {
+      "type": "stdio",
       "command": "python3.11",
       "args": ["-m", "mcp_memory_service.server"],
       "env": {
-        "MCP_MEMORY_CHROMA_PATH": "/Users/yourname/.claude/memory/chroma",
-        "MCP_MEMORY_BACKUPS_PATH": "/Users/yourname/.claude/memory/backups"
+        "MCP_MEMORY_STORAGE_BACKEND": "sqlite_vec",
+        "MCP_OAUTH_ENABLED": "false",
+        "MCP_OAUTH_PRIVATE_KEY": "disabled",
+        "MCP_OAUTH_PUBLIC_KEY": "disabled"
       }
     }
   }
 }
 ```
+
+The `MCP_OAUTH_*` env vars prevent the server from auto-generating RSA keys at import time, even when OAuth is disabled. Without them, key material silently leaks into config dumps.
 
 Three things worth noting about this configuration:
 
@@ -192,8 +199,10 @@ On Windows with Git Bash, the configuration is slightly different. Use the full 
       "command": "C:\\Users\\yourname\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
       "args": ["-m", "mcp_memory_service.server"],
       "env": {
-        "MCP_MEMORY_CHROMA_PATH": "C:/Users/yourname/.claude/memory/chroma",
-        "MCP_MEMORY_BACKUPS_PATH": "C:/Users/yourname/.claude/memory/backups"
+        "MCP_MEMORY_STORAGE_BACKEND": "sqlite_vec",
+        "MCP_OAUTH_ENABLED": "false",
+        "MCP_OAUTH_PRIVATE_KEY": "disabled",
+        "MCP_OAUTH_PUBLIC_KEY": "disabled"
       }
     }
   }
@@ -404,6 +413,8 @@ This session had several moments where the obvious approach turned out to be wro
 
 **Hooks and rules serve different roles.** Hooks cannot call MCP tools because they are external shell scripts. The global rule drives memory saving through Claude's instruction-following. Hooks capture raw data for separate analysis. Trying to build memory saving entirely on hooks is a dead end.
 
+**OAuth key auto-generation is sneaky.** The `mcp-memory-service` package auto-generates RSA keys at Python import time, even when OAuth is completely disabled. These keys silently appear in environment dumps and config exports. Setting `MCP_OAUTH_PRIVATE_KEY=disabled` and `MCP_OAUTH_PUBLIC_KEY=disabled` in the MCP server env prevents this.
+
 ## Summary: What Was Built
 
 By the end of the session, the memory system consisted of five pieces:
@@ -417,3 +428,10 @@ By the end of the session, the memory system consisted of five pieces:
 The first three pieces are the core memory system. The last two are the automation and observation layer that makes it fully hands-off.
 
 The result: development context now persists across sessions automatically, without any manual effort beyond doing the actual work. Claude saves what matters as it happens, hooks capture the raw activity for deeper analysis, and everything retrieves when it is relevant. No manual saves, no exit-time scripts to forget, no discipline required.
+
+## Resources
+
+If you want to see the exact configuration files, the full documentation, and the MCP server setup, these are all in my public config repo:
+
+- [Vector Memory System Documentation](https://github.com/chris2ao/claude-code-config/blob/master/docs/vector-memory-system.md): comprehensive reference covering architecture, all tool parameters, search modes, quality tiers, and the knowledge graph
+- [MCP Server Configuration](https://github.com/chris2ao/claude-code-config/blob/master/mcp-servers/README.md): the MCP server definitions including vector-memory, knowledge graph, and other servers used in this setup
