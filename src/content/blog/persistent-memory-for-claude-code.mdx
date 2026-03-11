@@ -17,13 +17,17 @@ series: Claude Code Workflow
 seriesOrder: 6
 ---
 
-Every Claude Code session starts fresh. No memory of what you built last week, no recall of that workaround you discovered for the SQLite path issue, no context about the naming conventions specific to your project. You explain the same things over and over. Eventually you start writing everything into CLAUDE.md by hand, but that becomes its own maintenance burden.
+Every Claude Code session starts fresh. No memory of what you built last week, no recall of that workaround you discovered for the SQLite path issue, no context about the naming conventions specific to your project. You re-explain the same things every session. Eventually you start writing everything into CLAUDE.md by hand, but that becomes its own maintenance burden.
 
-There's a better way, and I spent a session researching and implementing it properly. This post covers the four approaches I evaluated, the two-tier solution I settled on, and the specific gotchas that would have burned me if I hadn't thought through the design carefully first.
+There's a better way. This post covers the four approaches I evaluated, the two-tier solution I settled on, and the specific gotchas that would have burned me if I hadn't thought through the design carefully first.
+
+<Info title="Want the Reference Version?">
+This post is the narrative walkthrough. If you want a condensed, printable reference covering the full architecture, configuration, and troubleshooting, download the [Claude Code Persistent Memory PDF](/resources/claude-code-persistent-memory.pdf).
+</Info>
 
 ## The Problem With "Just Use Hooks"
 
-Before diving into the solution, it's worth understanding why the obvious answer does not work.
+It's worth understanding why the obvious answer does not work.
 
 Hooks in Claude Code are shell scripts that run when events occur: PostToolUse, PreToolUse, SessionEnd, Stop. The natural instinct is to write a SessionEnd hook that dumps conversation context into some kind of memory store at the end of each session.
 
@@ -35,9 +39,11 @@ If you close the terminal, kill the process, or lose connection mid-session, you
 
 This is why the architecture matters. The solution cannot be "save at the end." It has to be "save continuously throughout."
 
+![Infographic showing the two-tier persistent memory architecture for Claude Code: Tier 1 global memory rule driving automatic saves, Tier 2 MCP server with hybrid search, 30-day temporal decay, and local embedding](/images/blog/persistent-memory-two-tier-architecture.png)
+
 ## Evaluating Four Approaches
 
-I looked at four approaches before choosing. Here's the honest assessment of each:
+I looked at four approaches before choosing:
 
 | Approach | Persistence | Effort to Query | Reliability | Cost |
 |----------|-------------|-----------------|-------------|------|
@@ -46,7 +52,7 @@ I looked at four approaches before choosing. Here's the honest assessment of eac
 | Vector Database MCP | Permanent | Low (semantic search) | High | Free (SQLite) |
 | Enterprise Graph (Neo4j) | Permanent | Low (rich queries) | High | Paid |
 
-The hooks approach fails on reliability. Enterprise graph is overkill for personal use. That left knowledge graph MCP and vector database MCP as the real contenders.
+The hooks approach fails on reliability. Enterprise graph is overkill for personal use. That left knowledge graph MCP and vector database MCP as the practical options.
 
 **Knowledge graph MCP** (the `memory` MCP server) stores information as entities and relations. It is good at modeling explicit connections: "ServiceA depends on DatabaseB," "this bug was caused by that config." You interact with it deliberately by calling `create_entities` and `create_relations`.
 
@@ -66,7 +72,7 @@ The design I landed on has two layers that work together:
 
 **Tier 2: An MCP server that provides the actual storage and retrieval.**
 
-This combination solves the discipline problem. If memory-saving requires a human to remember to do it, it will not happen consistently. The global rule makes it Claude's job. Claude writes the memories; you just benefit from them later.
+This combination solves the discipline problem. If memory-saving requires a human to remember to do it, it will not happen consistently. The global rule makes it Claude's job. Claude writes the memories. You just benefit from them later.
 
 ### Tier 1: The Memory Rule
 
@@ -106,7 +112,7 @@ At the beginning of each session, if the user describes a task related to previo
 ```
 
 <Tip title="Session Start Retrieval Is as Important as Saving">
-Writing memories is only half the system. The retrieval half requires Claude to proactively query relevant memories when a session starts and the user describes a task. Without the session-start instruction, memories accumulate but never surface. Both halves need to be in the rule.
+Saving memories is only half the system. The retrieval half requires Claude to proactively query relevant memories when a session starts and the user describes a task. Without the session-start instruction, memories accumulate but never surface. Both halves need to be in the rule.
 </Tip>
 
 ### Tier 2: The MCP Server
@@ -115,7 +121,9 @@ I installed `mcp-memory-service`, which provides a vector-based memory store bac
 
 **Why SQLite?** It runs locally with no cloud dependency, costs nothing, and is fast enough for personal use. The embedding model (`all-MiniLM-L6-v2`, 384 dimensions) runs in-process via PyTorch and sentence-transformers, so there are no external API calls for embedding or search.
 
-The search is more capable than simple keyword matching. It supports three modes: **semantic** (cosine similarity on embeddings, finds "deployment failures" when you search "release problems"), **exact** (traditional BM25 keyword matching), and **hybrid** (70% semantic + 30% keyword, recommended). Results are further refined by MMR deduplication (suppresses near-duplicate results) and temporal decay (30-day half-life, so recent memories rank higher). Automated daily backups with 7-day retention protect against database corruption.
+The search is more capable than simple keyword matching. It supports three modes: **semantic** (cosine similarity on embeddings, finds "deployment failures" when you search "release problems"), **exact** (traditional BM25 keyword matching), and **hybrid** (70% semantic + 30% keyword, recommended).
+
+Results are further refined by MMR deduplication, which suppresses near-duplicate results, and temporal decay with a 30-day half-life that ranks recent memories higher.
 
 #### Installation
 
@@ -161,7 +169,7 @@ The MCP server goes in `~/.claude.json` so it is available in every project, not
 }
 ```
 
-The `MCP_OAUTH_*` env vars prevent the server from auto-generating RSA keys at import time, even when OAuth is disabled. Without them, key material silently leaks into config dumps.
+The `MCP_OAUTH_*` env vars prevent the server from auto-generating RSA keys at import time, even when OAuth is disabled. Without them, RSA key material silently appears in config dumps.
 
 Three things worth noting about this configuration:
 
@@ -221,7 +229,7 @@ Use the full Python path because `python` or `python3` may resolve to a differen
 
 ## Making It Fully Automatic With Hooks
 
-The global rule tells Claude when to save memories, but there is a subtlety worth understanding: the rule works through Claude's instruction-following, not through a deterministic mechanism. Claude reads the rule and acts on it, which means it saves memories most of the time, but it is not guaranteed on every single event.
+The global rule tells Claude when to save memories, but the rule works through Claude's instruction-following, not through a deterministic mechanism. Claude reads the rule and acts on it, which means it saves memories most of the time, but it is not guaranteed on every single event.
 
 For most users, the rule alone is enough. Claude is reliable about following global rules, and the continuous-saving approach means a missed save here and there does not matter much. But if you want belt-and-suspenders automation, hooks add a complementary layer.
 
@@ -318,6 +326,8 @@ When everything is wired together, the automation has three layers working in pa
 
 No single layer handles everything. The rule handles intent (what is worth remembering). Hooks handle completeness (capture everything, analyze later). Permissions handle ergonomics (no interruptions).
 
+![Vector Memory MCP overview: 5 layers, 12 tools, 30 instincts, hybrid search, behavioral learning, and privacy-first local processing](/images/blog/persistent-memory-vector-memory-mcp.png)
+
 ## Why This Works When Other Approaches Do Not
 
 The design is shaped by two constraints that eliminated the obvious alternatives.
@@ -405,7 +415,7 @@ Changes to `~/.claude.json` require restarting Claude Code to take effect. If th
 
 ## Lessons Learned
 
-This session had several moments where the obvious approach turned out to be wrong.
+Several times during this build, the obvious approach turned out to be wrong.
 
 **The discipline trap is real.** Every memory system I found online assumed you would manually call `create_entities`. Nobody does this consistently after the novelty wears off. The global rule that instructs Claude to save automatically is the only approach that survives contact with actual workflow patterns.
 
@@ -435,11 +445,12 @@ By the end of the session, the memory system consisted of five pieces:
 
 The first three pieces are the core memory system. The last two are the automation and observation layer that makes it fully hands-off.
 
-The result: development context now persists across sessions automatically, without any manual effort beyond doing the actual work. Claude saves what matters as it happens, hooks capture the raw activity for deeper analysis, and everything retrieves when it is relevant. No manual saves, no exit-time scripts to forget, no discipline required.
+The result: development context now persists across sessions automatically, without any manual effort beyond doing the actual work. Claude saves what matters as it happens. Hooks capture raw activity for deeper analysis. Everything surfaces when it is relevant. No manual saves, no exit-time scripts to forget, no discipline required.
 
 ## Resources
 
-If you want to see the exact configuration files, the full documentation, and the MCP server setup, these are all in my public config repo:
+If you want to see the exact configuration files, the full documentation, and the MCP server setup:
 
+- [Claude Code Persistent Memory (PDF)](/resources/claude-code-persistent-memory.pdf): a reference guide covering the full two-tier architecture, installation steps, configuration files, and troubleshooting
 - [Vector Memory System Documentation](https://github.com/chris2ao/claude-code-config/blob/master/docs/vector-memory-system.md): comprehensive reference covering architecture, all tool parameters, search modes, quality tiers, and the knowledge graph
 - [MCP Server Configuration](https://github.com/chris2ao/claude-code-config/blob/master/mcp-servers/README.md): the MCP server definitions including vector-memory, knowledge graph, and other servers used in this setup

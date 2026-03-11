@@ -6,9 +6,20 @@ export interface Resource {
   tags: string[];
   date: string;
   iframeHeight?: string;
+  downloadPath?: string;
 }
 
 const resources: Resource[] = [
+  {
+    slug: "claude-code-persistent-memory",
+    title: "Claude Code Persistent Memory",
+    description:
+      "A reference guide covering the two-tier persistent memory architecture for Claude Code: global rule configuration, vector database MCP server setup, search modes, and troubleshooting.",
+    type: "document",
+    tags: ["Claude Code", "Memory", "MCP", "Vector Search"],
+    date: "2026-03-10",
+    downloadPath: "/resources/claude-code-persistent-memory.pdf",
+  },
   {
     slug: "architecture-diagram",
     title: "CryptoFlex LLC Architecture Diagram",
