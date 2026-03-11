@@ -1,0 +1,464 @@
+---
+title: 'When Your AI Suggests Installing a Backdoor: Building Secure MCP Servers'
+date: '2026-03-10'
+description: 'How a routine search for blog content tools led to discovering critical security risks in a popular MCP server, and why I built my own secure alternative.'
+tags: ['security', 'mcp', 'claude-code', 'google-gemini', 'infographic-generation']
+author: 'Chris Johnson'
+readingTime: '15 min read'
+series: 'Security Engineering'
+seriesOrder: 4
+---
+
+The scariest vulnerabilities are the ones that come recommended.
+
+Not the zero-days buried deep in kernel code. Not the obscure buffer overflows in legacy C libraries. The ones that get past your defenses because a tool you trust suggested them, the documentation looked professional, and the GitHub repo had thousands of stars.
+
+That's what happened to me last week. I asked Claude Code to help me find a tool for generating infographics and slide decks from my blog posts. It found one that looked perfect: 2,270 stars, active maintenance, 60+ PyPI releases, and a clean MCP integration that would slot right into my workflow.
+
+It also required handing over my entire Google account via stolen browser cookies.
+
+This post is the story of how I found the risk, quantified it, and built a secure alternative. If you're plugging MCP servers, community tools, or AI-suggested packages into your workflow, this is why you should care.
+
+<Stop title="The Core Problem">
+The MCP ecosystem is exploding with community tools. Most have not been security audited. "Popular" does not mean "safe." Before connecting any MCP server to your workflow, you need to understand exactly what access it requires and whether that access is proportional to its function.
+</Stop>
+
+## The Use Case: Visual Content from Blog Posts
+
+Every time I publish a blog post, I want companion content: an infographic summarizing the key points, a slide deck for presentations, and social media snippets. Doing this manually takes an hour per post. I wanted to automate it.
+
+The ideal workflow:
+
+1. Write the blog post in MDX
+2. Feed the content to an analysis tool
+3. Generate an infographic automatically
+4. Create an editable slide deck
+5. Export social media posts
+
+Google's NotebookLM does a lot of this natively. It can take documents, analyze them, and generate visual content. So the obvious question was: is there an MCP server that wraps NotebookLM?
+
+## The Discovery: A Tool That Seemed Perfect
+
+I asked Claude Code to search for NotebookLM MCP integrations, and it found `notebooklm-mcp-cli`. On paper, it was ideal:
+
+| Metric | Value |
+|--------|-------|
+| Stars | 2,270 |
+| Forks | 423 |
+| Contributors | 11 |
+| PyPI Releases | 60+ |
+| MCP Tools | 29 |
+| License | MIT |
+
+Installation was trivial:
+
+```bash
+uv tool install notebooklm-mcp-cli
+nlm login
+nlm setup add claude-code
+```
+
+And the workflow matched my needs exactly: create a notebook, add blog content as a source, generate an infographic, generate a slide deck, download the outputs. Three commands and done.
+
+I almost installed it.
+
+<Warning title="Stars Are Not a Security Audit">
+2,270 GitHub stars means 2,270 people thought the README looked useful. It does not mean anyone reviewed the authentication model, checked what data it stores on disk, or verified that it follows the principle of least privilege. Stars measure popularity, not safety.
+</Warning>
+
+## The Assessment: What I Found
+
+Before installing anything that touches authentication or external services, I run a team agent security assessment. This is a structured review using four specialized agents: an AppSec lead, a pentester, a security engineer, and a developer. Each evaluates the tool from their perspective.
+
+What they found was alarming.
+
+### CRITICAL: Full Google Account Cookies Stored in Plaintext
+
+The tool authenticates by launching Chrome with a remote debugging port, extracting your Google session cookies via the Chrome DevTools Protocol, and saving them to `~/.notebooklm-mcp-cli/profiles/default/cookies.json` as plaintext JSON.
+
+These aren't NotebookLM-specific tokens. These are Google-wide session cookies:
+
+| Cookie | Purpose | Scope |
+|--------|---------|-------|
+| **SID** | Master session ID | Entire Google account |
+| **HSID** | HTTP-only session ID | Entire Google account |
+| **SSID** | Secure session ID | Entire Google account |
+| **APISID** | API session ID | Entire Google account |
+| **SAPISID** | Secure API session ID | Entire Google account |
+
+A single leaked cookie file gives an attacker full access to Gmail, Google Drive, Google Calendar, Google Photos, Google Cloud Console, YouTube, Google Pay, and every other Google service tied to that account. From any machine. With no IP binding or device fingerprinting to prevent it.
+
+<Stop title="Session Replay Risk">
+Google session cookies persist for weeks to months. The tool's auto-refresh mechanism can extend sessions indefinitely. If these cookie files are exfiltrated (malware, accidental git commit, misconfigured cloud sync, backup leak), the attacker gets persistent, full-account access with no way to revoke just the NotebookLM session. You'd have to kill all active Google sessions.
+</Stop>
+
+### CRITICAL: Broad Google Account Scope via Browser Cookies
+
+The tool doesn't use OAuth with narrow scopes. It doesn't use an API key limited to a single service. It extracts your full browser session, including cookies for every domain you've visited (the CDP `Network.getAllCookies` call returns cookies for ALL domains, not just `.google.com`).
+
+The MCP server itself only communicates with `notebooklm.google.com`. But the stored cookies could be reused by any process on the machine against any Google service. The blast radius is your entire digital life.
+
+### HIGH: Plaintext Cookie Storage on Disk
+
+The cookies are saved with `0o600` file permissions (owner-readable only), and the directory has `0o700` permissions. That's better than nothing, but it's not encryption. Any process running as your user can read these files. There's no OS keychain integration, no encryption at rest, and no file integrity checking.
+
+### HIGH: Google Terms of Service Violation
+
+The entire project reverse-engineers Google's internal `batchexecute` RPC protocol. This is not an official API. It uses browser User-Agent spoofing to impersonate Chrome 143. Google has precedent for taking action against this kind of automated access. In December 2025, Google sued SerpApi for similar automated access patterns.
+
+The risks are real:
+
+- Account suspension (immediate, no warning required)
+- Cascading suspension of "related accounts" using the same payment method
+- Loss of access to all Google services on that account
+
+### MEDIUM: 29 MCP Tools with Prompt Injection Exposure
+
+The server exposes 29 tools to the AI assistant. A prompt injection attack could instruct the AI to:
+
+- **Exfiltrate notebook content** via `notebook_query()` or `source_get_content()`
+- **Share notebooks publicly** via `notebook_share_public(is_public=True)` (this does NOT require confirmation)
+- **Upload sensitive local files** via `source_add(source_type="file", file_path=...)` with no path sandboxing
+- **Invite unauthorized collaborators** via `notebook_share_invite()` or `notebook_share_batch()`
+
+<Security title="The 29-Tool Problem">
+Every MCP tool you expose to an AI assistant is a potential action a prompt injection can trigger. The `notebooklm-mcp-cli` server exposes tools for reading, writing, sharing, deleting, and downloading content, all backed by full Google account cookies. That's a lot of blast radius for a tool whose job is to make infographics.
+</Security>
+
+### MEDIUM: Chrome DevTools Protocol Attack Surface
+
+During authentication, the tool:
+
+1. Launches Chrome with `--remote-debugging-port` (ports 9222-9232)
+2. Uses `--remote-allow-origins=*` (overly permissive)
+3. Connects via WebSocket to extract cookies
+
+While Chrome is running with remote debugging enabled, any local process can connect to the debugging port and execute arbitrary JavaScript, access all tabs, and steal cookies. The tool does bind to `127.0.0.1` and closes Chrome after authentication, but there's no verification that the connecting client is legitimate.
+
+### MEDIUM: HTTP Transport Without Authentication
+
+When running in HTTP mode (`notebooklm-mcp --transport http --port 8000`), the full 29-tool MCP surface is exposed without any authentication. No tokens, no TLS, no access control. The default is stdio (safe), but there's no warning when switching to HTTP.
+
+## The Decision: Build, Don't Borrow
+
+Here's the risk matrix from our assessment:
+
+| Risk | Likelihood | Impact | Rating |
+|------|-----------|--------|--------|
+| Cookie theft leads to full Google account compromise | Medium | Critical | **CRITICAL** |
+| Google suspends account for ToS violation | Low-Medium | High | **HIGH** |
+| Prompt injection exfiltrates local files or shares notebooks | Low | Medium | **MEDIUM** |
+| CDP exposes debugging port during login | Low | Medium | **MEDIUM** |
+| API breaks after Google update | Medium | Low | **LOW** |
+
+The team's verdict was "CONDITIONAL GO," meaning the tool could be used safely if deployed with a dedicated Google account that contains nothing sensitive. But I looked at the mitigation list and asked myself: why am I working this hard to make an inherently risky architecture safe when I can build a secure one from scratch?
+
+My actual need was simple:
+
+1. Analyze a blog post to extract key themes and data points
+2. Generate an infographic image
+3. Create an editable slide deck
+4. Generate derivative text content (social posts, summaries)
+
+None of these require full Google account access. None of these require browser cookies. None of these require reverse-engineering internal APIs.
+
+<Tip title="The Principle of Least Privilege">
+If a tool needs more access than its function requires, that's a design smell. Generating an infographic from text doesn't need access to your Gmail. Creating a slide deck doesn't need your Google Calendar cookies. When the required permissions far exceed the functional requirements, build something narrower.
+</Tip>
+
+## The Architecture: Four Tools, Minimal Scope
+
+I built a custom MCP server called `blog-content-generator` with four tools and a deliberately narrow authentication footprint. Here's the comparison:
+
+| Aspect | notebooklm-mcp-cli | blog-content-generator |
+|--------|-------------------|----------------|
+| Scope | Entire Google account | Gemini API + Slides only |
+| Auth type | Stolen session cookies | API key + service account |
+| ToS | Violates Google ToS | Fully compliant |
+| Blast radius | Gmail, Drive, Calendar, everything | Gemini calls + one Drive folder |
+| Maintenance | Re-login every 2-4 weeks | None (API key + SA are stable) |
+| Revocation | Impossible without killing all sessions | Revoke key/account independently |
+| MCP tools | 29 | 4 |
+| Attack surface | Broad | Minimal |
+
+### Tool 1: `analyze_blog_post`
+
+Takes raw MDX content (and optionally supplementary files), sends it to Gemini 2.5 Pro, and returns structured JSON with extracted themes, key points, code highlights, data points, visual specifications, and a slide outline.
+
+```python
+async def analyze_blog_post(
+    content: str,
+    supplementary_files: list[str] | None = None,
+) -> dict:
+```
+
+The analysis result feeds all three downstream tools. One LLM call generates the structured data that drives everything else.
+
+### Tool 2: `generate_infographic`
+
+Takes the analysis output and generates an infographic image via Google Imagen 3. Supports landscape (16:9), portrait (9:16), and square (1:1) orientations with technical, editorial, or social visual styles.
+
+```python
+async def generate_infographic(
+    analysis: dict,
+    orientation: str = "landscape",
+    style: str = "technical",
+    output_path: str = "./output/infographic.png",
+) -> dict:
+```
+
+The image generation uses `imagen-3.0-generate-002` through the official Gemini API. No browser automation, no cookie extraction, no reverse-engineered endpoints.
+
+### Tool 3: `create_slide_deck`
+
+Takes the analysis output, expands it into full slide content via Gemini 2.5 Flash, then creates a Google Slides presentation via the official Slides API and populates it with formatted text.
+
+```python
+async def create_slide_deck(
+    analysis: dict,
+    template: str = "technical",
+    title: str | None = None,
+) -> dict:
+```
+
+Returns a shareable Google Slides URL and a PDF export URL. The slides are editable, which is something NotebookLM's slide generation doesn't easily support.
+
+### Tool 4: `generate_document`
+
+Generates derivative text content from the analysis: executive summaries, social media posts, or newsletter sections.
+
+```python
+async def generate_document(
+    analysis: dict,
+    format: str = "summary",
+    output_path: str = "./output/document.md",
+) -> dict:
+```
+
+Four tools. Each does one thing. Each validates its inputs at the boundary. No tool has access to anything beyond its specific function.
+
+<Warning title="Scan Before You Install">
+Before adding any MCP server to your `claude.json`, read its source code. Check what authentication it requires, what network calls it makes, what files it reads from disk, and what permissions it needs. If the README says "paste your browser cookies here" or "grant full account access," that's your cue to look for alternatives.
+</Warning>
+
+## The Authentication: Why It's Secure
+
+The authentication layer is the most important part of this design. Here's how it works:
+
+### Gemini API Key (for analysis, image generation, and text generation)
+
+The Gemini API key is loaded from the `GEMINI_API_KEY` environment variable. It's never stored on disk by the server. The key is scoped to Gemini API calls only. It cannot access Gmail, Drive, Calendar, or any other Google service.
+
+```python
+def _load_api_key() -> str:
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise CredentialError(
+            "GEMINI_API_KEY environment variable is required but not set. "
+            "Export it before starting the server: "
+            "export GEMINI_API_KEY='your-key-here'"
+        )
+    return api_key
+```
+
+If the key is compromised, an attacker can make Gemini API calls on your account. That's it. They can't read your email, access your files, or impersonate you on other services. And you can revoke and rotate the key instantly in the Google Cloud Console without affecting any other sessions.
+
+### Service Account (for Google Slides and Drive)
+
+The Google Slides and Drive APIs use a service account, loaded from the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. Service accounts are fundamentally different from user accounts:
+
+- They have no browser sessions to steal
+- They have no cookies to extract
+- Their permissions are explicitly scoped via IAM roles
+- They can be granted access to a single Drive folder, not your entire Drive
+
+```python
+_SERVICE_ACCOUNT_SCOPES = (
+    "https://www.googleapis.com/auth/presentations",
+    "https://www.googleapis.com/auth/drive.file",
+)
+```
+
+Two scopes. `presentations` lets the service account create and edit Google Slides presentations. `drive.file` lets it access only files it creates (not your entire Drive). That's the principle of least privilege in action.
+
+### File Permission Checks
+
+The server validates file permissions at startup:
+
+```python
+_SAFE_PERMISSION_MASK = 0o600
+
+def _check_file_permissions(path: Path) -> None:
+    file_stat = path.stat()
+    current_mode = stat.S_IMODE(file_stat.st_mode)
+
+    if current_mode != _SAFE_PERMISSION_MASK:
+        logger.warning(
+            "Service account file '%s' has permissions %o. "
+            "Recommended: 0600. Fix with: chmod 600 '%s'",
+            path, current_mode, path,
+        )
+```
+
+If your service account key file has overly permissive access (say, world-readable `0o644`), the server warns you immediately. It doesn't silently proceed with an insecure configuration.
+
+### Startup Validation
+
+The server validates all credentials at startup, failing fast with clear error messages rather than encountering auth errors during request handling:
+
+```python
+def validate_startup() -> None:
+    _load_api_key()
+    sa_path = _load_service_account_path()
+    if sa_path is not None:
+        _check_file_permissions(sa_path)
+    logger.info("Credential validation passed.")
+```
+
+No silent failures. No deferred errors. If your credentials are missing or misconfigured, you know before the first tool call, not after.
+
+<Security title="Blast Radius Comparison">
+If `notebooklm-mcp-cli`'s cookie file is compromised: the attacker has your entire Google account, every service, every document, every email. Revocation requires killing all active Google sessions.
+
+If `blog-content-generator`'s API key is compromised: the attacker can make Gemini API calls. Revoke the key in Google Cloud Console. Done. If the service account key is compromised: the attacker can create presentations in one Drive folder. Delete the service account. Done.
+</Security>
+
+## Input Validation: Every Tool Guards Its Boundary
+
+Every tool validates its inputs before processing:
+
+```python
+# Orientation validation
+valid_orientations = ("landscape", "portrait", "square")
+if orientation not in valid_orientations:
+    raise ValueError(
+        f"Invalid orientation '{orientation}'. "
+        f"Must be one of: {', '.join(valid_orientations)}"
+    )
+
+# Style validation
+valid_styles = ("technical", "editorial", "social")
+if style not in valid_styles:
+    raise ValueError(
+        f"Invalid style '{style}'. "
+        f"Must be one of: {', '.join(valid_styles)}"
+    )
+```
+
+The analysis tool validates that content is non-empty. The supplementary file reader validates that paths point to actual files. The slide tool validates template names. The document tool validates format strings. Every boundary is guarded.
+
+This isn't just good practice. It's defense against prompt injection. If a malicious prompt tries to pass an unexpected value to a tool, the validation rejects it before it reaches the API.
+
+<Warning title="Community Tools Often Skip Validation">
+Many community MCP servers pass user input directly to APIs without validation. Check the source: does the tool validate its inputs? Does it sanitize file paths? Does it restrict which directories it can read from? If the answer is "no," you're one prompt injection away from data exfiltration.
+</Warning>
+
+## The Stack: Minimal Dependencies
+
+```toml
+[project]
+name = "blog-content-generator"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "google-genai>=1.0.0",
+    "google-api-python-client>=2.0.0",
+    "google-auth>=2.0.0",
+    "pydantic>=2.0.0",
+]
+```
+
+Five dependencies. All from Google's official SDK or well-established libraries. No `websocket-client` for CDP connections. No `httpx` for reverse-engineered API calls. No browser automation libraries. The supply chain is narrow and auditable.
+
+Compare this to the 7 dependencies in `notebooklm-mcp-cli`, which include `websocket-client` for Chrome DevTools Protocol communication and `httpx` for undocumented API calls.
+
+## The Pipeline: How It Works End to End
+
+The workflow chains through the four tools sequentially:
+
+```
+1. analyze_blog_post(content=<mdx>, supplementary_files=[<code_files>])
+   -> Gemini 2.5 Pro extracts themes, key points, code highlights
+   -> Returns structured JSON analysis
+
+2. generate_infographic(analysis=<result>, orientation="landscape", style="technical")
+   -> Imagen 3 generates a visual summary
+   -> Saves PNG to output directory
+
+3. create_slide_deck(analysis=<result>, template="technical", title="Post Title")
+   -> Gemini 2.5 Flash expands analysis into slide content
+   -> Google Slides API creates the presentation
+   -> Returns shareable URL
+
+4. generate_document(analysis=<result>, format="social-posts")
+   -> Gemini 2.5 Flash generates derivative text
+   -> Saves Markdown to output directory
+```
+
+The analysis step is the foundation. Gemini 2.5 Pro reads the blog post and optional supplementary files (relevant source code, configuration files), then produces a structured JSON object with everything the downstream tools need: title, summary, key points, code highlights, data points, a visual theme, suggested infographic layout, and a slide outline.
+
+The downstream tools consume this analysis independently. You can generate an infographic without creating slides. You can create slides without generating a document. Each tool stands alone.
+
+## Lessons Learned
+
+### 1. The MCP Ecosystem Needs Better Security Defaults
+
+There is no MCP server registry with security ratings. No standardized permission model. No required security review before publishing. The ecosystem is roughly where npm was in 2015: move fast, install everything, hope nothing goes wrong.
+
+<Stop title="Treat MCP Servers Like Dependencies">
+Every MCP server you install has full access to whatever credentials and permissions you give it. Treat the decision to install an MCP server with the same care you'd give to adding a dependency that handles authentication. Read the source. Check the auth model. Verify the scope.
+</Stop>
+
+### 2. Your AI Assistant Will Recommend Insecure Tools
+
+Claude found `notebooklm-mcp-cli` because it matched my query perfectly. It has great documentation, active maintenance, and a clean API. From a functionality perspective, it's excellent. From a security perspective, it stores your entire Google identity in plaintext on disk.
+
+AI assistants optimize for functionality match, not security posture. The security review is your job.
+
+### 3. Building Narrow Tools Is Cheaper Than Mitigating Broad Ones
+
+The `notebooklm-mcp-cli` assessment recommended creating a dedicated Google account, enabling 2FA, verifying file permissions, adding `.gitignore` entries, restricting transport modes, and disabling the server when not in use. That's six mandatory mitigations for a tool I'd be nervous about running even after applying all of them.
+
+Building `blog-content-generator` took less time than writing the mitigation plan. And I sleep better knowing the worst case is someone making unauthorized Gemini API calls on my dime, not reading my email.
+
+### 4. Official APIs Exist for Good Reasons
+
+Google has official APIs for Gemini, Slides, and Drive. They use standard OAuth2 and service account authentication. They're versioned, documented, and supported. They don't require stealing browser cookies or reverse-engineering internal RPC protocols.
+
+The unofficial approach is free (no API costs on the consumer tier). The official approach costs money. But the unofficial approach can get your account suspended and requires you to re-authenticate every 2-4 weeks when cookies expire. The official approach just works.
+
+<Tip title="If an Official API Exists, Use It">
+Reverse-engineered APIs break without notice, violate terms of service, and require authentication patterns that create unnecessary risk. If there's an official API that does what you need, the cost is almost always worth it compared to the risk of the unofficial alternative.
+</Tip>
+
+### 5. Four Tools, Not Twenty-Nine
+
+The `notebooklm-mcp-cli` server exposes 29 tools. Most of them (notebook management, source management, sharing, research, chat) are irrelevant to my use case of generating visual content from blog posts. But every exposed tool is attack surface. Every tool consumes context window. Every tool is a potential vector for prompt injection.
+
+I built four tools because four tools is what I need. Not twenty-nine. Scope your tools to your use case, not to every possible use case.
+
+## Security Checklist for MCP Server Evaluation
+
+Before installing any MCP server, ask these questions:
+
+1. **What credentials does it require?** API keys and service accounts are good. Browser cookies and full account tokens are red flags.
+2. **Is the scope proportional to the function?** A tool that generates images doesn't need email access.
+3. **How are credentials stored?** Environment variables and OS keychains are good. Plaintext JSON files on disk are a risk.
+4. **Does it use official APIs or reverse-engineered ones?** Official APIs have stability guarantees and ToS compliance.
+5. **How many tools does it expose?** More tools means more attack surface. Are all of them necessary for your use case?
+6. **What happens if credentials leak?** Can you revoke a single key, or do you lose your entire account?
+7. **Does it validate inputs?** Every tool parameter should be validated at the boundary.
+8. **Is it maintained?** Check the commit history, issue tracker, and release cadence. But remember: maintained does not mean audited.
+
+## The Result
+
+The `blog-content-generator` MCP server is running in production. It takes a blog post, analyzes it with Gemini 2.5 Pro, generates an infographic with Imagen 3, creates an editable slide deck via the Google Slides API, and produces social media content. Four tools, two credentials (an API key and a service account), zero browser cookies, zero ToS violations.
+
+The entire server is roughly 500 lines of Python across 8 files. The authentication module is 80 lines. The biggest file is the slide deck tool at 130 lines. It's small enough to audit in a single sitting.
+
+<Tip title="Build Small, Audit Often">
+A 500-line MCP server is something you can read, understand, and audit in an afternoon. A 29-tool server with Chrome DevTools integration and cookie extraction? That's a project you have to trust. Building small isn't just about simplicity. It's about maintaining the ability to verify that your tools do what you think they do.
+</Tip>
+
+The next time your AI assistant suggests a tool that seems perfect, take twenty minutes to check what it's actually doing with your credentials. You might find that building your own takes less time than worrying about someone else's.
