@@ -96,7 +96,42 @@ export default async function ResourceDetailPage({ params }: Props) {
               download
               className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              Download PDF
+              {resource.downloadLabel ?? "Download PDF"}
+            </a>
+          </div>
+        )}
+
+        {resource.type === "audio" && resource.downloadPath && (
+          <div className="mt-10 flex flex-col items-center gap-6 rounded-lg border border-border bg-card p-8">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-muted-foreground"
+            >
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
+            <p className="text-center text-muted-foreground">
+              {resource.description}
+            </p>
+            <audio controls className="w-full max-w-lg">
+              <source src={resource.downloadPath} type="audio/mp4" />
+              Your browser does not support the audio element.
+            </audio>
+            <a
+              href={resource.downloadPath}
+              download
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              {resource.downloadLabel ?? "Download Audio"}
             </a>
           </div>
         )}

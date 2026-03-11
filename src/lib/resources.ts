@@ -2,14 +2,36 @@ export interface Resource {
   slug: string;
   title: string;
   description: string;
-  type: "carousel" | "infographic" | "document" | "download";
+  type: "carousel" | "infographic" | "document" | "audio" | "download";
   tags: string[];
   date: string;
   iframeHeight?: string;
   downloadPath?: string;
+  downloadLabel?: string;
 }
 
 const resources: Resource[] = [
+  {
+    slug: "mcp-security-audio-briefing",
+    title: "The Security Risks of Community MCP Servers: Audio Briefing",
+    description:
+      "A deep-dive audio briefing on how popular MCP servers can leak Google credentials, the risks of community-built AI tool integrations, and how to evaluate them before installing.",
+    type: "audio",
+    tags: ["Security", "MCP", "Claude Code", "Audio"],
+    date: "2026-03-10",
+    downloadPath: "/resources/mcp-security-risks-audio-briefing.m4a",
+    downloadLabel: "Download Audio Briefing",
+  },
+  {
+    slug: "mcp-security-trap",
+    title: "The MCP Security Trap",
+    description:
+      "A reference document covering the security risks of community MCP servers: credential extraction patterns, blast radius analysis, Google ToS violations, and a checklist for evaluating MCP tools before installation.",
+    type: "document",
+    tags: ["Security", "MCP", "Claude Code", "Google"],
+    date: "2026-03-10",
+    downloadPath: "/resources/mcp-security-trap.pdf",
+  },
   {
     slug: "claude-code-persistent-memory",
     title: "Claude Code Persistent Memory",
