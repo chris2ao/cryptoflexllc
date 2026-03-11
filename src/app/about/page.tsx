@@ -69,14 +69,6 @@ const skills = [
   "Infrastructure Design",
 ];
 
-const consulting = [
-  "Infrastructure and architecture design",
-  "Automation and workflow engineering",
-  "Security assessments and practical hardening",
-  "SOC process improvement and operational tuning",
-  "IT strategy and modernization support",
-];
-
 export default function AboutPage() {
   return (
     <section className="py-16 sm:py-20">
@@ -181,31 +173,6 @@ export default function AboutPage() {
               Security is part of my career, but this blog is broader than
               that. Think of it as an engineering lab notebook that occasionally
               crosses into defense work when it&apos;s relevant.
-            </p>
-
-            {/* Consulting */}
-            <h2 className="text-xl font-bold text-foreground pt-4">
-              Consulting
-            </h2>
-
-            <p>
-              I run CryptoFlex LLC, my Florida-registered IT consulting company.
-              I take on select projects, especially where engineering meets
-              outcomes:
-            </p>
-
-            <ul className="space-y-2 text-sm">
-              {consulting.map((item) => (
-                <li key={item} className="flex gap-2">
-                  <span className="text-primary mt-1 shrink-0">&#9654;</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            <p>
-              If you&apos;re trying to build something real (and you want it to
-              work reliably), I can help.
             </p>
 
             {/* Why I write */}

@@ -5,36 +5,58 @@ import { BASE_URL } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Portfolio",
   description:
-    "Projects and engineering work by Chris Johnson — cryptocurrency mining infrastructure, custom analytics dashboards, AI-assisted web development, and security tooling.",
+    "Projects and engineering work by Chris Johnson: a production Next.js site, retro game rebuilds, AI agent orchestration, and developer tooling.",
   alternates: {
     canonical: `${BASE_URL}/portfolio`,
   },
   openGraph: {
     title: "Portfolio — Chris Johnson",
     description:
-      "Engineering projects spanning infrastructure, security, and AI-assisted development.",
+      "Engineering projects spanning full-stack web development, game development, AI agent systems, and developer tooling.",
     url: `${BASE_URL}/portfolio`,
   },
 };
 
 const projects = [
   {
+    title: "CryptoFlex LLC (This Site)",
+    description:
+      "Full-stack production website built with Next.js 15, React 19, and TypeScript. Custom analytics dashboard with IP intelligence, subscriber newsletter with AI-generated intros, blog commenting system, resource library, and an MDX content engine. Built entirely with Claude Code.",
+    tech: ["Next.js", "TypeScript", "React", "Tailwind CSS", "Neon Postgres"],
+    link: "https://github.com/chris2ao/cryptoflexllc",
+  },
+  {
+    title: "Third Conflict: 4X Space Strategy",
+    description:
+      "Browser-based 4X space strategy game rebuilt from a 1991 DOS classic. Technology trees, admiral system, four AI strategies, dynamic combat, and a retro terminal UI. Over 5,250 lines of pure-function architecture.",
+    tech: ["TypeScript", "React", "Game AI", "Claude Code"],
+    link: "https://third-conflict.vercel.app/game/setup",
+  },
+  {
+    title: "Cann Cann: Artillery Game",
+    description:
+      "Recreation of a 1990 Windows 3.1 artillery game for the modern web. Three-layer architecture (engine, store, rendering) with procedural terrain generation, physics-based AI opponents, multiple weapons, and four biomes.",
+    tech: ["TypeScript", "React", "Canvas", "Claude Code"],
+    link: "https://cann-cann.vercel.app",
+  },
+  {
+    title: "Claude Code AI Infrastructure",
+    description:
+      "Automation system for Anthropic's Claude Code CLI: persistent vector memory with semantic search via MCP, knowledge graph, session archiving, 30+ custom skills, multi-repo orchestration, and a continuous learning loop. Open-source configuration repository.",
+    tech: ["TypeScript", "MCP", "SQLite", "Claude Code"],
+    link: "https://github.com/chris2ao/claude-code-config",
+  },
+  {
+    title: "OpenClaw Multi-Agent System",
+    description:
+      "Seven-agent AI orchestration system running on a headless Mac Mini. Telegram bot integration for each agent, a pixel-art Mission Control dashboard, hybrid vector memory with Ollama embeddings, health monitoring, and automated gateway watchdog.",
+    tech: ["OpenClaw", "Ollama", "Next.js", "Telegram API"],
+  },
+  {
     title: "Cryptocurrency Mining Infrastructure",
     description:
-      "Designed and built a multi-GPU mining operation from scratch — hardware selection, thermal management, power distribution, and monitoring. Learned a ton about Linux system administration and hardware optimization in the process.",
+      "Designed and built a multi-GPU mining operation from scratch: hardware selection, thermal management, power distribution, and monitoring. Deep dive into Linux system administration and hardware optimization.",
     tech: ["Linux", "Hardware", "Networking", "Monitoring"],
-  },
-  {
-    title: "Claude Code Configuration & Automation",
-    description:
-      "Built a comprehensive configuration system for Anthropic's Claude Code CLI tool, including session logging hooks, automated activity tracking, and a plugin system. Documented the entire learning journey.",
-    tech: ["TypeScript", "PowerShell", "Claude Code", "Git"],
-  },
-  {
-    title: "IT Consulting Engagements",
-    description:
-      "Various IT consulting projects through CryptoFlex LLC — network infrastructure design, security assessments, and technology strategy for small and medium businesses.",
-    tech: ["Networking", "Security", "Cloud", "Strategy"],
   },
 ];
 

@@ -116,23 +116,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Services Teaser */}
-      <section className="py-16 sm:py-20 border-t border-border/40 bg-muted/20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="max-w-2xl">
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              Need IT Help?
-            </h2>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
-              I&apos;m available for IT consulting, security assessments,
-              and infrastructure projects through CryptoFlex LLC.
-            </p>
-            <Button asChild variant="outline" className="mt-6">
-              <Link href="/services">View services</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
     </>
   );
 }

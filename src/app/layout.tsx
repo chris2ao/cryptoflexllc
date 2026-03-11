@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     "AI development",
     "Next.js",
     "web development",
-    "security consulting",
+    "security engineering",
     "Chris Johnson",
     "CryptoFlex",
     "vibe coding",

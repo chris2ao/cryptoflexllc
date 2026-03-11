@@ -17,7 +17,7 @@ export function Footer() {
               className="h-12 w-auto"
             />
             <p className="mt-2 text-sm text-muted-foreground">
-              Tech blog and IT consulting based in Florida.
+              Tech blog and engineering portfolio based in Florida.
             </p>
           </div>
 
@@ -32,7 +32,6 @@ export function Footer() {
                 { href: "/about", label: "About" },
                 { href: "/portfolio", label: "Portfolio" },
                 { href: "/resources", label: "Resources" },
-                { href: "/services", label: "Services" },
                 { href: "/contact", label: "Contact" },
               ].map((link) => (
                 <Link
