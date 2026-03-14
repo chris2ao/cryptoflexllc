@@ -26,6 +26,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
+  verification: {
+    google: "g2F3QC7HnjoKIznCWYrcbOu4Jj7OCmE24kK-XoqjzSw",
+  },
   title: {
     default: "CryptoFlex LLC | Chris Johnson",
     template: "%s | CryptoFlex LLC",
