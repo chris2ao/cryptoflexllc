@@ -1,0 +1,430 @@
+---
+title: "I Built an AI Agent to Clean My Inbox. It Deleted 252 Emails in One Run."
+date: "2026-03-15T09:00:00"
+description: "A walkthrough of building a Gmail personal assistant agent in Claude Code that classifies thousands of emails, trashes the noise, archives the newsletters, and generates a draft report. Plus the multi-account GCP OAuth adventure nobody warns you about."
+tags: ["Claude Code", "Gmail", "Google Workspace", "Automation", "Agents", "Workflow"]
+author: "Chris Johnson"
+readingTime: "18 min read"
+---
+
+My inbox had 369 unread emails.
+
+Not a badge-of-honor "I'm so busy and important" kind of 369. A shameful "I've been ignoring these for weeks and now I'm afraid to open the app" kind of 369. Dollar Shave Club. Medium Digest. A credit score notification from a site I don't remember signing up for. Three VFW newsletters. Seventeen promotions from ButcherBox.
+
+I could have spent an afternoon clicking the delete button. Or I could spend that afternoon building an AI agent to do it for me and then write a blog post about it. The math wasn't hard.
+
+Here's what I built, how it works, why the GCP OAuth setup was a small nightmare, and what happened when I finally let it loose on my inbox.
+
+## The Plan: Five Steps, No Human Required
+
+The agent lives at `~/.claude/agents/gmail-assistant.md`. If you've read my [post on the GWS CLI skill](/blog/google-workspace-cli-skill-replacing-mcp-with-a-better-pattern), you know I replaced the Gmail and Calendar MCPs with a local CLI tool that authenticates properly and doesn't require an active MCP server per session. This agent is built on top of that.
+
+The workflow has five steps, and they run in sequence:
+
+<Info title="The Five-Step Pipeline">
+1. **Promotions purge** - trash promotions older than 7 days
+2. **Social purge** - trash social notifications older than 7 days
+3. **Newsletter detection** - trash anything with "unsubscribe" language older than 7 days
+4. **Primary inbox classification** - review remaining primary emails and sort into KEEP, ARCHIVE, TRASH, or FLAG
+5. **Draft report** - create a draft email with a summary table of what was done
+</Info>
+
+The first three steps are blunt: Gmail's own categorization already does most of the work for Promotions and Social. The agent just applies a time filter and pulls the trigger. Older than a week and you haven't opened it? Gone.
+
+Step 4 is where the agent has to actually think. Primary inbox emails are legitimate enough that Gmail didn't auto-categorize them, which means they could be anything: bills, receipts, your kid's school notifications, a Udemy course sale you actually care about, or marketing that slipped past Gmail's filters.
+
+Step 5 creates a draft email (not sent, just a draft) with a table breaking down everything that happened. So you can review before anything gets permanently deleted.
+
+## The Classification Rules
+
+The KEEP/ARCHIVE/TRASH/FLAG taxonomy is only as useful as the rules driving it. I spent some time writing out what actually matters in my inbox:
+
+**KEEP** (stays in the primary inbox):
+- Bills, utility notices, bank statements
+- Purchase receipts and shipping confirmations
+- Government mail (IRS, VA, anything official)
+- School communications from Broward County
+- USAA (insurance, banking)
+- Security alerts from services I actually use
+- Financial alerts (transactions, balance notifications)
+- Emergency alerts of any kind
+
+**ARCHIVE** (out of the inbox, but saved):
+- Stargard (car GPS tracking app) notifications
+- VFW newsletters (I'm a member, but I don't need these in my face)
+- SANS Advisory Board updates
+- Vet Tix (veteran concert tickets, I'll look when I have time)
+- Udemy course announcements and sales
+
+**TRASH** (gone):
+- Social media notifications (LinkedIn likes, Twitter mentions, etc.)
+- Dollar Shave Club, ButcherBox, Medium Digest (I never open these)
+- Credit score notifications from random sites
+- Marketing that slipped into Primary despite Gmail's best efforts
+
+**FLAG** (uncertain, needs human review):
+- Anything the agent isn't confident about
+- Anything that could be KEEP but the agent isn't sure
+- Edge cases and unfamiliar senders
+
+The FLAG category is important. This agent is not trying to be clever. When in doubt, flag it for me. I'd rather have ten false positives in a flag queue than accidentally trash a Broward County school emergency notice because the subject line looked like a newsletter.
+
+<Warning title="Don't Skip the FLAG Category">
+Any inbox automation that doesn't include a human-review escape hatch will eventually delete something important. Build the uncertainty bucket first. You can always tighten the rules later when you trust the agent's judgment.
+</Warning>
+
+## Writing the Agent File
+
+The agent lives in `~/.claude/agents/gmail-assistant.md`. Here's the structure:
+
+```markdown
+---
+platform: portable
+description: "Gmail personal assistant: classify and clean inbox using GWS CLI"
+model: sonnet
+tools: [Bash]
+---
+
+# Gmail Personal Assistant
+
+## Mission
+Process unread Gmail emails in 5 steps using the GWS CLI tool.
+Use GOOGLE_WORKSPACE_CLI_CONFIG_DIR env var to switch accounts.
+
+## Step 1: Trash Old Promotions
+...
+
+## Step 4: Classify Primary Inbox
+For each remaining primary email, classify as:
+- KEEP: bills, receipts, government, school (Broward County), ...
+- ARCHIVE: Stargard, VFW, SANS Advisory Board, Vet Tix, Udemy
+- TRASH: social media, Dollar Shave Club, ButcherBox, Medium Digest, ...
+- FLAG: anything uncertain
+
+## Step 5: Create Draft Report
+Create a draft email with subject "Inbox Cleanup Report - [date]"
+containing a markdown table: Category | Count | Examples
+```
+
+Sonnet-level is plenty for this task. It's reading email subjects and senders, applying rule-matching logic, and calling CLI commands. No architectural reasoning required.
+
+The `tools: [Bash]` constraint is intentional. The agent only needs to run shell commands. No file editing, no web fetching, no glob patterns. Limiting tools keeps the agent focused and prevents it from wandering.
+
+## The GWS CLI and Multi-Account Setup
+
+Here's where things got spicy.
+
+I built this agent to work against my personal Gmail account (`chris2ao@gmail.com`), but the GWS CLI I set up previously was authenticated against my work account (`chrisjohnson@cryptoflexllc.com`). Same tool, different credentials, and those credentials live in `~/.config/gws/`.
+
+<Info title="What Is the GWS CLI?">
+The Google Workspace CLI is a local tool that wraps the Google APIs (Gmail, Calendar, Drive, etc.) with proper OAuth authentication. I wrote about the setup in detail in a previous post. Short version: it's a replacement for the Gmail and Calendar MCPs that authenticates once per account and stays authenticated via refresh tokens stored in your system keychain.
+</Info>
+
+The tool supports multiple account profiles via the `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` environment variable. So in theory, I just point it at a different config directory:
+
+```bash
+# Work account (default)
+gws gmail list-messages --unread
+
+# Personal account
+GOOGLE_WORKSPACE_CLI_CONFIG_DIR=~/.config/gws-personal gws gmail list-messages --unread
+```
+
+Simple. Except I had to actually set up the personal account config first, and that's where the afternoon went sideways.
+
+### Attempt 1: Add Gmail to the CryptoFlex GCP Project
+
+My first instinct was efficiency: I already have a Google Cloud Project for the work account. Why not just add `chris2ao@gmail.com` as an authorized test user in the same OAuth consent screen?
+
+I went into the CryptoFlex GCP project, navigated to **APIs & Services > OAuth consent screen > Test users**, and tried to add the Gmail address.
+
+```
+Error: Domain restriction policy prevents adding users
+outside the organization's approved domains.
+```
+
+Right. The CryptoFlex GCP project is under Google Workspace for Business, which has a **Domain Restricted Sharing** org policy active by default. That policy blocks OAuth test user additions from outside the approved domain (cryptoflexllc.com).
+
+### Attempt 2: Update the Org Policy
+
+I'm the org admin. I can change org policies. How hard could it be?
+
+I navigated to **IAM & Admin > Organization Policies**, found the `constraints/iam.allowedPolicyMemberDomains` constraint, and edited it to add the Gmail domain (`C03hz1a1t` is Google's internal identifier for gmail.com in the Workspace org policy system).
+
+The policy saved. I went back to the OAuth consent screen. Added the Gmail test user. It accepted.
+
+Then I waited for IAM to propagate.
+
+And waited.
+
+And waited.
+
+<Warning title="IAM Propagation Is Not Instant">
+Google says org policy changes can take up to 15 minutes to propagate across their systems. In practice, especially for OAuth consent screen changes, it can be longer. I got tired of waiting and moved on to a better solution.
+</Warning>
+
+### Attempt 3: Separate GCP Project (The Right Answer)
+
+The cleanest solution was also the most obvious one: create a separate GCP project under the personal Google account, with its own OAuth credentials. No org policy complications, no cross-domain issues, no waiting for IAM propagation.
+
+Steps:
+
+```bash
+# 1. Go to console.cloud.google.com (logged in as chris2ao@gmail.com)
+# 2. Create new project: "personal-gws-cli"
+# 3. Enable Gmail API
+# 4. Create OAuth Desktop App credentials
+# 5. Download credentials.json
+# 6. Initialize gws with the personal config dir
+GOOGLE_WORKSPACE_CLI_CONFIG_DIR=~/.config/gws-personal gws auth login
+```
+
+The OAuth flow has some friction when you're using a non-verified app:
+
+1. Google shows you the "unverified app" warning screen
+2. You click "Advanced" then "Go to personal-gws-cli (unsafe)"
+3. You grant the Gmail scopes
+4. A refresh token gets written to `~/.config/gws-personal/tokens.json`
+
+After that initial dance, the tool authenticates silently using the refresh token. You don't see the warning again unless you revoke access or the token expires.
+
+<Tip title="Test Users for Desktop OAuth Apps">
+Even for Desktop App OAuth (not Web App), you need to add your own account as a test user in the OAuth consent screen if your app is in testing mode (not published). It's counterintuitive since you're authenticating as yourself, but Google requires it. Add your Gmail address to the test users list before trying to authenticate.
+</Tip>
+
+Once both accounts were configured, the agent's account-switching pattern was clean:
+
+```bash
+# In the agent, when working with personal Gmail:
+export GOOGLE_WORKSPACE_CLI_CONFIG_DIR="$HOME/.config/gws-personal"
+
+# Then all subsequent gws commands use personal account:
+gws gmail list-messages --label UNREAD --category PROMOTIONS --max-results 100
+```
+
+## Running the Agent
+
+With the agent file written and both GWS CLI accounts configured, I launched the agent:
+
+```
+/agents gmail-assistant
+```
+
+And then I waited. Processing 369 unread emails takes a while, even for Sonnet.
+
+The agent worked methodically through the five steps. I could see it calling the GWS CLI commands in sequence: listing promotions, trashing batches, listing social, trashing those, searching for newsletter indicators, classifying the survivors.
+
+The primary inbox classification step was the slowest. The agent read each email's subject, sender, and snippet, matched it against the classification rules, and took the appropriate action. For the FLAG category, it wrote down the sender and subject so I'd have context in the report.
+
+## The Results
+
+369 emails. Here's the breakdown:
+
+| Category | Action | Count |
+|----------|--------|-------|
+| Promotions (>7 days) | Trashed | 171 |
+| Social (>7 days) | Trashed | 2 |
+| Newsletters | Trashed | 48 |
+| Primary: Trash | Trashed | 31 |
+| Primary: Archive | Archived | 28 |
+| Primary: Flag | Flagged (starred) | 9 |
+| Primary: Keep | Left in inbox | 79 |
+| **Total processed** | | **368** |
+
+One email was apparently in a quantum superposition between categories and couldn't be counted. (More likely I miscounted somewhere. The agent didn't error.)
+
+171 promotions trashed. Dollar Shave Club, ButcherBox, Medium Digest, twelve months of credit score notifications from a site I signed up for once. Gone.
+
+48 newsletters, caught by the "unsubscribe" heuristic. The agent searched for emails containing language like "unsubscribe," "opt out," "email preferences," and "manage subscriptions" in the body. Older than 7 days and you didn't open it? Trash.
+
+The 9 flagged emails were interesting. Most of them were edge cases: an email from an unfamiliar sender that looked like it could be legitimate, a few marketing emails that arrived in the primary inbox without obvious newsletter markers. Exactly what the FLAG category was designed for.
+
+Zero errors. The agent ran to completion on the first try.
+
+<Tip title="The Draft Report Feature Is Worth It">
+Before I ran the agent, I almost skipped the draft report step. It felt like extra work. But seeing the summary table in a Gmail draft, organized by category with example subjects, gave me confidence that the agent did what I expected. It also serves as an audit trail. For automation that touches hundreds of emails, audit trails matter.
+</Tip>
+
+## The Draft Report
+
+The agent created a draft with the subject "Inbox Cleanup Report - 2026-03-13" (it ran the day before I'm writing this). Here's a simplified version of what it looked like:
+
+```
+Subject: Inbox Cleanup Report - 2026-03-13
+
+## Summary
+
+| Category | Count |
+|----------|-------|
+| Promotions trashed | 171 |
+| Social trashed | 2 |
+| Newsletters trashed | 48 |
+| Primary trashed | 31 |
+| Primary archived | 28 |
+| Flagged for review | 9 |
+| Kept in inbox | 79 |
+| **Total processed** | **368** |
+
+## Flagged for Review
+- "Claim your account - [unfamiliar sender]" from noreply@...
+- "Important update to your service agreement" from ...
+[etc.]
+
+## Trashed: Primary
+- Dollar Shave Club promotional emails (8)
+- ButcherBox seasonal sale (3)
+- Credit score notification from CreditKarma (5)
+[etc.]
+```
+
+The flagged section is the most useful part. Nine emails I need to actually look at. Everything else is handled.
+
+## The Syncthing Detour
+
+While I was in the middle of the GWS CLI setup, I hit an unrelated but annoying bug: the GWS CLI skill file at `~/.claude/skills/gws/SKILL.md` wasn't being loaded by Claude Code.
+
+The problem was case sensitivity. The file was saved as `SKILL.md` (uppercase), but somewhere in a previous sync between my Mac and another machine, Syncthing had transferred a version named `skill.md` (lowercase). macOS's APFS filesystem is case-insensitive by default, so both names pointed to the same inode. But Syncthing's conflict resolution had created a situation where the index showed one name and the file system showed another.
+
+The fix was to explicitly delete and recreate the file with the correct casing:
+
+```bash
+# Force correct case
+rm ~/.claude/skills/gws/SKILL.md
+mv ~/.claude/skills/gws/skill.md ~/.claude/skills/gws/SKILL.md
+```
+
+And then update the Syncthing ignore rules to exclude the file from syncing (the skill file is machine-specific anyway, since it references local tool paths).
+
+<Warning title="macOS Case Sensitivity Gotcha">
+macOS APFS is case-insensitive but case-preserving. This means `SKILL.md` and `skill.md` are the same file to macOS, but git, Syncthing, and Linux servers will treat them as different files. If you're syncing between macOS and Linux, case mismatches can cause subtle bugs where tools look for `SKILL.md` and get `skill.md` (or vice versa) without any error. The filesystem silently resolves it, but your tooling may not.
+</Warning>
+
+## The Memory-Nudge Hook
+
+Also wired up during this session: the memory-nudge hook. This is a PostToolUse hook that runs after certain operations and reminds Claude to save context to vector memory when something significant happens.
+
+The hook already existed as a script in `.claude/hooks/`. But it wasn't registered in `settings.local.json`, which meant it was never running. I added the registration and tested it.
+
+The cross-platform part: the hook script was written for macOS (bash). I also needed it to work on my Windows machine (Git Bash). The solution was a PowerShell port that reads the same stdin JSON format and fires the same reminder message. Two files, one hook registration that calls whichever is appropriate based on OS detection.
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__vector-memory__memory_store",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash ~/.claude/hooks/memory-nudge.sh",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The hook fires after any vector memory store operation and injects a reminder into the context: "Memory saved. Consider whether there are related items from this session worth capturing." Small nudge, but it's made a noticeable difference in how consistently I use the vector memory system.
+
+## Running It Again
+
+After the first run, my inbox was down to 79 unread emails. All of them legitimate. I reviewed the 9 flagged items (confirmed 7 were trash, 2 were actually important), and now the primary inbox contains only things that need attention.
+
+The second run, a day later, processed 23 new emails: 11 promotions trashed, 4 newsletters trashed, 6 kept, 2 flagged. Runtime: under 3 minutes.
+
+That's the point where automation becomes a habit. The first run is satisfying. The tenth run is infrastructure.
+
+<Tip title="Scheduling This">
+The agent is currently triggered manually. The natural next step is a daily cron job via Claude Code's CronCreate tool, or a launchd plist on the Mac Mini that triggers the agent every morning. I haven't done this yet because I want to run it manually a few more times to trust the classification rules before I let it operate fully unattended.
+</Tip>
+
+## Lessons Learned
+
+<Info title="Separate GCP Projects for Separate Accounts">
+When adding personal Google accounts to automation that started on a Workspace account, create a brand new GCP project under the personal account instead of trying to share the existing Workspace project. Org policies, domain restrictions, and IAM propagation delays make cross-domain OAuth more trouble than it's worth.
+</Info>
+
+<Warning title="The Unverified App Warning Is Expected">
+Desktop OAuth apps in testing mode will always show the "unverified app" warning for non-Gmail domains. For personal use automation, click through it once, get your refresh token, and you're done. Don't spend time trying to get the app "verified" unless you're distributing it to other users.
+</Warning>
+
+<Tip title="The FLAG Category Is Not Optional">
+Build a human-review escape hatch into any automation that takes destructive or hard-to-reverse actions. In this case, "trash" is recoverable for 30 days. But the habit of building in uncertainty handling will save you when the stakes are higher.
+</Tip>
+
+<Stop title="Test on a Small Batch First">
+I probably should have run the agent against the last 50 emails before unleashing it on 369. I was lucky the results were clean. If you're building something similar, add a `--dry-run` mode or a `--max-emails 50` limit and validate the classification output before running at full scale.
+</Stop>
+
+<Security title="Watch Your OAuth Scopes">
+The GWS CLI for Gmail needs read and modify scopes. Be explicit about what your agent is allowed to do. If you only need to read emails, request readonly scopes. If you need to trash emails, request modify. Never request broader scopes than you need, even for personal use automation.
+</Security>
+
+## The Agent File (Full)
+
+For reference, here's the core structure of the agent. I've simplified the classification rules for readability, but the actual file has the full sender/subject patterns:
+
+```markdown
+---
+platform: portable
+description: "Gmail personal assistant - classify and clean inbox"
+model: sonnet
+tools: [Bash]
+---
+
+# Gmail Personal Assistant
+
+## Setup
+Set GOOGLE_WORKSPACE_CLI_CONFIG_DIR for account selection:
+- Personal: export GOOGLE_WORKSPACE_CLI_CONFIG_DIR="$HOME/.config/gws-personal"
+- Work: (default, no env var needed)
+
+## Step 1: Trash Old Promotions
+gws gmail list-messages --label UNREAD --category PROMOTIONS
+For each email older than 7 days: gws gmail trash-message --id {id}
+
+## Step 2: Trash Old Social
+Same pattern with --category SOCIAL
+
+## Step 3: Trash Old Newsletters
+Search: gws gmail search-messages "unsubscribe OR opt-out OR email-preferences"
+Filter to >7 days old, trash each.
+
+## Step 4: Classify Primary Inbox
+List remaining unread primary emails.
+For each, read subject + sender + snippet.
+
+KEEP if: bill, invoice, receipt, confirmation, government, VA, USAA,
+         school (Broward), security alert, bank alert, emergency
+ARCHIVE if: Stargard, VFW, SANS Advisory Board, Vet Tix, Udemy
+TRASH if: social media notification, Dollar Shave Club, ButcherBox,
+          Medium Digest, credit score notification, unknown marketing
+FLAG if: uncertain - star the email and add to report
+
+## Step 5: Create Draft Report
+gws gmail create-draft with subject "Inbox Cleanup Report - {date}"
+Include: summary table (category | count), flagged emails list,
+         examples of what was trashed
+```
+
+## What I'd Build Next
+
+The agent handles the cleanup well. A few extensions that would make it genuinely powerful:
+
+**Unsubscribe handling**: For newsletters I've chosen to archive rather than trash, the real fix is unsubscribing. An extension to the agent that finds the unsubscribe link in the email body and opens it (or fires the List-Unsubscribe header if present) would handle this at the source.
+
+**Sender learning**: After a few runs, I could extract the senders that consistently get trashed and add them to a blocklist. Gmail's "Block sender" feature applied proactively, rather than reactively.
+
+**Scheduled runs**: A daily launchd job on the Mac Mini that runs the agent at 6 AM so my inbox is clean before I look at it. This is probably the highest-ROI next step.
+
+**Multi-account view**: The agent currently runs against one account at a time. A wrapper that runs it against both personal and work accounts in sequence and consolidates the report would be useful.
+
+For now, though, 369 emails down to 79 in one run is a good first day for a new agent.
+
+The inbox is clean. Dollar Shave Club has been silenced. And I have a blog post to show for the afternoon I spent not clicking the delete button myself.
+
+---
+
+*Written by Chris Johnson and edited by Claude Code (Sonnet). The Gmail assistant agent is in a private config repo (`CJClaudin_Mac`). The GWS CLI skill is covered in a previous post on this blog. All email counts are real. Zero legitimate emails were harmed in the making of this post (probably).*
