@@ -24,6 +24,10 @@ Then you wake up the next morning and your bots haven't replied to anything sinc
 
 This is the story of what went wrong and the three fixes that made it stop.
 
+<Info title="Companion Resources">
+This post is the full walkthrough. For a visual overview of all three fixes, see the [Headless Mode Infographic](/resources/headless-mac-mini-infographic). For a condensed, printable reference covering the full engineering approach (including network stall mechanics and the reliability triad), download [Building a Hardened AI Server Stack (PDF)](/resources/hardened-mac-mini-ai-servers).
+</Info>
+
 ## The Setup
 
 I'm running OpenClaw on an M4 Mac Mini. The machine has no monitor, keyboard, or mouse attached (headless mode). It sits in a corner and is supposed to just work. The agents use a mix of local Ollama models and OpenAI API calls, and they communicate with users via Telegram.
@@ -35,6 +39,8 @@ The problems I hit:
 3. Agent memory reads would crash overnight because daily log files didn't exist yet
 
 Three problems, three fixes. Let's go.
+
+![Visual overview of the three headless Mac Mini fixes: power management, gateway watchdog, and daily log creation](/images/blog/headless-mac-mini-infographic.png)
 
 ---
 
@@ -250,5 +256,12 @@ If your application expects files that only exist after some other process creat
 The whole setup took maybe two hours to get right, including the time spent debugging the polling stall. The Mac Mini has been silent in the corner ever since, doing its job.
 
 That's the goal.
+
+---
+
+## References
+
+- [Headless Mode Infographic](/resources/headless-mac-mini-infographic): A visual step-by-step guide covering all three fixes in a single overview.
+- [Building a Hardened AI Server Stack (PDF)](/resources/hardened-mac-mini-ai-servers): A 10-page reference document covering the full engineering approach, including network stall mechanics, the reliability triad, and the "pragmatic over perfect" philosophy.
 
 *Written by Chris Johnson and edited by Claude Code (Sonnet 4.6). Part of the Quick Tips series: short, practical posts about things I actually ran into and fixed. The OpenClaw deployment series (parts 1-3) covers the full setup story if you want the longer version.*

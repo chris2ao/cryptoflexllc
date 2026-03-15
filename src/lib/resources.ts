@@ -12,6 +12,27 @@ export interface Resource {
 
 const resources: Resource[] = [
   {
+    slug: "hardened-mac-mini-ai-servers",
+    title: "Building a Hardened AI Server Stack",
+    description:
+      "A 10-page reference covering the full engineering approach to running an M4 Mac Mini as a 24/7 OpenClaw server: power management, network stall mechanics, watchdog cron implementation, and the midnight race condition.",
+    type: "document",
+    tags: ["Mac Mini", "OpenClaw", "AI Agents", "Self-Hosted", "Infrastructure"],
+    date: "2026-03-15",
+    downloadPath: "/resources/hardened-mac-mini-ai-servers.pdf",
+  },
+  {
+    slug: "headless-mac-mini-infographic",
+    title: "Headless Mac Mini: Quick Tips Infographic",
+    description:
+      "A visual step-by-step guide to the three fixes that keep OpenClaw running 24/7 on a headless Mac Mini: power management, gateway watchdog, and daily log creation.",
+    type: "document",
+    tags: ["Mac Mini", "OpenClaw", "AI Agents", "Infographic"],
+    date: "2026-03-15",
+    downloadPath: "/images/blog/headless-mac-mini-infographic.png",
+    downloadLabel: "Download Infographic",
+  },
+  {
     slug: "mcp-security-audio-briefing",
     title: "The Security Risks of Community MCP Servers: Audio Briefing",
     description:
