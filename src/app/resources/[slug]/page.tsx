@@ -70,34 +70,32 @@ export default async function ResourceDetailPage({ params }: Props) {
         )}
 
         {resource.type === "document" && resource.downloadPath && (
-          <div className="mt-10 flex flex-col items-center gap-4 rounded-lg border border-border bg-card p-8">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-muted-foreground"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="12" y1="18" x2="12" y2="12" />
-              <polyline points="9 15 12 18 15 15" />
-            </svg>
-            <p className="text-center text-muted-foreground">
-              {resource.description}
-            </p>
-            <a
-              href={resource.downloadPath}
-              download
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              {resource.downloadLabel ?? "Download PDF"}
-            </a>
+          <div className="mt-10 flex flex-col gap-4">
+            {resource.downloadPath.endsWith(".pdf") ? (
+              <iframe
+                src={resource.downloadPath}
+                title={resource.title}
+                className="w-full rounded-lg border border-border"
+                style={{ height: "80vh", minHeight: "600px" }}
+              />
+            ) : /\.(png|jpe?g|gif|webp|svg)$/i.test(resource.downloadPath) ? (
+              <div className="rounded-lg border border-border overflow-hidden">
+                <img
+                  src={resource.downloadPath}
+                  alt={resource.title}
+                  className="w-full h-auto"
+                />
+              </div>
+            ) : null}
+            <div className="flex justify-center">
+              <a
+                href={resource.downloadPath}
+                download
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                {resource.downloadLabel ?? "Download PDF"}
+              </a>
+            </div>
           </div>
         )}
 
