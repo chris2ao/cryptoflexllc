@@ -28,7 +28,7 @@ import { withRetry } from "@/lib/email-retry";
 import { BASE_URL } from "@/lib/constants";
 import { maskEmail } from "@/lib/email-utils";
 
-export const maxDuration = 30;
+export const maxDuration = 300;
 
 function utm(campaign: string, content?: string): string {
   const params = `utm_source=newsletter&utm_medium=email&utm_campaign=${campaign}`;
@@ -115,50 +115,48 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // ---- 5. Send to each subscriber (verify existence first) ----
-    const sql = getDb();
+    // ---- 5. Send to each subscriber in concurrent batches ----
     let sent = 0;
+    const BATCH_SIZE = 5;
+    const subject = hasNewPosts
+      ? `This Week at CryptoFlex — ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}!`
+      : "This Week at CryptoFlex — Quick Update";
 
-    for (const { email } of recipients) {
-      // Verify subscriber still exists and is active (unless using testEmail override)
-      if (!testEmail) {
-        const verification = await sql`
-          SELECT id FROM subscribers WHERE email = ${email} AND active = TRUE LIMIT 1
-        `;
-        if (verification.length === 0) {
-          console.warn(
-            `[weekly-digest] Skipping ${maskEmail(email)} — no longer exists or inactive`
+    console.log(`[weekly-digest] Sending to ${recipients.length} recipients`);
+
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+      const batch = recipients.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async ({ email }) => {
+          const html = buildEmailHtml(digestPosts, hasNewPosts, email, intro, totalRecentPosts);
+          await withRetry(() =>
+            transporter.sendMail({
+              from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
+              to: email,
+              subject,
+              html,
+              headers: {
+                "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              },
+            })
           );
-          continue;
+        })
+      );
+
+      for (let j = 0; j < results.length; j++) {
+        if (results[j].status === "fulfilled") {
+          sent++;
+        } else {
+          console.error(
+            `[weekly-digest] Failed to send to ${maskEmail(batch[j].email)} after retries:`,
+            (results[j] as PromiseRejectedResult).reason
+          );
         }
       }
-
-      const html = buildEmailHtml(digestPosts, hasNewPosts, email, intro, totalRecentPosts);
-
-      try {
-        await withRetry(() =>
-          transporter.sendMail({
-            from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
-            to: email,
-            subject: hasNewPosts
-              ? `This Week at CryptoFlex — ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}!`
-              : "This Week at CryptoFlex — Quick Update",
-            html,
-            headers: {
-              "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
-              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-            },
-          })
-        );
-        sent++;
-      } catch (error) {
-        // Log the error but continue sending to other subscribers
-        console.error(
-          `[weekly-digest] Failed to send to ${maskEmail(email)} after retries:`,
-          error
-        );
-      }
     }
+
+    console.log(`[weekly-digest] Sent ${sent}/${recipients.length} emails`);
 
     // Ping healthcheck service (fire-and-forget, non-blocking)
     const healthcheckUrl = process.env.HEALTHCHECK_PING_URL;
@@ -169,6 +167,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       sent,
+      recipients: recipients.length,
       posts: digestPosts.length,
       totalPosts: totalRecentPosts,
       aiIntro: intro?.fromAi ?? false,
