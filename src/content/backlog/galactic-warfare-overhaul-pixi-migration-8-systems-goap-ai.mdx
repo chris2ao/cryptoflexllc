@@ -1,0 +1,571 @@
+---
+title: 'Galactic Warfare Overhaul: PixiJS, 8 New Systems, GOAP AI, and a Tutorial Campaign'
+date: '2026-03-15T12:00:00'
+description: >-
+  One session. Three commits. 11,600 lines. PixiJS WebGL migration, 8 gameplay
+  systems with TDD, GOAP AI, a 6-mission tutorial, glass-morphism UI, and a
+  full mobile overhaul. This is how you turn a 4X prototype into a real game.
+tags:
+  - Claude Code
+  - Game Development
+  - TypeScript
+  - PixiJS
+  - 4X Strategy
+  - AI Agents
+  - TDD
+author: Chris Johnson
+readingTime: 20 min read
+series: 'Game Development with Claude Code'
+seriesOrder: 6
+---
+
+## The Day Everything Changed
+
+There are sessions where you add a feature. And then there are sessions where you look at the before-and-after stats and your jaw drops a little.
+
+Before this session: `Third-Conflict` had 131 files, 446 tests, and a Canvas 2D rendering pipeline that worked fine but was starting to creak under the weight of all the new gameplay systems we had been adding.
+
+After: 160+ files, 772 tests, PixiJS WebGL rendering, 8 new gameplay systems, GOAP-based AI, a 6-mission tutorial campaign, glass-morphism UI, a complete mobile overhaul, and a 744-line roadmap document for the multiplayer phase.
+
+Total lines added: ~11,600, across 3 major commits.
+
+This post covers the whole journey: what we built, how parallel agents made it possible, where things got interesting, and what I learned about the ceiling of what a single AI-assisted session can accomplish.
+
+![Ron Swanson silently nodding in deep approval](https://media.giphy.com/media/DfdbTJBcO5HEY/giphy.gif)
+
+---
+
+## Context: Where We Left Off
+
+If you have been following this series, here is the quick recap.
+
+`Third-Conflict` is a web remake of *Second Conflict*, a 1991 Windows 3.0 space strategy game. The series has covered the initial rebuild with four parallel agents, a nine-agent security audit (26 findings, including a "God Mode in 30 Seconds" attack chain), a major feature expansion adding audio, branching tech trees, fleet stances, and hyperlane networks, and a fleet orders and command panels overhaul.
+
+After all of that, the game was solid. Clean architecture, good test coverage, working gameplay. But it was still a prototype wearing a game's clothes.
+
+The session described in this post is where it started actually feeling like a *game* someone other than me might want to play.
+
+---
+
+## Phase 1: The PixiJS Migration
+
+The single biggest technical change in this session had nothing to do with gameplay: we migrated from Canvas 2D to PixiJS v8 for rendering.
+
+### Why Migrate?
+
+Canvas 2D is fine for a lot of things. But as the star map grew in complexity (hyperlane networks, territory overlays, animated combat, fog of war, dozens of ship sprites), we were hitting the limits of what the 2D context handles gracefully. Every new visual effect meant more manual compositing, more state management in the rendering layer, and more performance profiling.
+
+PixiJS WebGL gives you a scene graph. Objects have positions, scales, rotations, and tint colors. You add them to the scene, move them around, and the renderer figures out how to draw them efficiently. GPU acceleration is not a bonus feature; it is the default.
+
+The architecture of `Third-Conflict` actually made this migration less painful than you might expect. The rendering layer was already isolated: a set of pure functions that take `(CanvasContext, GameState, Camera) => void`. Swapping Canvas 2D for a PixiJS renderer meant rewriting those functions, not touching the engine or the store.
+
+<Info title="The Layered Architecture Payoff">
+This is the third time in this series that the engine/store/rendering separation has saved significant work. The rendering layer is a pure output: it reads state and draws pixels. When you need to change how you draw pixels, you only change the rendering layer. Everything above it stays intact.
+</Info>
+
+### What the Migration Looked Like
+
+The new rendering pipeline lives in `src/rendering/pixi/`. The star map renderer creates a PixiJS `Application` and manages a scene graph with dedicated containers for background stars, hyperlane connections, system sprites, fleet movement animations, and UI overlays.
+
+```typescript
+// src/rendering/pixi/star-map-renderer.ts
+export class StarMapRenderer {
+  private app: PIXI.Application;
+  private containers: {
+    background: PIXI.Container;
+    hyperlanes: PIXI.Container;
+    systems: PIXI.Container;
+    fleets: PIXI.Container;
+    overlays: PIXI.Container;
+  };
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.app = new PIXI.Application();
+    // containers are children of app.stage in z-order
+  }
+
+  render(state: GameState, camera: Camera): void {
+    updateBackground(this.containers.background, state, camera);
+    updateHyperlanes(this.containers.hyperlanes, state, camera);
+    updateSystems(this.containers.systems, state, camera);
+    updateFleets(this.containers.fleets, state, camera);
+  }
+}
+```
+
+Each container renders independently. Want to add a new overlay type? Add a container. Want to hide the fleet animations during a loading transition? Set `fleets.visible = false`. The scene graph makes these operations trivial.
+
+The before/after performance difference was noticeable on mobile immediately. Canvas 2D was re-drawing the entire star map every frame. PixiJS only redraws what changed.
+
+---
+
+## Phase 2: Eight New Gameplay Systems (All TDD)
+
+This is the part that sounds impossible until you understand how parallel agents work.
+
+Eight new gameplay systems, all implemented test-first, all verified to 80%+ coverage, all in one session. Let me walk through what we built.
+
+### The Parallel Agent Pattern
+
+The pattern that made this feasible: three agents running simultaneously, each implementing an independent system.
+
+```
+Agent 1: Veterancy + Counter System
+Agent 2: Capital Worlds + Resource Extraction
+Agent 3: Trade Routes + Supply Lines
+```
+
+While those three finished, we dispatched the next wave:
+
+```
+Agent 1: Infrastructure Tiers
+Agent 2: Federation Alliances
+Agent 3: 8 New Random Events + 2 Galaxy Shapes
+```
+
+Each agent had its own scope, its own test file, and its own implementation module. They never touched the same files. When they all reported back green, a final integration pass wired everything into `turn-processor.ts` and the UI.
+
+<Tip title="Independence Is the Key">
+Parallel agents only work cleanly when the subtasks are genuinely independent at the file level. If two agents need to modify the same file, you get conflicts. Design the breakdown so each agent owns its own module. The integration step is always sequential, but it is usually small.
+</Tip>
+
+### Veterancy and Unit Counters
+
+Veteran units are just better. A warship that has survived three battles gets a veterancy badge and a 15% combat bonus. The system is pure state: each unit stack tracks `veterancyXp`, and the engine promotes stacks when they cross thresholds.
+
+The counter system adds rock-paper-scissors depth. Stealthships counter warships (evasion advantage). Warships counter missiles (intercept capability). Bombers counter infrastructure. Knowing the counter table changes how you build fleets for specific missions.
+
+```typescript
+export const COUNTER_TABLE: Record<UnitType, UnitType[]> = {
+  warship: ['missile', 'transport'],
+  stealthship: ['warship'],
+  bomber: ['infrastructure', 'factory'],
+  missile: ['system_defense'],
+  transport: [],
+  infrastructure: [],
+};
+
+export function getCounterBonus(
+  attacker: UnitType,
+  defender: UnitType
+): number {
+  return COUNTER_TABLE[attacker].includes(defender) ? 0.25 : 0;
+}
+```
+
+### Capital Worlds
+
+Every empire now has a capital: a system that provides unique bonuses and serves as a high-value target. Capturing an enemy's capital triggers a morale cascade through their systems. Losing your capital is catastrophic. Protecting it becomes a strategic priority.
+
+The capital mechanic also interacts with the federation system. When you form a federation with another player, your capitals must both agree (both players sign the treaty). If one capital falls, the federation fractures.
+
+### Resource Extraction
+
+Three strategic resources (duranium, xenon, plasma) now spawn at specific systems based on galaxy seed. Some advanced units and buildings require them. The resource extraction system adds production output each turn based on what is installed at the system.
+
+This creates territorial objectives that are not just about planet count. A duranium-rich cluster might not have many planets, but it is worth fighting over if you want heavy warship upgrades.
+
+### Trade Routes and Supply Lines
+
+Trade routes provide passive income between connected systems. Connect two of your systems with a trade route, and both earn a per-turn credit bonus proportional to the systems' economic output.
+
+Supply lines extend the trade route concept into logistics. Units operating beyond your supply network degrade over time. Maintaining supply lines through contested space becomes a tactical consideration, especially for deep-raid strategies.
+
+```typescript
+export function calculateSupplyStatus(
+  system: StarSystem,
+  state: GameState
+): 'supplied' | 'extended' | 'cut' {
+  const supplyPath = findShortestSupplyPath(system, state);
+  if (!supplyPath) return 'cut';
+  if (supplyPath.length > MAX_SUPPLY_RANGE) return 'extended';
+  return 'supplied';
+}
+```
+
+### Infrastructure Tiers
+
+Systems can now be developed through three infrastructure tiers, each unlocking production bonuses and new building slots. Tier 1 is the default. Tier 2 requires investment but roughly doubles production efficiency. Tier 3 is expensive and time-consuming, but a tier-3 core system generates enough output to sustain an entire fleet.
+
+The tiers create a "develop vs. expand" tension that is the heart of good 4X design. Do you rush to capture more systems, or do you invest in the ones you have?
+
+### Federations
+
+The biggest diplomatic addition: federations. Two or more players can form a federation, which operates like an enhanced alliance with shared intelligence, coordinated military access, and joint research bonuses.
+
+The trick is the federation vote mechanic. Any member can propose actions (attack, treaty, expansion) and the federation votes. Majority rules. This means federations can act coherently but also creates friction: a junior partner might outvote you on a war you wanted to avoid.
+
+<Info title="Why Federations Matter">
+Before federations, alliances were largely cosmetic. You could declare "Allied" with another player and... not attack each other. Federations give alliances mechanical weight: real bonuses, real coordination, real tension. They also create interesting late-game scenarios where two large federations collide.
+</Info>
+
+### Eight New Random Events
+
+The random event deck grew from 12 to 20 entries. New additions include:
+
+- Supernova threat (systems must evacuate or take damage)
+- Pirate uprising (independent systems flip to pirate faction)
+- Ancient artifact discovered (bonus research for one player)
+- Plague (production penalty, spreads along trade routes)
+- Solar flare (communication blackout, fog of war briefly extends)
+- Diplomatic incident (treaty between two AIs collapses)
+- Resource boom (resource output doubles for 3 turns)
+- Refugee crisis (population surplus appears in a neutral system)
+
+The variety turns each game into a different story. Two playthroughs of the same map seed will diverge significantly based on which events fire and when.
+
+### Two New Galaxy Shapes
+
+The galaxy generator now supports six shapes total: random, spiral, ring, clusters, nebula band, and core-out.
+
+**Nebula band** places a dense band of systems across the middle of the map, with sparser regions above and below. The band becomes a contested highway.
+
+**Core-out** puts a hyper-dense cluster of valuable systems at the center, with factions starting on the periphery. Every game is a race to the center.
+
+---
+
+## Phase 3: GOAP AI
+
+The most architecturally interesting change was replacing the rule-based AI with a Goal-Oriented Action Planning system.
+
+### The Old AI
+
+The previous AI used four fixed strategies selected at game start: Aggressive Expander, Defensive Builder, Diplomatic Trader, and Balanced. Each strategy was a decision tree: if the AI has less than 10 systems, expand; if it has 10+, build up military; etc.
+
+The problem with decision trees is that they do not compose. You cannot have an AI that is currently building up while also pursuing a specific diplomatic opportunity while also responding to a pirate threat. Each branch is mutually exclusive.
+
+### GOAP in Two Minutes
+
+GOAP works differently. The AI has a set of **goals** (things it wants to achieve) with varying priorities. It has a set of **actions** (things it can do) each with preconditions and effects. A planner finds a sequence of actions that satisfies the highest-priority goal given the current state.
+
+The key insight: goals compete and actions compose. The AI can pursue "capture resource system" while simultaneously executing "maintain trade routes" because these are separate goal/action chains that can run in parallel.
+
+```typescript
+export type GoalType =
+  | 'expand_territory'
+  | 'secure_resources'
+  | 'build_military'
+  | 'form_alliances'
+  | 'defend_capital'
+  | 'research_tech'
+  | 'win_by_domination';
+
+export interface Goal {
+  type: GoalType;
+  priority: number;
+  isAchieved: (state: GameState, aiPlayer: PlayerId) => boolean;
+  isRelevant: (state: GameState, aiPlayer: PlayerId) => boolean;
+}
+```
+
+The planner runs each turn and builds an action queue for the AI. Goals are re-evaluated every 5 turns so the AI responds to changing conditions.
+
+```typescript
+export function planActions(
+  state: GameState,
+  aiPlayer: PlayerId
+): AIAction[] {
+  const activeGoals = GOALS
+    .filter(g => g.isRelevant(state, aiPlayer))
+    .sort((a, b) => b.priority - a.priority);
+
+  const topGoal = activeGoals[0];
+  if (!topGoal) return [];
+
+  return findActionSequence(topGoal, state, aiPlayer);
+}
+```
+
+### Seven Goal Types in Practice
+
+The seven goals cover the full range of 4X behavior:
+
+1. **expand_territory**: fire when the AI has expansion capacity (ships, credits)
+2. **secure_resources**: fire when a strategic resource deposit is within 3 jumps and uncontrolled
+3. **build_military**: fire when the AI's military strength is below the average of its neighbors
+4. **form_alliances**: fire when the AI is weaker than the leading player
+5. **defend_capital**: fire when enemy forces are within 2 jumps of the capital, always high priority
+6. **research_tech**: fire when research points are accumulating faster than they are being spent
+7. **win_by_domination**: fire when the AI controls more than 60% of the map, shifts everything to finishing the game
+
+The result is an AI that feels like it has intentions. It builds up before expanding. It protects what it values. It pivots when threatened. It is not unbeatable, but it is no longer predictable.
+
+<Tip title="Impossible Difficulty">
+The new difficulty tiers include "Impossible": 0.35x player unit production, 2x AI unit production. At Impossible, the GOAP AI's plan-ahead capability is genuinely scary. It will identify your weak systems, stage forces, and hit multiple targets simultaneously. It is not fair. That is the point.
+</Tip>
+
+---
+
+## Phase 4: The Tutorial Campaign
+
+Teaching a 4X game is hard. You can have tooltips, you can have a glossary, but the concepts do not land until you play them.
+
+The solution: a 6-mission tutorial campaign that introduces mechanics progressively, with each mission having a single clear objective and a scripted sequence of opponent actions.
+
+### Mission Structure
+
+```typescript
+export interface TutorialMission {
+  id: string;
+  title: string;
+  description: string;
+  objectives: MissionObjective[];
+  scriptedEvents: ScriptedEvent[];
+  completionCondition: (state: GameState) => boolean;
+  failureCondition: ((state: GameState) => boolean) | null;
+}
+```
+
+The six missions:
+
+1. **First Steps**: Capture 3 systems. No opposition. Teaches movement and production.
+2. **Defend the Frontier**: Survive 10 turns against a small aggressive AI. Teaches combat and retreating.
+3. **Resource Rush**: Control all duranium deposits before the AI does. Teaches resources and infrastructure.
+4. **The Diplomat**: Form an alliance and complete a joint research goal. Teaches diplomacy and federations.
+5. **Hold the Line**: Defend your capital against a large invasion force. Teaches defensive play and retreat mechanics.
+6. **Total War**: Free-play with a strong AI opponent. No scripted events, no guardrails. The real game.
+
+Each mission includes a hints panel that surfaces contextual advice based on what the player is doing (or not doing). If a player reaches turn 15 without building a trade route in mission 3, the hint system nudges them.
+
+### Mission Type Differentiation
+
+This was actually a bug fix disguised as a feature. Before this session, the game had 10 named mission types in the data model but most of them had identical combat mechanics. "Defend" missions played exactly like "Capture" missions. "Blockade" missions did not block anything.
+
+The mission type differentiation work gave each of the 10 mission types distinct mechanics:
+
+| Mission Type | Distinct Mechanic |
+|---|---|
+| Capture | Standard: control the objective system |
+| Defend | Timer: survive N turns with the system |
+| Blockade | Economy: starve the target's production |
+| Escort | Movement: get the transport to the destination |
+| Assassination | Target: destroy the specific fleet |
+| Sabotage | Stealth: insert a unit, trigger, withdraw |
+| Colonize | Build: develop the system to tier 2 |
+| Liberate | Diplomacy: flip the system without combat |
+| Scout | Exploration: reveal N fog-of-war systems |
+| Exterminate | Attrition: reduce the opponent below 5 units |
+
+This made the mission system meaningful rather than cosmetic.
+
+<Warning title="Testing Mission Mechanics">
+Mission type differentiation required adding 10 new integration tests, one per type. These tests simulate the specific winning and losing conditions for each type and verify the engine handles them correctly. Without these tests, the risk of regression (a patch to combat code accidentally breaking the "Blockade" win condition) is too high.
+</Warning>
+
+---
+
+## Phase 5: Glass-Morphism UI
+
+The visual design got a complete overhaul with a glass-morphism theme using CSS custom properties throughout.
+
+The effect: panels look like frosted glass layered over the star map. Semi-transparent backgrounds with blur filters, subtle borders that catch the colors from behind, and a consistent visual hierarchy.
+
+```css
+:root {
+  --glass-bg: rgba(10, 14, 28, 0.75);
+  --glass-border: rgba(99, 179, 237, 0.15);
+  --glass-blur: blur(12px);
+  --glass-highlight: rgba(255, 255, 255, 0.05);
+  --accent-primary: #63b3ed;
+  --accent-secondary: #7c3aed;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+```
+
+Using CSS custom properties means the entire color system is one file. Want to test a red accent theme? Change two variables. The game has three built-in themes now: the default blue-glass, a green-glass "alien empire" theme, and a warm amber "ancient empire" theme.
+
+The theme switcher is in the settings panel. It persists via localStorage. This was 45 minutes of work with an outsized visual impact.
+
+<Info title="Glass-Morphism and Performance">
+Backdrop-filter blur is GPU-intensive. On low-end mobile devices, too many blurred elements cause frame drops. The solution: use `will-change: transform` on elements that animate, and avoid overlapping blur regions. The game's layout keeps blur zones non-overlapping (sidebar over map, not over another panel) so the GPU only processes one blur region at a time.
+</Info>
+
+---
+
+## Phase 6: Audio Enhancements
+
+The procedural audio system (introduced in the previous session) got significant additions.
+
+New sound effects: federation formation (rising chord), capital capture (dramatic stinger with reverb), veterancy promotion (ascending tone sequence), resource discovery (chime burst), and all 8 new random events with distinct audio signatures.
+
+The new music layer adds a "tension ramp": as the turn count increases and the strategic situation tightens, the background music density increases. Turn 1-20 is sparse and exploratory. Turn 40-60 is dense and urgent. Turn 80+ is wall-to-wall intensity. The ramp is based on a combination of turn count, number of active wars, and proximity to a winner condition.
+
+```typescript
+export function calculateMusicDensity(state: GameState): number {
+  const turnFactor = Math.min(state.turn / 80, 1); // 0 to 1 over 80 turns
+  const warFactor = Math.min(state.activeWars.length / 3, 1);
+  const winProximity = getLeadingPlayerDominance(state); // 0 to 1
+
+  return (turnFactor * 0.4) + (warFactor * 0.4) + (winProximity * 0.2);
+}
+```
+
+The density value controls oscillator count, filter cutoff, and reverb mix. High density sounds like a space opera climax. Low density sounds like the opening of a long voyage.
+
+---
+
+## Phase 7: The Mobile Overhaul
+
+Third Conflict already had a mobile layout. It was not good. This session fixed it.
+
+### Bottom Sheet Navigation
+
+The previous mobile layout tried to show the same sidebar that desktop uses, scaled down to fit. On a 390px-wide screen, this meant a sidebar that was either unreadably small or covering 60% of the screen.
+
+The new mobile layout uses a bottom sheet pattern: a panel that slides up from the bottom and snaps to 40%, 70%, or 95% of screen height. The star map takes the full screen. The bottom sheet contains the game controls.
+
+```typescript
+export type BottomSheetSnap = 0.4 | 0.7 | 0.95;
+
+export interface BottomSheetState {
+  isOpen: boolean;
+  snap: BottomSheetSnap;
+  content: 'fleet' | 'system' | 'diplomacy' | 'tech' | 'menu';
+}
+```
+
+Swiping up on the drag handle snaps to the next height. Swiping down collapses it. Tapping the star map while the sheet is at 95% collapses it back to 40%.
+
+<Tip title="Touch Target Sizing">
+Every interactive element in the mobile layout meets the 44x44px minimum touch target size recommended by Apple's HIG. This is not a nice-to-have: small touch targets cause mis-taps that corrupt game state (accidentally ending a turn, accidentally declaring war). Test on a real device with fingers, not just a trackpad.
+</Tip>
+
+### Haptic Feedback
+
+iOS and Android both expose a haptic feedback API via `navigator.vibrate()` with fallback patterns. The game now triggers haptics on:
+
+- Turn end (single short pulse)
+- Combat result (double pulse for victory, triple for defeat)
+- Achievement unlock (long pulse + short pulse)
+- Capital under attack (rapid triple pulse)
+
+```typescript
+export function triggerHaptic(pattern: HapticPattern): void {
+  if (!navigator.vibrate) return;
+
+  const patterns: Record<HapticPattern, number[]> = {
+    turn_end: [30],
+    victory: [50, 30, 50],
+    defeat: [50, 30, 50, 30, 50],
+    achievement: [100, 50, 30],
+    alert: [30, 20, 30, 20, 30],
+  };
+
+  navigator.vibrate(patterns[pattern] ?? [30]);
+}
+```
+
+### Dialog Card Redesigns
+
+Mobile dialogs moved from modal sheets (full-screen overlays) to card stacks. A fleet detail card slides in from the right. A system card slides in from the left. Confirmation dialogs appear as bottom-anchored cards rather than centered modals.
+
+The card stack model means you can have context visible behind the card. When reviewing a fleet, you can still see the star map and understand the strategic context. The previous modal approach blocked all game state context while you were making decisions.
+
+### PWA Install Prompt
+
+A new "Add to Home Screen" prompt appears on first visit on mobile browsers that support PWA installation. The prompt is dismissible and does not reappear after the first dismissal (stored in localStorage).
+
+Installing the PWA gives you the full-screen experience without browser chrome, and the service worker pre-caches the game assets so it loads instantly on repeat visits. First load on mobile was 1.8 seconds. Subsequent loads from cache are under 0.3 seconds.
+
+---
+
+## Phase 8: Total Conquest Roadmap
+
+The final output of the session was not code: it was a 744-line planning document outlining the multiplayer phase of `Third-Conflict`, code-named "Total Conquest."
+
+The roadmap covers:
+
+- Real-time WebSocket game state synchronization
+- Asynchronous turn-based multiplayer (submit your turn, opponents take theirs)
+- Persistent ranked games with ELO
+- Spectator mode for watching live games
+- Tournament bracket system
+- Replay system with turn-by-turn playback
+
+The document is detailed enough to use as a backlog. Each feature has acceptance criteria, technical approach, estimated complexity, and dependency mapping.
+
+<Info title="Why Write the Roadmap Now?">
+Writing the roadmap at this moment, while the codebase is fresh and the architecture decisions are visible, captures knowledge that would otherwise drift. Future sessions can load the roadmap and know exactly what the next phase looks like without re-deriving it from scratch. It is also a useful forcing function: writing the roadmap revealed three architecture decisions we needed to make now (session ID design, state serialization format, conflict resolution for simultaneous moves) rather than discovering them mid-implementation.
+</Info>
+
+---
+
+## By the Numbers
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Total files | 131 | 160+ |
+| Tests passing | 446 | 772 |
+| Rendering engine | Canvas 2D | PixiJS v8 WebGL |
+| AI strategy types | 4 (fixed rule trees) | 7 goal types (GOAP) |
+| Tutorial missions | 0 | 6 |
+| Gameplay systems | Core + WS3-9 | + 8 new systems |
+| Random events | 12 | 20 |
+| Galaxy shapes | 4 | 6 |
+| Difficulty tiers | 4 | 5 (+ "Impossible") |
+| Mobile layout | Scaled sidebar | Bottom sheet + haptics |
+| UI theme | Flat dark | Glass-morphism (3 themes) |
+| New files created | 0 | 26 |
+| Lines added | 0 | ~11,600 |
+
+---
+
+## What Made This Session Different
+
+Previous sessions added features. This session changed what the game *is*.
+
+A few things made the scale possible:
+
+**Parallel agents, actually parallel.** Not "launch agents and wait." Launch agents, do other work while they run, integrate when they finish. Three agents implementing independent systems simultaneously cuts the elapsed time to roughly the longest single agent's time, not the sum. For eight systems, this is the difference between a reasonable session and an impossible one.
+
+**Test-first discipline at scale.** 326 new tests sound like a lot. They were not painful because each agent wrote its own tests for its own module. No agent was responsible for the whole test suite, just its slice. When all agents reported green, integration was mostly about wiring, not debugging.
+
+**The architecture absorbed the growth.** 26 new files and the existing tests still passed. Adding a new gameplay system meant adding a new module, wiring it into `turn-processor.ts`, and adding it to the `GameState` type. TypeScript found every place that needed updating. Nothing broke that should not have.
+
+![The cast of The Office doing a synchronized fist pump](https://media.giphy.com/media/1jWOC4BPuBJJpwlREe/giphy.gif)
+
+---
+
+## Lessons Learned
+
+<Tip title="GOAP Pays for Itself Fast">
+The initial investment in GOAP infrastructure (goal types, action definitions, planner) is significant. But every AI behavior you add after that is just a new goal or action, not a new branch in a tree. The 7th goal type took a fraction of the time the first one did. If you are building any game with AI opponents, GOAP or a similar planner scales much better than decision trees.
+</Tip>
+
+<Warning title="Migration Timing Matters">
+We migrated to PixiJS *before* adding the 8 new systems, not after. This was the right order. Migrating a rendering engine while gameplay systems are in flux adds risk. Migrate on a stable codebase, verify everything still works, then expand. The reverse order would have meant debugging rendering issues and gameplay issues simultaneously.
+</Warning>
+
+<Info title="Mobile Is a Different Game">
+The bottom sheet pattern works on mobile because it respects the thumb zone. Game controls at the bottom of the screen are reachable. Controls at the top are not. This sounds obvious but it is easy to forget when you are developing on a laptop. The entire mobile overhaul happened after someone played the game on an actual phone and found it frustrating.
+</Info>
+
+<Tip title="Write the Roadmap While the Code Is Fresh">
+The 744-line Total Conquest roadmap is more useful than a post-mortem written months later, because it captures the architecture as-understood now, not as-remembered later. Schedule roadmap writing as part of the session, not as a future "someday" task.
+</Tip>
+
+<Stop title="The Impossible Difficulty Is Actually Impossible">
+Early playtesting of the "Impossible" tier revealed that 0.35x player production combined with 2x AI production creates a game that is not fun-hard, it is just unfair-hard. We added a 5-turn grace period at game start where the AI production bonus does not apply, which gives the player time to establish a foothold before the AI steamrolls. Test your difficulty tiers with someone other than yourself.
+</Stop>
+
+---
+
+## What Comes Next
+
+The Total Conquest roadmap is written. The single-player game is, for the first time, genuinely finished: good AI, good tutorial, good mobile experience, good visual design.
+
+The next phase is multiplayer. Asynchronous turn-based, ranked, persistent. The architecture is ready for it. The state is fully serializable. The engine is pure functions with no side effects.
+
+The 1991 shareware game is now a browser-based 4X with WebGL rendering, GOAP AI, a 6-mission tutorial, haptic feedback on mobile, and a multiplayer phase in active planning.
+
+Jerry Galloway would probably be baffled. In the best possible way.
+
+---
+
+*Written by Chris Johnson. `Third-Conflict` is a web remake of Second Conflict (1991), rebuilt as a modern browser game using <Nextjs>Next.js</Nextjs> 15, React 19, TypeScript, PixiJS v8, Zustand v5, and Tailwind CSS v4. Previous posts in this series: [The 5,250-Line Upgrade](/blog/the-5250-line-upgrade-turning-a-prototype-into-a-real-4x-game), [Securing a Retro Game: 26 Findings, 9 Agents, 15 Minutes](/blog/securing-a-retro-game-26-findings-9-agents), and [Rebuilding a 1991 Space Game with AI Agents](/blog/rebuilding-a-1991-space-game-with-ai-agents).*
