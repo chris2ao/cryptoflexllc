@@ -1,0 +1,357 @@
+---
+title: "Claude Dispatch, Scheduled Tasks, and the Road to Fully Autonomous Agents"
+date: "2026-03-19T01:00:00"
+description: "I tried to schedule my gmail-assistant agent from my phone using Claude's new Dispatch feature. It almost worked. Here's what I learned about where AI automation is heading and what it still can't do."
+tags: ["Claude Code", "Automation", "AI Agents", "OpenClaw"]
+author: "Chris Johnson"
+readingTime: "18 min read"
+---
+
+It is 10:30 PM. I am lying in bed. My phone is in my hand. I have just finished setting up the second version of my gmail-assistant agent and I am thinking: this thing should run itself. Every 8 hours. Without me.
+
+I open the Claude app. I tap into Dispatch.
+
+And this is the story of what happened next, why it almost worked, why it didn't quite work, and what it tells us about where AI automation is actually heading.
+
+![A person lying in bed using a phone, dramatically lit](https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif)
+
+*Me, plotting automation from my pillow.*
+
+## First, the Agent That Started This
+
+Before I get to Dispatch, you need to know what I was trying to schedule. Because it matters.
+
+The gmail-assistant agent has been running in my setup for a couple of weeks now. [I wrote the first version in a previous post](/blog/gmail-cleanup-agent-personal-ai-email-assistant): a five-step pipeline that classifies 300-something unread emails into KEEP, ARCHIVE, TRASH, and FLAG buckets, then generates a draft report. It deleted 252 emails on its first run.
+
+But I kept running it manually. Which is fine, but manual is not the same as automatic.
+
+So I sat down (well, lay down) and built version 2.
+
+### What Changed in Gmail Assistant v2
+
+The v1 agent worked. V2 works better. Here are the six things I changed, and more importantly, why each change matters:
+
+
+**1. Extended to a 14-day window**
+
+V1 used a 7-day cutoff for bulk categories like Promotions and Social. V2 extends that to 14 days. The logic: if I have not opened a promotional email in two weeks, I am not going to open it. The cutoff moves.
+
+**2. Quick scan before bulk trash**
+
+V1 trashed Promotions and Social without any preliminary review. V2 does a 10-email quick scan of each category first, logging the senders and subjects before deleting anything. If the scan surfaces something unexpected (a confirmation email that landed in Promotions, for instance), it flags the entire batch for review instead of trashing it.
+
+**3. Content-aware classification**
+
+V1 matched on sender name and subject keywords. V2 also reads the email snippet (the first ~200 characters of the body) for classification signals. This catches the edge case where a legitimate bank notification has a subject line that pattern-matches to marketing ("Your account is ready for a special offer...").
+
+**4. Smart starred and important handling**
+
+V1 would archive or trash starred emails if they matched a rule. V2 never touches starred or Google-marked-important emails without explicit confirmation. Those markers represent intentional human decisions, and the agent should respect them.
+
+**5. Urgent notifications**
+
+V2 can generate a real notification via `osascript` on macOS if it finds emails matching an urgent pattern (security alerts, payment failures, emergency notices). The draft report still gets created, but urgent items also surface immediately.
+
+**6. Spam intelligence report**
+
+After the cleanup run, v2 generates a section in the draft report showing which senders appeared most frequently in the trash. Over time, this becomes a list of candidates for explicit Gmail filters, so the agent does less work on future runs.
+
+<Info title="Where the Agent Lives">
+The gmail-assistant agent file lives at `~/.claude/agents/gmail-assistant.md` in the `CJClaudin_Mac` config repo. It uses the GWS CLI (Google Workspace CLI) for all Gmail operations. The GWS CLI is a local shell tool that wraps the Gmail API with proper OAuth authentication. I wrote about setting it up in [this earlier post](/blog/google-workspace-cli-skill-replacing-mcp-with-a-better-pattern).
+</Info>
+
+The 14-day window and smart starred handling together solve the two most common failure modes of inbox automation: bulk-deleting something you care about, and missing promotional emails that recently arrived. The content-aware classification handles the edge cases in between.
+
+The spam intelligence report is the feature I am most excited about over a longer time horizon. After 10 or 20 runs, that report becomes a map of exactly which senders are cluttering my inbox. I can turn those into permanent Gmail filters and progressively reduce the agent's workload. The agent gets smarter about what it does not need to look at, because it told me what to filter.
+
+<Tip title="The Spam Intelligence Report Pattern">
+If you build any inbox automation, add a section to the output that lists the top senders by trash volume. After a few runs, review that list and create explicit Gmail filters for the repeat offenders. You are shifting classification work from the agent to Gmail's built-in filter system, which runs before any email hits your inbox. The agent handles the edge cases; the filters handle the obvious stuff.
+</Tip>
+
+This v2 agent, freshly built, was the thing I wanted to schedule. Eight hours felt right. Morning, afternoon, evening. Inbox stays clean around the clock, no human required.
+
+And I had a new tool to try.
+
+## Enter Dispatch
+
+<Info title="What Is Claude Dispatch?">
+Dispatch is part of Claude's Cowork feature in the Claude desktop and mobile apps. It lets you queue tasks for Claude to execute later, on a schedule, without you being in an active session. Think of it as a way to set up recurring automations: "run this every 8 hours" or "do this every Monday morning."
+</Info>
+
+<Info title="What Is Cowork?">
+Cowork is Anthropic's take on background task execution in Claude. When you use Cowork, Claude runs tasks in a managed VM environment rather than in your active session. This lets Claude operate without requiring you to be present. The tradeoff: the VM has access to cloud-based tools (like MCP servers), but it does not have access to your local machine.
+</Info>
+
+Dispatch felt like exactly the right fit for the gmail-assistant. I have an agent that knows how to clean my inbox. I want it to run on a schedule. Dispatch is a scheduling system. The math seemed straightforward.
+
+![Math seems straightforward meme](https://media.giphy.com/media/DHqth0hVQoIzS/giphy.gif)
+
+*The math was not straightforward.*
+
+Here is what I typed into Dispatch:
+
+> "Schedule the gmail-assistant agent to run every 8 hours. It uses the GWS CLI to classify and clean my Gmail inbox. When it runs, it should use my personal GWS config at ~/.config/gws-personal."
+
+Dispatch confirmed the task. I set the interval to 8 hours. The first scheduled run triggered while I was still awake.
+
+And then the wheels came off.
+
+## The VM vs. Host Machine Problem
+
+The scheduled task ran. But it fell back to the built-in Gmail MCP instead of using the GWS CLI.
+
+<Info title="What Is MCP?">
+MCP stands for Model Context Protocol. It is an open standard for connecting AI models to external tools and data sources. Claude has built-in MCP integrations for services like Gmail, Google Calendar, and others. These built-in MCPs are read-only for Gmail: they can list and read messages, but they cannot trash, archive, or modify them.
+</Info>
+
+The problem: the GWS CLI is installed on my host machine (my M4 Mac Mini). The scheduled task runs in Cowork's managed VM. Those are two different environments. The VM does not have access to my local filesystem, my `~/.config/gws-personal/` directory, or the `gws` binary.
+
+So when the task ran, it could not find the tool it needed. It fell back to what was available: the built-in Gmail MCP. Read-only. Useful for reading emails. Not useful for trashing 200 promotional emails.
+
+This is what the Dispatch session looked like at that point:
+
+> **Claude:** The scheduled task ran successfully, but I notice the GWS CLI isn't available in this environment. I used the built-in Gmail integration instead, which gave me read access. Unfortunately, this means I could classify emails but couldn't take any actions (trash, archive, or modify).
+>
+> The core issue: scheduled Dispatch tasks run in a managed cloud environment that doesn't have access to your local machine's tools or filesystems. The gws binary and your auth credentials at ~/.config/gws-personal live on your host machine, not in the Cowork VM.
+
+That was a clear and honest explanation. I appreciated it. But I still had 200 promotional emails sitting in my inbox.
+
+<Warning title="Cowork VM vs. Host Machine">
+If your automation relies on locally installed tools (custom CLIs, local MCP servers, auth credentials stored on disk), those tools will not be available in scheduled Dispatch tasks. Scheduled tasks run in Anthropic's managed cloud environment. Host-level access requires a different approach.
+</Warning>
+
+## Attempt Two: Route to a Code Task
+
+Claude (in Dispatch) had a suggestion:
+
+> **Claude:** There is a workaround worth trying. Code tasks in Claude Code run on your host machine, not in the VM. If I could schedule a code task instead of running directly in Dispatch, it would have access to all your local tools. I could route the scheduled trigger to a Claude Code session on your Mac.
+
+<Info title="What Is a Code Task?">
+A code task is a Claude Code session (the CLI tool, not the web app). When Claude Code runs on your machine, it has full access to your local filesystem, installed tools, and environment variables. It can call the GWS CLI, read local config files, and do anything your shell can do.
+</Info>
+
+This was a promising idea. I had Claude Code running on my Mac Mini 24/7 anyway. If Dispatch could trigger a code task, and the code task could invoke the gmail-assistant agent with local tools, we would have achieved the goal: scheduled, automated, running with full CLI access.
+
+I configured the routing. Set up the trigger. Waited for the next 8-hour window.
+
+The task did not trigger a code task.
+
+The reason, when we debugged it:
+
+> **Claude:** Scheduled tasks in Dispatch currently cannot spawn code tasks on your host machine. Code tasks require an active Claude Code session to be listening for incoming work, and scheduled tasks do not have a mechanism to initiate that handoff. What you are describing is essentially a push notification to your local machine from Anthropic's cloud, and that capability is not available in the current version of Dispatch.
+
+So: scheduled tasks cannot trigger code tasks. Which means scheduled tasks cannot access host-level tools. Which means scheduled tasks, for now, are limited to what is available in the Cowork VM.
+
+![A brick wall](https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif)
+
+*The current limit of Dispatch.*
+
+## Option 3: The Manual Trigger That Actually Works
+
+After two failed attempts at true automation, Claude offered the option that actually works today:
+
+> **Claude:** Here is what does work right now: a manual trigger. If you open Dispatch and say "run gmail cleanup," I can route that to a code task on your host machine, which has full access to your GWS CLI and credentials. You get the benefit of not having to remember the full agent command, and the task runs in Claude Code with everything it needs. It is not scheduled, but it is fast and it works.
+
+I had one objection:
+
+> **Me:** I don't want a cron job. That's a separate place to manage.
+
+Cron was the obvious alternative. I have cron jobs running on the Mac Mini already (the OpenClaw gateway watchdog cron, specifically). I could add a new cron entry that fires a Claude Code command every 8 hours.
+
+But here is the thing about cron: every cron job is a thing to manage. You have to remember it exists. When something breaks, you have to check the cron logs. When you change the agent, you have to update the cron entry. It is not that hard, but it is one more thread to hold.
+
+What I actually want is for Dispatch to be that management layer. One place where I can see what is scheduled, pause it, change the interval, check the last run status. The UX of Dispatch is already there. The host-level execution capability just is not.
+
+<Tip title="The Manual Dispatch Trigger Pattern">
+Even without scheduled execution, Dispatch adds value as a natural language shorthand. Instead of navigating to Claude Code and typing out the full agent invocation, you say "run gmail cleanup" in the Claude app from anywhere, including your phone. Dispatch routes it to a code task with the right context. It is not automation, but it is a fast, accessible trigger that does not require you to be at your desk.
+</Tip>
+
+So that is where I landed: manual trigger via Dispatch, routes to a code task, runs with full CLI access. Not what I wanted. But it works, and it works from my phone, and I can do it lying in bed.
+
+## The OpenClaw Comparison
+
+Here is where I need to be honest about what I have already built versus what Dispatch promises.
+
+<Info title="What Is OpenClaw?">
+OpenClaw is my multi-agent system running on a headless Mac Mini. It runs 7 GPT-powered agents accessible via Telegram. Each agent has a defined role: research assistant, code reviewer, task planner, and others. The system has been running continuously for weeks. I have written about it in several previous posts in this series.
+</Info>
+
+OpenClaw has been running scheduled tasks since I built it. The gateway watchdog cron fires every 2 minutes to check whether the Telegram long-polling connection is alive and restart it if not. The agents respond to Telegram messages around the clock, with no human required. If I send a message from my phone at 2 AM, an agent processes it and responds.
+
+In that sense, OpenClaw is already doing what I tried to get Dispatch to do. It just required me to:
+
+- Set up a Mac Mini as a 24/7 server
+- Configure launchd for process management
+- Write the gateway watchdog cron
+- Wire up Telegram bots for each agent
+- Manage multiple bot tokens and API keys
+- Set up Syncthing for config sync between machines
+- Write the monitoring scripts to know when things break
+
+That is a lot of infrastructure for "run tasks on a schedule."
+
+Dispatch's promise is different: no infrastructure. No server to manage. No cron. No launchd. You describe what you want, set a schedule, and Anthropic runs it. The management layer is the Claude app.
+
+The current limitation is that "Anthropic runs it" means "in a VM without your local tools." For most tasks, that will be fine. For tasks that need local CLIs, local auth, or local filesystem access, it is a gap.
+
+But here is the thing: that gap is closing.
+
+> **Claude (in our Dispatch session):** Dispatch is gaining capabilities quickly. The current limitation around scheduled code tasks is known and being worked on. The combination of Dispatch scheduling with Claude Code execution on your host machine is exactly the pattern Anthropic is building toward. It is just not there yet in the current release.
+
+That tracks with what I have seen. Cowork launched not long ago. Dispatch is newer still. The roadmap direction is clearly toward what I was trying to build: managed scheduling that can reach into a local Claude Code session.
+
+<Info title="The Infrastructure Gap">
+OpenClaw requires significant infrastructure setup. Dispatch requires none. Right now, Dispatch can only schedule tasks in the cloud VM. OpenClaw can run tasks on the local machine with full tool access. The gap between these two approaches is where the interesting development is happening. When Dispatch can schedule code tasks on the host machine, the infrastructure advantage of OpenClaw shrinks substantially.
+</Info>
+
+### Counting the Infrastructure Debt
+
+Here is the thing about building OpenClaw: every capability came with a maintenance cost I did not fully anticipate when I started.
+
+The gateway watchdog cron exists because Telegram's long-polling connection drops after approximately 8 minutes of inactivity. Without the watchdog, the agents would silently stop responding and I would not know until I sent a message and waited. The cron fires every 2 minutes, checks the PID, and restarts the process if needed. It works. But it is a thing that exists, and when it breaks (the cron stops, the script has a typo, the restart fails because of a lock file), I have to debug it.
+
+Launchd replaced the cron eventually, because launchd is more reliable on macOS for long-running processes. That migration took an afternoon. Now I have launchd config files to manage instead of crontab entries. Progress, but not elimination.
+
+Syncthing keeps my agent configuration in sync between my Mac Mini and my laptop. It handles the `claude-config` folder bidirectionally. But Syncthing has its own sync status page, its own conflict resolution logic, and its own occasional surprise (the SKILL.md case-sensitivity issue I wrote about in the previous post). One more thing.
+
+The Telegram bot tokens are secrets I have to manage. They live in `~/.claude/secrets/secrets.env`, sourced from `.zshrc`. If I ever rotate them (or if they get accidentally exposed in a log somewhere), I have to update them in all the right places and restart the agents.
+
+Add it up and you get a real system that does real things. But also a stack of maintenance obligations that sit in the back of your mind.
+
+![Someone managing a complicated system](https://media.giphy.com/media/13GIgrGdslD9oQ/giphy.gif)
+
+*OpenClaw: powerful. Also: all of this is mine to maintain.*
+
+Dispatch's appeal is not just convenience. It is the promise of offloading that maintenance debt. Anthropic manages the scheduler, the execution environment, the uptime, the restarts. You manage the task definition. That is a fundamentally different allocation of responsibility.
+
+<Security title="Credential Handling in Managed Environments">
+One thing to consider when moving toward managed cloud execution: your auth credentials need to be available to the execution environment. For Dispatch tasks that use built-in MCP integrations, Anthropic handles the auth via your connected accounts. But if you ever want Dispatch to access custom services, you will need a credential management strategy that is not "credentials.json in my home directory." Think about this before you need to.
+</Security>
+
+## What Dispatch Gets Right Today
+
+Even without scheduled code tasks, Dispatch is genuinely useful and worth paying attention to. Here is what it does well:
+
+**Accessibility**: I set up this entire experiment from my phone, in bed. I did not need to SSH into the Mac Mini. I did not need to open a terminal. I described what I wanted in natural language and Dispatch handled the scheduling. That accessibility matters. Most cron jobs never get written because the friction is too high.
+
+**Conversational debugging**: When the scheduled task failed, Claude explained exactly what happened and why. The session context was preserved across the failure. I did not have to reconstruct the problem from scratch. That conversational loop over a failed scheduled task is something you do not get from cron.
+
+With cron, a failed job produces a log entry (if you set up logging), an exit code, and silence. You have to know to check the log. You have to know what the exit code means. You have to figure out whether the failure was transient or persistent. With Dispatch, the failure is surfaced as a conversation. Claude tells you what happened, in plain language, and offers options for what to do next.
+
+That alone is worth something. Debugging silent automation failures is a specific kind of misery.
+
+**Natural language triggers**: The manual "run gmail cleanup" trigger is genuinely useful even as a stopgap. It is faster than navigating to Claude Code, faster than typing the full agent command, and it works from anywhere.
+
+**No infrastructure to manage**: Dispatch tasks live in the Claude app. I can see them, pause them, and edit them without touching a config file or SSHing into anything.
+
+**Mobile-first**: This is the one that surprised me. The entire experiment in this post, from setting up the scheduled task to debugging the VM limitation to iterating on the workaround, happened on my phone. Not "technically possible on mobile, but better on desktop." Actually comfortable. The natural language interface removes the input barrier that makes mobile automation usually impractical.
+
+<Tip title="Start with Dispatch for Cloud-Native Tasks">
+If your automation does not need local tools (if it only needs to call APIs, read web pages, or use Claude's built-in integrations), Dispatch is already the better choice over building custom infrastructure. The cloud VM has access to all the built-in MCP integrations. Scheduled web research, calendar management, content generation, these work today without any local setup.
+</Tip>
+
+## Where This Is Heading
+
+The near-term future of this pattern is obvious and already in motion:
+
+1. **Scheduled code tasks**: Dispatch will eventually be able to trigger a Claude Code session on your host machine. When it can, the OpenClaw infrastructure advantage largely disappears for single-machine setups.
+
+2. **Persistent agent sessions**: Right now, each Dispatch task starts fresh. A persistent session model, where the agent maintains state between scheduled runs, would make agents significantly more capable. Imagine a gmail-assistant that remembers which senders it trashed last week and automatically tightens the rules.
+
+3. **Cross-machine coordination**: OpenClaw can coordinate multiple agents across a single machine. Dispatch could eventually coordinate agents across multiple devices or cloud environments. Your phone triggers a task, the cloud VM does the planning, and your Mac Mini does the local execution.
+
+4. **Audit and observability**: Dispatch already shows you task history. As it matures, expect richer logs, performance metrics, and failure notifications. The "where did the scheduled task fail" debugging loop will get better.
+
+5. **Multi-agent composition**: Right now, Dispatch runs a single task. The natural evolution is composition: a scheduled task that triggers a planning step, which then fans out to specialized sub-agents running in parallel. Anthropic already has the multi-agent framework in Claude Code. Wiring that into Dispatch scheduling is the obvious next step.
+
+The timeline on any of these is speculation. But the direction is not. Every one of these capabilities already exists somewhere in Anthropic's stack. Dispatch is the surface that brings them together for people who do not want to manage infrastructure.
+
+<Tip title="Design Your Agents to Be Environment-Agnostic">
+When you write an agent file today, try to isolate the parts that depend on local tools. Use environment variables to point to tool paths and config directories. If you do that, migrating from local cron execution to Dispatch-triggered execution in the future becomes a configuration change, not an agent rewrite. The agent logic stays the same; only the execution path changes.
+</Tip>
+
+<Warning title="Do Not Rebuild OpenClaw in Dispatch Yet">
+If you have complex, multi-agent automation that depends on local tools, local auth, or inter-agent communication, Dispatch is not yet the right replacement. Build what you need to build. But design it so that the local infrastructure is swappable. When Dispatch gains the capabilities, migration should be a configuration change, not a rewrite.
+</Warning>
+
+## The Workaround I Am Actually Using
+
+Until scheduled code tasks exist, here is my current setup:
+
+**What I wanted**: `[Dispatch] → [every 8 hours] → [gmail-assistant with GWS CLI]`
+
+**What I have**: `[Dispatch manual trigger] → [code task] → [gmail-assistant with GWS CLI]`
+
+The manual trigger takes about 5 seconds from the Claude app. I say "run gmail cleanup," Dispatch routes it to a code task on my Mac Mini, the code task invokes the gmail-assistant agent, and 3-4 minutes later I get a notification that the draft report is in my Gmail drafts.
+
+It is not scheduled automation. But it is frictionless. And because it routes through a code task, it has full access to all my local tools, GWS credentials, and agent configurations. V2 of the agent runs exactly as intended.
+
+The inbox cleanup still runs roughly every 8 hours. It just requires me to open the Claude app and type two words.
+
+![A person shrugging, but fine with it](https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif)
+
+*Close enough. For now.*
+
+## A Framework for Deciding Where to Run Your Agents
+
+After going through this experiment, I have a clearer mental model for where different types of agent automation should live. Here is how I think about it now:
+
+**Cloud-native tasks (use Dispatch today):** Web research, content generation, calendar planning, summarization, drafting emails, anything that does not need to touch your local machine. Dispatch handles these well, they work with the built-in MCP integrations, and you get scheduling, mobile access, and observability for free.
+
+**Local-tool-dependent tasks (use cron or launchd today, Dispatch later):** Anything that needs a local CLI, local auth tokens, or local file access. Gmail cleanup via GWS CLI falls here. Code-related tasks (running tests, committing, deploying) fall here. These require host-level execution. For now, that means cron or launchd. Design them to be easily migrated when Dispatch gains code task scheduling.
+
+**Multi-agent orchestration (build your own infrastructure for now):** Complex workflows where multiple agents collaborate, hand off work, and maintain shared state. OpenClaw falls here. Dispatch will eventually support this, but the current abstraction is a single scheduled task, not a directed graph of cooperating agents. If you need that today, you need to build it.
+
+The key move is not picking one tool forever. It is building your automation so the execution layer is swappable. The agent logic (the prompt, the tool calls, the classification rules) should be the same whether it runs via Dispatch, cron, launchd, or manual invocation. Only the trigger and execution environment change.
+
+<Warning title="Agent Logic Portability">
+If your agent only works when triggered a specific way (only via cron, only via Claude Code, only via Dispatch), you have accidentally coupled your agent logic to your infrastructure. Keep those separate. The agent file should describe what to do. The execution environment is a deployment detail.
+</Warning>
+
+## Lessons Learned
+
+<Info title="Dispatch vs. Cron: Choosing the Right Scheduler">
+Cron is powerful and predictable, but it requires access to the machine, log management, and mental overhead. Dispatch is accessible from anywhere and requires no infrastructure, but it runs in a cloud VM without local tool access. For tasks that work in the cloud VM, Dispatch is already the better choice. For tasks that need local access, cron (or launchd) is still the answer until Dispatch gains code task scheduling.
+</Info>
+
+<Warning title="Know What Environment Your Task Runs In">
+Before scheduling anything via Dispatch, ask: does this task need local tools? Local auth tokens? Local filesystem access? If yes, the scheduled task will fail or fall back to a lesser capability. Design for the execution environment, not for the task you imagine running on your laptop.
+</Warning>
+
+<Tip title="Treat Manual Triggers as a First Step">
+The manual Dispatch trigger pattern ("run X" → routes to code task) is a valid workflow, not just a fallback. It is faster than any alternative short of scheduled automation, and it works from any device. Start there, and migrate to scheduled when the capability exists.
+</Tip>
+
+<Info title="The MCP Fallback Is Real">
+When a scheduled Dispatch task cannot find a local tool, it will fall back to built-in MCP integrations if they exist. For Gmail, that means read-only access. Know your fallback capabilities so you understand what a failed local tool access actually means for your task.
+</Info>
+
+<Tip title="V2 Before Scheduling">
+Get the agent working well manually before trying to schedule it. V1 of the gmail-assistant was solid enough to run manually. V2 is solid enough that I trust it to run unattended. Do not automate a process you have not validated. The scheduling is the easy part; the classification rules are the hard part.
+</Tip>
+
+<Warning title="The Infrastructure Advantage Has an Expiration Date">
+If you have built a custom agent infrastructure (like OpenClaw) specifically to get scheduling and automation capabilities, plan for that advantage to shrink. Managed platforms like Dispatch will gain the capabilities that currently require DIY infrastructure. The differentiation will shift toward what your agents actually do, not the infrastructure they run on.
+</Warning>
+
+<Info title="Cron Is Not Bad. It Is Just a Different Tool.">
+A recurring theme in my Dispatch conversation was my resistance to cron. "That is a separate place to manage." That is a real concern, but cron is also reliable, simple, and battle-tested. If Dispatch never gains code task scheduling, a launchd plist on the Mac Mini that runs the gmail-assistant every 8 hours is a perfectly reasonable solution. Sometimes the boring tool is the right tool.
+</Info>
+
+## The Summary
+
+I built a better gmail-assistant. I tried to schedule it via Dispatch. It almost worked. The limitation (Cowork VM cannot access local tools) is real and understood. The workaround (manual Dispatch trigger routing to a code task) works and is genuinely useful. The gap between Dispatch and full infrastructure like OpenClaw is closing fast.
+
+The road to fully autonomous agents runs through better scheduling, better host integration, and better observability. Dispatch is on that road. It just has not arrived yet.
+
+When it does, I will be lying in bed, on my phone, setting up the next version.
+
+![Person typing on phone, satisfied](https://media.giphy.com/media/xT9IgG50Lg7russbDa/giphy.gif)
+
+*The dream: scheduling automation from anywhere. Almost there.*
+
+---
+
+*Written by Chris Johnson. The gmail-assistant agent and the `CJClaudin_Mac` config repo are private. All Dispatch conversation excerpts are from a real session. No emails were harmed in the making of this post, because the scheduled task could not actually delete anything.*
+
+*Previous in series: [Headless Mac Mini as an AI Server: Power Tips for Running OpenClaw 24/7](/blog/headless-mac-mini-openclaw-power-tips)*
