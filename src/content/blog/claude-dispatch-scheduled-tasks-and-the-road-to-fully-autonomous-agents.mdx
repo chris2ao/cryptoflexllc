@@ -2,16 +2,18 @@
 title: 'Claude Dispatch, Scheduled Tasks, and the Road to Fully Autonomous Agents'
 date: '2026-03-20'
 description: >-
-  I tried to schedule my gmail-assistant agent from my phone using Claude's new
-  Dispatch feature. It almost worked. Here's what I learned about where AI
-  automation is heading and what it still can't do.
+  I tried to schedule my gmail-assistant agent via Dispatch, then discovered
+  Channels and Remote Control solve the problem differently. Here's how all
+  three compare for mobile-triggered local automation.
 tags:
   - Claude Code
   - Automation
   - AI Agents
   - OpenClaw
+  - Channels
+  - Remote Control
 author: Chris Johnson
-readingTime: 18 min read
+readingTime: 25 min read
 ---
 
 It is 10:30 PM. I am lying in bed. My phone is in my hand. I have just finished setting up the second version of my gmail-assistant agent and I am thinking: this thing should run itself. Every 8 hours. Without me.
@@ -257,15 +259,81 @@ That alone is worth something. Debugging silent automation failures is a specifi
 If your automation does not need local tools (if it only needs to call APIs, read web pages, or use Claude's built-in integrations), Dispatch is already the better choice over building custom infrastructure. The cloud VM has access to all the built-in MCP integrations. Scheduled web research, calendar management, content generation, these work today without any local setup.
 </Tip>
 
+## Beyond Dispatch: Channels and Remote Control
+
+While I was working around Dispatch's VM limitations, Anthropic shipped two Claude Code features that approach the problem from a completely different angle. Instead of making Dispatch reach into your local machine, they let your local machine reach out to you.
+
+<Info title="What Are Claude Code Channels?">
+Channels are MCP servers that push external events into a running Claude Code session. Instead of Claude waiting for you to type something in the terminal, a channel injects events from outside: a Telegram message, a Discord ping, a webhook. Claude reacts, executes code locally, and can reply back through the channel. Think of it as giving Claude Code ears that listen beyond the terminal.
+</Info>
+
+### Channels: OpenClaw Without the Infrastructure
+
+Remember the infrastructure stack I listed for OpenClaw? The Telegram bots, the gateway watchdog cron, the launchd process management, the bot token rotation? Channels collapse most of that into a single configuration.
+
+Setting up a Telegram channel: create a bot via BotFather (same as OpenClaw), copy the token, restart Claude Code with the channel flag, and pair with a code. That is it. No long-polling gateway. No watchdog cron. No PID file management. Claude Code handles the connection lifecycle.
+
+The result is functionally similar to what OpenClaw provides: you send a message from your phone via Telegram, an agent processes it on your local machine with full access to your tools and filesystem. But without the infrastructure layer I spent days building.
+
+There is a catch. Channels require a running Claude Code session. If Claude Code is not running, the channel is not listening. OpenClaw's watchdog cron restarts the process automatically when it crashes. A Claude Code channel that goes down needs manual intervention, or your own supervision layer on top of it.
+
+<Warning title="Channels Need an Active Session">
+Channels only work while a Claude Code session is running. They do not persist across restarts, and they require you to have a session open. For always-on scenarios, you still need process management (launchd, systemd, or a watchdog script). The channel replaces the bot framework, not the supervision layer.
+</Warning>
+
+For the gmail-assistant use case, Channels give me something Dispatch could not: the ability to trigger a full agent run from my phone via Telegram, with local tool access. I send "run gmail cleanup" from Telegram, and Claude Code on my Mac Mini handles it with the GWS CLI, credentials, and everything it needs.
+
+That is closer to what I wanted than Dispatch's manual trigger. The difference: Dispatch runs in Anthropic's cloud VM. A Telegram channel routes to my local machine.
+
+### Remote Control: The Simplest Answer
+
+But here is the feature that solves my problem most cleanly.
+
+<Info title="What Is Claude Code Remote Control?">
+Remote Control connects the Claude app on your phone (or claude.ai/code in a browser) to a Claude Code session running on your local machine. You start a session on your Mac, then pick it up from your phone. All execution stays local. Your tools, your filesystem, your credentials, all available. The connection runs through Anthropic's API over TLS, so no inbound ports need to be opened on your machine.
+</Info>
+
+Remote Control gives you mobile access to a local Claude Code session. That is exactly the combination I was chasing with Dispatch: phone in hand, lying in bed, full local tool access.
+
+The key difference from Dispatch: nothing runs in a cloud VM. When I use Remote Control to trigger the gmail-assistant, the agent runs on my Mac Mini. It has the GWS CLI. It has my credentials at `~/.config/gws-personal/`. It has every local tool I have installed. Because it is running locally, not in Anthropic's managed environment.
+
+The key difference from Channels: I do not need Telegram or Discord as an intermediary. I open the Claude app, connect to my running session, and type "run gmail cleanup." Same accessibility as Dispatch, same local execution as running it in the terminal. No bot tokens to manage.
+
+If you have an always-on machine (and I do, the Mac Mini running 24/7), Remote Control is the cleanest solution for the problem I spent the first half of this post trying to solve.
+
+<Tip title="Remote Control for Always-On Machines">
+If you already have a machine running 24/7 with Claude Code, Remote Control is the most straightforward path to mobile-triggered local automation. No bot tokens, no channel configuration, no cloud VM limitations. Connect from your phone and go.
+</Tip>
+
+### How They Stack Up
+
+| Feature | Dispatch | Channels | Remote Control |
+|---------|----------|----------|----------------|
+| **Mobile access** | Yes | Yes (via Telegram/Discord) | Yes (via Claude app) |
+| **Local tool access** | No (cloud VM) | Yes | Yes |
+| **Scheduling** | Yes | No (event-driven) | No (manual trigger) |
+| **Always-on requirement** | None | Active session needed | Active session needed |
+| **Setup complexity** | None | Bot token + channel config | Start Remote Control mode |
+| **Third-party dependency** | None | Telegram/Discord | None |
+| **Bidirectional** | Limited | Yes (reply via channel) | Yes (full session control) |
+
+The pattern that emerges: none of these combine managed scheduling with local tool access. Dispatch can schedule but cannot reach local tools. Channels and Remote Control can reach local tools but cannot schedule autonomously. The fully automated loop I described at the start of this post (run every 8 hours, no human involvement) still requires cron or launchd for the scheduling trigger.
+
+But the gap has narrowed considerably. The picture used to be: "Dispatch can schedule things it cannot execute, and cron can execute things it cannot schedule nicely." Now: Channels or Remote Control handle the execution layer, and the only missing piece is a managed scheduling trigger that connects to them.
+
+<Info title="The Scheduling Gap">
+Dispatch has scheduling but no local access. Channels and Remote Control have local access but no scheduling. The convergence point, a managed scheduler that triggers a local Claude Code session, is the feature that would close the loop entirely. Until then, cron or launchd remains the scheduling layer for local automation.
+</Info>
+
 ## Where This Is Heading
 
 The near-term future of this pattern is obvious and already in motion:
 
-1. **Scheduled code tasks**: Dispatch will eventually be able to trigger a Claude Code session on your host machine. When it can, the OpenClaw infrastructure advantage largely disappears for single-machine setups.
+1. **Scheduled code tasks**: Channels and Remote Control already let you trigger local code tasks from your phone or via Telegram. The remaining gap is managed scheduling: the ability to say "run this every 8 hours" and have Dispatch trigger a local session automatically, whether through a Channel or Remote Control connection. When that bridge exists, the OpenClaw infrastructure advantage disappears entirely for single-machine setups.
 
 2. **Persistent agent sessions**: Right now, each Dispatch task starts fresh. A persistent session model, where the agent maintains state between scheduled runs, would make agents significantly more capable. Imagine a gmail-assistant that remembers which senders it trashed last week and automatically tightens the rules.
 
-3. **Cross-machine coordination**: OpenClaw can coordinate multiple agents across a single machine. Dispatch could eventually coordinate agents across multiple devices or cloud environments. Your phone triggers a task, the cloud VM does the planning, and your Mac Mini does the local execution.
+3. **Cross-machine coordination**: Remote Control already enables the "phone triggers, Mac Mini executes" pattern. The next step is orchestration: Dispatch manages the schedule, routes the trigger through a Channel or Remote Control connection, and your local machine handles the execution with full tool access. The pieces exist. They just need to be wired together.
 
 4. **Audit and observability**: Dispatch already shows you task history. As it matures, expect richer logs, performance metrics, and failure notifications. The "where did the scheduled task fail" debugging loop will get better.
 
@@ -295,6 +363,8 @@ It is not scheduled automation. But it is frictionless. And because it routes th
 
 The inbox cleanup still runs roughly every 8 hours. It just requires me to open the Claude app and type two words.
 
+With Remote Control, this got even simpler. Instead of routing through Dispatch to a code task (which adds a layer of indirection), I connect directly to my Mac Mini's Claude Code session from my phone. Same two-word command, fewer moving parts, and no cloud VM in the middle.
+
 ![A woman shrugging with the caption 'It is what it is'](https://media.giphy.com/media/fAE3dVZoGChla8anFT/giphy.gif)
 
 *Not automated. Not scheduled. But it works from my phone, so... it is what it is.*
@@ -303,13 +373,17 @@ The inbox cleanup still runs roughly every 8 hours. It just requires me to open 
 
 After going through this experiment, I have a clearer mental model for where different types of agent automation should live. Here is how I think about it now:
 
-**Cloud-native tasks (use Dispatch today):** Web research, content generation, calendar planning, summarization, drafting emails, anything that does not need to touch your local machine. Dispatch handles these well, they work with the built-in MCP integrations, and you get scheduling, mobile access, and observability for free.
+**Cloud-native tasks (use Dispatch):** Web research, content generation, calendar planning, summarization, drafting emails, anything that does not need to touch your local machine. Dispatch handles these well, they work with the built-in MCP integrations, and you get scheduling, mobile access, and observability for free.
 
-**Local-tool-dependent tasks (use cron or launchd today, Dispatch later):** Anything that needs a local CLI, local auth tokens, or local file access. Gmail cleanup via GWS CLI falls here. Code-related tasks (running tests, committing, deploying) fall here. These require host-level execution. For now, that means cron or launchd. Design them to be easily migrated when Dispatch gains code task scheduling.
+**Local tasks, manual trigger (use Remote Control):** Anything that needs a local CLI, local auth tokens, or local file access, and you are fine triggering it yourself. Gmail cleanup via GWS CLI falls here. Remote Control gives you phone access to your local session without any intermediary. If you have an always-on machine, this is the simplest option.
 
-**Multi-agent orchestration (build your own infrastructure for now):** Complex workflows where multiple agents collaborate, hand off work, and maintain shared state. OpenClaw falls here. Dispatch will eventually support this, but the current abstraction is a single scheduled task, not a directed graph of cooperating agents. If you need that today, you need to build it.
+**Local tasks, event-driven (use Channels):** Same local tool requirements, but triggered by external events rather than manual action. If you want a Telegram bot that kicks off local automation, or you want to react to webhooks, Channels are the right tool. More setup than Remote Control (bot tokens, channel configuration), but you get asynchronous event handling.
 
-The key move is not picking one tool forever. It is building your automation so the execution layer is swappable. The agent logic (the prompt, the tool calls, the classification rules) should be the same whether it runs via Dispatch, cron, launchd, or manual invocation. Only the trigger and execution environment change.
+**Local tasks, scheduled (use cron or launchd, for now):** If you need true unattended scheduling ("run every 8 hours"), you still need cron or launchd. Neither Remote Control nor Channels provide managed scheduling. Design these tasks to be portable so you can migrate to Dispatch when it gains the ability to trigger local sessions.
+
+**Multi-agent orchestration (build your own infrastructure):** Complex workflows where multiple agents collaborate, hand off work, and maintain shared state. OpenClaw falls here. Dispatch, Channels, and Remote Control each handle a single session. If you need a directed graph of cooperating agents, you need to build that coordination layer yourself.
+
+The key move is not picking one tool forever. It is building your automation so the execution layer is swappable. The agent logic (the prompt, the tool calls, the classification rules) should be the same whether it runs via Dispatch, Remote Control, Channels, cron, or manual invocation. Only the trigger and execution environment change.
 
 <Warning title="Agent Logic Portability">
 If your agent only works when triggered a specific way (only via cron, only via Claude Code, only via Dispatch), you have accidentally coupled your agent logic to your infrastructure. Keep those separate. The agent file should describe what to do. The execution environment is a deployment detail.
@@ -345,13 +419,19 @@ If you have built a custom agent infrastructure (like OpenClaw) specifically to 
 A recurring theme in my Dispatch conversation was my resistance to cron. "That is a separate place to manage." That is a real concern, but cron is also reliable, simple, and battle-tested. If Dispatch never gains code task scheduling, a launchd plist on the Mac Mini that runs the gmail-assistant every 8 hours is a perfectly reasonable solution. Sometimes the boring tool is the right tool.
 </Info>
 
+<Tip title="Match the Tool to the Constraint">
+The choice between Dispatch, Channels, and Remote Control comes down to two questions: does the task need local tools, and does it need to run without human involvement? If no to both, use Dispatch. If yes to local tools but you can trigger it manually, use Remote Control. If yes to local tools and you want event-driven triggers, use Channels. If yes to both local tools and unattended scheduling, you still need cron or launchd.
+</Tip>
+
 ## The Summary
 
-I built a better gmail-assistant. I tried to schedule it via Dispatch. It almost worked. The limitation (Cowork VM cannot access local tools) is real and understood. The workaround (manual Dispatch trigger routing to a code task) works and is genuinely useful. The gap between Dispatch and full infrastructure like OpenClaw is closing fast.
+I built a better gmail-assistant. I tried to schedule it via Dispatch. It almost worked. The limitation (Cowork VM cannot access local tools) is real and understood. But Channels and Remote Control fill most of that gap by keeping execution local while giving you mobile access. Remote Control, in particular, is the answer if you have an always-on machine: connect from your phone, run the agent with full local tool access, done.
 
-The road to fully autonomous agents runs through better scheduling, better host integration, and better observability. Dispatch is on that road. It just has not arrived yet.
+The one remaining gap is managed scheduling. None of these tools let you say "run this every 8 hours on my local machine" without cron or launchd handling the timer. When Dispatch can trigger a local session via Remote Control or a Channel, the loop closes entirely.
 
-When it does, I will be lying in bed, on my phone, setting up the next version.
+The road to fully autonomous agents runs through connecting these pieces: Dispatch's scheduling, Remote Control's local access, and Channels' event-driven architecture. The pieces exist. They just need to be wired together.
+
+When they are, I will be lying in bed, on my phone, not even thinking about it. Because it will already be running.
 
 ![A woman smiling contentedly while looking at her phone](https://media.giphy.com/media/RvcfthDgvo93XQYn2o/giphy.gif)
 
@@ -359,6 +439,6 @@ When it does, I will be lying in bed, on my phone, setting up the next version.
 
 ---
 
-*Written by Chris Johnson. The gmail-assistant agent and the `CJClaudin_Mac` config repo are private. All Dispatch conversation excerpts are from a real session. No emails were harmed in the making of this post, because the scheduled task could not actually delete anything.*
+*Written by Chris Johnson. The gmail-assistant agent and the `CJClaudin_Mac` config repo are private. All Dispatch conversation excerpts are from a real session. Emails are now being harmed regularly, via Remote Control.*
 
 *Previous in series: [Headless Mac Mini as an AI Server: Power Tips for Running OpenClaw 24/7](/blog/headless-mac-mini-openclaw-power-tips)*
