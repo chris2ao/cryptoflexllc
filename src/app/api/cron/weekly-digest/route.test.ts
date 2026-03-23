@@ -72,7 +72,7 @@ describe("GET /api/cron/weekly-digest", () => {
     vi.mocked(generateDigestIntro).mockResolvedValue({
       greeting: "AI-generated greeting for this week.",
       contentIntro: "AI-generated content intro about the posts.",
-      memeHtml: '<div style="margin:16px 0">Meme of the Week</div>',
+      quoteHtml: '<div style="margin:16px 0">Quote of the Week</div>',
       fromAi: true,
     });
 
@@ -488,7 +488,7 @@ describe("GET /api/cron/weekly-digest", () => {
       greeting:
         "Thanks for being a subscriber &mdash; it means a lot! Every week I share what I&rsquo;ve been learning about cybersecurity, infrastructure, AI-assisted development, and the projects I&rsquo;m building.",
       contentIntro: "Here&rsquo;s what I learned and wrote about this week:",
-      memeHtml: "",
+      quoteHtml: "",
       fromAi: false,
     });
 

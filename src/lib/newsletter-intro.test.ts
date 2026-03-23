@@ -41,7 +41,7 @@ describe("generateDigestIntro", () => {
       content: [
         {
           type: "text",
-          text: "This week marks the anniversary of the first email.\n\n---SECTION---\n\nI&rsquo;m excited to share two posts with you.\n\n---SECTION---\n\nMe explaining API security to my rubber duck at 2 AM.",
+          text: "This week marks the anniversary of the first email.\n\n---SECTION---\n\nI&rsquo;m excited to share two posts with you.\n\n---SECTION---\n\nThe best security is the kind your users never notice.",
         },
       ],
     });
@@ -56,8 +56,8 @@ describe("generateDigestIntro", () => {
     expect(result.contentIntro).toBe(
       "I&rsquo;m excited to share two posts with you."
     );
-    expect(result.memeHtml).toContain("Meme of the Week");
-    expect(result.memeHtml).toContain("rubber duck");
+    expect(result.quoteHtml).toContain("Quote of the Week");
+    expect(result.quoteHtml).toContain("best security");
   });
 
   it("should return static fallback when ANTHROPIC_API_KEY is missing", async () => {
@@ -69,7 +69,7 @@ describe("generateDigestIntro", () => {
     expect(result.fromAi).toBe(false);
     expect(result.greeting).toContain("Thanks for being a subscriber");
     expect(result.contentIntro).toContain("what I learned");
-    expect(result.memeHtml).toBe("");
+    expect(result.quoteHtml).toBe("");
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -102,7 +102,7 @@ describe("generateDigestIntro", () => {
     );
     // Falls back to static content intro since no second paragraph
     expect(result.contentIntro).toContain("what I learned");
-    expect(result.memeHtml).toBe("");
+    expect(result.quoteHtml).toBe("");
   });
 
   it("should fall back to double-newline parsing when no ---SECTION--- delimiter", async () => {
@@ -121,15 +121,15 @@ describe("generateDigestIntro", () => {
     expect(result.fromAi).toBe(true);
     expect(result.greeting).toBe("Legacy greeting paragraph.");
     expect(result.contentIntro).toBe("Legacy content intro paragraph.");
-    expect(result.memeHtml).toBe("");
+    expect(result.quoteHtml).toBe("");
   });
 
-  it("should generate meme HTML block when third section is present", async () => {
+  it("should generate quote HTML block when third section is present", async () => {
     mockCreate.mockResolvedValueOnce({
       content: [
         {
           type: "text",
-          text: "Greeting here.\n\n---SECTION---\n\nContent intro here.\n\n---SECTION---\n\nWhen the CI pipeline passes on the first try.",
+          text: "Greeting here.\n\n---SECTION---\n\nContent intro here.\n\n---SECTION---\n\nThe right amount of complexity is the minimum needed for the current task.",
         },
       ],
     });
@@ -138,10 +138,10 @@ describe("generateDigestIntro", () => {
     const result = await generateDigestIntro(testPosts, testDate);
 
     expect(result.fromAi).toBe(true);
-    expect(result.memeHtml).toContain("Meme of the Week");
-    expect(result.memeHtml).toContain("CI pipeline passes on the first try");
-    expect(result.memeHtml).toContain("&ldquo;");
-    expect(result.memeHtml).toContain("&rdquo;");
+    expect(result.quoteHtml).toContain("Quote of the Week");
+    expect(result.quoteHtml).toContain("minimum needed for the current task");
+    expect(result.quoteHtml).toContain("&ldquo;");
+    expect(result.quoteHtml).toContain("&rdquo;");
   });
 
   it("should return fallback for empty AI response", async () => {

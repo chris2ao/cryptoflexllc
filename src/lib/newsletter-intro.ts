@@ -5,6 +5,7 @@
  *   - A fun historical tech fact related to the upcoming week
  *   - Notable holiday callouts
  *   - An excited summary of the included blog posts
+ *   - A "Quote of the Week" pulled from the blog posts
  *
  * Falls back to static text when the API key is missing or the call fails.
  */
@@ -20,7 +21,7 @@ interface PostInfo {
 export interface DigestIntro {
   greeting: string;
   contentIntro: string;
-  memeHtml: string;
+  quoteHtml: string;
   fromAi: boolean;
 }
 
@@ -44,7 +45,7 @@ export async function generateDigestIntro(
   sendDate: Date
 ): Promise<DigestIntro> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, memeHtml: "", fromAi: false };
+    return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, quoteHtml: "", fromAi: false };
   }
 
   const weekOf = sendDate.toLocaleDateString("en-US", {
@@ -62,11 +63,11 @@ export async function generateDigestIntro(
     "",
     "Write exactly THREE sections separated by the delimiter ---SECTION---",
     "",
-    "SECTION 1 (Greeting): A fresh, non-repetitive opening. Vary your style each week. Some ideas: a quirky observation about the week, a tech pun related to the blog topics, a playful analogy, or a fun fact. Do NOT always open with a historical fact. Surprise the reader. Keep it to 2-3 sentences.",
+    "SECTION 1 (Greeting): Open with a fun historical tech fact related to the week of " + weekOf + ". If there are notable holidays or observances this week, weave them in naturally. Then transition into a warm, enthusiastic welcome. Keep it to 2-3 sentences.",
     "",
     "SECTION 2 (Content Intro): An excited summary of this week&rsquo;s blog posts. Sprinkle in 1-2 clever puns or wordplay related to the actual post topics (security puns, coding jokes, AI humor, etc.). Mention at least the top 3-5 posts by name and tease what readers will learn. Keep it to 2-4 sentences.",
     "",
-    "SECTION 3 (Meme Alt Text): Write a short, funny meme caption or alt-text (one sentence) that relates to the dominant theme of this week&rsquo;s posts. Think of it like an image macro caption. For example: if posts are about security, something like \"Me explaining to my firewall why I need to access localhost at 3 AM\". Just the caption text, nothing else.",
+    "SECTION 3 (Quote of the Week): Pick the single most impactful, thought-provoking, or resonant quote from the blog posts listed below. This should be a direct excerpt from one of the posts that would make a reader stop and think, or that captures a key insight. Just the quote text, nothing else. Do not add attribution or the post title.",
     "",
     "Rules:",
     "- NEVER use em dashes. Use commas, periods, colons, or parentheses instead.",
@@ -110,19 +111,19 @@ export async function generateDigestIntro(
 
     const greeting = sanitizeAiText(parsed[0] ?? STATIC_GREETING);
     const contentIntro = sanitizeAiText(parsed[1] ?? STATIC_CONTENT_INTRO);
-    const memeCaption = sanitizeAiText(parsed[2] ?? "");
+    const quoteText = sanitizeAiText(parsed[2] ?? "");
 
-    // Build a styled meme-caption block if we got one
-    const memeHtml = memeCaption
+    // Build a styled quote block if we got one
+    const quoteHtml = quoteText
       ? `<div style="margin:16px 0;padding:16px;background:#1e293b;border-radius:8px;border-left:4px solid #4dd0e1;text-align:center">
-          <p style="margin:0;color:#94a3b8;font-size:13px;text-transform:uppercase;letter-spacing:1px">Meme of the Week</p>
-          <p style="margin:8px 0 0;color:#e2e8f0;font-size:16px;font-style:italic;line-height:1.5">&ldquo;${memeCaption}&rdquo;</p>
+          <p style="margin:0;color:#94a3b8;font-size:13px;text-transform:uppercase;letter-spacing:1px">Quote of the Week</p>
+          <p style="margin:8px 0 0;color:#e2e8f0;font-size:16px;font-style:italic;line-height:1.5">&ldquo;${quoteText}&rdquo;</p>
         </div>`
       : "";
 
-    return { greeting, contentIntro, memeHtml, fromAi: true };
+    return { greeting, contentIntro, quoteHtml, fromAi: true };
   } catch (error) {
     console.error("Newsletter intro generation failed:", error);
-    return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, memeHtml: "", fromAi: false };
+    return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, quoteHtml: "", fromAi: false };
   }
 }

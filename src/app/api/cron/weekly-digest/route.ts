@@ -238,7 +238,7 @@ function buildEmailHtml(
       <p style="font-size:16px;line-height:1.6;color:#d4d4d4;margin:0 0 8px">
         ${intro?.contentIntro ?? "Here&rsquo;s what I learned and wrote about this week:"}
       </p>
-      ${intro?.memeHtml ?? ""}
+      ${intro?.quoteHtml ?? ""}
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:20px">
         ${postRows}
       </table>
