@@ -51,30 +51,34 @@ describe('withRetry', () => {
 
   it('uses exponential backoff timing (1s, 4s, 16s)', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const timestamps: number[] = [];
-    const error = new Error('Timeout');
-    const failFn = vi.fn(() => {
-      timestamps.push(Date.now());
-      return Promise.reject(error);
-    });
 
-    // Use baseDelay: 1 to keep the test fast while verifying the 4^n pattern
-    await expect(withRetry(failFn, { baseDelay: 1 })).rejects.toThrow(
+    // Capture the delay argument passed to each setTimeout call.
+    // Save a reference to the real setTimeout before spying, then call
+    // through with delay=0 so the test completes instantly without jitter.
+    const scheduledDelays: number[] = [];
+    const realSetTimeout = globalThis.setTimeout.bind(globalThis);
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(
+      (fn: TimerHandler, delay?: number, ...args: unknown[]) => {
+        scheduledDelays.push(delay ?? 0);
+        return realSetTimeout(fn, 0, ...args);
+      }
+    );
+
+    const error = new Error('Timeout');
+    const failFn = vi.fn().mockRejectedValue(error);
+
+    // Use baseDelay: 1000 (the real default) to verify the exact 4^n values
+    await expect(withRetry(failFn, { baseDelay: 1000 })).rejects.toThrow(
       'Timeout'
     );
 
     expect(failFn).toHaveBeenCalledTimes(4); // Initial + 3 retries
-    expect(timestamps).toHaveLength(4);
 
-    // Verify delays increase (each gap should be >= previous)
-    const gaps = [];
-    for (let i = 1; i < timestamps.length; i++) {
-      gaps.push(timestamps[i] - timestamps[i - 1]);
-    }
-    // With baseDelay=1: delays are 1ms, 4ms, 16ms
-    // Gaps should be non-decreasing (allowing for timing jitter)
-    expect(gaps[1]).toBeGreaterThanOrEqual(gaps[0]);
-    expect(gaps[2]).toBeGreaterThanOrEqual(gaps[1]);
+    // With baseDelay=1000: delays are 1000ms, 4000ms, 16000ms (1000 * 4^attempt)
+    expect(scheduledDelays).toHaveLength(3);
+    expect(scheduledDelays[0]).toBe(1000);  // 1000 * 4^0
+    expect(scheduledDelays[1]).toBe(4000);  // 1000 * 4^1
+    expect(scheduledDelays[2]).toBe(16000); // 1000 * 4^2
 
     warnSpy.mockRestore();
   });
