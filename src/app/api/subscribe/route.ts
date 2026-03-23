@@ -271,7 +271,7 @@ async function sendConfirmationEmail(recipientEmail: string): Promise<void> {
             <td style="padding:0 32px 20px">
               <div style="background:#1a1a22;border:1px solid #23232d;border-radius:8px;padding:16px 20px;margin:8px 0">
                 <p style="margin:0;font-size:15px;color:#d4d4d4;line-height:1.6">
-                  <strong style="color:#f0f0f0">Your weekly newsletter</strong> arrives every <strong style="color:#4dd0e1">Monday at 9:00 AM Eastern</strong> with summaries of new posts, what I&rsquo;ve been learning, and direct links to everything new.
+                  <strong style="color:#f0f0f0">Your weekly newsletter</strong> arrives every <strong style="color:#4dd0e1">Monday at 8:00 AM Eastern</strong> with summaries of new posts, what I&rsquo;ve been learning, and direct links to everything new.
                 </p>
               </div>
             </td>

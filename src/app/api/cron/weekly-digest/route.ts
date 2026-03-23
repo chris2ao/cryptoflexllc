@@ -1,7 +1,7 @@
 /**
  * GET /api/cron/weekly-digest
  * -----------------------------------------------
- * Triggered by Vercel Cron every Monday at 9 AM ET.
+ * Triggered by Vercel Cron every Monday at 8 AM EST (13:00 UTC).
  * Fetches blog posts published in the last 7 days, builds a
  * branded HTML email, and sends it to all active subscribers
  * via Gmail SMTP (Google Workspace).
