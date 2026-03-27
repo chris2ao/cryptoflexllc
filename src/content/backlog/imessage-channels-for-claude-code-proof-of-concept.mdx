@@ -1,0 +1,240 @@
+---
+title: "iMessage Channels for Claude Code: A Proof of Concept (And Why I Deleted It)"
+date: "2026-03-27T10:00:00"
+description: "I set up the Claude Code iMessage plugin as a proof of concept, debugged two real bugs, and discovered a fundamental security flaw that made me tear the whole thing down. Here's the full story."
+tags: ["Claude Code", "Channels", "iMessage", "Security", "Workflow", "Plugins"]
+author: "Chris Johnson"
+readingTime: "10 min read"
+series: 'Claude Code Workflow'
+seriesOrder: 10
+---
+
+In my previous post on remote access for Claude Code, I covered Dispatch, Channels, and Remote Control, and concluded that Remote Control was the right fit for my setup. But I left a thread hanging: Channels supports plugins, and one of those plugins is iMessage.
+
+The idea is genuinely appealing. Text your Mac Mini a task. Claude Code picks it up, does the work, texts you back. No app to open, no pairing code to enter. Just iMessage, which is already on your phone.
+
+So I tried it. I got it working. I hit two bugs and fixed them. I started thinking about how I'd actually use this in production. And then I read a security researcher's post that made me delete everything.
+
+This is the full story: what the plugin does, how I set it up, what broke, how it works under the hood, and why the security issue is serious enough that I'd recommend avoiding it entirely.
+
+## What the iMessage Plugin Does
+
+The Claude Code iMessage plugin connects your running Claude Code session to the Messages app on macOS. When a message arrives from an allowed contact (or from yourself), Claude Code processes it and sends a reply. The whole thing runs locally on your machine, with full access to your MCP servers, file system, and everything else your local session has.
+
+This is different from Dispatch (which runs in a cloud sandbox with no local MCP access) and similar to Channels over Telegram, except you're using iMessage instead of a third-party bot platform. For someone already in the Apple ecosystem, that's a meaningful difference.
+
+<Info title="Channels Refresher">
+Claude Code Channels are a way to connect an existing local session to external messaging platforms. The session runs on your machine, so it has full MCP access. You send a message through the connected platform, Claude Code receives it and runs a task, then replies. It's async by nature: fire and forget, result comes back when done.
+</Info>
+
+## The Setup
+
+Installation is straightforward. There are six real steps, and only a couple of them have any friction.
+
+### Step 1: macOS Permissions
+
+The plugin reads your iMessage database directly. On macOS, that database lives at `~/Library/Messages/chat.db`, and accessing it requires Full Disk Access for the terminal application running Claude Code.
+
+Go to System Settings, Privacy and Security, Full Disk Access, and add your terminal app. In my case that's Warp. If you skip this, the plugin installs fine but fails silently when it tries to read messages.
+
+<Warning title="Full Disk Access Is Required">
+This is not a normal permission. Full Disk Access lets the application read files anywhere on your system, including the Messages database. Grant it only to terminals you trust, and understand what you're enabling.
+</Warning>
+
+### Step 2: Install the Plugin
+
+```bash
+claude plugin install imessage@claude-plugins-official
+```
+
+This installs version 0.0.1 of the official iMessage plugin. The installation completes quickly.
+
+### Step 3: Launch with the Channel Active
+
+```bash
+claude --channels plugin:imessage@claude-plugins-official
+```
+
+This is the flag that connects the channel to your session. The important detail: the plugin identifier in this flag must match exactly. I'll come back to this in the bugs section.
+
+### Step 4: Approve the Automation Prompt
+
+The first time Claude Code sends a reply via iMessage, macOS will show an Automation permission dialog asking if your terminal app can control Messages. Approve it. Without this, outgoing replies fail.
+
+### Step 5: Configure Access Control
+
+The plugin uses an allowlist stored at `~/.claude/channels/imessage/access.json`. Only phone numbers or email addresses listed there can trigger Claude Code. Self-chat (texting yourself) always bypasses the allowlist, which is useful for testing.
+
+For a minimal allowlist:
+
+```json
+{
+  "allowFrom": ["+15551234567"],
+  "policy": "allowlist"
+}
+```
+
+### Step 6: Keep the Session Alive
+
+Channels are a subprocess of an existing session. For always-on use, run the session in tmux so it persists after you disconnect:
+
+```bash
+tmux new -s claude-imessage
+claude --channels plugin:imessage@claude-plugins-official
+# Detach with Ctrl+B, D
+```
+
+## Two Bugs I Hit (And Fixed)
+
+Getting this to "work" required debugging two issues. I'm documenting them here because the fixes reveal something useful about how the plugin works internally.
+
+### Bug 1: Self-Chat Messages Were Silently Dropped
+
+When testing the setup, I texted myself. Nothing happened. No reply, no error, no indication Claude Code had seen the message at all.
+
+The root cause was in `handleInbound` in the plugin's message handler. The code was running the `is_from_me` check before self-chat detection. Since all self-chat messages have `is_from_me = 1` in the SQLite database, they were being filtered out before the self-chat bypass logic ever ran.
+
+The fix was structural: restructure `handleInbound` so self-chat detection runs first. If the incoming message is from a self-chat thread, skip all other checks and route it to Claude Code. Only after self-chat detection falls through should the `is_from_me` filter apply to block messages you sent to others.
+
+```
+Before: is_from_me check → (drop) or → self-chat check → allowlist check → route
+After:  self-chat check → (route) or → is_from_me check → (drop) or → allowlist check → route
+```
+
+### Bug 2: The `--channels` Flag Appeared to Work But Wasn't
+
+After fixing Bug 1, messages were being received but Claude Code wasn't acting on them. The plugin was emitting `NOTIFY OK` to stdout, which meant the MCP notification was being written to the JSON-RPC transport. But Claude Code wasn't consuming it.
+
+The issue was the plugin identifier. I had used a slightly different format in the `--channels` flag than the plugin's actual registered name. `NOTIFY OK` means "the JSON-RPC was written," not "Claude Code received and processed the notification." A mismatch in the identifier means Claude Code never subscribed to that channel.
+
+The fix: use the exact plugin identifier as installed. Check `claude plugin list` to confirm the exact name, then use that string verbatim in the `--channels` flag.
+
+<Warning title="NOTIFY OK Does Not Mean Claude Code Processed It">
+When you see `NOTIFY OK` in the plugin output, it means the notification was written to the stdio transport. It does not confirm Claude Code consumed it. If messages arrive but nothing happens, check that the plugin identifier in `--channels` exactly matches the installed plugin name.
+</Warning>
+
+## The Self-Chat Quirks
+
+Even after both bugs were fixed, self-chat had some cosmetic weirdness worth knowing about.
+
+iMessage creates two separate chat threads for self-chat: one tied to your iCloud email address, and one tied to your phone number. They look identical in the Messages app but have different chat IDs in the SQLite database.
+
+The phone number chat ID causes a specific AppleScript error (`-1728`) when the plugin tries to send a reply. This is an iMessage routing quirk: AppleScript can address the email-based self-chat thread, but the phone number thread doesn't resolve the same way.
+
+Additionally, reply echoes show up as new incoming messages. When Claude Code sends you a reply, the Messages app delivers it back to the same thread, and the plugin picks it up as a new inbound message. This sounds alarming (infinite loop?), but the `is_from_me` filter handles it correctly. The echo is cosmetic, not functional.
+
+<Info title="Self-Chat Quirks Don't Affect Real Contacts">
+The dual-thread weirdness, AppleScript error -1728, and reply echoes are specific to self-chat. Conversations with actual contacts work cleanly. The self-chat path is useful for testing but not representative of normal use.
+</Info>
+
+## How It Works Under the Hood
+
+The iMessage plugin has a reasonably clean architecture. Understanding it helps clarify both why it works and where the security boundary sits.
+
+**Message ingestion:** The plugin reads `~/Library/Messages/chat.db` directly via SQLite. It maintains a watermark (the last-seen ROWID) and polls for new messages above that mark on a short interval. No Messages API, no push notifications. Direct database reads.
+
+**Replies:** Outgoing messages go through AppleScript, which controls the Messages app. The plugin calls a script that tells Messages to send text to a specific chat ID. This is why the Automation permission is required: AppleScript is literally controlling the Messages application on your behalf.
+
+**Transport:** The plugin runs as an MCP server over stdio, using Bun as the JavaScript runtime. Claude Code communicates with it over the standard MCP JSON-RPC protocol. When a new message arrives, the plugin sends an MCP notification. Claude Code receives the notification and processes it as a channel message in the conversation.
+
+**Message format:** Channel messages appear in the conversation as XML tags:
+
+```xml
+<channel source="plugin:imessage:imessage" chat_id="..." message_id="..." user="+15551234567" ts="...">
+  your message text here
+</channel>
+```
+
+Claude Code sees this as a normal turn in the conversation and responds accordingly.
+
+**Access control:** The allowlist check happens in the plugin before the MCP notification is sent. Messages from numbers not on the allowlist are read from the database but never forwarded to Claude Code. Self-chat bypasses this check entirely.
+
+## The Security Problem
+
+This is where the proof of concept ends and the real talk begins.
+
+A security researcher named Zack Korman published a proof of concept demonstrating a serious vulnerability in this setup. The attack is simple, effective, and not fixable by tuning the plugin's configuration.
+
+**The attack:** SMS sender IDs can be spoofed via publicly available gateway APIs. Services like gatewayapi.com let you specify any "from" number when sending a message. The attack sends an SMS with the from number set to a phone number that's on your Claude Code allowlist.
+
+Claude Code receives the spoofed message. It checks the sender against the allowlist. The number matches. Claude Code treats the message as coming from a trusted contact and executes the instructions.
+
+**What the demo showed:** Korman demonstrated this by sending a spoofed SMS with instructions to edit a Go template file, then run `git add`, `git commit`, and `git push` to master. Claude Code did exactly that: edited the file, committed the change, and pushed to the remote repository. It then replied confirming the action.
+
+The attack worked because:
+1. The allowlist only checks the phone number in the message metadata
+2. SMS sender IDs are trivially spoofable in many countries, including the one where the demo was performed
+3. There is no cryptographic identity verification anywhere in the chain
+
+<Stop title="The Allowlist Does Not Protect You">
+An SMS allowlist based on phone numbers is not a security control. Phone numbers can be spoofed. Anyone who knows a phone number on your allowlist can send instructions that Claude Code will execute, including pushing code to production.
+</Stop>
+
+Korman's summary: "Please don't use Claude Code's iMessage plugin. Phone numbers can be spoofed, and protection for that isn't always reliable. So you're literally giving the entire world full access to your Claude Code. A phone number doesn't prove identity."
+
+That's accurate. And it's not a bug that can be patched in the plugin. The root issue is architectural: SMS was not designed as an identity layer, and using it as one exposes every capability Claude Code has to anyone who can spoof a phone number.
+
+## Why I Deleted Everything
+
+I removed the plugin completely after reading about this vulnerability. The cleanup covered:
+
+- Plugin cache, marketplace, and data directories
+- The plugin entry from `installed_plugins.json`
+- The plugin's enabled flag from `settings.json`
+- The three iMessage-related permissions from the project's `settings.local.json`
+
+Clean removal, nothing left behind.
+
+The decision was easy for two reasons.
+
+**First, the security issue is fundamental.** This isn't a bug in the plugin's code. You can't fix it with a configuration change or by switching from SMS to iMessage. The problem is that phone number identity is not reliable, and any system that uses it as an authorization gate for code execution is exposed. The only fix is to not use phone numbers as identity proof.
+
+**Second, Remote Control already solves the actual problem.** My goal was remote access to Claude Code from my phone. Remote Control gives me exactly that: an interactive session with full MCP access, real-time sync between the terminal and the mobile app, and no need to keep a tmux session open with a channel plugin running. I already built this setup. It already works. There's no gap iMessage was filling.
+
+<Tip title="Remote Control Is the Right Answer for Interactive Use">
+If you want to reach Claude Code from your phone, Remote Control is the better choice. Interactive sessions, full MCP access, real-time sync across surfaces. The iMessage plugin is async and carries security risks that Remote Control avoids entirely. I covered the Remote Control setup in detail in the previous post in this series.
+</Tip>
+
+## What I'd Want Before Using This Again
+
+If you're drawn to the iMessage plugin for reasons that Remote Control doesn't cover (maybe you specifically want the async pattern, or you want a bot your team can reach via iMessage), here's what I'd want to see before trusting it:
+
+1. **Cryptographic sender verification.** Phone numbers are not identity. A proper implementation would require an out-of-band secret, a shared TOTP code, or some challenge-response mechanism before executing any instruction. The allowlist would need to verify something the attacker can't spoof.
+
+2. **Scope limitations.** A real deployment would want strict limits on what the channel can instruct Claude Code to do. Reading files, querying data, summarizing content: lower risk. Writing code, running git commands, pushing to remote: these should require confirmation or be off-limits entirely for async channels.
+
+3. **iMessage instead of SMS.** iMessage has end-to-end encryption and Apple account identity. It's a stronger signal than SMS. But even then, phone number spoofing can still cause iMessages to fall through to SMS in some circumstances, so this isn't a complete solution.
+
+For now, the plugin is an interesting proof of concept that demonstrates the Channels architecture works end-to-end. It's not ready for production use.
+
+## Lessons Learned
+
+<Warning title="Phone Numbers Are Not Identity Proof">
+Any authorization system that relies on SMS sender IDs can be bypassed by spoofing. This applies to the iMessage plugin, but the principle is general: never treat a phone number as cryptographic proof of identity for a system that can take consequential actions.
+</Warning>
+
+<Info title="Full Disk Access Means Full Disk Access">
+Granting Full Disk Access to a terminal application is a significant permission that gives that app read access to files throughout your system, including databases, credentials, and private data. It's required for the iMessage plugin to work, and it's worth thinking carefully about what else that terminal might be doing with that access.
+</Info>
+
+<Tip title="NOTIFY OK Is Transport Confirmation, Not Processing Confirmation">
+When debugging Channels plugins, `NOTIFY OK` only tells you the notification was written to the JSON-RPC transport. If Claude Code isn't acting on messages, the plugin identifier in `--channels` may not match exactly. Use `claude plugin list` to get the exact registered name and use that string verbatim.
+</Tip>
+
+<Security title="Async Channels and Code Execution Are a Risky Combination">
+When Claude Code receives instructions through an async channel (iMessage, Telegram, Discord), it has no way to ask clarifying questions before acting. Combine that with a spoofable identity layer and you have a remote code execution surface. If you use any Channels plugin that can trigger file writes or git operations, apply the principle of least privilege and limit what the channel can instruct Claude to do.
+</Security>
+
+## The Takeaway
+
+The iMessage plugin works. The Channels architecture is solid. Setting it up is a good exercise for understanding how Claude Code plugins and channel notifications work under the hood.
+
+But the security issue Zack Korman documented is real, and it applies to any SMS-based authorization scheme. Phone numbers can be spoofed. An allowlist of phone numbers is not a meaningful security control for a system that can write and push code.
+
+If you want remote access to Claude Code, use Remote Control. If you want async task triggering, use Channels with a platform that has stronger identity (Telegram accounts, Discord accounts), and apply conservative scope limits on what the channel can instruct Claude to do.
+
+The iMessage proof of concept taught me a lot about how Channels work internally. But the right lesson from Korman's demo is that "it works" and "it's safe to use" are different things.
+
+---
+
+*Written by Chris Johnson. This post is part of the Claude Code Workflow series. Previous post: [Remote Access for Claude Code: Dispatch, Channels, and Remote Control](/blog/remote-access-for-claude-code-dispatch-channels-remote-control).*
