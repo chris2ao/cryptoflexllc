@@ -1,10 +1,11 @@
 ---
-title: "I Built an AI Agent to Clean My Inbox. It Deleted 252 Emails in One Run."
+title: "I Built an AI Agent to Clean My Inbox. Now It Runs Itself Every 5 Hours."
 date: "2026-03-15T09:00:00"
-description: "A walkthrough of building a Gmail personal assistant agent in Claude Code that classifies thousands of emails, trashes the noise, archives the newsletters, and generates a draft report. Plus the multi-account GCP OAuth adventure nobody warns you about."
-tags: ["Claude Code", "Gmail", "Google Workspace", "Automation", "Agents", "Workflow"]
+updated: "2026-03-26T09:00:00"
+description: "Building a Gmail cleanup agent in Claude Code, evolving it from a manual 5-step script to a fully autonomous v3 with VIP detection, delta sync, auto-labeling, and follow-up tracking. Then making it run unattended every 5 hours via scheduled triggers and a remote-control daemon on a Mac Mini."
+tags: ["Claude Code", "Gmail", "Google Workspace", "Automation", "Agents", "Workflow", "Scheduled Tasks", "launchd"]
 author: "Chris Johnson"
-readingTime: "18 min read"
+readingTime: "32 min read"
 ---
 
 My inbox had 369 unread emails.
@@ -336,8 +337,8 @@ The second run, a day later, processed 23 new emails: 11 promotions trashed, 4 n
 
 That's the point where automation becomes a habit. The first run is satisfying. The tenth run is infrastructure.
 
-<Tip title="Scheduling This">
-The agent is currently triggered manually. The natural next step is a daily cron job via Claude Code's CronCreate tool, or a launchd plist on the Mac Mini that triggers the agent every morning. I haven't done this yet because I want to run it manually a few more times to trust the classification rules before I let it operate fully unattended.
+<Tip title="Scheduling This (Update: Done)">
+When I first wrote this section, the agent was manual-only. I wanted to run it a few more times before trusting it unattended. That trust has been earned. The agent now runs on a 5-hour schedule via Claude Code's scheduled triggers and a remote-control daemon. Full details below.
 </Tip>
 
 ## Lessons Learned
@@ -409,7 +410,7 @@ Include: summary table (category | count), flagged emails list,
          examples of what was trashed
 ```
 
-## What I'd Build Next
+## What I'd Build Next (Original List)
 
 The agent handles the cleanup well. A few extensions that would make it genuinely powerful:
 
@@ -427,4 +428,373 @@ The inbox is clean. Dollar Shave Club has been silenced. And I have a blog post 
 
 ---
 
-*Written by Chris Johnson and edited by Claude Code (Sonnet). The Gmail assistant agent is in a private config repo (`CJClaudin_Mac`). The GWS CLI skill is covered in a previous post on this blog. All email counts are real. Zero legitimate emails were harmed in the making of this post (probably).*
+*That was where this post originally ended on March 15. Eleven days later, everything above still works. But the agent has changed significantly. Here's what happened next.*
+
+---
+
+## Part 2: The Agent Grows Up
+
+The original five-step pipeline was a solid proof of concept. But running it manually every day felt like a chore. And after a few runs, I noticed gaps: emails from people I'd recently replied to were getting trashed, threads with multiple messages were classified inconsistently, and there was no way to know if someone was waiting on a reply from me.
+
+So I rewrote the agent. The file at `~/.claude/agents/gmail-assistant.md` is now version 3, and it's a different beast.
+
+## The v3 Pipeline
+
+The original had 5 steps. The current version has 9 steps (0 through 8), including a substantial pre-flight phase that didn't exist before. Here's what changed.
+
+### Pre-Flight Checks (Step 0)
+
+The original agent just started processing. The new version runs seven sub-steps before touching a single email:
+
+<Info title="Pre-Flight Sub-Steps">
+1. **0.1 Auth verification** - confirm GWS CLI credentials are valid before proceeding
+2. **0.2 Label discovery** - fetch all Gmail labels and record their IDs
+3. **0.3 Auto-label creation** - create nine Auto/* labels if they don't exist
+4. **0.4 Processed label creation** - create a hidden `gmail-assistant/processed` tracking label
+5. **0.5 VIP set from reply history** - scan 90 days of sent mail to build a set of addresses the user has replied to
+6. **0.6 Delta sync state** - load the last history ID for incremental processing
+7. **0.7 Circuit breaker** - record the start time for the 10-minute timeout
+</Info>
+
+Three of these deserve deeper explanation.
+
+### VIP Detection (Step 0.5)
+
+This was the biggest classification improvement. The original agent had no concept of "important sender." It classified purely on content: subject line, sender domain, snippet text. That meant an email from someone I'd been actively corresponding with could get trashed if the subject line looked promotional.
+
+The fix: before classifying anything, the agent queries the last 90 days of sent mail and extracts every email address from the To and Cc headers. Anyone I've replied to is a VIP. VIP senders get special treatment throughout the pipeline:
+
+- Never trashed, regardless of content or category
+- Rescued from Promotions, Social, and Newsletters if miscategorized there
+- Flagged for attention if unread for more than 3 days
+- Logged in a "VIP Emails Kept" section of the report with the original classification that was overridden
+
+The VIP set is rebuilt on every run. It's not a permanent allowlist. If I stop replying to someone, they naturally fall out of the VIP set after 90 days. No maintenance required.
+
+<Tip title="VIP Detection Is Cheap">
+Building the VIP set costs about 200 API calls (listing sent messages, then reading headers from each). That sounds like a lot, but it runs once per session and the metadata-only reads are fast. The classification accuracy improvement is worth it.
+</Tip>
+
+### Delta Sync (Step 0.6)
+
+The original agent did a full scan every run: list all unread emails in each category, process everything. For a daily run on a clean inbox, that's fine. For a run every 5 hours, it's wasteful.
+
+The v3 agent uses Gmail's history API for incremental sync. At the end of each run, it saves the current history ID to `~/.cache/gmail-assistant/last-history-id`. On the next run, it loads that ID and asks Gmail "what changed since then?" via `history.list`. Only new messages get processed.
+
+If the saved history ID is stale (Gmail returns a 404), the agent falls back to a full search silently. No errors, no manual intervention. The delta sync is an optimization, not a dependency.
+
+### Circuit Breaker (Step 0.7)
+
+The agent records `date +%s` at startup and checks elapsed time after every batch operation. If the run exceeds 10 minutes, it stops processing immediately, generates a partial report noting "Circuit breaker triggered: 10-minute limit reached," and exits cleanly.
+
+This exists because of scheduled runs. A manual session can take as long as it needs. An unattended scheduled session that runs for 45 minutes because it hit a rate limit loop is a problem. The circuit breaker ensures predictable resource usage.
+
+### Thread-Level Classification (Step 4)
+
+The original agent classified individual messages. The v3 agent groups messages by thread ID and classifies the thread based on its most recent message. This matters for threads where the initial email looks like marketing but a later reply from a real human changes the context.
+
+When messages in the same thread give conflicting classification signals, the agent flags the thread with the reason "Thread has conflicting signals, classified by most recent message." Conservative by default.
+
+### Attachment Awareness
+
+While reading message payloads, the agent now checks for attachments. Any attachment larger than 10 MB gets logged in a "Large Attachments" section of the report with the sender, subject, filename, and size. This isn't about classification. It's about visibility. I want to know when someone sends me a 25 MB file that I might need to download before Gmail auto-deletes the thread in 30 days.
+
+### Follow-Up Tracking (Step 5)
+
+Entirely new. The agent scans sent messages from 3 to 7 days ago and checks whether the recipient replied. If I sent someone an email 5 days ago and haven't heard back, it appears in the "Pending Replies" section of the report.
+
+This replaces the mental overhead of remembering who I'm waiting on. The agent surfaces it automatically.
+
+### Combined Attention Email (Step 6)
+
+The original agent created a draft report. The v3 agent still does that (Step 7), but it also sends a single self-to-self email when items need attention. This email combines three categories:
+
+- **Urgent items** (security alerts, financial deadlines, time-sensitive requests)
+- **Flagged items** (uncertain classifications from any step)
+- **Pending replies** (unanswered sent messages from 3+ days ago)
+
+The subject line is severity-aware: `URGENT: Inbox Alert - 3 items need your attention` versus `Inbox Alert - 5 items for review`. If nothing needs attention, no email is sent.
+
+<Warning title="The Send Override">
+This is the one place where the agent sends email rather than creating a draft. The GWS CLI skill has a rule: "NEVER auto-send email." The agent overrides this rule explicitly in its instructions, with documented rationale: it runs unattended, there's no interactive user to approve a draft, and the email goes only to the same account being cleaned. Self-to-self, once per run, only when something needs attention.
+</Warning>
+
+### Auto-Labeling
+
+The v3 agent applies Gmail labels based on email content. Nine categories, all under the `Auto/` namespace:
+
+| Label | Applied When |
+|-------|-------------|
+| Auto/Financial | Bills, invoices, bank alerts, receipts, statements |
+| Auto/Security | Password resets, 2FA codes, new device sign-ins, fraud alerts |
+| Auto/Shipping | Order confirmations, delivery notifications, tracking info |
+| Auto/Social | Real human messages rescued from Social category |
+| Auto/Newsletters | Newsletters that were kept or archived |
+| Auto/School | Broward County Public Schools, Hollywood Hills HS, Beachside Montessori |
+| Auto/Home | FPL/utility, mortgage, contractors, HOA, hollywoodfl.org |
+| Auto/Medical | Medical, health, or VA correspondence |
+| Auto/Work | CryptoFlex LLC related |
+
+Labels are created in the pre-flight phase if they don't exist (a 409 response means the label already exists, which is fine). An email can receive multiple labels. The labels persist even after the email is archived, so searching by label works as a lightweight filing system.
+
+### Batch Operations
+
+The original agent called `trash-message` individually for each email. With 171 promotions to trash, that's 171 API calls. The v3 agent uses `batchModify` to process up to 50 messages per call, cutting API usage by an order of magnitude.
+
+The batch logic also handles a subtle edge case: starred or important spam. If a promotional email somehow has the STARRED or IMPORTANT label (usually from an accidental tap on mobile), the agent strips those labels in the same `batchModify` call that adds TRASH. These get logged in a "Spam That Bypassed Filters" report section.
+
+### Rate Limit Retry
+
+All API calls now have exponential backoff: wait 2 seconds, then 5, then 15. After 3 consecutive failures on the same call, the agent logs the error and moves on. If multiple messages in a batch hit 429, the agent halves the batch size (minimum 5) and increases the inter-batch pause.
+
+### Additional Report Sections
+
+The draft report has grown from 3 sections to 12:
+
+1. Summary table (expanded with rescued, VIP, and urgent counts)
+2. Flagged for review
+3. Spam that bypassed filters
+4. Urgent items
+5. VIP emails kept
+6. Pending replies
+7. Unsubscribe opportunities (sender + List-Unsubscribe header value)
+8. Suggested filters (senders trashed 3+ times in one run)
+9. Large attachments
+10. Draft replies generated
+11. Errors
+12. Classification staleness footer (warns if the rules haven't been reviewed in 30+ days)
+
+The unsubscribe opportunities and suggested filters sections are the agent's way of nudging me toward permanent fixes. If Dollar Shave Club shows up in the suggested filters section three runs in a row, maybe I should actually create the Gmail filter.
+
+## Making It Run Itself
+
+With the v3 agent working reliably in manual runs, the scheduled run from the original "What I'd Build Next" list became the obvious next step. Claude Code has a scheduled tasks feature (remote triggers) that runs on a cron schedule. Perfect, I thought.
+
+### Attempt 1: Scheduled Triggers (Cloud Execution)
+
+Claude Code's scheduled triggers work like this: you create a trigger with a cron expression, it fires on schedule, and it runs your prompt. I set one up:
+
+```bash
+claude trigger create \
+  --name "Gmail Cleanup" \
+  --schedule "0 */5 * * *" \
+  --prompt "/agents gmail-assistant -- Clean chris2ao@gmail.com"
+```
+
+The trigger got an ID (`trig_018km7FBZka2JcYuD5SMQvzf`) and a cron schedule of every 5 hours. Clean. Easy.
+
+Then the first scheduled run fired. And immediately failed.
+
+<Stop title="Scheduled Triggers Run in the Cloud">
+This is the critical detail that isn't obvious from the documentation. Claude Code's scheduled triggers execute on Anthropic's cloud infrastructure, not on your local machine. The trigger fires, a session spins up on a remote server, and it tries to run your prompt. But the remote server doesn't have your local CLI tools, config files, auth tokens, or filesystem. It's a clean environment with no access to anything on your machine.
+</Stop>
+
+My agent needs the `gws` CLI binary (installed via Homebrew on my Mac Mini). It needs `~/.config/gws-personal/tokens.json` for OAuth credentials. It needs the agent file at `~/.claude/agents/gmail-assistant.md`. None of these exist in the cloud environment. The session started, couldn't find `gws`, and died.
+
+### Attempt 2: Remote Control (The Hybrid Solution)
+
+The solution is `claude remote-control`. This is a Claude Code feature where your local machine registers as an "environment" that can receive and execute sessions routed to it. The architecture looks like this:
+
+1. Scheduled trigger fires on Anthropic's cloud on the cron schedule
+2. Instead of executing in the cloud, the trigger routes to a registered environment ID
+3. That environment ID maps to a `claude remote-control` process running on your local machine
+4. The local process accepts the session and executes it with full access to your filesystem, CLI tools, and auth tokens
+
+The key command is:
+
+```bash
+claude remote-control --name "Mac Mini Bridge"
+```
+
+This starts a persistent process that registers with Anthropic's infrastructure and waits for incoming sessions. When a scheduled trigger fires, the session gets routed here and runs locally. The agent can call `gws`, read config files, and do everything it does in a manual session.
+
+### The launchd Daemon
+
+A `claude remote-control` process that dies when the terminal closes isn't useful for unattended operation. I needed it to run as a system daemon that starts on boot and restarts if it crashes. On macOS, that's launchd.
+
+Here's the plist at `~/Library/LaunchAgents/com.anthropic.claude-remote-control.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.anthropic.claude-remote-control</string>
+
+    <key>Comment</key>
+    <string>Claude Code remote-control server for scheduled triggers</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/Users/chris2ao/.local/bin/claude</string>
+      <string>remote-control</string>
+      <string>--name</string>
+      <string>Mac Mini Bridge</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/chris2ao/.claude/gmail-assistant-workspace</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/chris2ao/.claude/logs/remote-control.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/chris2ao/.claude/logs/remote-control.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>HOME</key>
+      <string>/Users/chris2ao</string>
+      <key>PATH</key>
+      <string>/Users/chris2ao/.local/bin:...:/opt/homebrew/bin:...</string>
+    </dict>
+  </dict>
+</plist>
+```
+
+The important settings:
+
+- **RunAtLoad**: starts immediately when the user logs in (or when the plist is loaded)
+- **KeepAlive**: restarts the process if it exits for any reason
+- **ThrottleInterval**: waits 10 seconds between restart attempts to avoid a crash loop
+- **WorkingDirectory**: points to a dedicated workspace (more on this below)
+- **EnvironmentVariables**: launchd agents don't inherit your shell environment, so PATH must be set explicitly to include Homebrew and the Claude CLI
+
+Load it with:
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.anthropic.claude-remote-control.plist
+```
+
+And verify it's running:
+
+```bash
+launchctl list | grep claude
+```
+
+<Tip title="launchd vs. cron on macOS">
+macOS has cron, but Apple has been pushing launchd as the preferred scheduler since OS X Tiger (2005). For daemons that need to stay alive, launchd's KeepAlive and crash recovery are significantly better than a cron job that re-launches a process. Use launchd for persistent services and cron (or Claude Code's scheduled triggers) for periodic tasks.
+</Tip>
+
+### Scoped Workspace Permissions
+
+Here's a security consideration that took some thought. The Gmail agent needs `Bash(*)` permission because it runs arbitrary shell commands (calling `gws`, piping through `python3`, running `date` and `cat`). In Claude Code's permission model, `Bash(*)` means "allow any bash command without prompting."
+
+I don't want that permission in my global settings. My global `~/.claude/settings.json` has a carefully scoped list of allowed tools, and blanket bash access isn't on it.
+
+The solution: a dedicated workspace directory with its own permissions. I created `~/.claude/gmail-assistant-workspace/` and gave it a local `.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep"
+    ]
+  }
+}
+```
+
+The launchd plist's `WorkingDirectory` points to this workspace. When the remote-control daemon starts, it picks up the workspace-local settings. Sessions spawned by scheduled triggers inherit these permissions. Broad bash access is scoped to only the sessions that need it.
+
+<Security title="Permission Scoping Pattern">
+If you need broad permissions for an automated agent but want to keep your global settings locked down, create a dedicated workspace directory with its own `.claude/settings.json`. Point your daemon or scheduled task at that directory. Permissions in the workspace-local settings apply only to sessions running in that workspace. Your interactive sessions elsewhere remain restricted.
+</Security>
+
+### The Environment ID Gotcha
+
+Environment IDs in Claude Code are tied to the working directory. When `claude remote-control` registers with Anthropic's infrastructure, it generates an environment ID based on (among other things) the directory it's running in. The scheduled trigger is configured to route to a specific environment ID.
+
+This means: if you change the daemon's `WorkingDirectory` in the plist, a new environment ID gets generated. The trigger is still pointed at the old one. Sessions go nowhere.
+
+The fix is to update the trigger after any working directory change:
+
+```bash
+# Check current environment ID
+claude remote-control --list-environments
+
+# Update the trigger to point to the new environment
+claude trigger update trig_018km7FBZka2JcYuD5SMQvzf \
+  --environment <NEW_ENV_ID>
+```
+
+<Warning title="Environment IDs Are Directory-Bound">
+If you move or rename the workspace directory that your remote-control daemon uses, you must update any triggers that reference its environment ID. The old ID becomes invalid immediately. There's no automatic migration.
+</Warning>
+
+### Multiple Remote-Control Instances
+
+One concern I had: would the scheduled-task daemon conflict with interactive `claude remote-control` sessions I might run from other directories? The answer is no. Each `remote-control` instance gets its own environment ID based on its working directory. The daemon in `~/.claude/gmail-assistant-workspace/` and an interactive session in `~/GitProjects/some-project/` are separate environments with separate IDs. Triggers route to specific environment IDs, so there's no collision.
+
+### The Read Tool Token Limit
+
+One operational quirk: the agent file (`gmail-assistant.md`) is about 11,147 tokens. Claude Code's Read tool has a 10,000-token limit per read. When the scheduled session starts and needs to load the agent instructions, it reads the file in 200-line chunks (5 reads total). This is a minor inefficiency, not a bug. The agent loads correctly, it just takes a few extra API calls at the start of each session.
+
+## The Current State
+
+The Gmail assistant now runs every 5 hours, unattended, on my Mac Mini. Here's the full flow:
+
+1. Anthropic's cron infrastructure fires the trigger at the scheduled time
+2. The trigger routes to the Mac Mini's environment ID
+3. The `claude remote-control` daemon (running as a launchd service) accepts the session
+4. The session loads the agent instructions from `~/.claude/agents/gmail-assistant.md`
+5. The agent runs the full v3 pipeline: pre-flight checks, VIP detection, delta sync, classification, follow-up tracking, attention email, and draft report
+6. If anything needs my attention, I get a self-to-self email with color-coded tables
+7. A draft report sits in my drafts folder for audit purposes
+8. The session exits, and the daemon goes back to waiting
+
+Average run time for a 5-hour window is 3 to 6 minutes, depending on email volume. The circuit breaker has never triggered in normal operation.
+
+## What I'd Build Next (Updated)
+
+Looking at the original list:
+
+- ~~Scheduled runs~~ - Done. Every 5 hours via remote-control daemon.
+- **Unsubscribe handling** - The agent now surfaces unsubscribe links in the report (List-Unsubscribe header extraction), but doesn't act on them. The next step would be automated unsubscribe for senders that appear in 5+ consecutive reports. I'm still cautious about this one. Some "unsubscribe" links are phishing vectors.
+- **Sender learning** - Partially done. The "Suggested Filters" section in the report identifies senders trashed 3+ times in a single run. The next step is persisting these suggestions across runs and auto-creating Gmail filters after a configurable threshold.
+- **Multi-account view** - Not started. The agent still runs against one account at a time. A wrapper that queues runs for both personal and work accounts back-to-back would be straightforward.
+
+New items on the list:
+
+**Classification rule versioning**: The agent file has a `CLASSIFICATION_LAST_REVIEWED` comment that drives a staleness warning in the report. But the classification rules themselves aren't versioned. If I change a rule and the agent starts making different decisions, I want a diff, not just a date.
+
+**Metrics dashboard**: After a month of automated runs, I have enough data in draft reports to build a simple dashboard: emails processed per run, classification distribution over time, VIP override frequency, circuit breaker triggers. The data is there. It just needs extraction.
+
+**Dry-run mode**: The agent should support a `--dry-run` flag that classifies everything but takes no action. Useful for validating rule changes before deploying them to the automated schedule.
+
+## Lessons Learned (Part 2)
+
+<Info title="Cloud Triggers Need Local Bridges">
+Claude Code's scheduled triggers are powerful, but they run in the cloud. If your agent depends on local tools, files, or auth tokens, you need `claude remote-control` as a bridge between the cloud trigger and your local machine. Plan for this from the start.
+</Info>
+
+<Warning title="Test Your Daemon's Environment">
+launchd agents don't inherit your shell environment. They get a minimal PATH, no Homebrew, no custom exports. Specify every environment variable your process needs in the plist's EnvironmentVariables dictionary. If something works in your terminal but fails under launchd, the environment is almost certainly the problem.
+</Warning>
+
+<Security title="Scope Permissions to Workspaces">
+Don't grant `Bash(*)` globally just because one agent needs it. Create a workspace directory with local permissions and point your daemon at it. This is the principle of least privilege applied to AI agent execution.
+</Security>
+
+<Tip title="Delta Sync Saves API Quota">
+Gmail's history API is dramatically more efficient than full scans for frequent runs. A full scan lists all unread emails every time. Delta sync only fetches what changed since the last run. For a 5-hour cycle on a moderately active inbox, that's the difference between 200+ API calls and 20.
+</Tip>
+
+<Stop title="VIP Detection Is Not Optional">
+If your email agent doesn't know who you've been talking to, it will eventually trash something from someone important. Reply history is a cheap signal with high value. Build it into your classification pipeline before you schedule unattended runs.
+</Stop>
+
+---
+
+*Written by Chris Johnson and edited by Claude Code. Originally published 2026-03-15, updated 2026-03-26 with Part 2 covering the v3 agent evolution and scheduled task setup. The Gmail assistant agent is in a private config repo (`CJClaudin_Mac`). The GWS CLI skill is covered in a [previous post](/blog/google-workspace-cli-skill-replacing-mcp-with-a-better-pattern) on this blog. All email counts and trigger IDs are real. The Mac Mini is still running. Dollar Shave Club is still being trashed.*
