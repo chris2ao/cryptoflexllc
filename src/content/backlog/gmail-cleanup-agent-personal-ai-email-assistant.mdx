@@ -16,13 +16,13 @@ I could have spent an afternoon clicking the delete button. Or I could spend tha
 
 Here's what I built, how it works, why the GCP OAuth setup was a small nightmare, and what happened when I finally let it loose on my inbox.
 
-## The Plan: Five Steps, No Human Required
+## The Plan: Five Steps (Now Eight), No Human Required
 
 The agent lives at `~/.claude/agents/gmail-assistant.md`. If you've read my [post on the GWS CLI skill](/blog/google-workspace-cli-skill-replacing-mcp-with-a-better-pattern), you know I replaced the Gmail and Calendar MCPs with a local CLI tool that authenticates properly and doesn't require an active MCP server per session. This agent is built on top of that.
 
-The workflow has five steps, and they run in sequence:
+The original workflow had five steps. It has since grown to eight (plus a pre-flight step), with VIP detection, follow-up tracking, and a combined attention email. The full v3 pipeline is covered in [Part 2](#part-2-the-agent-grows-up) below. Here's where it started:
 
-<Info title="The Five-Step Pipeline">
+<Info title="The Original Five-Step Pipeline">
 1. **Promotions purge** - trash promotions older than 7 days
 2. **Social purge** - trash social notifications older than 7 days
 3. **Newsletter detection** - trash anything with "unsubscribe" language older than 7 days
