@@ -95,7 +95,7 @@ export async function generateDigestIntro(
 
     if (!text.trim()) {
       console.error("Newsletter intro: empty AI response, using fallback");
-      return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, memeHtml: "", fromAi: false };
+      return { greeting: STATIC_GREETING, contentIntro: STATIC_CONTENT_INTRO, quoteHtml: "", fromAi: false };
     }
 
     // Parse the three sections separated by ---SECTION---
