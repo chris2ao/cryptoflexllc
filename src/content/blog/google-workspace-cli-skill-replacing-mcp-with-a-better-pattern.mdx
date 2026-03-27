@@ -245,16 +245,12 @@ The difference between Tier 1 and Tier 4 is the difference between "show me my e
 
 Here is a condensed view of the tier system as it appears in the skill file:
 
-```markdown
-## Safety Tiers
-
 | Tier | Operations | Behavior |
 |------|-----------|----------|
 | 1 - Safe | list, get, search, schema | Auto-execute |
 | 2 - Create | create, insert, draft, copy | Confirm with user |
 | 3 - Modify | update, patch, move, share, send | Dry-run first, then confirm |
 | 4 - Destroy | delete, trash, revoke, cancel | Explicit request only |
-```
 
 ## What Actually Works
 

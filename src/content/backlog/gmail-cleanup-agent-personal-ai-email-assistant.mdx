@@ -296,55 +296,6 @@ The agent created a draft with the subject "Inbox Cleanup Report - 2026-03-13" (
 
 The flagged section is the most useful part. Nine emails I need to actually look at. Everything else is handled.
 
-## The Syncthing Detour
-
-While I was in the middle of the GWS CLI setup, I hit an unrelated but annoying bug: the GWS CLI skill file at `~/.claude/skills/gws/SKILL.md` wasn't being loaded by Claude Code.
-
-The problem was case sensitivity. The file was saved as `SKILL.md` (uppercase), but somewhere in a previous sync between my Mac and another machine, Syncthing had transferred a version named `skill.md` (lowercase). macOS's APFS filesystem is case-insensitive by default, so both names pointed to the same inode. But Syncthing's conflict resolution had created a situation where the index showed one name and the file system showed another.
-
-The fix was to explicitly delete and recreate the file with the correct casing:
-
-```bash
-# Force correct case
-rm ~/.claude/skills/gws/SKILL.md
-mv ~/.claude/skills/gws/skill.md ~/.claude/skills/gws/SKILL.md
-```
-
-And then update the Syncthing ignore rules to exclude the file from syncing (the skill file is machine-specific anyway, since it references local tool paths).
-
-<Warning title="macOS Case Sensitivity Gotcha">
-macOS APFS is case-insensitive but case-preserving. This means `SKILL.md` and `skill.md` are the same file to macOS, but git, Syncthing, and Linux servers will treat them as different files. If you're syncing between macOS and Linux, case mismatches can cause subtle bugs where tools look for `SKILL.md` and get `skill.md` (or vice versa) without any error. The filesystem silently resolves it, but your tooling may not.
-</Warning>
-
-## The Memory-Nudge Hook
-
-Also wired up during this session: the memory-nudge hook. This is a PostToolUse hook that runs after certain operations and reminds Claude to save context to vector memory when something significant happens.
-
-The hook already existed as a script in `.claude/hooks/`. But it wasn't registered in `settings.local.json`, which meant it was never running. I added the registration and tested it.
-
-The cross-platform part: the hook script was written for macOS (bash). I also needed it to work on my Windows machine (Git Bash). The solution was a PowerShell port that reads the same stdin JSON format and fires the same reminder message. Two files, one hook registration that calls whichever is appropriate based on OS detection.
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "mcp__vector-memory__memory_store",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/bin/bash ~/.claude/hooks/memory-nudge.sh",
-            "async": true
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-The hook fires after any vector memory store operation and injects a reminder into the context: "Memory saved. Consider whether there are related items from this session worth capturing." Small nudge, but it's made a noticeable difference in how consistently I use the vector memory system.
-
 ## Running It Again
 
 After the first run, my inbox was down to 79 unread emails. All of them legitimate. I reviewed the 9 flagged items (confirmed 7 were trash, 2 were actually important), and now the primary inbox contains only things that need attention.
