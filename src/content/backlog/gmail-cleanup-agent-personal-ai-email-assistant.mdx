@@ -135,7 +135,7 @@ The `tools: [Bash]` constraint is intentional. The agent only needs to run shell
 
 Here's where things got spicy.
 
-I built this agent to work against my personal Gmail account (`chris2ao@gmail.com`), but the GWS CLI I set up previously was authenticated against my work account (`chrisjohnson@cryptoflexllc.com`). Same tool, different credentials, and those credentials live in `~/.config/gws/`.
+I built this agent to work against my personal Gmail account (`myemail@gmail.com`), but the GWS CLI I set up previously was authenticated against my work account (`chrisjohnson@cryptoflexllc.com`). Same tool, different credentials, and those credentials live in `~/.config/gws/`.
 
 <Info title="What Is the GWS CLI?">
 The Google Workspace CLI is a local tool that wraps the Google APIs (Gmail, Calendar, Drive, etc.) with proper OAuth authentication. I wrote about the setup in detail in a previous post. Short version: it's a replacement for the Gmail and Calendar MCPs that authenticates once per account and stays authenticated via refresh tokens stored in your system keychain.
@@ -155,7 +155,7 @@ Simple. Except I had to actually set up the personal account config first, and t
 
 ### Attempt 1: Add Gmail to the CryptoFlex GCP Project
 
-My first instinct was efficiency: I already have a Google Cloud Project for the work account. Why not just add `chris2ao@gmail.com` as an authorized test user in the same OAuth consent screen?
+My first instinct was efficiency: I already have a Google Cloud Project for the work account. Why not just add `myemail@gmail.com` as an authorized test user in the same OAuth consent screen?
 
 I went into the CryptoFlex GCP project, navigated to **APIs & Services > OAuth consent screen > Test users**, and tried to add the Gmail address.
 
@@ -191,7 +191,7 @@ The cleanest solution was also the most obvious one: create a separate GCP proje
 Steps:
 
 ```bash
-# 1. Go to console.cloud.google.com (logged in as chris2ao@gmail.com)
+# 1. Go to console.cloud.google.com (logged in as myemail@gmail.com)
 # 2. Create new project: "personal-gws-cli"
 # 3. Enable Gmail API
 # 4. Create OAuth Desktop App credentials
@@ -598,7 +598,7 @@ Claude Code's scheduled triggers work like this: you create a trigger with a cro
 claude trigger create \
   --name "Gmail Cleanup" \
   --schedule "0 */5 * * *" \
-  --prompt "/agents gmail-assistant -- Clean chris2ao@gmail.com"
+  --prompt "/agents gmail-assistant -- Clean myemail@gmail.com"
 ```
 
 The trigger got an ID (`trig_018km7FBZka2JcYuD5SMQvzf`) and a cron schedule of every 5 hours. Clean. Easy.
