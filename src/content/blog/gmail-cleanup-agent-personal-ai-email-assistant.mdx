@@ -613,26 +613,26 @@ Here's the plist at `~/Library/LaunchAgents/com.anthropic.claude-remote-control.
 
     <key>ProgramArguments</key>
     <array>
-      <string>/Users/chris2ao/.local/bin/claude</string>
+      <string>/Users/yourname/.local/bin/claude</string>
       <string>remote-control</string>
       <string>--name</string>
       <string>Mac Mini Bridge</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/chris2ao/.claude/gmail-assistant-workspace</string>
+    <string>/Users/yourname/.claude/gmail-assistant-workspace</string>
 
     <key>StandardOutPath</key>
-    <string>/Users/chris2ao/.claude/logs/remote-control.log</string>
+    <string>/Users/yourname/.claude/logs/remote-control.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/chris2ao/.claude/logs/remote-control.err.log</string>
+    <string>/Users/yourname/.claude/logs/remote-control.err.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>
       <key>HOME</key>
-      <string>/Users/chris2ao</string>
+      <string>/Users/yourname</string>
       <key>PATH</key>
-      <string>/Users/chris2ao/.local/bin:...:/opt/homebrew/bin:...</string>
+      <string>/Users/yourname/.local/bin:...:/opt/homebrew/bin:...</string>
     </dict>
   </dict>
 </plist>
