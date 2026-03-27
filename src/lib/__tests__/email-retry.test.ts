@@ -58,10 +58,10 @@ describe('withRetry', () => {
     const scheduledDelays: number[] = [];
     const realSetTimeout = globalThis.setTimeout.bind(globalThis);
     vi.spyOn(globalThis, 'setTimeout').mockImplementation(
-      (fn: TimerHandler, delay?: number, ...args: unknown[]) => {
+      ((fn: TimerHandler, delay?: number, ...args: unknown[]) => {
         scheduledDelays.push(delay ?? 0);
         return realSetTimeout(fn, 0, ...args);
-      }
+      }) as typeof setTimeout
     );
 
     const error = new Error('Timeout');
