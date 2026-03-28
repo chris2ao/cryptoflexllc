@@ -26,6 +26,7 @@ const GARBAGE_PATHS = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host");
 
   // Block known garbage paths early with 404 (saves server resources)
   if (GARBAGE_PATHS.includes(pathname)) {
@@ -37,12 +38,26 @@ export function middleware(request: NextRequest) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
+  // Redirect non-www to www in production (also upgrades to HTTPS in one hop)
+  if (process.env.NODE_ENV === "production" && host === "cryptoflexllc.com") {
+    return NextResponse.redirect(
+      `https://www.cryptoflexllc.com${pathname}${request.nextUrl.search}`,
+      301
+    );
+  }
+
+  // Prevent indexing of Vercel preview/deployment URLs
+  if (host && host.endsWith(".vercel.app")) {
+    const response = NextResponse.next();
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return response;
+  }
+
   // Enforce HTTPS in production
   if (
     process.env.NODE_ENV === "production" &&
     request.headers.get("x-forwarded-proto") !== "https"
   ) {
-    const host = request.headers.get("host");
     if (host) {
       return NextResponse.redirect(
         `https://${host}${pathname}${request.nextUrl.search}`,
