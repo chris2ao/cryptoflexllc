@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { BlogCard } from "@/components/blog-card";
 import { getAllSeries, getSeriesPosts } from "@/lib/blog";
+import { BASE_URL } from "@/lib/constants";
 
 interface Props {
   params: Promise<{ name: string }>;
@@ -21,6 +22,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `Series: ${decodedName}`,
     description: `All posts in the "${decodedName}" series on CryptoFlex LLC.`,
+    alternates: { canonical: `${BASE_URL}/blog/series/${name}` },
+    robots: { index: false, follow: true },
   };
 }
 
