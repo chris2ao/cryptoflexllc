@@ -26,6 +26,12 @@ const nextConfig: NextConfig = {
       destination: "/resources",
       permanent: true,
     },
+    // Portfolio detail pages don't exist yet; redirect crawled 404s
+    {
+      source: "/portfolio/:slug",
+      destination: "/portfolio",
+      permanent: false,
+    },
   ],
   outputFileTracingIncludes: {
     "/*": ["src/content/**/*"],
