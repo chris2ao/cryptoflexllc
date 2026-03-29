@@ -1,0 +1,208 @@
+---
+title: 'Blog Post Command v2: From Solo Agent to Production Team'
+date: '2026-03-29T16:00:00'
+description: >-
+  I replaced a single 196-line orchestrator agent with a five-agent production
+  team, a living voice profile, and a six-phase pipeline. Here's what changed,
+  why, and what I learned about letting agents specialize.
+tags:
+  - Claude Code
+  - Agents
+  - Workflow
+  - Architecture
+  - Writing
+  - Skills
+author: Chris Johnson
+readingTime: 15 min read
+series: 'Claude Code Workflow'
+seriesOrder: 11
+---
+
+Seven new files, four modified, one deleted. Five agents instead of one. A voice profile seeded from 46 posts. Three bash scripts fixed for a compatibility bug that's existed on macOS since 2007.
+
+That's the v2 upgrade of my `/blog-post` command, and the numbers only tell half the story. The real change is structural: I replaced a single agent that did everything with a team of specialists that each do one thing well, coordinated by a captain that never writes a word of content.
+
+This post covers what I changed, the architecture behind it, and why this approach produces better blog posts than a solo orchestrator ever could.
+
+## What v1 Looked Like
+
+My original `/blog-post` command was straightforward. A skill file (`skill.md`) asked five questions (topic, tone, audience, series, destination), then spawned a single Sonnet orchestrator agent. That agent did everything: researched the topic, drafted the post, self-edited, validated the MDX, and committed the result.
+
+At 196 lines, the orchestrator was compact. It worked. Posts came out readable. But the approach had blind spots that became more obvious over time.
+
+The biggest problem was that the same agent writing the content was also reviewing it. Self-editing is better than no editing, but it's not a substitute for a second pair of eyes. The agent would miss voice drift, overlook pacing issues, and occasionally produce an opening hook that was functional but flat. It couldn't catch the things it couldn't see about its own output.
+
+<Warning title="Self-Review Is Not Review">
+An agent reviewing its own output will miss the same things a person would: voice inconsistency, structural monotony, weak hooks, and assumptions that feel obvious because you just wrote them. Real review requires a separate perspective with its own evaluation criteria.
+</Warning>
+
+The second problem was scope. One agent handling research, drafting, editing, and validation means the context window fills with all of those concerns simultaneously. The agent is juggling style guide rules, code examples, callout placement, frontmatter format, and build verification all at once. Each concern dilutes attention on the others. I wanted something better.
+
+## The Game-Director Pattern
+
+The architecture for v2 comes from something I'd already built: the game development team. That system uses six agents coordinated by a "game director" captain who manages a phase-based pipeline. The director never touches code directly. It plans the work, assigns it to specialists, reviews the output, and decides when to iterate.
+
+Blog production has the same shape. You research, you draft, you review, you revise, you publish. Each step has different requirements and benefits from a different model. Research is cheap (Haiku). Writing needs strong generation (Sonnet). Review needs fresh eyes (separate Sonnet instances). The captain needs editorial judgment and coordination (Opus). I'd already proven the pattern worked. Why not apply it to writing?
+
+<Info title="The Captain Pattern">
+If you read [The Agent Captain Pattern](/blog/the-agent-captain-pattern-when-agents-orchestrate-agents), this is the same idea applied to content production. The captain is an orchestrator: it spawns specialists, collects their output, triages feedback, and makes editorial decisions. It never writes content directly. That separation of concerns is what makes the system work.
+</Info>
+
+## The Five Agents
+
+### Blog Captain (Opus)
+
+The captain orchestrates the six-phase pipeline. It reads the voice profile, spawns research agents, hands context to the writer, launches parallel reviews, triages feedback into severity buckets (must-fix, should-fix, nice-to-have), and decides whether to revise or publish.
+
+The captain never writes blog content. I made this constraint explicit in its definition: it owns pipeline decisions, not the MDX file. The moment a coordinator starts doing the work it's supposed to be delegating, it loses objectivity about the output.
+
+### Blog Writer (Sonnet)
+
+The writer is the extracted core of the old orchestrator. It operates in two modes: draft (write from scratch given research and a voice brief) and revision (modify an existing draft given consolidated feedback). I embedded the full style guide and MDX component reference directly in the agent definition, so the writer never needs to search for formatting rules.
+
+The writer owns the MDX file exclusively. No other agent modifies it. This prevents concurrent modification conflicts and makes the revision chain clean: draft, revise, re-validate, done.
+
+### Blog Voice (Sonnet)
+
+The voice agent is the most novel piece of the system. It maintains a living voice profile and operates in three modes.
+
+**Pre-draft mode** produces a voice brief before writing begins. It reads the profile, runs metrics on two recent posts using `blog-voice-diff.sh`, and synthesizes a 200-300 word brief that tells the writer what patterns to match: opening style, paragraph rhythm, contraction frequency, tone-specific adjustments.
+
+**Post-draft mode** scores the draft against the profile on a 1-5 scale. It runs metrics on the draft and compares them to the baseline ranges. A score below 3 triggers a must-fix revision. A score of 3-4 with specific deviations triggers a should-fix.
+
+**Post-publish mode** proposes incremental updates to the voice profile itself. This is the "living" part: after each post, the profile can evolve to reflect my blog's current voice. I made the update protocol deliberately conservative. Changes are additive only (no deletions). One post isn't a trend. The captain must approve every change.
+
+<Tip title="Measure What You Can, Judge What You Can't">
+The voice agent uses `blog-voice-diff.sh` for objective metrics (paragraph length, contraction density, first-person pronoun frequency) and layers subjective analysis on top (does this opening feel like a Chris Johnson post?). Scripts handle the measurable. LLM judgment handles everything else. Neither alone is sufficient.
+</Tip>
+
+### Blog Editor (Sonnet)
+
+The editor is strictly read-only. It reads two calibration posts, reads the draft, and produces structured JSON feedback with scores on four dimensions: hook strength (1-5), pacing (1-5), entertainment (1-5), and accuracy (1-5). Each piece of feedback gets tagged with a severity level: must-fix, should-fix, or nice-to-have.
+
+The editor never modifies the post. It provides an assessment. The captain decides which feedback to accept, which to reject (with rationale logged), and what to pass to the writer for revision. I like this separation because it keeps the feedback honest. The editor doesn't have to worry about whether its criticism is "too harsh" because it's not the one doing the rewrite.
+
+### Blog UX (Haiku)
+
+The UX agent handles build verification and structural analysis. It runs `npm run build` to verify the post compiles, then checks heading hierarchy (no skipped levels, no H1 in body), callout distribution (no clusters of 3+ within 20 lines, no deserts of 50+ lines without visual breaks), GIF placement, and component integrity (properly closed callouts, no nesting).
+
+I put the UX agent on Haiku because it's doing structural checks, not creative work. The build verification is critical: a post that doesn't compile doesn't ship. Running the production build (not a dev server) means no orphaned processes and no cleanup risk.
+
+<Warning title="No Dev Server, By Design">
+The UX agent runs `npm run build`, not `npm run dev`. The build command runs and exits. A dev server would require process management and could leave zombie processes if the agent crashes or the session ends unexpectedly. Build-only verification is safer and just as effective for catching compilation errors.
+</Warning>
+
+## The Voice Profile
+
+The voice profile is a living document at `~/.claude/skills/blog-voice-profile.md`, seeded from my analysis of 46 published posts. It captures the blog's core identity, opening patterns, pacing rhythm, tone markers, characteristic phrases, humor style, and metric baselines.
+
+Here's the thing about a voice profile versus a style guide: they solve different problems. My style guide says "use callouts every 3-5 paragraphs" and "never use em dashes." The voice profile says "the opening paragraph runs 20-65 words, shorter is better" and "contractions appear at 12-20 per 1000 words, higher in narrative posts." One tells you the rules. The other tells you what the blog sounds like.
+
+I established the metric baselines from a four-post sample: iMessage channels, Gmail cleanup agent, 90% context optimization, and first 24 hours with Claude Code. These posts span different tones and lengths, giving a reasonable range rather than a single target.
+
+```json
+{
+  "avg_paragraph_length": "14-31 words",
+  "contractions_per_1000": "12-20",
+  "first_person_per_1000": "11-33",
+  "questions_per_1000": "0-4",
+  "callouts_per_post": "3-25",
+  "opening_paragraph_words": "20-65"
+}
+```
+
+The evolution log at the bottom of the profile tracks changes over time. After each post, the voice agent can propose additions based on new patterns it observes. These proposals are additive only and require captain approval. The logic is simple: one post is a data point, not a trend. I don't want the profile lurching in response to a single outlier.
+
+## The Six-Phase Pipeline
+
+Here's how the pipeline actually runs. Strict phases, with parallel execution within phases where the work is independent.
+
+### Phase 0: Discovery
+
+The skill entry point (`skill.md`) runs `blog-inventory.sh` to get the current post inventory, reads the voice profile, and asks the user five questions: topic, tone, audience, series, and destination. Then it spawns the captain with all of that context.
+
+### Phase 1: Research (parallel)
+
+Two agents launch simultaneously. An Explore agent (Haiku) searches for source material: git logs, code changes, related files, documentation. The voice agent (pre-draft mode) reads two recent posts, runs metrics, and produces the voice brief.
+
+### Phase 2: Draft
+
+The writer agent receives the research findings, voice brief, topic, tone, audience, series info, and destination. It reads calibration posts matched to the requested tone, writes the full MDX file, self-edits for em dashes and formatting, and returns a JSON summary.
+
+### Phase 3: Review (parallel)
+
+All four reviewers launch simultaneously: the editor, the voice agent (post-draft mode), the UX agent, and the `validate-mdx.sh` script. This is the most parallel-heavy phase. Four independent assessments, no dependencies between them.
+
+### Phase 4: Revision (max 2 cycles)
+
+The captain consolidates all Phase 3 feedback into three severity buckets. Must-fix items (build failures, validation errors, voice score below 3, editor must-fix items) always trigger revision. Three or more should-fix items also trigger revision. Nice-to-have items get logged but don't trigger revision.
+
+If revision is needed, the writer receives consolidated instructions and rewrites the post. Only `validate-mdx.sh` re-runs after revision (not the full review panel). I capped it at two revision cycles maximum. A third usually means a systemic problem that more iterations won't fix.
+
+<Info title="Why Two Revision Cycles Maximum">
+Each revision cycle spawns a Sonnet writer agent with full context. Two cycles handle the vast majority of issues. If the post still has must-fix items after two revisions, the problem is likely in the original framing or research, not something the writer can fix with another pass. I'd rather log remaining issues in the final report than burn tokens on diminishing returns.
+</Info>
+
+### Phase 5: Publish
+
+Final build verification, user approval, commit. Then the voice agent runs in post-publish mode to propose profile updates. The captain reviews the proposals and approves only changes that represent gradual evolution.
+
+## The Scripts
+
+Three bash scripts support the pipeline.
+
+**`blog-voice-diff.sh`** extracts measurable voice metrics from an MDX file: average paragraph and sentence length, contraction frequency, first-person pronoun density, question density, callout distribution, and heading depth. It outputs JSON. The voice agent uses this to compare drafts against baseline ranges objectively.
+
+**`validate-mdx.sh`** runs structural validation: em dash detection, missing frontmatter fields, unclosed callout components, heading hierarchy violations, duplicate GIF URLs, callout count warnings (below 3 is suspicious), and private repository link detection. This script existed before v2 but I added five new checks during the upgrade.
+
+**`blog-inventory.sh`** scans the blog and backlog directories and outputs a JSON inventory of all posts with titles, dates, series, and tags. The skill entry point uses this to show the user what already exists and to determine series numbering.
+
+All three scripts had a compatibility bug that surfaced during implementation: they used `declare -A` for associative arrays, which requires bash 4+. macOS ships with bash 3.2 (from 2007, due to licensing). The fix was straightforward, just replace associative arrays with indexed arrays or simple variables. But finding the bug required actually running the scripts on macOS, which is a good reminder that "works on Linux" isn't the same as "works everywhere."
+
+<Warning title="macOS Ships Bash 3.2">
+If you write bash scripts that run on macOS, test for bash 3 compatibility. `declare -A` (associative arrays), `mapfile`, `readarray`, and `${var,,}` (lowercase expansion) all require bash 4+. macOS has shipped bash 3.2 since 2007 because bash 4+ uses GPLv3, which Apple will not bundle. You can install bash 5 via Homebrew, but your scripts should not assume users have done that.
+</Warning>
+
+## Why This Is Better
+
+The improvement isn't about word count or reading time. It's about the feedback loops.
+
+**Specialized review catches what self-review misses.** The editor agent reads the draft cold, with no knowledge of the research or the writing process. It evaluates the hook on its own merits, checks pacing against calibration posts, and flags accuracy issues. The voice agent compares measurable metrics against baseline ranges. The UX agent verifies the post actually builds. These are perspectives the writer can't have about its own work.
+
+**The voice profile prevents drift.** Over 46 posts, small shifts in contraction frequency, paragraph length, or opening technique can accumulate into a noticeable change in how the blog reads. The voice agent detects this and the profile provides objective baselines to correct against. Without it, each post would only be calibrated against the most recent few, with no anchor to the broader body of work.
+
+**Phase-based execution is predictable.** The pipeline has clear phases with defined inputs and outputs. When something goes wrong (a build failure, a low voice score, a must-fix from the editor), I know exactly where in the pipeline it happened and what to do about it. Debug a six-phase pipeline and you know which phase failed. Debug a monolithic orchestrator and you're reading through one long conversation hoping to find the point where things went sideways.
+
+**Parallel execution saves time.** Phase 1 runs two agents simultaneously. Phase 3 runs four. The total wall-clock time for a full pipeline run is significantly less than if each step ran serially.
+
+## Lessons Learned
+
+<Tip title="Separate the Coordinator from the Creator">
+The captain pattern works because the orchestrator has no attachment to the content. It can accept harsh feedback from the editor, triage it objectively, and pass it to the writer without ego. If the same agent wrote and triaged, it'd rationalize away valid criticism of its own work. Separation of concerns applies to AI teams just as much as it does to code.
+</Tip>
+
+<Info title="Living Documents Beat Static Ones">
+A voice profile that updates incrementally after each post captures the blog's evolution. A static style guide captures how you wanted to write six months ago. The key is making updates conservative (additive only, captain approval, one post is not a trend). This prevents a single outlier from shifting the profile dramatically while still allowing gradual drift to be captured.
+</Info>
+
+<Warning title="Scripts Are Not a Substitute for Judgment">
+`blog-voice-diff.sh` can tell you the contraction frequency is 8 per 1000 words when the baseline range is 12-20. It can't tell you whether the low frequency is a problem for this specific post or intentional because the tone is more formal. Metrics identify deviations. LLM judgment decides whether the deviation is a defect or a deliberate choice. Always pair measurement with interpretation.
+</Warning>
+
+<Tip title="Test Your Scripts on macOS">
+If you write bash for a tool that runs on macOS, test on bash 3.2. Don't assume Homebrew bash is available. The three scripts in this system all broke on macOS because of `declare -A`, and the fix was trivial (replace with indexed arrays). But the bug was silent until runtime, which means it would've shipped broken if the development environment had been Linux.
+</Tip>
+
+## What's Next
+
+The v2 system is running. This post was produced by it. The voice profile has its initial seed and will evolve from here. The feedback loops that were missing in v1 (independent review, voice consistency scoring, structural validation) are now part of every post I write.
+
+The next iteration will likely focus on the voice profile's evolution over time: whether the baseline ranges need broadening after more posts, whether the update protocol is too conservative or not conservative enough, and whether the editor's scoring criteria need recalibration. Those are questions that require more data, which means more posts through the pipeline.
+
+If you're building your own agent teams for content production (or any pipeline where quality matters more than speed), here's the key insight: specialization and separation of concerns aren't just software engineering principles. They're coordination principles. An agent that does one thing well and hands off to the next agent produces better results than an agent that does everything adequately.
+
+The full configuration, including all five agent definitions, the three scripts, the voice profile, and the skill entry point, is available in the [claude-code-config repo](https://github.com/chris2ao/claude-code-config).
+
+---
+
+*Written by Chris Johnson and edited by Claude Code (Opus 4.6). This post is part of the Claude Code Workflow series. Previous post: [iMessage Channels for Claude Code](/blog/imessage-channels-for-claude-code-proof-of-concept).*
