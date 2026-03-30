@@ -31,6 +31,11 @@ import {
   WelcomeEmailSagaDiagram,
   BeforeAfterArchitectureDiagram,
   CodePlayground,
+  MemoryLayersDiagram,
+  KGEntityBreakdownDiagram,
+  HookBlindSpotsDiagram,
+  DualLayerReliabilityDiagram,
+  KGMaintenanceLoopDiagram,
 } from "@/components/mdx";
 import {
   getAllPosts,
@@ -268,6 +273,11 @@ export default async function BlogPostPage({ params }: Props) {
                     WelcomeEmailSagaDiagram,
                     BeforeAfterArchitectureDiagram,
                     CodePlayground,
+                    MemoryLayersDiagram,
+                    KGEntityBreakdownDiagram,
+                    HookBlindSpotsDiagram,
+                    DualLayerReliabilityDiagram,
+                    KGMaintenanceLoopDiagram,
                   }}
                 />
               </div>

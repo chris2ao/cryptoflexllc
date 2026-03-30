@@ -23,3 +23,10 @@ export {
 } from "./diagrams-journey";
 export { CodePlayground } from "./code-playground";
 export { MermaidDiagram } from "./mermaid-diagram";
+export {
+  MemoryLayersDiagram,
+  KGEntityBreakdownDiagram,
+  HookBlindSpotsDiagram,
+  DualLayerReliabilityDiagram,
+  KGMaintenanceLoopDiagram,
+} from "./diagrams-memory-audit";

@@ -1,5 +1,5 @@
 ---
-title: "84 Entities, 0 Were There Before: Auditing My Memory Infrastructure"
+title: "I Designed 5 Memory Layers. Only 3 Were Actually Running."
 date: "2026-03-29T10:00:00"
 description: >-
   I ran a routine audit on my Gmail agent and discovered the knowledge graph
@@ -42,35 +42,7 @@ But while I was investigating that, I ran a routine check on the broader agent c
 
 The memory architecture I use has five layers. Here's what they look like and how they relate to each other:
 
-```mermaid
-flowchart TD
-    subgraph L1["Layer 1: Auto Memory"]
-        AM["MEMORY.md files"]
-    end
-    subgraph L2["Layer 2: Vector Memory"]
-        VM["MCP Server (semantic search)"]
-    end
-    subgraph L3["Layer 3: Knowledge Graph"]
-        KG["MCP Server (entity relations)"]
-    end
-    subgraph L4["Layer 4: Homunculus"]
-        HM["Hooks + Instincts"]
-    end
-    subgraph L5["Layer 5: Session Archive"]
-        SA[".claude/session_archive/"]
-    end
-
-    L1 -.- |"Per-project stable facts"| L2
-    L2 -.- |"Global narrative context"| L3
-    L3 -.- |"Structural relationships"| L4
-    L4 -.- |"Behavioral patterns"| L5
-
-    style L1 fill:#dbe4ff,stroke:#4a9eed
-    style L2 fill:#e5dbff,stroke:#8b5cf6
-    style L3 fill:#ffc9c9,stroke:#ef4444
-    style L4 fill:#fff3bf,stroke:#f59e0b
-    style L5 fill:#c3fae8,stroke:#06b6d4
-```
+<MemoryLayersDiagram />
 
 I described this architecture in the [persistent memory post](/blog/persistent-memory-for-claude-code). The knowledge graph layer (Layer 3) is handled by the `memory` MCP server, which stores named entities and the relationships between them. It's designed to answer structural questions: which agents depend on which MCP servers, which hooks govern which tools, what the data flow looks like between services.
 
@@ -102,19 +74,7 @@ I inventoried the components in my `CJClaudin_Mac` project:
 
 Here's how that breaks down visually:
 
-```mermaid
-pie title Knowledge Graph: 84 Entities by Category
-    "Agents (20)" : 20
-    "Scripts (12)" : 12
-    "MCP Servers (11)" : 11
-    "Hooks (9)" : 9
-    "Skills (8)" : 8
-    "Infrastructure (7)" : 7
-    "Rules (5)" : 5
-    "Commands (5)" : 5
-    "Projects (4)" : 4
-    "Accounts (2)" : 2
-```
+<KGEntityBreakdownDiagram />
 
 By the end, the graph had 84 entities and 71 relations. The relations cover orchestration chains (orchestrator invokes agent), invocation paths (hook triggers tool), data flows (agent reads from MCP server), governance (rule governs tool), and replacement history (skill replaced by newer skill).
 
@@ -130,38 +90,7 @@ With the knowledge graph populated, I turned back to my hook infrastructure. The
 
 In practice, I found five blind spots. Here's what was broken and what I changed:
 
-```mermaid
-flowchart LR
-    subgraph before["Before: 5 Blind Spots"]
-        direction TB
-        B1["Extensions: .ts .js .py .json .sh .yaml"]
-        B2["Tools: Edit | Write | Bash | Agent"]
-        B3["Work Type: Writes only"]
-        B4["Timing: Threshold only"]
-        B5["Language: 'consider saving...'"]
-        style B1 fill:#ffc9c9,stroke:#ef4444
-        style B2 fill:#ffc9c9,stroke:#ef4444
-        style B3 fill:#ffc9c9,stroke:#ef4444
-        style B4 fill:#ffc9c9,stroke:#ef4444
-        style B5 fill:#ffc9c9,stroke:#ef4444
-    end
-
-    subgraph after["After: Patched"]
-        direction TB
-        A1["Extensions: + .md .mdx"]
-        A2["Tools: + mcp__ prefix"]
-        A3["Work Type: + Read/Grep/Glob at 0.5x"]
-        A4["Timing: + Stop hook checkpoint"]
-        A5["Language: 'MEMORY SAVE REQUIRED'"]
-        style A1 fill:#b2f2bb,stroke:#22c55e
-        style A2 fill:#b2f2bb,stroke:#22c55e
-        style A3 fill:#b2f2bb,stroke:#22c55e
-        style A4 fill:#b2f2bb,stroke:#22c55e
-        style A5 fill:#b2f2bb,stroke:#22c55e
-    end
-
-    before --> after
-```
+<HookBlindSpotsDiagram />
 
 ### Blind Spot 1: Markdown Files Were Invisible
 
@@ -211,30 +140,7 @@ The five blind spots pointed me toward a more fundamental issue: a single nudge 
 
 Here's how the two layers work together:
 
-```mermaid
-flowchart TD
-    SESSION["Claude Code Session"] --> L1["Layer 1: memory-nudge.sh\n(PostToolUse hook)"]
-    SESSION --> L2["Layer 2: memory-checkpoint.sh\n(Stop hook)"]
-
-    L1 --> |"Fires at threshold\n(3+ work units)"| NUDGE["MEMORY SAVE REQUIRED\n(mid-session reminder)"]
-    L2 --> |"Fires once at\nsession end"| CHECK["5-Category Checklist\n Tasks / Decisions / Bugs\nGotchas / Errors"]
-
-    NUDGE --> VM["Vector Memory\n(mcp__vector-memory)"]
-    CHECK --> VM
-
-    L1 -.- |"Catches"| F1["Long sessions that\nforget to save"]
-    L2 -.- |"Catches"| F2["Short sessions that\nend before threshold"]
-    L2 -.- |"Catches"| F3["Sessions where nudge\nwas deprioritized"]
-
-    style L1 fill:#a5d8ff,stroke:#4a9eed
-    style L2 fill:#d0bfff,stroke:#8b5cf6
-    style NUDGE fill:#fff3bf,stroke:#f59e0b
-    style CHECK fill:#fff3bf,stroke:#f59e0b
-    style VM fill:#b2f2bb,stroke:#22c55e
-    style F1 fill:#ffc9c9,stroke:#ef4444
-    style F2 fill:#ffc9c9,stroke:#ef4444
-    style F3 fill:#ffc9c9,stroke:#ef4444
-```
+<DualLayerReliabilityDiagram />
 
 **Layer 1: Patched memory-nudge.sh**
 
@@ -275,29 +181,7 @@ The problem: my knowledge graph reflects the system as it existed when I seeded 
 
 I built two tools to address this. Here's the full maintenance loop:
 
-```mermaid
-flowchart LR
-    CHANGE["Component Changed\n(agent, hook, skill...)"] --> DETECT["kg-update-detect.sh\n(PostToolUse hook)"]
-    DETECT --> |"Reminder:\nKG may be out of sync"| DECIDE{Small or\nlarge change?}
-    DECIDE --> |"Small"| MANUAL["Direct API call\ncreate_entities\ncreate_relations"]
-    DECIDE --> |"Large / Uncertain"| SYNC["/Knowledge-Graph-Sync\n(5-phase reconciliation)"]
-
-    SYNC --> S1["1. Disk inventory"]
-    SYNC --> S2["2. KG inventory"]
-    S1 --> S3["3. Reconcile entities"]
-    S2 --> S3
-    S3 --> S4["4. Validate relations"]
-    S4 --> S5["5. Report + confirm"]
-
-    MANUAL --> KG["Knowledge Graph\n(up to date)"]
-    S5 --> KG
-
-    style CHANGE fill:#ffd8a8,stroke:#f59e0b
-    style DETECT fill:#a5d8ff,stroke:#4a9eed
-    style SYNC fill:#d0bfff,stroke:#8b5cf6
-    style KG fill:#b2f2bb,stroke:#22c55e
-    style MANUAL fill:#b2f2bb,stroke:#22c55e
-```
+<KGMaintenanceLoopDiagram />
 
 ### kg-update-detect.sh
 
