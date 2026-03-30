@@ -34,6 +34,11 @@ import {
   JourneyTimelineDiagram,
   WelcomeEmailSagaDiagram,
   BeforeAfterArchitectureDiagram,
+  MemoryLayersDiagram,
+  KGEntityBreakdownDiagram,
+  HookBlindSpotsDiagram,
+  DualLayerReliabilityDiagram,
+  KGMaintenanceLoopDiagram,
 } from "@/components/mdx";
 
 export const dynamic = "force-dynamic";
@@ -150,6 +155,11 @@ export default async function BacklogPostPage({ params }: Props) {
               JourneyTimelineDiagram,
               WelcomeEmailSagaDiagram,
               BeforeAfterArchitectureDiagram,
+              MemoryLayersDiagram,
+              KGEntityBreakdownDiagram,
+              HookBlindSpotsDiagram,
+              DualLayerReliabilityDiagram,
+              KGMaintenanceLoopDiagram,
             }}
           />
         </div>
