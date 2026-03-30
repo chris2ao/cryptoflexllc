@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { sendGAEvent } from "@next/third-parties/google";
+import { MermaidDiagram } from "./mermaid-diagram";
 
 interface CodeBlockProps extends HTMLAttributes<HTMLPreElement> {
   children: ReactNode;
@@ -29,6 +30,15 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
   ) {
     const match = (children as ReactElement<{ className?: string }>).props.className!.match(/language-(\w+)/);
     if (match) language = match[1];
+  }
+
+  // Render mermaid code blocks as diagrams
+  if (language === "mermaid" && children && typeof children === "object" && "props" in children) {
+    const codeElement = children as ReactElement<{ children?: string }>;
+    const chart = typeof codeElement.props.children === "string" ? codeElement.props.children.trim() : "";
+    if (chart) {
+      return <MermaidDiagram chart={chart} />;
+    }
   }
 
   useEffect(() => {

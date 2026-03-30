@@ -22,3 +22,4 @@ export {
   BeforeAfterArchitectureDiagram,
 } from "./diagrams-journey";
 export { CodePlayground } from "./code-playground";
+export { MermaidDiagram } from "./mermaid-diagram";
