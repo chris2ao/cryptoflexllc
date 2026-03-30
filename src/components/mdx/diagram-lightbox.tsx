@@ -7,15 +7,31 @@ interface DiagramLightboxProps {
   caption?: string;
 }
 
+const ZOOM_LEVELS = [1, 1.5, 2, 3];
+
 export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
   const [open, setOpen] = useState(false);
+  const [zoomIndex, setZoomIndex] = useState(0);
 
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => {
+    setOpen(false);
+    setZoomIndex(0);
+  }, []);
+
+  const zoomIn = useCallback(() => {
+    setZoomIndex((i) => Math.min(i + 1, ZOOM_LEVELS.length - 1));
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setZoomIndex((i) => Math.max(i - 1, 0));
+  }, []);
 
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") close();
+      if (e.key === "+" || e.key === "=") zoomIn();
+      if (e.key === "-") zoomOut();
     }
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -23,7 +39,9 @@ export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, close]);
+  }, [open, close, zoomIn, zoomOut]);
+
+  const zoom = ZOOM_LEVELS[zoomIndex];
 
   return (
     <>
@@ -57,38 +75,77 @@ export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
           role="dialog"
           aria-modal="true"
           aria-label={caption ?? "Diagram enlarged view"}
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          onClick={close}
+          className="fixed inset-0 z-50 flex flex-col"
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={close} />
 
-          {/* Content */}
-          <div
-            className="relative mx-4 max-h-[90vh] max-w-[95vw] overflow-auto rounded-xl border border-border/40 bg-zinc-900 p-8 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={close}
-              aria-label="Close enlarged view"
-              className="absolute top-3 right-3 z-10 rounded-md border border-border bg-zinc-800 p-1.5 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-
-            {/* Scaled-up SVG container */}
-            <div className="min-w-[700px] [&_svg]:w-full [&_svg]:min-w-[700px]">
-              {children}
-            </div>
-
+          {/* Toolbar */}
+          <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-border/30 bg-zinc-900/95">
             {caption && (
-              <p className="mt-4 text-center text-sm text-muted-foreground">{caption}</p>
+              <p className="text-sm text-muted-foreground truncate mr-4">{caption}</p>
             )}
+            {!caption && <div />}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={zoomOut}
+                disabled={zoomIndex === 0}
+                aria-label="Zoom out"
+                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  <line x1="8" y1="11" x2="14" y2="11" />
+                </svg>
+              </button>
+              <span className="text-xs text-muted-foreground font-mono min-w-[3.5rem] text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={zoomIn}
+                disabled={zoomIndex === ZOOM_LEVELS.length - 1}
+                aria-label="Zoom in"
+                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  <line x1="11" y1="8" x2="11" y2="14" />
+                  <line x1="8" y1="11" x2="14" y2="11" />
+                </svg>
+              </button>
+              <div className="w-px h-5 bg-border/40 mx-1" />
+              <button
+                type="button"
+                onClick={close}
+                aria-label="Close"
+                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable + zoomable content area */}
+          <div className="relative z-10 flex-1 overflow-auto">
+            <div
+              className="inline-block p-8 transition-transform duration-200 origin-top-left [&_svg]:max-w-none [&_svg]:w-auto [&_svg]:h-auto"
+              style={{
+                transform: `scale(${zoom})`,
+                minWidth: `${90 * zoom}vw`,
+              }}
+            >
+              {/* Force SVGs to render at a large base size */}
+              <div className="[&_svg]:min-w-[85vw] [&_svg]:w-[85vw]">
+                {children}
+              </div>
+            </div>
           </div>
         </div>
       )}
