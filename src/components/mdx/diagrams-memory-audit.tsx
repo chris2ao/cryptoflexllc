@@ -1,5 +1,7 @@
 /** Memory audit blog post diagrams -- SVG-based, themed to site colors */
 
+import { DiagramLightbox } from "./diagram-lightbox";
+
 interface DiagramProps {
   caption?: string;
 }
@@ -9,16 +11,9 @@ function DiagramWrapper({
   children,
 }: DiagramProps & { children: React.ReactNode }) {
   return (
-    <figure className="not-prose my-8">
-      <div className="rounded-lg border border-border/60 bg-card/50 p-6 overflow-x-auto">
-        {children}
-      </div>
-      {caption && (
-        <figcaption className="mt-2 text-center text-xs text-muted-foreground">
-          {caption}
-        </figcaption>
-      )}
-    </figure>
+    <DiagramLightbox caption={caption}>
+      {children}
+    </DiagramLightbox>
   );
 }
 
