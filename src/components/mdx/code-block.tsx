@@ -32,7 +32,13 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
     if (match) language = match[1];
   }
 
-  // Render mermaid code blocks as diagrams
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  // Render mermaid code blocks as diagrams (after hooks to satisfy rules-of-hooks)
   if (language === "mermaid" && children && typeof children === "object" && "props" in children) {
     const codeElement = children as ReactElement<{ children?: string }>;
     const chart = typeof codeElement.props.children === "string" ? codeElement.props.children.trim() : "";
@@ -40,12 +46,6 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
       return <MermaidDiagram chart={chart} />;
     }
   }
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
 
   async function handleCopy() {
     const text = preRef.current?.textContent ?? "";
