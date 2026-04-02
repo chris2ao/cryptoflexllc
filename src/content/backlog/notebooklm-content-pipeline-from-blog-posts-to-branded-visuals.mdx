@@ -83,7 +83,7 @@ This affects reliability, not security per se. But in a pipeline context, a sile
 The session cookies captured during authentication potentially grant broader access than just NotebookLM. Depending on how Google's session management works internally, these cookies might be valid for other Google services. The library only uses them for NotebookLM endpoints, but the cookies themselves aren't scoped that narrowly.
 
 <Security title="Mitigation Strategy">
-I addressed these findings with three controls. First, I use a dedicated Google Workspace account (`chrisjohnson@cryptoflexllc.com`) rather than a personal Gmail account. Second, I installed the library in an isolated Python virtual environment, not in my system Python or any shared environment. Third, I configured Time Machine and Syncthing exclusions for the credential storage directory, so session cookies never end up in backups or cross-machine syncs. More on each of these below.
+I addressed these findings with three controls. First, I use a dedicated Google Workspace account rather than a personal Gmail account. Second, I installed the library in an isolated Python virtual environment, not in my system Python or any shared environment. Third, I configured Time Machine and Syncthing exclusions for the credential storage directory, so session cookies never end up in backups or cross-machine syncs. More on each of these below.
 </Security>
 
 ### The Verdict
@@ -116,7 +116,7 @@ Rather than activating the venv every time I need to run a command, I wrote a on
 #!/usr/bin/env bash
 # Wrapper to run notebooklm CLI from its dedicated venv
 # Installed at: ~/.notebooklm-venv (Python 3.14, uv-managed)
-# Account: chrisjohnson@cryptoflexllc.com
+# Account: dedicated Google Workspace account
 exec "$HOME/.notebooklm-venv/bin/notebooklm" "$@"
 ```
 
@@ -238,7 +238,7 @@ The security review findings drove three specific operational decisions.
 
 ### Dedicated Account
 
-I authenticate with `chrisjohnson@cryptoflexllc.com`, not a personal Gmail address. If the session cookies are somehow leaked, the blast radius is limited to the CryptoFlex workspace. No personal email, no personal Drive, no personal Calendar.
+I authenticate with a dedicated CryptoFlex LLC workspace account, not a personal Gmail address. If the session cookies are somehow leaked, the blast radius is limited to that workspace. No personal email, no personal Drive, no personal Calendar.
 
 ### Isolated Environment
 
