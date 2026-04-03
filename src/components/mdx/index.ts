@@ -30,3 +30,8 @@ export {
   DualLayerReliabilityDiagram,
   KGMaintenanceLoopDiagram,
 } from "./diagrams-memory-audit";
+export {
+  ConfigStackDiagram,
+  PermissionLevelsDiagram,
+  SerialVsParallelDiagram,
+} from "./diagrams-claude-code-features";

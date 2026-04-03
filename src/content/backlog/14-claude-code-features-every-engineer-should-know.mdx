@@ -18,6 +18,8 @@ series: 'Claude Code Workflow'
 seriesOrder: 13
 ---
 
+import { ConfigStackDiagram, PermissionLevelsDiagram, SerialVsParallelDiagram } from '@/components/mdx';
+
 14 features, one CLI, and a learning curve that's steeper than it needs to be. That's Claude Code in a nutshell.
 
 I've been using Claude Code daily for months now, building websites, automating workflows, orchestrating multi-agent teams, and writing the blog posts you're reading. Along the way, I've watched people bounce off the tool because they didn't know where to start. Not because they lacked skill. Because Claude Code has a lot of surface area and no obvious map.
@@ -102,7 +104,7 @@ The key principle: many small files beat few large files. A `rules/coding-style.
 
 There's also a user-level `.claude/` directory at `~/.claude/` that applies to every project on your machine. Project-level rules live in `.claude/` inside the repo. User-level rules (your personal standards, universal preferences) live in `~/.claude/`. Both get loaded automatically.
 
-![The configuration stack: from CLAUDE.md at the foundation up through Rules, Skills, MCP, and Agents at the top](/images/blog/claude-code-features/config-layers.png)
+<ConfigStackDiagram />
 
 ## 3. Permissions: Controlling What Claude Can Touch
 
@@ -110,7 +112,7 @@ By default, Claude Code asks for permission before doing anything that modifies 
 
 The permissions system lets you dial this in. You define what Claude can do without asking, what requires approval, and what's blocked entirely.
 
-![Permission levels from Read Only (most restrictive) through Approve Each Action, Allow List, Accept Edits, to Full Auto (most permissive)](/images/blog/claude-code-features/permission-levels.png)
+<PermissionLevelsDiagram />
 
 Permissions live in `settings.json` (or `.claude/settings.json` at the project level):
 
@@ -371,7 +373,7 @@ The power of agents comes from specialization and parallelism. Instead of one Cl
 
 Subagents take this further. Claude Code can spawn child agents that run in parallel, each handling a different part of a larger task. The parent agent coordinates the work, collects the results, and integrates them.
 
-![Serial execution (12 minutes, one task at a time) versus parallel subagent execution (5 minutes, multiple agents working simultaneously)](/images/blog/claude-code-features/serial-vs-parallel.png)
+<SerialVsParallelDiagram />
 
 <Info title="Agents Are Advanced">
 You don't need agents on day one. They're powerful, but they add complexity. Start with Claude Code as a single assistant. Once you find yourself repeating patterns ("always review the code after writing it," "always check for security issues before committing"), that's when agents make the work easier. They codify those patterns so you don't have to remember them.
