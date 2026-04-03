@@ -1,5 +1,5 @@
 ---
-title: '12 Claude Code Features Every Engineer Should Know'
+title: '14 Claude Code Features Every Engineer Should Know'
 date: '2026-04-03'
 description: >-
   A beginner-friendly guide to the features that make Claude Code powerful:
@@ -24,7 +24,7 @@ I've been using Claude Code daily for months now, building websites, automating 
 
 This post is that map. These are the features I wish someone had explained to me on day one, in the order that matters most when you're getting started. I'm not going to walk you through installation or deep configuration (I've covered those in [Getting Started with Claude Code](/blog/getting-started-with-claude-code) and [Configuring Claude Code](/blog/configuring-claude-code)). Instead, I'll focus on what each feature is, why it matters, and how it fits into the bigger picture.
 
-![Overview of Claude Code features and how they relate to each other](/images/blog/claude-code-features/feature-overview.png)
+![14 Claude Code Features Every Engineer Should Know: a grid showing each feature with its category, icon, and brief description](/images/blog/claude-code-features/infographic.png)
 
 <Info title="Who This Post Is For">
 This is an introductory guide. If you've never used Claude Code, or you've tried it but felt lost, this is your starting point. If you're already building multi-agent pipelines and writing custom hooks, you probably know most of this already, but you might find the mental model useful.
@@ -102,7 +102,25 @@ The key principle: many small files beat few large files. A `rules/coding-style.
 
 There's also a user-level `.claude/` directory at `~/.claude/` that applies to every project on your machine. Project-level rules live in `.claude/` inside the repo. User-level rules (your personal standards, universal preferences) live in `~/.claude/`. Both get loaded automatically.
 
-![The configuration stack: CLAUDE.md, Rules, Hooks, MCP, Agents](/images/blog/claude-code-features/config-layers.png)
+```text
+┌─────────────────────────────────────────┐
+│        Agents + Subagents               │  Parallel workers with
+│                                         │  specialized roles
+├─────────────────────────────────────────┤
+│        MCP Servers + Plugins            │  External tools,
+│                                         │  APIs, databases
+├─────────────────────────────────────────┤
+│        Skills + Hooks                   │  Automation and
+│                                         │  reusable workflows
+├─────────────────────────────────────────┤
+│        Rules + Permissions              │  Behavioral guardrails
+│                                         │  and access control
+├─────────────────────────────────────────┤
+│        CLAUDE.md + .claude/ Directory   │  Project facts,
+│                                         │  file organization
+└─────────────────────────────────────────┘
+         ▲ Start here. Add layers as you need them.
+```
 
 ## 3. Permissions: Controlling What Claude Can Touch
 
@@ -110,7 +128,21 @@ By default, Claude Code asks for permission before doing anything that modifies 
 
 The permissions system lets you dial this in. You define what Claude can do without asking, what requires approval, and what's blocked entirely.
 
-![Permission levels from read-only to full access](/images/blog/claude-code-features/permission-levels.png)
+```text
+Permission Levels (most restrictive → most permissive)
+
+  ┌──────────────────────────┐
+  │  Read Only               │  Glob, Grep, Read only. No changes.
+  ├──────────────────────────┤
+  │  Approve Each Action     │  Default. Claude asks before every edit.
+  ├──────────────────────────┤
+  │  Allow List              │  Specific tools auto-approved.         ◄ Best for most users
+  ├──────────────────────────┤
+  │  Accept Edits            │  All file edits auto-approved.
+  ├──────────────────────────┤
+  │  Full Auto               │  Everything auto-approved. Use carefully.
+  └──────────────────────────┘
+```
 
 Permissions live in `settings.json` (or `.claude/settings.json` at the project level):
 
@@ -354,7 +386,7 @@ When compaction runs, some context is lost. If you made an important decision ea
 
 The practical implication: if your sessions tend to run long (an hour or more of active conversation), be aware that Claude's memory degrades over time. Breaking large tasks into shorter, focused sessions often produces better results than one marathon session that relies on compaction to keep things coherent.
 
-## Bonus: Agents and Subagents
+## 13. Agents and Subagents
 
 Agents are custom-defined personas that Claude Code can become or spawn. An agent definition is a markdown file that describes a specific role, its tools, its model, and its instructions. When Claude reads that definition, it operates according to those constraints.
 
@@ -371,7 +403,31 @@ The power of agents comes from specialization and parallelism. Instead of one Cl
 
 Subagents take this further. Claude Code can spawn child agents that run in parallel, each handling a different part of a larger task. The parent agent coordinates the work, collects the results, and integrates them.
 
-![Serial execution versus parallel subagent execution](/images/blog/claude-code-features/serial-vs-parallel.png)
+```text
+SERIAL (default)                    PARALLEL (with subagents)
+
+  Your Request                        Your Request
+       │                                   │
+       ▼                              ┌────┼────┐
+  Research (3 min)                    ▼    ▼    ▼
+       │                          Research Analyze Docs
+       ▼                          (3 min) (2 min) (1 min)
+  Analyze (2 min)                     │    │    │
+       │                              └────┼────┘
+       ▼                                   ▼
+  Write Code (4 min)              Write Code (4 min)
+       │                                   │
+       ▼                              ┌────┴────┐
+  Review (2 min)                      ▼         ▼
+       │                          Code Review  Security
+       ▼                              │         │
+  Update Docs (1 min)                 └────┬────┘
+       │                                   ▼
+       ▼                                 Done
+     Done
+                                   Total: 5 minutes
+  Total: 12 minutes               2.4x faster, same work done
+```
 
 <Info title="Agents Are Advanced">
 You don't need agents on day one. They're powerful, but they add complexity. Start with Claude Code as a single assistant. Once you find yourself repeating patterns ("always review the code after writing it," "always check for security issues before committing"), that's when agents make the work easier. They codify those patterns so you don't have to remember them.
@@ -379,7 +435,7 @@ You don't need agents on day one. They're powerful, but they add complexity. Sta
 
 I use agents extensively now. My blog writing pipeline is a five-agent team. My game development workflow uses six specialized agents. But I built up to that over weeks, not days. Start simple. Add agents when you have a clear reason.
 
-## Bonus: Rules
+## 14. Rules
 
 Rules are modular markdown files that persist instructions across sessions. They live in `~/.claude/rules/` (user-level, applies everywhere) or `.claude/rules/` (project-level, applies to this repo only).
 
