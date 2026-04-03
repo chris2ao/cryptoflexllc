@@ -39,6 +39,9 @@ import {
   HookBlindSpotsDiagram,
   DualLayerReliabilityDiagram,
   KGMaintenanceLoopDiagram,
+  ConfigStackDiagram,
+  PermissionLevelsDiagram,
+  SerialVsParallelDiagram,
 } from "@/components/mdx";
 
 export const dynamic = "force-dynamic";
@@ -160,6 +163,9 @@ export default async function BacklogPostPage({ params }: Props) {
               HookBlindSpotsDiagram,
               DualLayerReliabilityDiagram,
               KGMaintenanceLoopDiagram,
+              ConfigStackDiagram,
+              PermissionLevelsDiagram,
+              SerialVsParallelDiagram,
             }}
           />
         </div>

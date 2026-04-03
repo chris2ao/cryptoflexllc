@@ -36,6 +36,9 @@ import {
   HookBlindSpotsDiagram,
   DualLayerReliabilityDiagram,
   KGMaintenanceLoopDiagram,
+  ConfigStackDiagram,
+  PermissionLevelsDiagram,
+  SerialVsParallelDiagram,
 } from "@/components/mdx";
 import {
   getAllPosts,
@@ -278,6 +281,9 @@ export default async function BlogPostPage({ params }: Props) {
                     HookBlindSpotsDiagram,
                     DualLayerReliabilityDiagram,
                     KGMaintenanceLoopDiagram,
+                    ConfigStackDiagram,
+                    PermissionLevelsDiagram,
+                    SerialVsParallelDiagram,
                   }}
                 />
               </div>
