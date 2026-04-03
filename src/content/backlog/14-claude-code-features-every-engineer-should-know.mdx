@@ -102,25 +102,7 @@ The key principle: many small files beat few large files. A `rules/coding-style.
 
 There's also a user-level `.claude/` directory at `~/.claude/` that applies to every project on your machine. Project-level rules live in `.claude/` inside the repo. User-level rules (your personal standards, universal preferences) live in `~/.claude/`. Both get loaded automatically.
 
-```text
-┌─────────────────────────────────────────┐
-│        Agents + Subagents               │  Parallel workers with
-│                                         │  specialized roles
-├─────────────────────────────────────────┤
-│        MCP Servers + Plugins            │  External tools,
-│                                         │  APIs, databases
-├─────────────────────────────────────────┤
-│        Skills + Hooks                   │  Automation and
-│                                         │  reusable workflows
-├─────────────────────────────────────────┤
-│        Rules + Permissions              │  Behavioral guardrails
-│                                         │  and access control
-├─────────────────────────────────────────┤
-│        CLAUDE.md + .claude/ Directory   │  Project facts,
-│                                         │  file organization
-└─────────────────────────────────────────┘
-         ▲ Start here. Add layers as you need them.
-```
+![The configuration stack: from CLAUDE.md at the foundation up through Rules, Skills, MCP, and Agents at the top](/images/blog/claude-code-features/config-layers.png)
 
 ## 3. Permissions: Controlling What Claude Can Touch
 
@@ -128,21 +110,7 @@ By default, Claude Code asks for permission before doing anything that modifies 
 
 The permissions system lets you dial this in. You define what Claude can do without asking, what requires approval, and what's blocked entirely.
 
-```text
-Permission Levels (most restrictive → most permissive)
-
-  ┌──────────────────────────┐
-  │  Read Only               │  Glob, Grep, Read only. No changes.
-  ├──────────────────────────┤
-  │  Approve Each Action     │  Default. Claude asks before every edit.
-  ├──────────────────────────┤
-  │  Allow List              │  Specific tools auto-approved.         ◄ Best for most users
-  ├──────────────────────────┤
-  │  Accept Edits            │  All file edits auto-approved.
-  ├──────────────────────────┤
-  │  Full Auto               │  Everything auto-approved. Use carefully.
-  └──────────────────────────┘
-```
+![Permission levels from Read Only (most restrictive) through Approve Each Action, Allow List, Accept Edits, to Full Auto (most permissive)](/images/blog/claude-code-features/permission-levels.png)
 
 Permissions live in `settings.json` (or `.claude/settings.json` at the project level):
 
@@ -403,31 +371,7 @@ The power of agents comes from specialization and parallelism. Instead of one Cl
 
 Subagents take this further. Claude Code can spawn child agents that run in parallel, each handling a different part of a larger task. The parent agent coordinates the work, collects the results, and integrates them.
 
-```text
-SERIAL (default)                    PARALLEL (with subagents)
-
-  Your Request                        Your Request
-       │                                   │
-       ▼                              ┌────┼────┐
-  Research (3 min)                    ▼    ▼    ▼
-       │                          Research Analyze Docs
-       ▼                          (3 min) (2 min) (1 min)
-  Analyze (2 min)                     │    │    │
-       │                              └────┼────┘
-       ▼                                   ▼
-  Write Code (4 min)              Write Code (4 min)
-       │                                   │
-       ▼                              ┌────┴────┐
-  Review (2 min)                      ▼         ▼
-       │                          Code Review  Security
-       ▼                              │         │
-  Update Docs (1 min)                 └────┬────┘
-       │                                   ▼
-       ▼                                 Done
-     Done
-                                   Total: 5 minutes
-  Total: 12 minutes               2.4x faster, same work done
-```
+![Serial execution (12 minutes, one task at a time) versus parallel subagent execution (5 minutes, multiple agents working simultaneously)](/images/blog/claude-code-features/serial-vs-parallel.png)
 
 <Info title="Agents Are Advanced">
 You don't need agents on day one. They're powerful, but they add complexity. Start with Claude Code as a single assistant. Once you find yourself repeating patterns ("always review the code after writing it," "always check for security issues before committing"), that's when agents make the work easier. They codify those patterns so you don't have to remember them.
