@@ -28,6 +28,8 @@ The goal was straightforward: take any published blog post, feed it into Noteboo
 
 This post covers the tool I chose, why I almost didn't use it, how the pipeline works end to end, and the operational decisions I made along the way.
 
+![Automated Branding: The NotebookLM Content Pipeline, showing the 6-step generation process, security audit findings, QA gate, and performance specs](/images/blog/notebooklm-pipeline/infographic.png)
+
 <Info title="Series Context">
 This is part of the [Claude Code Workflow](/blog/series/claude-code-workflow) series. The previous post covered [upgrading the blog post command to a five-agent team](/blog/blog-post-command-v2-from-solo-agent-to-production-team). This one adds a downstream content generation pipeline that turns those blog posts into visual assets. It stands on its own if you're just here for the NotebookLM integration.
 </Info>
@@ -37,6 +39,8 @@ This is part of the [Claude Code Workflow](/blog/series/claude-code-workflow) se
 Google NotebookLM is a research and content tool built on top of Gemini. You feed it source material (documents, URLs, text), and it can generate structured outputs: summaries, study guides, audio overviews, infographics, and slide decks. The generation quality is solid, especially for educational content, which is exactly what this blog produces.
 
 The problem: NotebookLM is a web UI. There's no official API. If you want to use it programmatically (from a script, an agent, a CI pipeline), you're stuck copy-pasting into a browser.
+
+![Manual UI vs programmatic automation: the friction of copy-pasting and hand-tweaking versus single-command agent execution with automated QA](/images/blog/notebooklm-pipeline/slide-manual-vs-programmatic.png)
 
 That's where `notebooklm-py` comes in.
 
@@ -86,6 +90,8 @@ The session cookies captured during authentication potentially grant broader acc
 I addressed these findings with three controls. First, I use a dedicated Google Workspace account rather than a personal Gmail account. Second, I installed the library in an isolated Python virtual environment, not in my system Python or any shared environment. Third, I configured Time Machine and Syncthing exclusions for the credential storage directory, so session cookies never end up in backups or cross-machine syncs. More on each of these below.
 </Security>
 
+![Threat modeling an unofficial API contract: three HIGH risks mapped to three operational controls](/images/blog/notebooklm-pipeline/slide-threat-model.png)
+
 ### The Verdict
 
 The code quality is solid. The security concerns are inherent to the approach (reverse-engineering a web UI), not to the implementation. I decided the risk was acceptable for my use case: generating visual assets from public blog content, on a machine I control, with a dedicated account.
@@ -133,6 +139,8 @@ This lives at `~/.claude/scripts/notebooklm.sh`. Every command in the agent and 
 The NotebookLM content agent is a Sonnet-powered agent that handles the full pipeline: reading blog content, creating notebooks, adding sources, priming with brand guidelines, generating artifacts, downloading them, and running QA.
 
 Here's the workflow at a high level:
+
+![The 6-step autonomous workflow: Ingest, Initialize, Load, Prime, Generate, Validate](/images/blog/notebooklm-pipeline/slide-workflow.png)
 
 ### Step 1: Read the Blog Post
 
@@ -208,6 +216,8 @@ This is where the agent earns its keep. After downloading, it performs a structu
 **Format and Structure:** Checks that infographics are readable at reasonable zoom, slide decks have consistent layouts, and the visual hierarchy makes sense.
 
 The agent produces a structured QA report with pass/fail for each dimension. If anything fails, it attempts revision (up to two cycles).
+
+![The 4-dimension QA diagnostic loop: spelling/grammar, content accuracy, brand compliance, and format/structure feeding into a pass/fail decision node](/images/blog/notebooklm-pipeline/slide-qa-loop.png)
 
 <Warning title="QA Is Not Optional">
 Automated content generation without automated QA is a recipe for publishing garbage. NotebookLM generally produces good output, but "generally" is not "always." The QA step catches brand violations, factual drift from the source material, and formatting issues that would look unprofessional if published. Build the QA into the pipeline, not as an afterthought.

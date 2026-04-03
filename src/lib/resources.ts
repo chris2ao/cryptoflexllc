@@ -12,6 +12,28 @@ export interface Resource {
 
 const resources: Resource[] = [
   {
+    slug: "notebooklm-content-pipeline-infographic",
+    title: "NotebookLM Content Pipeline Infographic",
+    description:
+      "A visual overview of the NotebookLM content pipeline: the 6-step generation process, security audit with three HIGH findings and mitigations, 4-dimension QA gate, and performance specs.",
+    type: "document",
+    tags: ["NotebookLM", "Content Creation", "Automation", "Infographic"],
+    date: "2026-04-02",
+    downloadPath: "/images/blog/notebooklm-pipeline/infographic.png",
+    downloadLabel: "Download Infographic",
+  },
+  {
+    slug: "notebooklm-content-pipeline-slides",
+    title: "NotebookLM Content Pipeline Slide Deck",
+    description:
+      "A 12-slide deep dive into building an autonomous content pipeline with NotebookLM: from threat modeling the unofficial API to the 6-step agent workflow, brand priming, and the 4-dimension QA loop.",
+    type: "document",
+    tags: ["NotebookLM", "Content Creation", "Automation", "Slides"],
+    date: "2026-04-02",
+    downloadPath: "/resources/notebooklm-content-pipeline-slides.pdf",
+    downloadLabel: "Download Slide Deck",
+  },
+  {
     slug: "hardened-mac-mini-ai-servers",
     title: "Building a Hardened AI Server Stack",
     description:
