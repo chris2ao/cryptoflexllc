@@ -42,6 +42,9 @@ import {
   ConfigStackDiagram,
   PermissionLevelsDiagram,
   SerialVsParallelDiagram,
+  HomunculusPipelineDiagram,
+  EvolutionFlowDiagram,
+  ImageLightbox,
 } from "@/components/mdx";
 
 export const dynamic = "force-dynamic";
@@ -166,6 +169,9 @@ export default async function BacklogPostPage({ params }: Props) {
               ConfigStackDiagram,
               PermissionLevelsDiagram,
               SerialVsParallelDiagram,
+              HomunculusPipelineDiagram,
+              EvolutionFlowDiagram,
+              img: ImageLightbox,
             }}
           />
         </div>

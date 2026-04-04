@@ -35,3 +35,8 @@ export {
   PermissionLevelsDiagram,
   SerialVsParallelDiagram,
 } from "./diagrams-claude-code-features";
+export {
+  HomunculusPipelineDiagram,
+  EvolutionFlowDiagram,
+} from "./diagrams-homunculus";
+export { ImageLightbox } from "./image-lightbox";

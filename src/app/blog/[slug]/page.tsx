@@ -39,6 +39,9 @@ import {
   ConfigStackDiagram,
   PermissionLevelsDiagram,
   SerialVsParallelDiagram,
+  HomunculusPipelineDiagram,
+  EvolutionFlowDiagram,
+  ImageLightbox,
 } from "@/components/mdx";
 import {
   getAllPosts,
@@ -284,6 +287,9 @@ export default async function BlogPostPage({ params }: Props) {
                     ConfigStackDiagram,
                     PermissionLevelsDiagram,
                     SerialVsParallelDiagram,
+                    HomunculusPipelineDiagram,
+                    EvolutionFlowDiagram,
+                    img: ImageLightbox,
                   }}
                 />
               </div>

@@ -18,6 +18,8 @@ series: 'Under the Hood'
 seriesOrder: 1
 ---
 
+import { HomunculusPipelineDiagram, EvolutionFlowDiagram } from '@/components/mdx';
+
 50 learned behavioral patterns sat in a directory, doing nothing.
 
 Each one was a markdown file with a confidence score, a trigger condition, and evidence from real sessions. Together, they represented everything my Claude Code setup had figured out about how I work: that I always forget to update the knowledge graph after creating a new hook, that OpenClaw config changes need a gateway restart, that multi-agent teams need explicit phase gates. Valuable stuff. Completely unused.
@@ -40,43 +42,7 @@ And then the wheels came off. Or more accurately, they never got put on in the f
 An instinct is a single behavioral pattern that Claude Code has learned from observing how I work. For example: "When creating a new hook, always update the knowledge graph with the new entity." Each instinct lives as a markdown file with a confidence score (how often the pattern holds), triggers (when it should activate), and evidence (specific sessions where the pattern was observed). Think of instincts as individual lessons. Evolution is about combining related lessons into something you can actually use.
 </Info>
 
-```mermaid
-flowchart TD
-    A["PostToolUse Hooks"] -->|"Every tool call"| B["observations.jsonl\n(13,292 entries, 2.7 MB)"]
-    B -->|"Observer agent"| C["Instincts Directory\n(50 markdown files)"]
-    C -->|"/evolve command"| D["Evolve Synthesizer Agent"]
-    D -->|"Semantic clustering"| E["Evolved Candidates\n(agents, skills, commands)"]
-    E -->|"User review"| F{"Accept or\nDecline?"}
-    F -->|"Accept"| G["evolved/ directory"]
-    G -->|"promote-evolved.sh"| H["Active directories\n(~/.claude/skills/, agents/, commands/)"]
-    F -->|"Decline"| I["Discarded"]
-
-    style A fill:#4a9eff,color:#fff
-    style B fill:#6c757d,color:#fff
-    style C fill:#ffc107,color:#000
-    style D fill:#28a745,color:#fff
-    style E fill:#17a2b8,color:#fff
-    style G fill:#fd7e14,color:#fff
-    style H fill:#dc3545,color:#fff
-
-    subgraph "Layer 1: Observation"
-        A
-        B
-    end
-
-    subgraph "Layer 2: Instincts"
-        C
-    end
-
-    subgraph "Layer 3: Evolution (NEW)"
-        D
-        E
-        F
-        G
-        H
-        I
-    end
-```
+<HomunculusPipelineDiagram />
 
 The gap between Layer 2 and anything useful was the entire point of this project. Instincts are individual data points. Skills, agents, and commands are reusable tools. The evolution layer bridges that gap by finding clusters of related instincts and synthesizing them into components you can actually run.
 
@@ -140,30 +106,7 @@ The evolution layer generates candidates. It does not automatically promote them
 
 Here's where it gets interesting. I ran `/evolve full` on all 50 instincts and watched the synthesizer work.
 
-```mermaid
-flowchart LR
-    A["50 Instincts"] --> B["Evolve Synthesizer"]
-    B --> C{"Semantic\nClustering"}
-    C --> D["13 Clusters"]
-    C --> E["13 Unclustered\n(too narrow/low confidence)"]
-    D --> F["9 Skills"]
-    D --> G["4 Commands"]
-    F --> H{"User\nReview"}
-    G --> H
-    H -->|"7 Accepted"| I["5 Skills Promoted"]
-    H -->|"6 Declined"| J["Removed"]
-    H -->|"2 Commands"| K["Declined and Removed"]
-
-    style A fill:#ffc107,color:#000
-    style B fill:#28a745,color:#fff
-    style D fill:#17a2b8,color:#fff
-    style E fill:#6c757d,color:#fff
-    style F fill:#4a9eff,color:#fff
-    style G fill:#fd7e14,color:#fff
-    style I fill:#dc3545,color:#fff
-    style J fill:#6c757d,color:#fff
-    style K fill:#6c757d,color:#fff
-```
+<EvolutionFlowDiagram />
 
 The synthesizer identified 13 semantic clusters from the 50 instincts. Nine were classified as skills (reference knowledge), four as commands (executable actions). The remaining 13 instincts were left unclustered, either because their confidence scores were too low, they were too narrow to generalize, or they genuinely stood alone.
 
