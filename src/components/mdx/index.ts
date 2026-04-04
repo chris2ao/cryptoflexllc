@@ -44,4 +44,9 @@ export {
   SecurityPanelArchitectureDiagram,
   SecurityAlertSchemaDiagram,
 } from "./diagrams-security-panel";
+export {
+  AutoresearchFitnessRubricDiagram,
+  AutoresearchVsHomunculusDiagram,
+  UnexpectedDiscoveryDiagram,
+} from "./diagrams-autoresearch";
 export { ImageLightbox } from "./image-lightbox";

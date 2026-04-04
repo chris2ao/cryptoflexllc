@@ -1,0 +1,283 @@
+---
+title: 'The Scientific Method of AI Tool Discovery: How Evaluating Autoresearch Led to Real Improvements Elsewhere'
+date: '2026-04-04'
+author: Chris Johnson
+readingTime: 16 min read
+description: >-
+  247 game AI parameters, 7 candidate use cases, 5 agents, 1 honest verdict: no.
+  But the research process itself uncovered three real configuration problems
+  in my Vector Memory server that had been silently degrading search quality for weeks.
+tags:
+  - Claude Code
+  - Agents
+  - Architecture
+  - Memory
+  - Evaluation
+series: 'Under the Hood'
+seriesOrder: 2
+---
+
+import { AutoresearchFitnessRubricDiagram, AutoresearchVsHomunculusDiagram, UnexpectedDiscoveryDiagram } from '@/components/mdx';
+
+247 game AI parameters, 7 candidate use cases, 5 agents, 1 honest verdict: no.
+
+![The Scientific Method of AI Tool Discovery: infographic showing the evaluation process, fitness rubric, scorecard, and unexpected vector memory discoveries](/content-assets/notebooklm/the-scientific-method-of-ai-tool-discovery/infographic.png)
+
+Andrej Karpathy dropped [autoresearch](https://github.com/karpathy/autoresearch) and the AI world went predictably wild. An LLM that autonomously runs experiments, tunes parameters, and improves itself? The [nanochat commit](https://github.com/karpathy/nanochat/commit/6ed7d1d82cee16c2e26f45d559ad3338447a6c1b) showed roughly 20 improvements discovered over two days of autonomous runs, with about 700 changes yielding an 11% improvement on a project that was already well-tuned. I got excited too.
+
+So I did what any reasonable engineer would do: I assembled a 5-agent evaluation team and spent a day rigorously assessing whether autoresearch could improve anything in my ecosystem. The answer was almost entirely no. But the story of how I got there is more interesting than the verdict itself, because the research process surfaced real problems I didn't know I had.
+
+## What Autoresearch Actually Is (For the Rest of Us)
+
+If you haven't read Karpathy's work, here's the short version. Autoresearch is not model training. There's no gradient descent, no GPU cluster, no loss function. It's structured trial-and-error with an LLM as the hypothesis generator.
+
+The core loop is five steps:
+
+1. **Propose** a parameter change (the LLM suggests new values)
+2. **Run** the system with those values (headless, automated)
+3. **Measure** the result against a single scalar metric
+4. **Record** what worked and what didn't
+5. **Repeat** until the metric converges or the budget runs out
+
+Think of it as automated playtesting. If you've ever manually tweaked 20 game balance constants, playtested, tweaked again, and repeated for hours, autoresearch automates that entire loop. The LLM replaces your intuition about what to try next, and the automated eval replaces your manual testing.
+
+<Info title="What Makes It Work">
+Autoresearch requires four things: a measurable metric (a number that goes up when things improve), a fast feedback loop (minutes per evaluation, not hours), enough parameters to make manual search impractical (20+), and reproducible results. If any of these are missing, the loop breaks down.
+</Info>
+
+The requirements are strict. A single scalar metric means one number, not "speed AND accuracy AND memory." A fast feedback loop means under 5 minutes per cycle. Enough parameters means the problem is too complex for grid search but not so complex that the LLM can't reason about it. And reproducibility means the same inputs produce the same outputs, every time.
+
+Most problems don't meet all four requirements. That was the first thing I learned.
+
+## The Evaluation: 5 Agents, 7 Criteria, 11 Repos
+
+I wasn't going to eyeball this. I built a 5-agent evaluation team with a Senior Data Scientist as captain (running on Opus), three Haiku-powered researchers to explore specific domains in parallel, and one Sonnet-powered novice AI engineer to bring a fresh perspective and catch assumptions the specialists might miss.
+
+The team assessed fitness across my entire ecosystem: 11 repos, 26 agents, 247 game AI parameters. They identified 7 candidate use cases and scored each against a rubric I'll explain next.
+
+<Tip title="Use Agents to Evaluate, Not Just Build">
+Most people think of AI agents as builders. But agents are equally valuable as evaluators. A research team that reads your codebase, counts parameters, estimates costs, and scores fitness against a rubric can save you weeks of misguided implementation. The evaluation took one day. The wrong implementation would have taken weeks.
+</Tip>
+
+## The Fitness Rubric: Seven Criteria, One Question
+
+The fundamental question the rubric answers: "Can an LLM autonomously improve this system by running experiments in a loop?"
+
+Each criterion is scored 1-10. The minimum viable total is 45 out of 70. Below that, don't bother.
+
+<AutoresearchFitnessRubricDiagram />
+
+Here's what each criterion measures:
+
+**1. Metric Clarity (M).** Can success be reduced to a single scalar number? Win rate, latency percentile, accuracy score. Not "feels better" or "users seem happier." The LLM needs an unambiguous signal to know which direction to explore.
+
+**2. Evaluation Speed (S).** How fast is one experiment cycle? The target is under 5 minutes. At 12 experiments per hour, an agent explores 288 ideas per day. At 1 per hour, only 24. Speed compounds learning.
+
+**3. Parameter Density (P).** How many knobs are there to turn? The sweet spot is 50 to 300 parameters. Fewer than 20, and grid search works fine. More than 300, and the search space overwhelms the LLM too.
+
+**4. Search Surface Constraint (F).** Are parameters concentrated in a few files? Changes that scatter across 10+ files with cascading dependencies are practically impossible for an autonomous agent to manage safely.
+
+**5. Reproducibility (R).** Does the same config produce the same metric? If variance exceeds 1%, the agent can't distinguish signal from noise without running each variant many times, multiplying cost.
+
+**6. Transferability (T).** Do improvements on small tests hold at full scale? If optimizing on 10% of your data produces results that fail on 100%, the entire approach collapses.
+
+**7. Autonomy Potential (A).** Can the loop run without human judgment at any step? If a human must approve each proposed change, the loop slows to human speed and the entire point is lost.
+
+### The Disqualifiers
+
+Scoring below 45 is bad. But seven conditions are automatic disqualifiers regardless of total score:
+
+- **Immeasurable metric**: No scalar target exists
+- **Irreproducible baseline**: Variance exceeds 10%
+- **Human-gated evaluation**: Manual judgment required per run
+- **Untraceable dependencies**: Parameter changes cascade unpredictably
+- **Non-transferable proxies**: Small-scale wins don't hold at scale
+- **Subjective success criteria**: "Feels better" is not a metric
+- **Gameable metrics**: The optimizer can cheat without real improvement
+
+<Warning title="Most Things Fail the Rubric">
+In my ecosystem of 11 repos and 26 agents, only 1 out of 7 candidates scored above 55. The rubric is designed to be harsh. It should reject most candidates. If everything passes, your rubric is too lenient.
+</Warning>
+
+## The Scorecard: Where Hope Goes to Die
+
+Here are the results. Seven candidates, scored across all seven criteria.
+
+| Candidate | MC | ES | PD | SS | RP | TR | AU | Total | Verdict |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|
+| **GOAP AI Balance** | 9 | 9 | 10 | 7 | 9 | 9 | 9 | **62/70** | YES |
+| **Vector Memory** | 9 | 8 | 7 | 8 | 9 | 9 | 8 | **58/70** | Conditional |
+| **Next.js Perf** | 8 | 7 | 6 | 7 | 8 | 8 | 8 | **52/70** | MAYBE |
+| **Agent Prompts** | 6 | 7 | 7 | 5 | 6 | 8 | 9 | **48/70** | NO |
+| **Autoconfig Skill** | 5 | 4 | 6 | 4 | 5 | 5 | 5 | **34/70** | NO |
+| **Hook Thresholds** | 5 | 4 | 5 | 4 | 5 | 4 | 5 | **32/70** | NO |
+| **Homunculus** | 4 | 3 | 4 | 3 | 4 | 5 | 5 | **28/70** | NO |
+
+One strong fit. One conditional. One maybe. Four clear failures. Not exactly the revolution I was hoping for.
+
+## The One Thing That Actually Fits (And Why It Doesn't Matter)
+
+GOAP AI Balance scored 62/70. It's genuinely an ideal autoresearch candidate. My game, Third Conflict, has a GOAP-based AI system with 247 tunable parameters spread across 15+ files. The breakdown:
+
+| Category | Parameters |
+|---|:---:|
+| Personality Weights (4 profiles x 7 goals) | 28 |
+| Scoring Logic (utility curves, priorities) | 36 |
+| Unit Stats (7 types x 5 attributes) | 35 |
+| Strategy Thresholds (4 strategy files) | 25 |
+| Morale and Revolt | 16 |
+| Combat Power Estimation | 14 |
+| Difficulty Modifiers | 10 |
+| Everything else (trade, veterancy, infrastructure) | 83 |
+| **Total** | **247** |
+
+The eval cycle would be fast (headless game simulation, no UI), the metric is clean (win-rate variance across factions, lower is better), and the search space is rich enough that manual tuning is genuinely impractical. The estimated cost: $300 to $420 in API tokens, replacing 40 to 60 hours of manual playtesting.
+
+Here's the honest part: the game is on pause. I'm a web developer with a consulting practice, an active blog, and 26 agents to maintain. Building the prerequisite headless game runner (a 2 to 3 day project) for a paused game is technically justified but practically irrelevant. The strongest candidate in my ecosystem is the one I can't use right now.
+
+<Info title="Token Cost Estimates">
+The evaluation team produced cost estimates for every candidate. GOAP: $300-420. Vector Memory: $280-350. Next.js: $360-450. Agent Prompts: $1,200+. The cost of getting it wrong isn't just wasted tokens. It's wasted weeks implementing infrastructure for an approach that won't converge.
+</Info>
+
+## The Other Six: Why They Failed
+
+**Agent Prompt Optimization (48/70, NO).** Twenty-six agents, each needing independent optimization runs. The token cost alone ($1,200 to $1,500) exceeds the value of marginal prompt improvements. Worse, prompt quality is partially subjective. A "better" prompt for the blog-post agent depends on voice, tone, and editorial preferences that resist scalar measurement.
+
+**Autoconfig Skill (34/70, NO).** No single scalar metric for "good agent configuration." Evaluation inherently requires human judgment. The parameter space spans the entire ecosystem.
+
+**Hook Thresholds (32/70, NO).** Thresholds interact with each other unpredictably. Changing the memory-nudge interval affects context preservation, which affects compaction behavior, which affects session quality. Wrong values cause silent failures that take days to notice.
+
+**Homunculus Evolution (28/70, NO).** This fails on three disqualifiers simultaneously: no scalar metric for instinct quality, evaluation is inherently human-gated, and feedback cycles take days instead of minutes. The irony is not lost on me. The Homunculus pipeline is already doing what autoresearch does, just at a human-supervised cadence. That's by design, not a limitation.
+
+## The Twist: What I Found While Looking for Something Else
+
+Here's where the story turns.
+
+To evaluate Vector Memory as a candidate (it scored 58/70, the second-highest), the research team had to deeply examine how my vector memory MCP server actually works: the configuration, the search algorithms, the quality scoring, the retention policies. They needed to understand the parameter space to assess whether autoresearch could tune it.
+
+In doing that examination, they found three real problems. Not theoretical concerns. Actual misconfigurations that had been silently degrading search quality for weeks.
+
+<UnexpectedDiscoveryDiagram />
+
+### Problem 1: Quality Boost Was Completely Disabled
+
+```bash
+# What I had
+MCP_QUALITY_BOOST_ENABLED=false
+
+# What it should have been
+MCP_QUALITY_BOOST_ENABLED=true
+```
+
+The quality boost feature uses a quality score (0.0 to 1.0) assigned to each memory when it's stored. Higher-quality memories (detailed context, clear reasoning, useful tags) should rank higher in search results. With this flag set to `false`, quality scores had zero influence on search ranking. Every memory, regardless of how well-written it was, had equal weight. All those careful tags and detailed descriptions I'd been writing? Wasted effort, at least for ranking purposes.
+
+### Problem 2: Retention Was Too Short
+
+```bash
+# What I had
+MCP_RETENTION_STANDARD=30
+
+# What I changed it to
+MCP_RETENTION_STANDARD=60
+```
+
+Standard retention was set to 30 days. That means architecture decisions I made in early March were fading by early April. For a system that's supposed to remember "why did I choose this approach six weeks ago," a 30-day retention window is too aggressive. Memories about the knowledge graph architecture, the Homunculus design decisions, the cross-workstation sync setup: all decaying on a monthly cycle. Doubling it to 60 days keeps important context alive through the natural rhythm of how I revisit topics.
+
+### Problem 3: Candidate Multiplier Was Too Conservative
+
+```bash
+# OpenClaw config: what I had
+"candidateMultiplier": 4
+
+# What I changed it to
+"candidateMultiplier": 6
+```
+
+The candidate multiplier controls how many results the system retrieves before re-ranking. With a multiplier of 4 and a result limit of 10, the system only pulled 40 candidates for re-ranking. For searches across diverse topics (which is most of my searches), this was too conservative. Bumping it to 6 (60 candidates) gives the re-ranking algorithm more material to work with, especially for cross-domain queries where the best result might not be in the top 40 by raw similarity. And enabling quality boost on the Claude Code side automatically tripled the candidate fetch there too.
+
+<Tip title="Fix Time: 10 Minutes">
+I fixed all three problems in 10 minutes. No autoresearch needed. No automated loop. No token spend. Just looking closely at the configuration during the evaluation process was enough to spot what had been wrong all along. Sometimes the act of rigorous examination is the entire value.
+</Tip>
+
+Three environment variables. Ten minutes of work. Real, measurable improvements to a system I use every single day. And I only found them because I was evaluating whether a completely different tool (autoresearch) could help. The tool couldn't. The evaluation could.
+
+## The Meta-Lesson: Science, Not Shopping
+
+What happened here follows a pattern that's older than software. It's the scientific method applied to AI tooling.
+
+**Hypothesis:** "Autoresearch will help me optimize my systems."
+
+**Experiment:** Assemble a rigorous 5-agent evaluation team. Score 7 candidates against 7 criteria. Estimate costs. Identify disqualifiers.
+
+**Result:** "It won't. One candidate fits perfectly but the project is on pause. Everything else fails the rubric."
+
+**Discovery:** "But the evaluation process itself uncovered three real configuration problems that had been degrading search quality for weeks."
+
+This is not a failure. This is exactly how discovery works. You don't always find what you're looking for. Sometimes the adjacent observations matter more than the hypothesis you set out to test.
+
+The lesson applies broadly: not every exciting tool, workflow, or agent is useful for your specific setup. That's fine. The value is in the evaluation process itself. A rigorous assessment forces you to look closely at systems you've been taking for granted. And looking closely is how you find the things you didn't know were broken.
+
+<Warning title="The Trap: Skipping Evaluation">
+The temptation is always to jump straight to implementation. "Autoresearch looks cool, let me build a harness." If I'd done that, I would have spent two weeks building infrastructure for agent prompt optimization ($1,200+ in tokens, unclear results) and never noticed the three vector memory misconfigurations that were actually costing me quality every day.
+</Warning>
+
+## The Bigger Picture: One Pattern, Two Speeds
+
+If you read the [first post in this series](/blog/homunculus-evolution-layer-when-your-ai-learns-to-upgrade-itself), you already know the Homunculus evolution pipeline. Here's the thing: autoresearch and the Homunculus pipeline are the same pattern running at different speeds.
+
+<AutoresearchVsHomunculusDiagram />
+
+| Dimension | Autoresearch | Homunculus Pipeline |
+|---|---|---|
+| **Cadence** | Minutes (50-100 iterations/day) | Days (weekly ingestion cycles) |
+| **Proposal source** | LLM generates parameter changes | Observer extracts instincts from behavior |
+| **Evaluation** | Automated scalar metric | Human review and approval |
+| **Selection** | Keep if metric improves | Promote if Chris approves |
+| **Memory** | history.jsonl (experiment log) | instincts/ and evolved/ directories |
+| **Convergence** | Score plateaus | Instinct count stabilizes |
+
+The shared meta-pattern is: **observe, propose, evaluate, promote.** Whether the evaluator is a fitness function or a human brain is an implementation detail. Whether the cycle takes minutes or days is a speed knob, not a fundamental difference in architecture.
+
+The Homunculus pipeline's human-in-the-loop design is not a weakness. It's the correct design for a system where "good" is subjective and the cost of a bad instinct (polluting agent behavior across every future session) is high. Autoresearch works when "good" is a number. The Homunculus works when "good" is a judgment call.
+
+## Should You Try This? A Quick Self-Assessment
+
+Before you build an autoresearch harness, ask these five questions:
+
+1. **Can you reduce success to a single number?** Not two numbers. Not a dashboard. One number that goes up (or down) when things improve. If you can't answer this in one sentence, autoresearch isn't for you.
+
+2. **Can you run an experiment in under 5 minutes?** If your evaluation requires a full production deploy, a 30-minute load test, or human sign-off, the feedback loop is too slow. Consider whether a proxy metric (subset of data, simulated environment) could work instead.
+
+3. **Do you have 20+ parameters to tune?** If you have 5 knobs, use grid search. If you have 500, the search space may overwhelm the LLM. The sweet spot is 20 to 300.
+
+4. **Are results reproducible?** Run your system twice with the same inputs. If the metric varies by more than 1%, fix reproducibility first. Autoresearch on a flaky system amplifies noise.
+
+5. **Can the loop run unattended?** If a human must approve each change or interpret each result, you've built expensive manual testing, not autoresearch.
+
+<Info title="The Rubric Is Reusable">
+The 7-criteria fitness rubric works for evaluating any autonomous optimization approach, not just autoresearch specifically. Use it the next time someone suggests "we should automate the tuning of X." Score the criteria honestly. If the total is below 45, save yourself the tokens.
+</Info>
+
+## What I'd Do Differently
+
+If I could redo this evaluation, two things would change.
+
+First, I'd start by examining my existing configurations before looking at new tools. The vector memory problems were hiding in plain sight. A quarterly configuration audit (just reading your env vars and asking "is this still right?") would have caught them months ago.
+
+Second, I'd publish the rubric earlier. The 7-criteria framework is the most reusable artifact from this entire exercise. The autoresearch evaluation was one application. The rubric itself is a general-purpose tool for deciding whether any automated optimization approach fits a given problem.
+
+## Closing Thoughts
+
+The scientific method works for AI tooling. You form a hypothesis ("this tool will help me"), run an experiment (rigorous multi-agent evaluation), accept the result ("it won't, but here's what will"), and learn from the adjacent discoveries (three real config fixes).
+
+Not every tool is for you. Autoresearch is brilliant for parameter-dense systems with scalar metrics and fast feedback loops. My game's GOAP system qualifies perfectly. Almost nothing else in my web development and agent orchestration ecosystem does.
+
+But the exploration was worth it. The rubric is a reusable tool I'll apply to every "should we automate X?" decision from now on. The vector memory fixes improved a system I use hundreds of times per week. And the meta-lesson (that rigorous evaluation of new tools often yields unexpected value in existing systems) is something I'll carry forward.
+
+You don't always find what you're looking for. Sometimes you find something better.
+
+Next time you discover an exciting new tool, don't just install it. Evaluate it. Build a rubric. Score it honestly. You might conclude it doesn't fit. And in the process of reaching that conclusion, you might fix three things that actually matter.
+
+<Tip title="Try the Rubric Yourself">
+The full [autoresearch fitness rubric](https://github.com/chris2ao/claude-code-config) is available in my public config repo. Score your own candidates against the 7 criteria. If you find something that scores above 55, you've got a genuine autoresearch opportunity. If nothing does, congratulations: you just saved yourself weeks of misguided implementation.
+</Tip>

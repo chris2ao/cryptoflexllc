@@ -44,6 +44,9 @@ import {
   CVEResponseFlowDiagram,
   SecurityPanelArchitectureDiagram,
   SecurityAlertSchemaDiagram,
+  AutoresearchFitnessRubricDiagram,
+  AutoresearchVsHomunculusDiagram,
+  UnexpectedDiscoveryDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 import {
@@ -295,6 +298,9 @@ export default async function BlogPostPage({ params }: Props) {
                     CVEResponseFlowDiagram,
                     SecurityPanelArchitectureDiagram,
                     SecurityAlertSchemaDiagram,
+                    AutoresearchFitnessRubricDiagram,
+                    AutoresearchVsHomunculusDiagram,
+                    UnexpectedDiscoveryDiagram,
                     img: ImageLightbox,
                   }}
                 />

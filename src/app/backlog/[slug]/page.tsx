@@ -47,6 +47,9 @@ import {
   CVEResponseFlowDiagram,
   SecurityPanelArchitectureDiagram,
   SecurityAlertSchemaDiagram,
+  AutoresearchFitnessRubricDiagram,
+  AutoresearchVsHomunculusDiagram,
+  UnexpectedDiscoveryDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -177,6 +180,9 @@ export default async function BacklogPostPage({ params }: Props) {
               CVEResponseFlowDiagram,
               SecurityPanelArchitectureDiagram,
               SecurityAlertSchemaDiagram,
+              AutoresearchFitnessRubricDiagram,
+              AutoresearchVsHomunculusDiagram,
+              UnexpectedDiscoveryDiagram,
               img: ImageLightbox,
             }}
           />
