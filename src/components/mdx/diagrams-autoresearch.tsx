@@ -447,7 +447,7 @@ export function UnexpectedDiscoveryDiagram({ caption }: DiagramProps) {
           textAnchor="middle"
           className="fill-muted-foreground text-[9px]"
         >
-          Karpathy's new tool
+          {"Karpathy's new tool"}
         </text>
 
         {/* Arrow to Step 2 */}
@@ -550,7 +550,7 @@ export function UnexpectedDiscoveryDiagram({ caption }: DiagramProps) {
           textAnchor="middle"
           className="fill-red-400 text-[11px] font-medium"
         >
-          "Doesn't fit my workflow"
+          {`"Doesn't fit my workflow"`}
         </text>
         <text
           x="155"
