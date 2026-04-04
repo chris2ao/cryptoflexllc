@@ -39,4 +39,9 @@ export {
   HomunculusPipelineDiagram,
   EvolutionFlowDiagram,
 } from "./diagrams-homunculus";
+export {
+  CVEResponseFlowDiagram,
+  SecurityPanelArchitectureDiagram,
+  SecurityAlertSchemaDiagram,
+} from "./diagrams-security-panel";
 export { ImageLightbox } from "./image-lightbox";

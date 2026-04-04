@@ -41,6 +41,9 @@ import {
   SerialVsParallelDiagram,
   HomunculusPipelineDiagram,
   EvolutionFlowDiagram,
+  CVEResponseFlowDiagram,
+  SecurityPanelArchitectureDiagram,
+  SecurityAlertSchemaDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 import {
@@ -289,6 +292,9 @@ export default async function BlogPostPage({ params }: Props) {
                     SerialVsParallelDiagram,
                     HomunculusPipelineDiagram,
                     EvolutionFlowDiagram,
+                    CVEResponseFlowDiagram,
+                    SecurityPanelArchitectureDiagram,
+                    SecurityAlertSchemaDiagram,
                     img: ImageLightbox,
                   }}
                 />
