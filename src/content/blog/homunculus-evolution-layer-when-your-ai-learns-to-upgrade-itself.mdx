@@ -1,0 +1,277 @@
+---
+title: 'The Homunculus Evolution Layer: When Your AI Learns to Upgrade Itself'
+date: '2026-04-03'
+author: Chris Johnson
+readingTime: 14 min read
+description: >-
+  50 instincts, 13 semantic clusters, 7 accepted candidates, 5 promoted skills.
+  I built the third tier of a continuous learning pipeline that synthesizes
+  behavioral patterns into reusable agents, skills, and commands.
+tags:
+  - Claude Code
+  - Agents
+  - Memory
+  - Architecture
+  - Automation
+  - Skills
+series: 'Under the Hood'
+seriesOrder: 1
+---
+
+50 learned behavioral patterns sat in a directory, doing nothing.
+
+Each one was a markdown file with a confidence score, a trigger condition, and evidence from real sessions. Together, they represented everything my Claude Code setup had figured out about how I work: that I always forget to update the knowledge graph after creating a new hook, that OpenClaw config changes need a gateway restart, that multi-agent teams need explicit phase gates. Valuable stuff. Completely unused.
+
+The patterns were there. The infrastructure to turn them into something actionable was not. So I built it.
+
+## The Three-Layer Pipeline (Before and After)
+
+To understand what was missing, you need to see the system that already existed.
+
+**Layer 1: Observation.** Every time Claude Code uses a tool, a PostToolUse hook fires. It logs the tool name, parameters, duration, and context to `observations.jsonl`. After months of sessions, that file held 13,292 observations across 2.7 MB of raw behavioral data.
+
+**Layer 2: Instincts.** An observer agent periodically processes those raw observations and distills them into "instincts," which are individual markdown files that capture a specific learned behavior. Each instinct has a name, a confidence score (0.0 to 1.0), a list of triggers, and the evidence that supports it. At the time I started this work, there were 50 instincts.
+
+**Layer 3: Evolution.** This is the part that didn't exist. The `evolved/` directory had subdirectories for agents, commands, and skills, each containing nothing but a `.gitkeep` file. The Python CLI even had an `/evolve` command, but the `--generate` flag was a placeholder. It printed "Would generate evolved structures here" and exited.
+
+And then the wheels came off. Or more accurately, they never got put on in the first place.
+
+<Info title="What Is an Instinct?">
+An instinct is a single behavioral pattern that Claude Code has learned from observing how I work. For example: "When creating a new hook, always update the knowledge graph with the new entity." Each instinct lives as a markdown file with a confidence score (how often the pattern holds), triggers (when it should activate), and evidence (specific sessions where the pattern was observed). Think of instincts as individual lessons. Evolution is about combining related lessons into something you can actually use.
+</Info>
+
+```mermaid
+flowchart TD
+    A["PostToolUse Hooks"] -->|"Every tool call"| B["observations.jsonl\n(13,292 entries, 2.7 MB)"]
+    B -->|"Observer agent"| C["Instincts Directory\n(50 markdown files)"]
+    C -->|"/evolve command"| D["Evolve Synthesizer Agent"]
+    D -->|"Semantic clustering"| E["Evolved Candidates\n(agents, skills, commands)"]
+    E -->|"User review"| F{"Accept or\nDecline?"}
+    F -->|"Accept"| G["evolved/ directory"]
+    G -->|"promote-evolved.sh"| H["Active directories\n(~/.claude/skills/, agents/, commands/)"]
+    F -->|"Decline"| I["Discarded"]
+
+    style A fill:#4a9eff,color:#fff
+    style B fill:#6c757d,color:#fff
+    style C fill:#ffc107,color:#000
+    style D fill:#28a745,color:#fff
+    style E fill:#17a2b8,color:#fff
+    style G fill:#fd7e14,color:#fff
+    style H fill:#dc3545,color:#fff
+
+    subgraph "Layer 1: Observation"
+        A
+        B
+    end
+
+    subgraph "Layer 2: Instincts"
+        C
+    end
+
+    subgraph "Layer 3: Evolution (NEW)"
+        D
+        E
+        F
+        G
+        H
+        I
+    end
+```
+
+The gap between Layer 2 and anything useful was the entire point of this project. Instincts are individual data points. Skills, agents, and commands are reusable tools. The evolution layer bridges that gap by finding clusters of related instincts and synthesizing them into components you can actually run.
+
+## Why an Agent, Not a Script
+
+My first instinct (pun intended) was to extend the existing Python CLI. The `instinct-cli.py` already had commands for listing, searching, and managing instincts. Adding a `--generate` implementation seemed like the obvious path.
+
+I used sequential thinking to work through the design, and by step 3 it was clear that a Python script was the wrong tool. The core challenge is semantic: you need to read 50 instincts, understand what they're about, find clusters of related patterns, decide whether each cluster is better expressed as a skill, agent, or command, and then generate the appropriate component file with correct frontmatter and structure.
+
+That's an LLM task, not a scripting task. Regular expressions can't cluster "always restart the gateway after config changes" with "check gateway status before deploying" into an "OpenClaw operations" skill. You need semantic understanding.
+
+<Tip title="Scripts for Structure, Agents for Semantics">
+If your task is structural (file manipulation, text extraction, metrics calculation), write a script. If your task requires understanding meaning (clustering related concepts, classifying intent, generating natural language), use an agent. The evolution layer needs both: a script to gather and promote files, an agent to do the actual synthesis.
+</Tip>
+
+## The Four Components I Built
+
+The evolution layer has four pieces, each with a clear responsibility.
+
+### 1. The Evolve Command (`evolve.md`)
+
+This is the entry point. When you run `/evolve full` or `/evolve incremental`, the command orchestrates the entire pipeline:
+
+1. Gather all instinct files from the instincts directory
+2. Spawn the synthesizer agent with the full set
+3. Present the candidates to the user for review
+4. Write accepted candidates to `evolved/`
+5. Update the last-evolution timestamp
+
+The `full` mode processes all instincts. The `incremental` mode only processes instincts created or modified since the last evolution run. For my first run, I used `full` because there had never been a previous evolution.
+
+### 2. The Synthesizer Agent (`evolve-synthesizer.md`)
+
+This is the brain of the operation. It's a Sonnet agent that receives a batch of instincts and does four things:
+
+**Cluster.** Group instincts by semantic similarity. Five instincts about hook lifecycle management become one cluster. Four instincts about multi-agent team patterns become another. Instincts that don't fit any cluster (too narrow, too low confidence, or genuinely unique) stay unclustered.
+
+**Classify.** For each cluster, decide what kind of component it should become. A cluster about operational procedures becomes a skill (reference knowledge). A cluster about pipeline workflows becomes a command (executable action). A cluster about coordination patterns becomes an agent (autonomous behavior).
+
+**Generate.** Write the actual component file with proper frontmatter, structure, and content synthesized from the contributing instincts. The generated file should be ready to use after promotion.
+
+**Report.** Return a structured summary: how many clusters found, what type each is, which instincts contributed to each, and which instincts were left unclustered.
+
+### 3. The Promotion Script (`promote-evolved.sh`)
+
+A bash script that copies accepted evolved components from the staging area (`evolved/`) to their active directories (`~/.claude/skills/`, `~/.claude/agents/`, or `~/.claude/commands/`). It also strips evolution-specific metadata from the frontmatter so the promoted component looks like any other manually created one.
+
+Why a script instead of having the agent do it? Two reasons. First, the sandbox constraint: sub-agents can't write outside the project directory, and the active directories live in `~/.claude/`. Second, promotion is a purely structural operation (copy file, strip metadata). Scripts are better at structural operations than agents.
+
+### 4. The Wrap-Up Nudge
+
+I modified the existing wrap-up skill to include an evolution check. During the wrap-up phase of any session, if there are N new instincts since the last evolution run, it displays a reminder: "N new instincts since last evolution. Consider running `/evolve` to synthesize them into reusable components."
+
+This keeps evolution in the workflow without making it automatic. I want a human in the loop for deciding which clusters become real tools. The nudge just makes sure I don't forget.
+
+<Warning title="No Automatic Promotion">
+The evolution layer generates candidates. It does not automatically promote them into active use. Every candidate goes through user review before it lands in the `evolved/` directory, and a separate promotion step is needed to move it to the active directories. Two gates, both manual. I trust the synthesizer to find patterns. I do not trust it to decide which patterns should become permanent tools without my input.
+</Warning>
+
+## The First Run: 50 Instincts In, 13 Clusters Out
+
+Here's where it gets interesting. I ran `/evolve full` on all 50 instincts and watched the synthesizer work.
+
+```mermaid
+flowchart LR
+    A["50 Instincts"] --> B["Evolve Synthesizer"]
+    B --> C{"Semantic\nClustering"}
+    C --> D["13 Clusters"]
+    C --> E["13 Unclustered\n(too narrow/low confidence)"]
+    D --> F["9 Skills"]
+    D --> G["4 Commands"]
+    F --> H{"User\nReview"}
+    G --> H
+    H -->|"7 Accepted"| I["5 Skills Promoted"]
+    H -->|"6 Declined"| J["Removed"]
+    H -->|"2 Commands"| K["Declined and Removed"]
+
+    style A fill:#ffc107,color:#000
+    style B fill:#28a745,color:#fff
+    style D fill:#17a2b8,color:#fff
+    style E fill:#6c757d,color:#fff
+    style F fill:#4a9eff,color:#fff
+    style G fill:#fd7e14,color:#fff
+    style I fill:#dc3545,color:#fff
+    style J fill:#6c757d,color:#fff
+    style K fill:#6c757d,color:#fff
+```
+
+The synthesizer identified 13 semantic clusters from the 50 instincts. Nine were classified as skills (reference knowledge), four as commands (executable actions). The remaining 13 instincts were left unclustered, either because their confidence scores were too low, they were too narrow to generalize, or they genuinely stood alone.
+
+Here are a few of the clusters that caught my eye:
+
+**"claude-code-hooks" (5 instincts).** Five separate patterns about hook lifecycle management: when to use PreToolUse vs PostToolUse, how to handle stdin parsing, common failure modes, permission requirements, and the knowledge graph update step people always forget. The synthesizer grouped these into a single skill about the hook development lifecycle.
+
+**"multi-agent-orchestration" (4 instincts).** Four patterns about coordinating agent teams: phase gating (never let Phase 3 run until Phase 2 is verified), sandbox constraints on sub-agent writes, the captain pattern's overhead costs, and when to use background agents versus foreground agents. This became a skill about structuring multi-agent teams.
+
+**"openclaw-ops" (4 instincts).** Four operational patterns specific to my OpenClaw multi-agent system: always restart the gateway after config changes, check the Telegram plugin status after updates, refresh OAuth tokens before they expire, and verify agent IDs in the ACP config. This became an OpenClaw operations skill.
+
+<Info title="What Didn't Cluster">
+The 13 unclustered instincts included things like "Vercel Hobby plan doesn't support Firewall settings" and "bash 3.2 on macOS doesn't support declare -A." These are real gotchas, but they're too specific to generalize into a reusable component. They stay as individual instincts, which is exactly where they belong. Not every lesson needs to become a tool.
+</Info>
+
+## The Review: 7 Accepted, 6 Declined
+
+I reviewed all 13 candidates. Seven made the cut. Six did not.
+
+The declined candidates fell into two categories. Some were too generic to be useful as standalone skills. A "polling-performance" skill about efficient polling patterns sounded nice in theory but was too broad to give actionable guidance. If it applies to everything, it helps with nothing.
+
+Others overlapped with existing infrastructure. A "claude-code-hooks" skill would have duplicated content already in my rules files and MEMORY.md. A "log-parser" skill covered patterns I use rarely enough that individual instincts are sufficient.
+
+The accepted candidates were the ones where I could immediately see the value: clusters of related knowledge that I'd otherwise have to remember individually or rediscover each time the topic came up.
+
+## Promotion: From Staging to Active
+
+After accepting seven candidates, I promoted five skills to their active directories using `promote-evolved.sh`:
+
+1. **openclaw-ops** (4 contributing instincts): OpenClaw configuration gotchas and operational patterns
+2. **cross-platform-parsing** (3 contributing instincts): Safe text and CLI output parsing across Windows and Unix
+3. **multi-agent-orchestration** (4 contributing instincts): Patterns for structuring multi-agent teams
+4. **memory-architecture** (3 contributing instincts): Two-tier memory architecture and vector memory configuration
+5. **content-validation** (3 contributing instincts): Validating content integrity beyond HTTP status codes
+
+The two accepted commands were declined at the promotion stage after further consideration. Commands need to be robust enough to run without supervision, and neither candidate had reached that threshold.
+
+<Tip title="Staging Is Not Shipping">
+The `evolved/` directory is a staging area, not a deployment target. Generated components live there until you explicitly promote them. This gives you time to review, test, and modify before they join your active toolkit. If a component turns out to be wrong after promotion, you can always remove it from the active directory. But the staging step prevents most bad candidates from getting that far.
+</Tip>
+
+## The Retroactive Sweep (Phase 2)
+
+After building the evolution layer, I wanted to make sure the 50 instincts actually represented the full body of behavioral data. If there were session archives that hadn't been ingested into the observation/instinct pipeline, the evolution results would be incomplete.
+
+The check confirmed that all archives had been processed. Five prior ingestion runs had covered 130 of 135 unique sessions, and the remaining 5 were duplicates or empty sessions. The 50 instincts were the complete distilled output of every session I'd ever run.
+
+This matters because the evolution layer's quality is directly proportional to the instinct quality, which is directly proportional to the observation coverage. Garbage in, garbage out, but across three layers instead of one.
+
+## Why This Matters (Beyond My Setup)
+
+The specific implementation is mine. The pattern is general.
+
+Most AI coding assistants have a learning problem: they start fresh every session. Even with memory systems (and I have five of them), the knowledge stays passive. It sits in a database waiting to be queried. The user has to know what to ask for. If you don't remember that you learned something three weeks ago about OpenClaw gateway restarts, you won't search for it.
+
+The evolution layer flips the model. Instead of waiting for the user to query past knowledge, it actively synthesizes that knowledge into tools that show up automatically. An evolved skill about OpenClaw operations is listed in the skill catalog. It appears in the system context when relevant. You don't have to remember it exists, because the system surfaces it for you.
+
+<Tip title="Passive Knowledge vs. Active Tools">
+There's a meaningful difference between "I have a memory that says always restart the gateway" and "I have a skill called openclaw-ops that includes gateway restart as step 3 of the config change checklist." The memory requires you to search for it. The skill loads automatically when the context matches. Evolution converts passive memories into active tools.
+</Tip>
+
+This is the same pattern that makes the difference between a developer who has read a lot of Stack Overflow answers and a developer who has codified their knowledge into scripts, templates, and checklists. The knowledge is the same. The accessibility is different.
+
+## The Numbers
+
+Here's the full pipeline by the numbers:
+
+| Layer | Input | Output | Compression |
+|-------|-------|--------|-------------|
+| Observation | Every tool call | 13,292 entries (2.7 MB) | None (raw capture) |
+| Instincts | 13,292 observations | 50 instinct files | 266:1 |
+| Evolution | 50 instincts | 13 clusters, 5 promoted skills | 10:1 |
+| **End-to-end** | **13,292 observations** | **5 active skills** | **2,658:1** |
+
+From 2.7 MB of raw behavioral data to 5 focused, reusable skills. That's a 2,658:1 compression ratio from observation to actionable tool.
+
+<img src="/blog/homunculus-infographic-pipeline.png" alt="Infographic: The Homunculus AI Processing Pipeline showing the three-layer architecture from observation through instincts to evolution" />
+
+## Lessons Learned
+
+<Tip title="Two Gates, Both Manual">
+The evolution layer has two promotion gates: user review of candidates, and explicit promotion to active directories. Both are manual. Fully automated evolution (where the system creates and deploys its own tools without human review) sounds efficient and is a terrible idea. The synthesizer can find patterns. Only you know which patterns are worth codifying.
+</Tip>
+
+<Warning title="Not Every Instinct Should Evolve">
+13 of 50 instincts were too narrow to cluster. That's 26%. This is correct behavior, not a failure. Some lessons are genuinely specific to one situation and should stay as individual instincts. Forcing every instinct into a cluster produces generic, unhelpful components. Let the narrow ones be narrow.
+</Warning>
+
+<Info title="Scripts for Files, Agents for Meaning">
+The evolution layer uses both scripts and agents because they solve different problems. The bash script handles file operations (copy, strip metadata, check timestamps). The agent handles semantic operations (cluster by meaning, classify component type, generate content). Neither could do the other's job well. When designing a pipeline, match the tool to the task type.
+</Info>
+
+<Tip title="Staging Catches Mistakes">
+Two of the seven accepted candidates were declined at the promotion stage. If promotion had been automatic after acceptance, those two would have polluted my active skill set. The staging area gives you a second chance to reconsider. Build staging into any pipeline where the output has lasting consequences.
+</Tip>
+
+## What's Next
+
+The three-layer pipeline is operational. Observations flow into instincts, instincts cluster into evolved components, and promoted components join the active toolkit. The loop is closed.
+
+The next questions are about calibration. How often should I run `/evolve`? The wrap-up nudge will tell me when new instincts have accumulated, but the right cadence probably depends on how many new instincts are genuinely different from the ones already evolved. Running it too often produces marginal candidates. Running it too rarely lets useful patterns pile up without being synthesized.
+
+I also want to watch the promoted skills in action. Do they actually surface at the right times? Does the cross-platform-parsing skill show up when I'm debugging a Windows path issue? Does openclaw-ops load when I'm modifying OpenClaw config? If the skills are well-structured but poorly triggered, the evolution layer produced filing cabinet entries instead of active tools.
+
+The system learns from me. Now I need to learn whether what it learned is actually useful in practice.
+
+<img src="/blog/homunculus-infographic-evolution.png" alt="Infographic: AI Evolution Layer Architectural Pipeline showing the data flow from instinct clustering through candidate generation to promotion" />
+
+---
+
+*Written by Chris Johnson and edited by Claude Code (Opus 4.6). This post is the first in the Under the Hood series, covering the internal infrastructure that makes Claude Code work better over time. The full configuration is available in the [claude-code-config repo](https://github.com/chris2ao/claude-code-config).*
