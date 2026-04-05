@@ -50,6 +50,9 @@ import {
   AutoresearchFitnessRubricDiagram,
   AutoresearchVsHomunculusDiagram,
   UnexpectedDiscoveryDiagram,
+  NotebookLMMCPArchitectureDiagram,
+  SuperpowersPipelineDiagram,
+  ExecutionTimelineDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -183,6 +186,9 @@ export default async function BacklogPostPage({ params }: Props) {
               AutoresearchFitnessRubricDiagram,
               AutoresearchVsHomunculusDiagram,
               UnexpectedDiscoveryDiagram,
+              NotebookLMMCPArchitectureDiagram,
+              SuperpowersPipelineDiagram,
+              ExecutionTimelineDiagram,
               img: ImageLightbox,
             }}
           />

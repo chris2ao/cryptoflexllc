@@ -49,4 +49,9 @@ export {
   AutoresearchVsHomunculusDiagram,
   UnexpectedDiscoveryDiagram,
 } from "./diagrams-autoresearch";
+export {
+  NotebookLMMCPArchitectureDiagram,
+  SuperpowersPipelineDiagram,
+  ExecutionTimelineDiagram,
+} from "./diagrams-notebooklm-mcp";
 export { ImageLightbox } from "./image-lightbox";
