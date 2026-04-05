@@ -53,6 +53,10 @@ import {
   NotebookLMMCPArchitectureDiagram,
   SuperpowersPipelineDiagram,
   ExecutionTimelineDiagram,
+  TwoPathApproachDiagram,
+  CaptainCoordinatorDiagram,
+  FivePhaseExecutionDiagram,
+  PIIProtectionLayersDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -189,6 +193,10 @@ export default async function BacklogPostPage({ params }: Props) {
               NotebookLMMCPArchitectureDiagram,
               SuperpowersPipelineDiagram,
               ExecutionTimelineDiagram,
+              TwoPathApproachDiagram,
+              CaptainCoordinatorDiagram,
+              FivePhaseExecutionDiagram,
+              PIIProtectionLayersDiagram,
               img: ImageLightbox,
             }}
           />

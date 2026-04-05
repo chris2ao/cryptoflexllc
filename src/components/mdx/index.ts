@@ -54,4 +54,10 @@ export {
   SuperpowersPipelineDiagram,
   ExecutionTimelineDiagram,
 } from "./diagrams-notebooklm-mcp";
+export {
+  TwoPathApproachDiagram,
+  CaptainCoordinatorDiagram,
+  FivePhaseExecutionDiagram,
+  PIIProtectionLayersDiagram,
+} from "./diagrams-family-wiki-biography";
 export { ImageLightbox } from "./image-lightbox";
