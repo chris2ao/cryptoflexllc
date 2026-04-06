@@ -140,7 +140,7 @@ pip install notebooklm-mcp-cli
 Simple, right? Not on Windows. Python 3.13 installed via the Windows Store puts the `Scripts` directory in a location that is not on PATH by default. The `nlm` binary installed to:
 
 ```text
-C:\Users\chris_dnlqpqd\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\Scripts\nlm.exe
+C:\Users\YourUsername\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\Scripts\nlm.exe
 ```
 
 That path is not added to the system PATH automatically. Running `nlm` from Git Bash or PowerShell returned "command not found."
@@ -162,7 +162,7 @@ The MCP server entry in `~/.claude.json` needed the full executable path and the
       "command": "cmd",
       "args": [
         "/c",
-        "C:\\Users\\chris_dnlqpqd\\AppData\\Local\\...\\nlm.exe",
+        "C:\\Users\\YourUsername\\AppData\\Local\\...\\nlm.exe",
         "mcp",
         "serve"
       ]
@@ -194,10 +194,10 @@ Authentication requires a browser-based login flow that captures session cookies
 
 ```powershell
 # This fails with a syntax error:
-"C:\Users\chris_dnlqpqd\AppData\Local\...\nlm.exe" login
+"C:\Users\YourUsername\AppData\Local\...\nlm.exe" login
 
 # This works:
-& "C:\Users\chris_dnlqpqd\AppData\Local\...\nlm.exe" login
+& "C:\Users\YourUsername\AppData\Local\...\nlm.exe" login
 ```
 
 PowerShell requires the `&` call operator when running a quoted executable path with arguments. Without it, PowerShell treats the entire quoted string as a string literal, not a command invocation. This is a fundamental PowerShell behavior, not specific to this tool.
