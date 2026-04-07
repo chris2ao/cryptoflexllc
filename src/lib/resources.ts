@@ -12,6 +12,28 @@ export interface Resource {
 
 const resources: Resource[] = [
   {
+    slug: "deep-research-slides",
+    title: "Deep Research Stack: Exa + Firecrawl for Claude Code",
+    description:
+      "6-slide deck covering the three-tier research architecture: WebSearch limitations, Exa semantic search, Firecrawl JS scraping, the wrapper script security pattern, and the /deep-research skill workflow.",
+    type: "document",
+    tags: ["Claude Code", "Research", "Exa", "Firecrawl", "Slides"],
+    date: "2026-04-06",
+    downloadPath: "/resources/deep-research-slides.pdf",
+    downloadLabel: "Download Slide Deck",
+  },
+  {
+    slug: "memory-comparison-slides",
+    title: "5-Layer Memory Architecture: Research and Comparison",
+    description:
+      "15-slide deck from a 22-source research report comparing persistent memory approaches for Claude Code. Covers the community landscape, the 5-layer architecture, Homunculus behavioral learning, fact versioning, and the memory-audit command.",
+    type: "document",
+    tags: ["Claude Code", "Memory", "Architecture", "Research", "Slides"],
+    date: "2026-04-06",
+    downloadPath: "/resources/memory-comparison-slides.pdf",
+    downloadLabel: "Download Slide Deck",
+  },
+  {
     slug: "notebooklm-content-pipeline-infographic",
     title: "NotebookLM Content Pipeline Infographic",
     description:

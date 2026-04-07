@@ -49,6 +49,8 @@ They came back with 22 sources: academic-style blog posts, GitHub repos, framewo
 Three Haiku agents running in parallel costs about the same as one Sonnet agent doing serial research, but finishes 3x faster. Each agent brings back sources the others missed because they're searching from different angles. The diversity matters more than the depth of any single query.
 </Tip>
 
+![Context compaction destroys working memory; deep-research accesses persistent external sources in parallel](/images/blog/slides-memory-comparison/slide-02.png)
+
 ## What the Community Is Building
 
 The research revealed three distinct camps. Each represents a different trade-off between simplicity and capability.
@@ -102,6 +104,8 @@ The numbers are compelling: 60,000+ repos contain AGENTS.md files, and [research
 
 It's not a memory system, exactly. It's a way to give any AI tool project context without being locked into one vendor's configuration format. Think of it as CLAUDE.md that works everywhere.
 
+![The community trade-off spectrum: Markdown Brain, AGENTS.md, and MCP Memory Servers](/images/blog/slides-memory-comparison/slide-04.png)
+
 ## The Three-Tier Consensus
 
 Across all 22 sources, one architectural pattern kept appearing. The community has converged on what I'm calling the L1/L2/L3 model:
@@ -119,6 +123,8 @@ The production consensus from [MarkTechPost](https://www.marktechpost.com/2025/1
 <Info title="Vector vs. Graph: When Each Excels">
 Vector memory is best for semantic similarity, pattern recognition, and fuzzy queries: "find discussions about auth middleware." Knowledge graphs are best for entity relationships, temporal evolution, and causality: "what services depend on auth?" The key difference for contradiction handling: vector search retrieves both conflicting facts without flagging them. Graphs can version facts with timestamps and retire old knowledge.
 </Info>
+
+![The L1/L2/L3 thermal memory tier model: the community consensus architecture](/images/blog/slides-memory-comparison/slide-03.png)
 
 ## My Five-Layer Architecture
 
@@ -162,6 +168,10 @@ Full transcript backup via a SessionEnd hook, with a 7-phase ingestion pipeline 
 
 Some community solutions have session logging. None have the structured ingestion pipeline that converts raw transcripts into typed memories across multiple storage layers.
 
+![Session archive ingestion pipeline: how raw transcripts become typed memories across two streams](/images/blog/slides-memory-comparison/slide-07.png)
+
+![5-Layer architecture vs. community approaches: full comparison](/images/blog/memory-comparison-infographic.png)
+
 ## The Comparison Table
 
 Here's the full feature matrix:
@@ -202,6 +212,8 @@ Before storing any memory:
 Unlike a broken feature (which throws errors), stale memories just make retrieval slightly worse over time. You don't notice until the system confidently tells you something that was true three months ago but isn't anymore. The Syncthing example below illustrates this perfectly.
 </Warning>
 
+![Fact accumulation without a retirement mechanism: the Syncthing contradiction case study](/images/blog/slides-memory-comparison/slide-10.png)
+
 ### 2. The /memory-audit Command
 
 Fact versioning prevents future accumulation. But what about the stale memories already in the system? I built a `/memory-audit` command that scans vector memory for three types of problems:
@@ -211,6 +223,8 @@ Fact versioning prevents future accumulation. But what about the stale memories 
 3. **Duplicate clusters:** Multiple memories storing essentially the same information (usually from repeated session ingestion)
 
 <MemoryAuditFlowDiagram />
+
+![memory-audit first run: 3 contradictions resolved, 9 memories cleaned up](/images/blog/slides-memory-comparison/slide-13.png)
 
 The first run was illuminating. Three contradictions, three duplicate clusters, nine memories cleaned up. Here are the highlights:
 
@@ -259,9 +273,13 @@ Three takeaways from the research that changed how I think about the problem.
 
 **Complexity isn't free.** Five memory systems means five things that can break, five things to maintain, and five things consuming context budget at startup. The audit found real problems: stale memories, ghost documentation, duplicate entries. These are maintenance costs that simpler architectures don't pay.
 
-<Info title="Honest Assessment">
+![From passive accumulation to active curation: the shift to a self-correcting memory architecture](/images/blog/slides-memory-comparison/slide-11.png)
+
+<Info title="The Real Trade-Off">
 My setup is among the most advanced in the community. But "most advanced" and "best" are not the same thing. For most developers, a single MCP memory server with vector search would deliver 80% of the value at 20% of the complexity. What pushed me beyond that threshold was specific needs: cross-machine development, automated behavioral learning, and the engineering curiosity to see how far you can take it.
 </Info>
+
+![Memory system recommendation: the 90% path vs. the 10% frontier engineering path](/images/blog/slides-memory-comparison/slide-15.png)
 
 ## What's Next
 

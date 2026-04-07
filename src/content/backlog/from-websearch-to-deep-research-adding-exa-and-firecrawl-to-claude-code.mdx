@@ -45,6 +45,8 @@ For the kind of research I wanted to do (investigating AI memory architectures a
 WebSearch returns keyword results without date or domain filtering. WebFetch returns raw HTML without JavaScript rendering. If your research target is a modern web app, a LinkedIn post, or anything behind bot detection, these tools return nothing useful.
 </Warning>
 
+![WebSearch and WebFetch limitations visualized](/images/blog/slides-deep-research/slide-1.png)
+
 ## The Solution: A Three-Tier Tool Stack
 
 The fix was adding two MCP servers that handle what the built-in tools can't, then layering all four tools into a priority system.
@@ -166,6 +168,8 @@ If your Claude Code config syncs to any repository (public or private), putting 
 
 ### Attempt Three: Wrapper Scripts (The Fix)
 
+![Process isolation via wrapper scripts: the problem and the blueprint](/images/blog/slides-deep-research/slide-4.png)
+
 The solution was wrapper scripts that source the secrets file before launching the MCP server. Two files, each about four lines:
 
 **`~/.claude/scripts/exa-wrapper.sh`:**
@@ -197,12 +201,12 @@ Then the MCP config points to the wrappers:
   "mcpServers": {
     "exa": {
       "command": "bash",
-      "args": ["/Users/chris/.claude/scripts/exa-wrapper.sh"],
+      "args": ["/Users/you/.claude/scripts/exa-wrapper.sh"],
       "env": {}
     },
     "firecrawl": {
       "command": "bash",
-      "args": ["/Users/chris/.claude/scripts/firecrawl-wrapper.sh"],
+      "args": ["/Users/you/.claude/scripts/firecrawl-wrapper.sh"],
       "env": {}
     }
   }
@@ -236,6 +240,8 @@ The quality rules are simple: every claim needs a source, prefer recent sources 
 Each sub-question runs as its own haiku agent. A 5-question research session that would take 15 minutes sequentially finishes in about 4 minutes with parallel execution. The cost difference is negligible since haiku is the cheapest model.
 </Tip>
 
+![The deep-research skill workflow: 6 phases from question to cited report](/images/blog/slides-deep-research/slide-5.png)
+
 ## The Smoke Test
 
 After wiring everything up, I ran two targeted tests to verify both tools were working correctly.
@@ -267,6 +273,8 @@ During testing, I discovered that `crawling_exa` expects the `urls` parameter as
 The `urls` parameter for `crawling_exa` must be an array, even for a single URL. Passing a string instead of an array produces a silent failure with no error message.
 </Warning>
 
+![The three-tier research stack, wrapper script pattern, and deep-research workflow](/images/blog/deep-research-infographic.png)
+
 ## What Changed
 
 Before this setup, research tasks in Claude Code meant WebSearch keyword queries and hoping WebFetch could render the target page. It worked for simple lookups but fell apart for anything requiring depth.
@@ -285,14 +293,6 @@ The next post in this series covers the first production use of `/deep-research`
 </Info>
 
 ## Lessons Learned
-
-<Tip title="MCP Environment Variables Need Explicit Injection">
-MCP servers don't inherit shell environment variables. Use wrapper scripts that source your secrets file before launching the server. This is not a bug; it's how process isolation works.
-</Tip>
-
-<Warning title="Keep API Keys Out of Synced Config">
-If your `~/.claude.json` syncs anywhere (public or private repo), never put API keys in `env` blocks. Wrapper scripts solve this cleanly.
-</Warning>
 
 <Tip title="Semantic Search Changes How You Research">
 Keyword search finds pages that use specific words. Semantic search finds pages that discuss specific concepts. Once you have both, you stop thinking about search terms and start thinking about questions.
