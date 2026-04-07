@@ -27,10 +27,10 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
       }
     >
       <svg
-        viewBox="0 0 820 520"
+        viewBox="0 0 1000 520"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full max-w-3xl mx-auto"
+        className="w-full max-w-4xl mx-auto"
       >
         <defs>
           <marker
@@ -47,7 +47,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* Title */}
         <text
-          x="410"
+          x="500"
           y="28"
           textAnchor="middle"
           className="fill-foreground text-[14px] font-semibold"
@@ -57,7 +57,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* Claude Code Session box (top center) */}
         <rect
-          x="280"
+          x="370"
           y="50"
           width="260"
           height="55"
@@ -66,7 +66,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           strokeWidth="1.5"
         />
         <text
-          x="410"
+          x="500"
           y="74"
           textAnchor="middle"
           className="fill-cyan-400 text-[13px] font-semibold"
@@ -74,7 +74,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           Claude Code Session
         </text>
         <text
-          x="410"
+          x="500"
           y="94"
           textAnchor="middle"
           className="fill-muted-foreground text-[10px]"
@@ -84,27 +84,27 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* Arrows from session to three tiers */}
         <line
-          x1="330"
+          x1="420"
           y1="105"
-          x2="180"
+          x2="165"
           y2="155"
           className="stroke-muted-foreground/60"
           strokeWidth="1.5"
           markerEnd="url(#drArrow)"
         />
         <line
-          x1="410"
+          x1="500"
           y1="105"
-          x2="410"
+          x2="500"
           y2="155"
           className="stroke-muted-foreground/60"
           strokeWidth="1.5"
           markerEnd="url(#drArrow)"
         />
         <line
-          x1="490"
+          x1="580"
           y1="105"
-          x2="640"
+          x2="835"
           y2="155"
           className="stroke-muted-foreground/60"
           strokeWidth="1.5"
@@ -113,7 +113,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* Tier labels */}
         <text
-          x="240"
+          x="165"
           y="145"
           textAnchor="middle"
           className="fill-muted-foreground/70 text-[9px]"
@@ -121,7 +121,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           Tier 1 (primary)
         </text>
         <text
-          x="410"
+          x="500"
           y="145"
           textAnchor="middle"
           className="fill-muted-foreground/70 text-[9px]"
@@ -129,7 +129,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           Tier 2 (JS pages)
         </text>
         <text
-          x="620"
+          x="835"
           y="145"
           textAnchor="middle"
           className="fill-muted-foreground/70 text-[9px]"
@@ -139,16 +139,16 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* TIER 1: Exa MCP */}
         <rect
-          x="30"
+          x="10"
           y="160"
-          width="300"
+          width="310"
           height="150"
           rx="10"
           className="fill-emerald-500/8 stroke-emerald-500/40"
           strokeWidth="1.5"
         />
         <text
-          x="180"
+          x="165"
           y="186"
           textAnchor="middle"
           className="fill-emerald-400 text-[13px] font-semibold"
@@ -156,7 +156,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           Exa (MCP Server)
         </text>
         <text
-          x="180"
+          x="165"
           y="202"
           textAnchor="middle"
           className="fill-muted-foreground text-[10px]"
@@ -166,9 +166,9 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* Exa tool badges */}
         {[
-          { label: "web_search_exa", x: 45, w: 105 },
-          { label: "crawling_exa", x: 160, w: 85 },
-          { label: "get_code_context", x: 255, w: 70 },
+          { label: "web_search_exa", x: 25, w: 105 },
+          { label: "crawling_exa", x: 140, w: 85 },
+          { label: "code_context", x: 235, w: 75 },
         ].map((tool) => (
           <g key={tool.label}>
             <rect
@@ -198,9 +198,9 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           "1000 req/mo free tier",
         ].map((cap, i) => (
           <g key={cap}>
-            <circle cx="55" cy={252 + i * 16} r="2.5" className="fill-emerald-400/60" />
+            <circle cx="35" cy={252 + i * 16} r="2.5" className="fill-emerald-400/60" />
             <text
-              x="65"
+              x="45"
               y={256 + i * 16}
               className="fill-muted-foreground text-[9px]"
             >
@@ -211,16 +211,16 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* TIER 2: Firecrawl MCP */}
         <rect
-          x="260"
+          x="345"
           y="160"
-          width="300"
+          width="310"
           height="150"
           rx="10"
           className="fill-violet-500/8 stroke-violet-500/40"
           strokeWidth="1.5"
         />
         <text
-          x="410"
+          x="500"
           y="186"
           textAnchor="middle"
           className="fill-violet-400 text-[13px] font-semibold"
@@ -228,7 +228,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           Firecrawl (MCP Server)
         </text>
         <text
-          x="410"
+          x="500"
           y="202"
           textAnchor="middle"
           className="fill-muted-foreground text-[10px]"
@@ -238,10 +238,10 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* Firecrawl tool badges */}
         {[
-          { label: "scrape", x: 275, w: 55 },
-          { label: "crawl", x: 340, w: 50 },
-          { label: "search", x: 400, w: 55 },
-          { label: "extract", x: 465, w: 55 },
+          { label: "scrape", x: 360, w: 55 },
+          { label: "crawl", x: 425, w: 50 },
+          { label: "search", x: 485, w: 55 },
+          { label: "extract", x: 550, w: 55 },
         ].map((tool) => (
           <g key={tool.label}>
             <rect
@@ -271,9 +271,9 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           "500 credits free tier",
         ].map((cap, i) => (
           <g key={cap}>
-            <circle cx="285" cy={252 + i * 16} r="2.5" className="fill-violet-400/60" />
+            <circle cx="370" cy={252 + i * 16} r="2.5" className="fill-violet-400/60" />
             <text
-              x="295"
+              x="380"
               y={256 + i * 16}
               className="fill-muted-foreground text-[9px]"
             >
@@ -284,16 +284,16 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* TIER 3: WebSearch + WebFetch */}
         <rect
-          x="490"
+          x="680"
           y="160"
-          width="300"
+          width="310"
           height="150"
           rx="10"
           className="fill-amber-500/8 stroke-amber-500/40"
           strokeWidth="1.5"
         />
         <text
-          x="640"
+          x="835"
           y="186"
           textAnchor="middle"
           className="fill-amber-400 text-[13px] font-semibold"
@@ -301,7 +301,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           WebSearch + WebFetch (Built-in)
         </text>
         <text
-          x="640"
+          x="835"
           y="202"
           textAnchor="middle"
           className="fill-muted-foreground text-[10px]"
@@ -311,8 +311,8 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* WebSearch/WebFetch tool badges */}
         {[
-          { label: "WebSearch", x: 530, w: 80 },
-          { label: "WebFetch", x: 620, w: 75 },
+          { label: "WebSearch", x: 720, w: 80 },
+          { label: "WebFetch", x: 815, w: 75 },
         ].map((tool) => (
           <g key={tool.label}>
             <rect
@@ -342,9 +342,9 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           "Free, always available",
         ].map((cap, i) => (
           <g key={cap}>
-            <circle cx="515" cy={252 + i * 16} r="2.5" className="fill-amber-400/60" />
+            <circle cx="705" cy={252 + i * 16} r="2.5" className="fill-amber-400/60" />
             <text
-              x="525"
+              x="715"
               y={256 + i * 16}
               className="fill-muted-foreground text-[9px]"
             >
@@ -357,7 +357,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
         <rect
           x="60"
           y="340"
-          width="700"
+          width="880"
           height="55"
           rx="10"
           className="fill-cyan-500/5 stroke-cyan-500/20"
@@ -365,7 +365,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           strokeDasharray="4 4"
         />
         <text
-          x="410"
+          x="500"
           y="362"
           textAnchor="middle"
           className="fill-foreground text-[11px] font-semibold"
@@ -375,7 +375,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* Decision criteria */}
         <text
-          x="180"
+          x="165"
           y="382"
           textAnchor="middle"
           className="fill-emerald-400 text-[9px]"
@@ -383,7 +383,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           Semantic queries, date-filtered,
         </text>
         <text
-          x="180"
+          x="165"
           y="392"
           textAnchor="middle"
           className="fill-emerald-400 text-[9px]"
@@ -391,7 +391,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           LinkedIn, code context
         </text>
         <text
-          x="410"
+          x="500"
           y="382"
           textAnchor="middle"
           className="fill-violet-400 text-[9px]"
@@ -399,7 +399,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           SPAs, dynamic pages, full-site
         </text>
         <text
-          x="410"
+          x="500"
           y="392"
           textAnchor="middle"
           className="fill-violet-400 text-[9px]"
@@ -407,7 +407,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           crawls, JSON extraction
         </text>
         <text
-          x="640"
+          x="835"
           y="382"
           textAnchor="middle"
           className="fill-amber-400 text-[9px]"
@@ -415,7 +415,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           Simple static pages, quick
         </text>
         <text
-          x="640"
+          x="835"
           y="392"
           textAnchor="middle"
           className="fill-amber-400 text-[9px]"
@@ -425,16 +425,16 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
 
         {/* Wrapper script callout at bottom */}
         <rect
-          x="160"
+          x="200"
           y="420"
-          width="500"
+          width="600"
           height="80"
           rx="10"
           className="fill-red-500/5 stroke-red-500/30"
           strokeWidth="1.5"
         />
         <text
-          x="410"
+          x="500"
           y="445"
           textAnchor="middle"
           className="fill-red-400 text-[11px] font-semibold"
@@ -442,7 +442,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           Key Gotcha: MCP Environment Variables
         </text>
         <text
-          x="410"
+          x="500"
           y="464"
           textAnchor="middle"
           className="fill-muted-foreground text-[9px]"
@@ -450,7 +450,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           env: &#123;&#125; in MCP config passes nothing to child processes.
         </text>
         <text
-          x="410"
+          x="500"
           y="478"
           textAnchor="middle"
           className="fill-muted-foreground text-[9px]"
@@ -458,7 +458,7 @@ export function ThreeTierResearchDiagram({ caption }: DiagramProps) {
           Shell variables from .zshrc do NOT reach MCP subprocesses.
         </text>
         <text
-          x="410"
+          x="500"
           y="492"
           textAnchor="middle"
           className="fill-red-400 text-[9px] font-semibold"
