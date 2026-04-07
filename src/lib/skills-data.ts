@@ -170,31 +170,233 @@ cp skills/skill-catalog/SKILL.md \\
   },
 
   {
-    id: "ingest-sessions",
-    name: "/ingest-sessions",
+    id: "cmux",
+    name: "/cmux",
     category: "skill",
     description:
-      "Processes session archive transcripts, extracts insights, and stores them in vector memory.",
+      "Terminal CLI reference for tmux/screen multiplexer commands and workflows.",
     summary:
-      "A session ingestion skill that reads archived Claude Code session transcripts and extracts actionable insights, debugging patterns, and workflow learnings. Stores the extracted knowledge in vector memory with proper tags for later retrieval. Works with the session-analyzer agent to identify recurring patterns and the skill-extractor agent to produce reusable learned skills from raw transcripts.",
-    tags: ["Session Management", "Memory", "Learning", "Automation"],
+      "A quick-reference skill for terminal multiplexer operations. Covers tmux and screen commands, session management, window splitting, pane navigation, and copy mode. Useful when you need to set up complex terminal layouts or manage multiple long-running processes during development sessions.",
+    tags: ["Terminal", "DevOps", "Productivity"],
+    dependencies: ["Claude Code CLI", "tmux or screen"],
+    integrationSteps: [
+      "Copy skills/cmux/SKILL.md to ~/.claude/skills/cmux/SKILL.md",
+      "Run /cmux for terminal multiplexer reference",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/cmux
+cp skills/cmux/SKILL.md ~/.claude/skills/cmux/SKILL.md
+
+# Usage
+/cmux`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "content-validation",
+    name: "/content-validation",
+    category: "skill",
+    description:
+      "Validates content beyond HTTP status codes with deep structural and semantic checks.",
+    summary:
+      "Goes beyond basic HTTP status code checking to validate actual content quality. Checks for broken links, missing images, malformed HTML, accessibility violations, SEO metadata completeness, and content rendering issues. Useful as a post-deploy validation step or during content review workflows.",
+    tags: ["Content", "Validation", "Quality", "DevOps"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy skills/content-validation/SKILL.md to ~/.claude/skills/content-validation/SKILL.md",
+      "Run /content-validation against your content directory or URL",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/content-validation
+cp skills/content-validation/SKILL.md ~/.claude/skills/content-validation/SKILL.md
+
+# Usage
+/content-validation`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "cross-platform-parsing",
+    name: "/cross-platform-parsing",
+    category: "skill",
+    description:
+      "Safe text parsing patterns that work across Windows (PowerShell) and Unix (Bash) environments.",
+    summary:
+      "A reference skill for handling text parsing differences between Windows and Unix platforms. Covers line ending normalization (CRLF vs LF), path separator handling, stdin reading patterns, encoding detection, and string quoting rules. Essential for anyone maintaining scripts that run on both platforms.",
+    tags: ["Platform", "Windows", "Shell", "PowerShell"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy skills/cross-platform-parsing/SKILL.md to ~/.claude/skills/cross-platform-parsing/SKILL.md",
+      "Reference /cross-platform-parsing when writing cross-platform scripts",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/cross-platform-parsing
+cp skills/cross-platform-parsing/SKILL.md ~/.claude/skills/cross-platform-parsing/SKILL.md
+
+# Usage
+/cross-platform-parsing`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-dev",
+    name: "/game-dev",
+    category: "skill",
+    description:
+      "Game development team orchestration with 6 specialized agents (director, designer, developer, artist, UX, writer).",
+    summary:
+      "Orchestrates a full game development team of 6 specialized agents. The game-director (Opus) acts as captain, coordinating the game-designer (mechanics/systems), game-developer (engine/loop), game-artist (sprites/animations), game-ux (menus/HUD), and game-writer (story/dialogue). Each agent has domain-specific expertise and the director coordinates their work into a cohesive game.",
+    tags: ["Game Development", "Orchestration", "Multi-Agent", "Creative"],
+    dependencies: [
+      "Claude Code CLI",
+      "Game development team agents",
+    ],
+    integrationSteps: [
+      "Copy skills/game-dev/SKILL.md to ~/.claude/skills/game-dev/SKILL.md",
+      "Ensure all 6 game team agents are installed in ~/.claude/agents/",
+      "Run /game-dev to orchestrate the game development team",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/game-dev
+cp skills/game-dev/SKILL.md ~/.claude/skills/game-dev/SKILL.md
+
+# Install all game team agents
+cp agents/game-director.md ~/.claude/agents/
+cp agents/game-designer.md ~/.claude/agents/
+cp agents/game-developer.md ~/.claude/agents/
+cp agents/game-artist.md ~/.claude/agents/
+cp agents/game-ux.md ~/.claude/agents/
+cp agents/game-writer.md ~/.claude/agents/
+
+# Usage
+/game-dev`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "gws",
+    name: "/gws",
+    category: "skill",
+    description:
+      "Google Workspace CLI integration for Drive, Gmail, Calendar, and other Google services.",
+    summary:
+      "A unified interface for interacting with Google Workspace services from Claude Code. Covers Gmail (search, read, draft, label), Google Calendar (events, availability, scheduling), and Google Drive operations. Consolidates multiple Google service interactions into a single skill with consistent patterns.",
+    tags: ["Google", "Productivity", "Email", "Calendar"],
+    dependencies: ["Claude Code CLI", "Google OAuth credentials"],
+    integrationSteps: [
+      "Copy skills/gws/SKILL.md to ~/.claude/skills/gws/SKILL.md",
+      "Configure Google OAuth for the required service APIs",
+      "Run /gws for Google Workspace operations",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/gws
+cp skills/gws/SKILL.md ~/.claude/skills/gws/SKILL.md
+
+# Usage
+/gws`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "memory-architecture",
+    name: "/memory-architecture",
+    category: "skill",
+    description:
+      "Two-tier memory system configuration with vector memory and knowledge graph coordination.",
+    summary:
+      "A configuration and reference skill for setting up the two-tier memory architecture. Covers vector memory (semantic search with embeddings) and knowledge graph (entity relationships) coordination, deduplication strategies, memory quality scoring, and ingestion pipelines. Ensures the memory systems work together without overlap or data loss.",
+    tags: ["Memory", "Architecture", "Configuration"],
     dependencies: [
       "Claude Code CLI",
       "vector-memory MCP server",
-      "Session archive transcripts",
+      "memory MCP server",
     ],
     integrationSteps: [
-      "Ensure session transcripts are archived in .claude/session_archive/",
-      "Ensure vector-memory MCP server is configured",
-      "Run /ingest-sessions to process new transcripts",
-      "Query vector-memory later to retrieve extracted insights",
+      "Copy skills/memory-architecture/SKILL.md to ~/.claude/skills/memory-architecture/SKILL.md",
+      "Ensure both memory MCP servers are configured",
+      "Run /memory-architecture for setup guidance and reference",
     ],
     codeSnippet: `# Install
-mkdir -p ~/.claude/commands
-cp commands/ingest-sessions.md ~/.claude/commands/
+mkdir -p ~/.claude/skills/memory-architecture
+cp skills/memory-architecture/SKILL.md ~/.claude/skills/memory-architecture/SKILL.md
 
 # Usage
-/ingest-sessions`,
+/memory-architecture`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "multi-agent-orchestration",
+    name: "/multi-agent-orchestration",
+    category: "skill",
+    description:
+      "Patterns for structuring multi-agent teams with captain agents, parallel workers, and result synthesis.",
+    summary:
+      "A reference skill for designing multi-agent orchestration patterns. Covers the captain-agent pattern (one coordinator dispatching parallel workers), model routing heuristics (Haiku for scanning, Sonnet for generation, Opus for decisions), result aggregation strategies, and error handling across agent teams. The foundation for skills like /game-dev and /blog-post.",
+    tags: ["Multi-Agent", "Architecture", "Orchestration", "Workflow"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy skills/multi-agent-orchestration/SKILL.md to ~/.claude/skills/multi-agent-orchestration/SKILL.md",
+      "Reference when designing new multi-agent workflows",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/multi-agent-orchestration
+cp skills/multi-agent-orchestration/SKILL.md ~/.claude/skills/multi-agent-orchestration/SKILL.md
+
+# Usage
+/multi-agent-orchestration`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "notebooklm-content",
+    name: "/notebooklm-content",
+    category: "skill",
+    description:
+      "Creates branded infographics, slides, and content from blog posts using NotebookLM integration.",
+    summary:
+      "Orchestrates the creation of branded visual content from existing blog posts using NotebookLM. Generates infographics, presentation slides, and summary cards with consistent branding. Uses the notebooklm-assistant and notebooklm-content agents for the heavy lifting, with the skill providing the orchestration workflow.",
+    tags: ["Content", "NotebookLM", "Branding", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "notebooklm-assistant agent",
+      "notebooklm-content agent",
+    ],
+    integrationSteps: [
+      "Copy skills/notebooklm-content/SKILL.md to ~/.claude/skills/notebooklm-content/SKILL.md",
+      "Ensure notebooklm agents are installed",
+      "Run /notebooklm-content with a blog post path",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/notebooklm-content
+cp skills/notebooklm-content/SKILL.md ~/.claude/skills/notebooklm-content/SKILL.md
+
+# Usage
+/notebooklm-content`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "openclaw-ops",
+    name: "/openclaw-ops",
+    category: "skill",
+    description:
+      "Configuration and operations reference for OpenClaw systems integration.",
+    summary:
+      "An operations skill for managing OpenClaw system configurations, bridge connections, and deployment workflows. Covers the bridge-launcher script, environment setup, and operational procedures for the OpenClaw integration layer.",
+    tags: ["OpenClaw", "Operations", "Configuration"],
+    dependencies: ["Claude Code CLI", "OpenClaw bridge"],
+    integrationSteps: [
+      "Copy skills/openclaw-ops/SKILL.md to ~/.claude/skills/openclaw-ops/SKILL.md",
+      "Ensure bridge-launcher.sh script is installed",
+      "Run /openclaw-ops for operations reference",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/openclaw-ops
+cp skills/openclaw-ops/SKILL.md ~/.claude/skills/openclaw-ops/SKILL.md
+
+# Usage
+/openclaw-ops`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -367,29 +569,346 @@ cp agents/skill-extractor.md ~/.claude/agents/
     repo: "chris2ao/claude-code-config",
   },
   {
-    id: "blog-post-orchestrator",
-    name: "Blog Post Orchestrator",
+    id: "evolve-synthesizer",
+    name: "Evolve Synthesizer",
     category: "agent",
     description:
-      "Orchestrates the full blog post creation pipeline from ideation to published MDX.",
+      "Sonnet-class agent that synthesizes instincts into new agents, skills, and commands.",
     summary:
-      "A meta-agent that coordinates the entire blog post workflow. Delegates to specialized sub-agents for content research, outline generation, prose writing, MDX formatting, image sourcing, and SEO optimization. Ensures consistent style guide adherence and proper frontmatter generation.",
-    tags: ["Blog", "Content", "Orchestration", "Automation"],
+      "The evolution engine of the Homunculus system. Analyzes clusters of related instincts and synthesizes them into higher-order components: new agents, learned skills, or commands. When 3+ instincts cluster around a theme with sufficient confidence, this agent promotes them into reusable, permanent components. Works with the promote-evolved.sh script to install synthesized components.",
+    tags: ["Homunculus", "Learning", "Evolution", "Automation"],
     dependencies: [
       "Claude Code CLI",
-      "blog-style-guide.md",
-      "blog-mdx-reference.md",
+      "Homunculus instincts directory",
+      "promote-evolved.sh script",
     ],
     integrationSteps: [
-      "Copy agents/blog-post-orchestrator.md to ~/.claude/agents/",
-      "Ensure blog style guide and MDX reference are in place",
-      "Invoke via Task tool for full pipeline execution",
+      "Copy agents/evolve-synthesizer.md to ~/.claude/agents/",
+      "Ensure instincts directory has sufficient data",
+      "Run to synthesize instincts into higher-order components",
     ],
     codeSnippet: `# Install
-cp agents/blog-post-orchestrator.md ~/.claude/agents/
+cp agents/evolve-synthesizer.md ~/.claude/agents/
 
-# Run the orchestrator
-# Task(subagent_type="blog-post-orchestrator")`,
+# Synthesize instincts into new components
+# Task(subagent_type="evolve-synthesizer", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "gmail-assistant",
+    name: "Gmail Assistant",
+    category: "agent",
+    description:
+      "Sonnet-class daily inbox cleanup with auto-labeling, 14-day rolling search window, and content-aware classification.",
+    summary:
+      "An intelligent email management agent that processes your Gmail inbox. Uses a 14-day rolling window for searches, performs quick scan before bulk-trashing, and applies content-aware classification to categorize and label emails. v2 adds smart labeling rules and a safety check that previews actions before executing destructive operations like bulk delete.",
+    tags: ["Email", "Gmail", "Productivity", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "Gmail MCP or Google OAuth",
+    ],
+    integrationSteps: [
+      "Copy agents/gmail-assistant.md to ~/.claude/agents/",
+      "Configure Gmail API access",
+      "Invoke for inbox cleanup and organization",
+    ],
+    codeSnippet: `# Install
+cp agents/gmail-assistant.md ~/.claude/agents/
+
+# Daily inbox cleanup
+# Task(subagent_type="gmail-assistant", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "notebooklm-assistant",
+    name: "NotebookLM Assistant",
+    category: "agent",
+    description:
+      "Sonnet-class agent orchestrating NotebookLM workflows via MCP tools.",
+    summary:
+      "Orchestrates workflows with Google NotebookLM using MCP server tools instead of CLI wrappers. Manages notebook creation, source ingestion, content generation, and export operations. Migrated from a CLI wrapper to native MCP integration for better reliability and richer tool interactions.",
+    tags: ["NotebookLM", "Google", "Orchestration", "MCP"],
+    dependencies: [
+      "Claude Code CLI",
+      "NotebookLM MCP server",
+    ],
+    integrationSteps: [
+      "Copy agents/notebooklm-assistant.md to ~/.claude/agents/",
+      "Configure NotebookLM MCP server",
+      "Invoke to manage NotebookLM workflows",
+    ],
+    codeSnippet: `# Install
+cp agents/notebooklm-assistant.md ~/.claude/agents/
+
+# Task(subagent_type="notebooklm-assistant", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "notebooklm-content-agent",
+    name: "NotebookLM Content Creator",
+    category: "agent",
+    description:
+      "Sonnet-class agent that creates branded infographics and slides from blog content.",
+    summary:
+      "Transforms blog posts and documentation into branded visual content using NotebookLM. Creates infographics, presentation slides, and summary cards with consistent CryptoFlex branding. Works with the notebooklm-assistant agent for NotebookLM API interactions.",
+    tags: ["Content", "NotebookLM", "Branding", "Creative"],
+    dependencies: [
+      "Claude Code CLI",
+      "notebooklm-assistant agent",
+    ],
+    integrationSteps: [
+      "Copy agents/notebooklm-content.md to ~/.claude/agents/",
+      "Ensure notebooklm-assistant agent is installed",
+      "Invoke with a blog post path for content creation",
+    ],
+    codeSnippet: `# Install
+cp agents/notebooklm-content.md ~/.claude/agents/
+
+# Task(subagent_type="notebooklm-content", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
+  // ── Game Development Team (6) ──────────────────────────────
+  {
+    id: "game-director",
+    name: "Game Director",
+    category: "agent",
+    description:
+      "Opus-class captain agent orchestrating the full game development team.",
+    summary:
+      "The captain agent for the game development team. Runs on Opus for complex creative and architectural decisions. Coordinates game-designer, game-developer, game-artist, game-ux, and game-writer into a cohesive development pipeline. Manages task decomposition, conflict resolution between team members, and final integration of all game components.",
+    tags: ["Game Development", "Orchestration", "Multi-Agent", "Captain"],
+    dependencies: ["Claude Code CLI", "Game development team agents"],
+    integrationSteps: [
+      "Copy agents/game-director.md to ~/.claude/agents/",
+      "Ensure all game team agents are installed",
+      "Invoked via /game-dev skill or Task tool",
+    ],
+    codeSnippet: `# Install
+cp agents/game-director.md ~/.claude/agents/
+
+# Task(subagent_type="game-director", model="opus")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-designer",
+    name: "Game Designer",
+    category: "agent",
+    description:
+      "Sonnet-class mechanics designer for game systems, balance, and progression.",
+    summary:
+      "Designs game mechanics, progression systems, difficulty curves, resource economies, and combat/interaction systems. Creates game design documents with balancing parameters and feedback loops. Coordinates with game-developer for technical feasibility.",
+    tags: ["Game Development", "Design", "Mechanics"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy agents/game-designer.md to ~/.claude/agents/",
+      "Coordinated by game-director agent",
+    ],
+    codeSnippet: `# Install
+cp agents/game-designer.md ~/.claude/agents/
+
+# Task(subagent_type="game-designer", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-developer",
+    name: "Game Developer",
+    category: "agent",
+    description:
+      "Sonnet-class engine logic, game loop, physics, and core systems developer.",
+    summary:
+      "Implements core game engine logic including the game loop, physics systems, collision detection, input handling, state management, and rendering pipelines. Translates game-designer specifications into working code. Handles performance optimization and platform-specific adaptations.",
+    tags: ["Game Development", "Engineering", "Engine"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy agents/game-developer.md to ~/.claude/agents/",
+      "Coordinated by game-director agent",
+    ],
+    codeSnippet: `# Install
+cp agents/game-developer.md ~/.claude/agents/
+
+# Task(subagent_type="game-developer", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-artist",
+    name: "Game Artist",
+    category: "agent",
+    description:
+      "Sonnet-class visual artist for sprites, animations, tilesets, and visual effects.",
+    summary:
+      "Creates visual assets for games including sprite sheets, character animations, tilesets, particle effects, and UI art. Designs within the art style established by game-director and coordinates with game-ux for interface elements. Produces asset specifications and CSS/canvas rendering code.",
+    tags: ["Game Development", "Art", "Visual", "Creative"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy agents/game-artist.md to ~/.claude/agents/",
+      "Coordinated by game-director agent",
+    ],
+    codeSnippet: `# Install
+cp agents/game-artist.md ~/.claude/agents/
+
+# Task(subagent_type="game-artist", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-ux",
+    name: "Game UX Designer",
+    category: "agent",
+    description:
+      "Sonnet-class UX/UI designer for menus, HUD elements, and player interface.",
+    summary:
+      "Designs game user interfaces including menus, HUD overlays, inventory screens, dialog boxes, settings panels, and tutorial flows. Ensures consistent UX patterns, accessible controls, and responsive layouts. Works with game-artist for visual styling and game-developer for implementation.",
+    tags: ["Game Development", "UX", "UI", "Design"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy agents/game-ux.md to ~/.claude/agents/",
+      "Coordinated by game-director agent",
+    ],
+    codeSnippet: `# Install
+cp agents/game-ux.md ~/.claude/agents/
+
+# Task(subagent_type="game-ux", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-writer",
+    name: "Game Writer",
+    category: "agent",
+    description:
+      "Haiku-class story, dialogue, lore, and world-building writer for games.",
+    summary:
+      "Crafts game narratives including main storylines, character dialogue, item descriptions, lore entries, quest text, and world-building documents. Runs on Haiku for efficient text generation at scale. Maintains consistency with the game world established by game-director and game-designer.",
+    tags: ["Game Development", "Writing", "Narrative", "Creative"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy agents/game-writer.md to ~/.claude/agents/",
+      "Coordinated by game-director agent",
+    ],
+    codeSnippet: `# Install
+cp agents/game-writer.md ~/.claude/agents/
+
+# Task(subagent_type="game-writer", model="haiku")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
+  // ── Blog Production Team (5) ────────────────────────────────
+  {
+    id: "blog-captain",
+    name: "Blog Captain",
+    category: "agent",
+    description:
+      "Opus-class captain agent orchestrating the full blog production pipeline.",
+    summary:
+      "The captain agent for the blog production team. Runs on Opus for complex orchestration decisions. Coordinates blog-writer (drafts), blog-editor (review), blog-voice (tone consistency), and blog-ux (build verification) into a cohesive pipeline. Replaced the earlier blog-post-orchestrator with a proper team-based approach matching the game-dev pattern.",
+    tags: ["Blog", "Content", "Orchestration", "Multi-Agent"],
+    dependencies: [
+      "Claude Code CLI",
+      "Blog production team agents",
+    ],
+    integrationSteps: [
+      "Copy agents/blog-captain.md to ~/.claude/agents/",
+      "Ensure all blog team agents are installed",
+      "Invoked via /blog-post skill or Task tool",
+    ],
+    codeSnippet: `# Install
+cp agents/blog-captain.md ~/.claude/agents/
+
+# Captain orchestrates the team:
+# Task(subagent_type="blog-captain", model="opus")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "blog-writer",
+    name: "Blog Writer",
+    category: "agent",
+    description:
+      "Sonnet-class agent that drafts and revises MDX blog posts with style guide adherence.",
+    summary:
+      "The primary content creation agent in the blog production team. Runs on Sonnet for high-quality prose generation. Drafts MDX blog posts following the style guide, handles revisions based on editor feedback, and ensures proper frontmatter, code blocks, and callout component usage.",
+    tags: ["Blog", "Content", "Writing", "MDX"],
+    dependencies: ["Claude Code CLI", "blog-style-guide.md"],
+    integrationSteps: [
+      "Copy agents/blog-writer.md to ~/.claude/agents/",
+      "Coordinated by blog-captain agent",
+    ],
+    codeSnippet: `# Install
+cp agents/blog-writer.md ~/.claude/agents/
+
+# Task(subagent_type="blog-writer", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "blog-editor",
+    name: "Blog Editor",
+    category: "agent",
+    description:
+      "Sonnet-class senior editor for content review, fact-checking, and quality assurance.",
+    summary:
+      "Reviews blog post drafts for technical accuracy, clarity, tone consistency, and style guide compliance. Provides structured feedback to the blog-writer agent for revisions. Catches common issues like broken links, incorrect code examples, and inconsistent terminology.",
+    tags: ["Blog", "Content", "Review", "Quality"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy agents/blog-editor.md to ~/.claude/agents/",
+      "Coordinated by blog-captain agent",
+    ],
+    codeSnippet: `# Install
+cp agents/blog-editor.md ~/.claude/agents/
+
+# Task(subagent_type="blog-editor", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "blog-voice",
+    name: "Blog Voice",
+    category: "agent",
+    description:
+      "Sonnet-class agent that maintains voice profile consistency across all blog content.",
+    summary:
+      "Maintains a voice profile derived from existing blog posts and ensures new content matches the established tone, vocabulary, and writing patterns. Compares draft text against the voice profile and flags deviations. Works with the blog-voice-diff.sh script for quantitative voice analysis.",
+    tags: ["Blog", "Content", "Voice", "Consistency"],
+    dependencies: ["Claude Code CLI", "blog-voice-diff.sh script"],
+    integrationSteps: [
+      "Copy agents/blog-voice.md to ~/.claude/agents/",
+      "Coordinated by blog-captain agent",
+    ],
+    codeSnippet: `# Install
+cp agents/blog-voice.md ~/.claude/agents/
+
+# Task(subagent_type="blog-voice", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "blog-ux",
+    name: "Blog UX",
+    category: "agent",
+    description:
+      "Haiku-class build verification and MDX structure analysis for blog posts.",
+    summary:
+      "Handles the technical verification side of blog production. Validates MDX syntax, checks component imports, verifies build success, analyzes page structure for accessibility, and confirms responsive layout. Runs on Haiku for speed since the work is primarily structural validation rather than content analysis.",
+    tags: ["Blog", "UX", "Validation", "MDX"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy agents/blog-ux.md to ~/.claude/agents/",
+      "Coordinated by blog-captain agent",
+    ],
+    codeSnippet: `# Install
+cp agents/blog-ux.md ~/.claude/agents/
+
+# Task(subagent_type="blog-ux", model="haiku")`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -1152,83 +1671,6 @@ claude mcp list`,
     repo: "modelcontextprotocol/servers",
   },
   {
-    id: "mcp-gmail",
-    name: "Gmail",
-    category: "mcp",
-    description:
-      "Gmail integration for searching, reading, drafting, and managing email from Claude Code.",
-    summary:
-      "Connects Claude Code to your Gmail account for email management. Supports searching with Gmail's full query syntax, reading individual messages and full threads, creating drafts (including replies), listing labels, and viewing your profile. Read-focused by design to prevent accidental sends. Pair with explicit user confirmation for any email actions.",
-    tags: ["MCP", "Email", "Gmail", "Productivity"],
-    dependencies: ["Google OAuth credentials"],
-    integrationSteps: [
-      "Configure Google OAuth for Gmail API access",
-      "Add the Gmail MCP server to your config",
-      "Claude can search, read, and draft emails",
-      "Sending requires explicit user confirmation",
-    ],
-    codeSnippet: `# Key tools available:
-# gmail_search_messages — full Gmail search syntax
-# gmail_read_message — read a specific email
-# gmail_read_thread — read full conversation
-# gmail_create_draft — compose draft emails
-# gmail_list_labels — see your label structure
-# gmail_list_drafts — review unsent drafts`,
-    author: "Community",
-    repo: "chris2ao/claude-code-config",
-  },
-  {
-    id: "mcp-google-calendar",
-    name: "Google Calendar",
-    category: "mcp",
-    description:
-      "Google Calendar integration for viewing, creating, and managing events and finding meeting times.",
-    summary:
-      "Full Google Calendar integration that lets Claude Code manage your schedule. List events across calendars, create and update events with attendees and video conferencing, find mutual availability for meetings, check your free time, respond to invitations, and delete events. Supports recurring events, conference room booking, and multi-calendar queries.",
-    tags: ["MCP", "Calendar", "Google", "Productivity"],
-    dependencies: ["Google OAuth credentials"],
-    integrationSteps: [
-      "Configure Google OAuth for Calendar API access",
-      "Add the Google Calendar MCP server to your config",
-      "Claude can view, create, and manage calendar events",
-      "Event creation and deletion require user confirmation",
-    ],
-    codeSnippet: `# Key tools available:
-# gcal_list_events — view events in any calendar
-# gcal_create_event — schedule with attendees + Meet
-# gcal_find_meeting_times — mutual availability
-# gcal_find_my_free_time — personal schedule gaps
-# gcal_update_event — modify existing events
-# gcal_respond_to_event — accept/decline invitations`,
-    author: "Community",
-    repo: "chris2ao/claude-code-config",
-  },
-  {
-    id: "mcp-vercel",
-    name: "Vercel",
-    category: "mcp",
-    description:
-      "Vercel deployment management: deploy, inspect builds, view logs, and search Vercel docs.",
-    summary:
-      "Integrates Claude Code with the Vercel platform for deployment and hosting operations. Deploy projects directly, inspect deployment details and build logs, view runtime logs with filtering, manage projects and teams, check domain availability, and search Vercel documentation. Supports both production and preview deployments with authentication for protected URLs.",
-    tags: ["MCP", "Vercel", "DevOps", "Deployment"],
-    dependencies: ["Vercel account and token"],
-    integrationSteps: [
-      "Configure Vercel authentication token",
-      "Add the Vercel MCP server to your config",
-      "Claude can deploy, inspect, and debug Vercel deployments",
-    ],
-    codeSnippet: `# Key tools available:
-# deploy_to_vercel — deploy current project
-# get_deployment_build_logs — debug build failures
-# get_runtime_logs — view application output
-# list_deployments — see deployment history
-# search_vercel_documentation — query Vercel docs
-# check_domain_availability_and_price — domain lookup`,
-    author: "Vercel",
-    repo: "chris2ao/claude-code-config",
-  },
-  {
     id: "mcp-obsidian",
     name: "Obsidian",
     category: "mcp",
@@ -1259,61 +1701,6 @@ claude mcp list`,
     repo: "chris2ao/claude-code-config",
   },
   {
-    id: "mcp-excalidraw",
-    name: "Excalidraw",
-    category: "mcp",
-    description:
-      "Hand-drawn diagram creation with Excalidraw elements rendered with draw-on animations.",
-    summary:
-      "An MCP server that lets Claude Code create hand-drawn style diagrams using Excalidraw. Elements stream in one by one with draw-on animations for a polished presentation effect. Useful for architecture diagrams, flowcharts, data models, and system designs directly from your Claude Code session without leaving the terminal.",
-    tags: ["MCP", "Diagrams", "Visualization"],
-    dependencies: ["Excalidraw MCP server"],
-    integrationSteps: [
-      "Add the Excalidraw MCP server to your config",
-      "Call read_me first to learn the element format",
-      "Use create_view to render diagrams with JSON element arrays",
-    ],
-    codeSnippet: `# Key tools available:
-# read_me — get element format reference + color palettes
-# create_view — render hand-drawn diagram from elements
-
-# Usage pattern:
-# 1. Call read_me to learn the format
-# 2. Build element JSON array
-# 3. Call create_view with the elements`,
-    author: "Community",
-    repo: "chris2ao/claude-code-config",
-  },
-  {
-    id: "mcp-claude-in-chrome",
-    name: "Claude in Chrome",
-    category: "mcp",
-    description:
-      "Full browser automation: click, type, screenshot, navigate, read pages, and execute JavaScript.",
-    summary:
-      "A Chrome extension MCP server that gives Claude Code full browser automation capabilities. Take screenshots, read page accessibility trees, find elements by natural language, fill forms, click buttons, navigate URLs, execute JavaScript, read console logs and network requests, record GIF animations, and manage browser tabs. Essential for web testing, scraping, and any task requiring visual browser interaction.",
-    tags: ["MCP", "Browser", "Automation", "Testing"],
-    dependencies: ["Chrome browser", "Claude in Chrome extension"],
-    integrationSteps: [
-      "Install the Claude in Chrome extension from the Chrome Web Store",
-      "The MCP server connects automatically when the extension is active",
-      "Use tabs_context_mcp first to discover available tabs",
-      "Take screenshots, interact with pages, and automate workflows",
-    ],
-    codeSnippet: `# Key tools available:
-# computer — mouse/keyboard actions + screenshots
-# read_page — accessibility tree of page elements
-# find — natural language element search
-# form_input — fill form fields
-# navigate — go to URLs, back/forward
-# javascript_tool — execute JS in page context
-# get_page_text — extract article text
-# read_console_messages — browser console output
-# gif_creator — record browser session GIFs`,
-    author: "ArcadeAI",
-    repo: "chris2ao/claude-code-config",
-  },
-  {
     id: "mcp-project-tools",
     name: "Project Tools",
     category: "mcp",
@@ -1335,96 +1722,6 @@ claude mcp list`,
 # validate_blog_post — check MDX against style rules
 # session_artifacts — count session outputs`,
     author: "Chris Johnson",
-    repo: "chris2ao/claude-code-config",
-  },
-  {
-    id: "mcp-claude-preview",
-    name: "Claude Preview",
-    category: "mcp",
-    description:
-      "Dev server management with live preview: screenshots, accessibility snapshots, DOM inspection, and interaction.",
-    summary:
-      "An MCP server for managing development servers and previewing web applications. Start dev servers from a launch.json config, take screenshots, inspect DOM elements with computed styles, click elements, fill forms, check console and server logs, view network requests, and resize viewports for responsive testing. Replaces the need to switch between terminal and browser during development.",
-    tags: ["MCP", "Development", "Preview", "Testing"],
-    dependencies: [".claude/launch.json configuration"],
-    integrationSteps: [
-      "Create .claude/launch.json with your dev server configurations",
-      "Use preview_start to launch servers",
-      "Take screenshots and inspect elements without leaving Claude Code",
-      "Check build logs and console output directly",
-    ],
-    codeSnippet: `# .claude/launch.json
-{
-  "version": "0.0.1",
-  "configurations": [
-    {
-      "name": "dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000
-    }
-  ]
-}
-
-# Key tools: preview_start, preview_screenshot,
-# preview_snapshot, preview_inspect, preview_click,
-# preview_logs, preview_network, preview_resize`,
-    author: "Anthropic",
-    repo: "anthropics/claude-code",
-  },
-  {
-    id: "mcp-mermaid",
-    name: "Mermaid Diagrams",
-    category: "mcp",
-    description:
-      "Validate and render Mermaid diagrams with syntax checking and interactive UI widgets.",
-    summary:
-      "An MCP server that validates Mermaid diagram syntax and renders diagrams to interactive UI widgets. Each rendered diagram includes the diagram code, a Copy Code button, and the visual output. Invalid syntax provides a link to repair the diagram in Mermaid Live. Supports all Mermaid diagram types: flowcharts, sequence diagrams, class diagrams, state diagrams, ERDs, Gantt charts, and more.",
-    tags: ["MCP", "Diagrams", "Visualization", "Documentation"],
-    dependencies: ["Mermaid MCP server"],
-    integrationSteps: [
-      "Add the Mermaid MCP server to your config",
-      "Use validate_and_render_mermaid_diagram with diagram code",
-      "Rendered diagrams appear as interactive widgets",
-    ],
-    codeSnippet: `# Key tool: validate_and_render_mermaid_diagram
-# Supports all Mermaid diagram types:
-# - flowchart, sequence, class, state
-# - ERD, Gantt, pie, mindmap, timeline
-
-# Example usage:
-# validate_and_render_mermaid_diagram(
-#   diagramCode: "graph TD; A-->B; B-->C",
-#   title: "Simple Flow"
-# )`,
-    author: "Community",
-    repo: "chris2ao/claude-code-config",
-  },
-  {
-    id: "mcp-registry",
-    name: "MCP Registry",
-    category: "mcp",
-    description:
-      "Discover and connect new MCP servers from a searchable registry of available integrations.",
-    summary:
-      "A meta-MCP server that helps discover and connect new MCP integrations. Search the registry by keywords to find connectors for external services (Asana, Jira, Slack, etc.), then suggest connectors to the user with one-click Connect buttons. Also handles re-authentication when tool calls fail with credential errors. The gateway to expanding Claude Code's integration surface.",
-    tags: ["MCP", "Discovery", "Integration"],
-    dependencies: ["MCP Registry account"],
-    integrationSteps: [
-      "The registry server is pre-configured",
-      "Use search_mcp_registry to find available connectors",
-      "Use suggest_connectors to present options to the user",
-      "User clicks Connect to authenticate and enable new integrations",
-    ],
-    codeSnippet: `# Key tools available:
-# search_mcp_registry — find connectors by keyword
-# suggest_connectors — show Connect buttons to user
-
-# Example: user says "check my Asana tasks"
-# 1. search_mcp_registry(keywords: ["asana", "tasks"])
-# 2. suggest_connectors(uuids: ["<asana-uuid>"])
-# 3. User clicks Connect to authenticate`,
-    author: "Community",
     repo: "chris2ao/claude-code-config",
   },
 
@@ -2136,7 +2433,7 @@ claude --debug 2>&1 | grep -i "invalid\\|error\\|settings"
     repo: "chris2ao/claude-code-config",
   },
 
-  // ── PowerShell Hooks (2) ───────────────────────────────────────
+  // ── Lifecycle Hooks ─────────────────────────────────────────────
   {
     id: "hook-save-session",
     name: "Save Session Hook",
@@ -2200,6 +2497,686 @@ claude --debug 2>&1 | grep -i "invalid\\|error\\|settings"
 # Output format in activity_log.txt:
 # [2026-02-20T14:30:00] (session-abc) Bash | npm run build
 # [2026-02-20T14:30:05] (session-abc) Edit | src/app/page.tsx`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
+
+  // ── New Lifecycle Hooks ────────────────────────────────────────
+  {
+    id: "hook-file-guard",
+    name: "File Guard Hook",
+    category: "hook",
+    description:
+      "PreToolUse hook that blocks edits on sensitive files like settings.json, memory.db, and env files.",
+    summary:
+      "A protective hook that fires before any tool use and blocks modifications to sensitive files. Prevents accidental edits to settings.json, memory databases, environment files, and other critical configuration. Acts as a safety net against both human error and AI agent mistakes.",
+    tags: ["Security", "Hooks", "Protection", "Automation"],
+    dependencies: ["Bash", "Claude Code CLI"],
+    integrationSteps: [
+      "Copy hooks/file-guard.sh to ~/.claude/hooks/",
+      "Add PreToolUse hook entry to settings.json",
+      "Configure protected file patterns in the script",
+    ],
+    codeSnippet: `# settings.json hook config
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "bash ~/.claude/hooks/file-guard.sh"
+      }
+    ]
+  }
+}`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-kg-update-detect",
+    name: "Knowledge Graph Update Detector",
+    category: "hook",
+    description:
+      "PostToolUse hook that detects changes to the knowledge graph and logs entity updates.",
+    summary:
+      "Monitors tool use for operations that modify the knowledge graph (via the memory MCP server) and logs entity additions, updates, and relationship changes. Provides an audit trail of how the knowledge graph evolves across sessions.",
+    tags: ["Memory", "Hooks", "Knowledge Graph", "Monitoring"],
+    dependencies: ["Bash", "Claude Code CLI", "memory MCP server"],
+    integrationSteps: [
+      "Copy hooks/kg-update-detect.sh to ~/.claude/hooks/",
+      "Add PostToolUse hook entry to settings.json",
+    ],
+    codeSnippet: `# Install
+cp hooks/kg-update-detect.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/kg-update-detect.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-memory-checkpoint",
+    name: "Memory Checkpoint Hook",
+    category: "hook",
+    description:
+      "Stop hook that runs an end-of-session memory checklist before allowing session exit.",
+    summary:
+      "Fires on session stop events and runs a checklist to ensure important context has been persisted to memory systems. Checks for unsaved learnings, uncommitted knowledge graph updates, and pending vector memory writes. Warns if the session is ending with important context that would be lost.",
+    tags: ["Memory", "Hooks", "Session Management", "Automation"],
+    dependencies: ["Bash", "Claude Code CLI"],
+    integrationSteps: [
+      "Copy hooks/memory-checkpoint.sh to ~/.claude/hooks/",
+      "Add Stop hook entry to settings.json",
+    ],
+    codeSnippet: `# Install
+cp hooks/memory-checkpoint.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/memory-checkpoint.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-memory-nudge",
+    name: "Memory Nudge Hook",
+    category: "hook",
+    description:
+      "PostToolUse hook that reminds Claude to save important context to memory systems.",
+    summary:
+      "A gentle nudge hook that monitors tool use patterns and reminds Claude to persist important context when it detects significant events (new debugging patterns, architecture decisions, configuration changes) that should be saved to vector memory or the knowledge graph.",
+    tags: ["Memory", "Hooks", "Automation"],
+    dependencies: ["Bash", "Claude Code CLI"],
+    integrationSteps: [
+      "Copy hooks/memory-nudge.sh to ~/.claude/hooks/",
+      "Add PostToolUse hook entry to settings.json",
+    ],
+    codeSnippet: `# Install
+cp hooks/memory-nudge.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/memory-nudge.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-observe-homunculus",
+    name: "Homunculus Observer Hook",
+    category: "hook",
+    description:
+      "PostToolUse hook that captures behavioral observations for the Homunculus learning system.",
+    summary:
+      "The data collection hook for the Homunculus continuous learning system. Observes Claude Code's behavior during sessions and captures patterns: debugging approaches, tool usage sequences, common mistakes, and successful strategies. These observations feed into the instincts system where they can eventually be promoted to learned skills or new agents.",
+    tags: ["Homunculus", "Learning", "Hooks", "Automation"],
+    dependencies: ["Bash", "Claude Code CLI", "Homunculus instincts directory"],
+    integrationSteps: [
+      "Copy hooks/observe-homunculus.sh to ~/.claude/hooks/",
+      "Ensure homunculus/instincts/ directory exists",
+      "Add PostToolUse hook entry to settings.json",
+    ],
+    codeSnippet: `# Install
+cp hooks/observe-homunculus.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/observe-homunculus.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-session-scratchpad",
+    name: "Session Scratchpad Hook",
+    category: "hook",
+    description:
+      "PostToolUse hook that writes session state to a scratchpad file for context preservation.",
+    summary:
+      "Maintains a running scratchpad of the current session state including active tasks, modified files, key decisions, and in-progress work. Updated after each tool use. The scratchpad survives context compaction and can be loaded into new sessions for continuity.",
+    tags: ["Session Management", "Hooks", "Context", "Automation"],
+    dependencies: ["Bash", "Claude Code CLI"],
+    integrationSteps: [
+      "Copy hooks/session-scratchpad.sh to ~/.claude/hooks/",
+      "Add PostToolUse hook entry to settings.json",
+    ],
+    codeSnippet: `# Install
+cp hooks/session-scratchpad.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/session-scratchpad.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-pre-compact",
+    name: "Pre-Compact Hook",
+    category: "hook",
+    description:
+      "PreCompact hook that preserves critical context before context window compaction.",
+    summary:
+      "Fires before Claude Code compacts the context window and saves critical state that might be lost during compaction. Captures current task progress, key decisions, and working memory to a checkpoint file that can be referenced after compaction. Ensures continuity across compaction boundaries.",
+    tags: ["Performance", "Hooks", "Context", "Session Management"],
+    dependencies: ["Bash", "Claude Code CLI"],
+    integrationSteps: [
+      "Copy hooks/pre-compact.sh to ~/.claude/hooks/",
+      "Add PreCompact hook entry to settings.json",
+    ],
+    codeSnippet: `# Install
+cp hooks/pre-compact.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/pre-compact.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-prompt-notify",
+    name: "Prompt Notification Hook",
+    category: "hook",
+    description:
+      "Stop hook that plays a notification sound when Claude Code needs user attention.",
+    summary:
+      "Plays an audio notification when a Claude Code session stops and needs user input. Useful for long-running tasks where you've switched to another window. Uses platform-native sound commands (afplay on macOS, paplay on Linux).",
+    tags: ["Hooks", "Notifications", "Productivity"],
+    dependencies: ["Bash", "Audio system"],
+    integrationSteps: [
+      "Copy hooks/prompt-notify.sh to ~/.claude/hooks/",
+      "Add Stop hook entry to settings.json",
+    ],
+    codeSnippet: `# Install
+cp hooks/prompt-notify.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/prompt-notify.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-dispatch",
+    name: "Hook Dispatcher",
+    category: "hook",
+    description:
+      "Central routing dispatcher that fans out hook events to multiple handler scripts.",
+    summary:
+      "A meta-hook that acts as a central dispatcher for multiple hook event types. Instead of configuring each hook individually in settings.json, configure dispatch.sh once and it routes events to the appropriate handler scripts based on event type. Simplifies hook management when you have many hooks installed.",
+    tags: ["Hooks", "Automation", "Architecture"],
+    dependencies: ["Bash", "Claude Code CLI"],
+    integrationSteps: [
+      "Copy hooks/dispatch.sh to ~/.claude/hooks/",
+      "Configure as the single hook handler for each event type",
+      "Add handler scripts to the dispatch routing table",
+    ],
+    codeSnippet: `# Install
+cp hooks/dispatch.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/dispatch.sh
+
+# Single dispatcher handles all events
+# instead of configuring each hook separately`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
+  // ── New Scripts ────────────────────────────────────────────────
+  {
+    id: "sync-status",
+    name: "Sync Status",
+    category: "hook",
+    description:
+      "Quick sync status check showing local vs remote config drift at a glance.",
+    summary:
+      "A lightweight companion to sync-survey.sh that gives a quick pass/fail status for each sync point. Shows which configs are in sync, which have local changes, and which have upstream updates. Faster than the full survey for a quick health check.",
+    tags: ["Configuration", "DevOps", "Shell"],
+    dependencies: ["Bash", "Git"],
+    integrationSteps: [
+      "Copy scripts/sync-status.sh to ~/.claude/scripts/",
+      "Make executable: chmod +x",
+      "Run for a quick sync overview",
+    ],
+    codeSnippet: `# Install
+cp scripts/sync-status.sh ~/.claude/scripts/
+chmod +x ~/.claude/scripts/sync-status.sh
+
+# Run
+~/.claude/scripts/sync-status.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "blog-voice-diff",
+    name: "Blog Voice Diff",
+    category: "hook",
+    description:
+      "Compares a draft blog post's voice against the established style guide and recent posts.",
+    summary:
+      "Quantitative voice analysis tool that compares a draft post against the established voice profile. Measures sentence length distribution, vocabulary complexity, tone markers, and stylistic patterns. Produces a diff report showing where the draft deviates from the target voice. Used by the blog-voice agent for automated consistency checks.",
+    tags: ["Blog", "Content", "Voice", "Analysis"],
+    dependencies: ["Bash", "Blog content directory"],
+    integrationSteps: [
+      "Copy scripts/blog-voice-diff.sh to ~/.claude/scripts/",
+      "Make executable: chmod +x",
+      "Run against a draft MDX file",
+    ],
+    codeSnippet: `# Install
+cp scripts/blog-voice-diff.sh ~/.claude/scripts/
+chmod +x ~/.claude/scripts/blog-voice-diff.sh
+
+# Run
+~/.claude/scripts/blog-voice-diff.sh src/content/blog/draft.mdx`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "env-script",
+    name: "Environment Setup",
+    category: "hook",
+    description:
+      "Shared environment variables and path configuration for all scripts and hooks.",
+    summary:
+      "A sourced script that establishes shared environment variables used by all other scripts and hooks. Sets paths to repos, config directories, memory databases, and platform-specific variables. Sourced at the top of other scripts to ensure consistent configuration.",
+    tags: ["Configuration", "Shell", "Environment"],
+    dependencies: ["Bash"],
+    integrationSteps: [
+      "Copy scripts/env.sh to ~/.claude/scripts/",
+      "Source from other scripts: source ~/.claude/scripts/env.sh",
+      "Update paths for your environment",
+    ],
+    codeSnippet: `# Install
+cp scripts/env.sh ~/.claude/scripts/
+
+# Source in other scripts
+source ~/.claude/scripts/env.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "memory-maintenance",
+    name: "Memory Maintenance",
+    category: "hook",
+    description:
+      "Python script for vector memory database cleanup, deduplication, and quality scoring.",
+    summary:
+      "A maintenance utility for the vector memory database. Identifies and removes duplicate memories, recalculates quality scores based on access patterns, cleans up orphaned associations, and compacts the SQLite database. Should be run periodically to keep the memory system performant and relevant.",
+    tags: ["Memory", "Maintenance", "Python", "Database"],
+    dependencies: ["Python 3.10+", "vector-memory database"],
+    integrationSteps: [
+      "Copy scripts/memory-maintenance.py to ~/.claude/scripts/",
+      "Run periodically: python ~/.claude/scripts/memory-maintenance.py",
+    ],
+    codeSnippet: `# Install
+cp scripts/memory-maintenance.py ~/.claude/scripts/
+
+# Run maintenance
+python ~/.claude/scripts/memory-maintenance.py \\
+  --db-path ~/.claude/memory.db`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "promote-evolved",
+    name: "Promote Evolved Components",
+    category: "hook",
+    description:
+      "Promotes evolved Homunculus components (agents, skills, commands) to the main config.",
+    summary:
+      "When the evolve-synthesizer agent creates new components from instinct clusters, this script promotes them from the homunculus/evolved/ staging directory to the main agents/, skills/, or commands/ directories. Handles naming conflicts, creates backups, and updates the component index.",
+    tags: ["Homunculus", "Evolution", "Automation", "Shell"],
+    dependencies: ["Bash", "Homunculus system"],
+    integrationSteps: [
+      "Copy scripts/promote-evolved.sh to ~/.claude/scripts/",
+      "Make executable: chmod +x",
+      "Run after evolve-synthesizer creates new components",
+    ],
+    codeSnippet: `# Install
+cp scripts/promote-evolved.sh ~/.claude/scripts/
+chmod +x ~/.claude/scripts/promote-evolved.sh
+
+# Promote evolved components
+~/.claude/scripts/promote-evolved.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "bridge-launcher",
+    name: "Bridge Launcher",
+    category: "hook",
+    description:
+      "Launches the OpenClaw bridge connection for cross-system integration.",
+    summary:
+      "A startup script for the OpenClaw bridge that handles connection initialization, authentication, health checks, and reconnection logic. Used by the /openclaw-ops skill for managing the bridge lifecycle.",
+    tags: ["OpenClaw", "Integration", "Shell"],
+    dependencies: ["Bash", "OpenClaw bridge"],
+    integrationSteps: [
+      "Copy scripts/bridge-launcher.sh to ~/.claude/scripts/",
+      "Make executable: chmod +x",
+      "Run to launch the OpenClaw bridge",
+    ],
+    codeSnippet: `# Install
+cp scripts/bridge-launcher.sh ~/.claude/scripts/
+chmod +x ~/.claude/scripts/bridge-launcher.sh
+
+# Launch bridge
+~/.claude/scripts/bridge-launcher.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "memory-toggle",
+    name: "Memory Toggle (Windows)",
+    category: "hook",
+    description:
+      "PowerShell script to toggle vector memory server on/off for Windows environments.",
+    summary:
+      "A Windows-specific PowerShell utility that starts, stops, or restarts the vector memory MCP server. Handles the platform-specific process management differences on Windows, including proper stdin/stdout pipe handling and process cleanup.",
+    tags: ["Windows", "Memory", "PowerShell", "Platform"],
+    dependencies: ["PowerShell", "vector-memory MCP server"],
+    integrationSteps: [
+      "Copy scripts/memory-toggle.ps1 to ~/.claude/scripts/",
+      "Run: powershell -File ~/.claude/scripts/memory-toggle.ps1",
+    ],
+    codeSnippet: `# Toggle vector memory on Windows
+powershell -File ~/.claude/scripts/memory-toggle.ps1 start
+powershell -File ~/.claude/scripts/memory-toggle.ps1 stop
+powershell -File ~/.claude/scripts/memory-toggle.ps1 restart`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
+  // ── New Rules ──────────────────────────────────────────────────
+  {
+    id: "rule-context-preservation",
+    name: "Context Preservation Rules",
+    category: "configuration",
+    description:
+      "Strategies for preserving critical context across compaction boundaries and session restarts.",
+    summary:
+      "Defines patterns for ensuring important context survives context window compaction and session boundaries. Covers pre-compaction checkpointing, MEMORY.md update triggers, scratchpad management, and session handoff protocols. Works with the pre-compact hook and session-scratchpad hook for automated preservation.",
+    tags: ["Context", "Session Management", "Operations"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Copy rules/operations/context-preservation.md to ~/.claude/rules/operations/",
+      "Automatically active in all sessions",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/rules/operations
+cp rules/operations/context-preservation.md ~/.claude/rules/operations/`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "rule-macos-platform",
+    name: "macOS Platform Rules",
+    category: "configuration",
+    description:
+      "Shell configuration, Homebrew patterns, notification handling, and macOS-specific conventions.",
+    summary:
+      "Captures macOS-specific configuration patterns and conventions. Covers shell configuration (zsh as default), Homebrew package management patterns, native notification integration (for prompt-notify hook), clipboard handling, and filesystem case-sensitivity considerations. The macOS counterpart to the Windows Platform rules.",
+    tags: ["macOS", "Platform", "Shell", "Operations"],
+    dependencies: ["Claude Code CLI", "macOS"],
+    integrationSteps: [
+      "Copy rules/operations/macos-platform.md to ~/.claude/rules/operations/",
+      "Only needed on macOS machines",
+      "Automatically active in all sessions",
+    ],
+    codeSnippet: `# Install (macOS only)
+mkdir -p ~/.claude/rules/operations
+cp rules/operations/macos-platform.md ~/.claude/rules/operations/`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+
+  // ── Superpowers Plugin Skills ──────────────────────────────────
+  {
+    id: "superpowers-gateway",
+    name: "Using Superpowers (Auto)",
+    category: "skill",
+    description:
+      "Gateway skill that auto-activates superpowers plugin capabilities based on context.",
+    summary:
+      "The entry point for the everything-claude-code superpowers system. Automatically activates the appropriate superpower skill based on the current context and task type. Acts as a router that dispatches to specialized skills like brainstorming, writing-plans, TDD, systematic-debugging, etc.",
+    tags: ["Superpowers", "Plugin", "Automation", "Gateway"],
+    dependencies: ["Claude Code CLI", "everything-claude-code plugin"],
+    integrationSteps: [
+      "Install the everything-claude-code plugin",
+      "Superpowers activate automatically based on context",
+    ],
+    codeSnippet: `# Installed via the everything-claude-code plugin
+# Activates automatically — no manual invocation needed`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-brainstorming",
+    name: "Brainstorming",
+    category: "skill",
+    description:
+      "Structured design refinement through iterative brainstorming and idea exploration.",
+    summary:
+      "A superpower skill for structured brainstorming sessions. Guides through divergent thinking, idea clustering, constraint analysis, and convergent selection. Produces actionable design decisions from open-ended exploration.",
+    tags: ["Superpowers", "Plugin", "Planning", "Creative"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated via superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-writing-plans",
+    name: "Writing Plans",
+    category: "skill",
+    description:
+      "Structured task breakdown and implementation planning with dependency analysis.",
+    summary:
+      "Breaks down complex tasks into structured implementation plans with clear dependencies, ordering, and acceptance criteria. Produces plans that can be executed by the executing-plans superpower or by subagent-driven-development.",
+    tags: ["Superpowers", "Plugin", "Planning"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated via /plan or superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers
+# Invoke via: /plan`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-executing-plans",
+    name: "Executing Plans",
+    category: "skill",
+    description:
+      "Offline execution of structured plans with progress tracking and checkpoint management.",
+    summary:
+      "Takes plans produced by writing-plans and executes them step by step with progress tracking, checkpoint management, and rollback capability. Handles task dependencies and sequencing automatically.",
+    tags: ["Superpowers", "Plugin", "Execution"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated after plan creation"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-subagent-dev",
+    name: "Subagent-Driven Development",
+    category: "skill",
+    description:
+      "In-session task execution using parallel subagents for maximum throughput.",
+    summary:
+      "Decomposes implementation tasks and dispatches them to parallel subagents within the current session. Each subagent gets a focused scope and returns structured results. Maximizes throughput for tasks that can be parallelized.",
+    tags: ["Superpowers", "Plugin", "Multi-Agent", "Performance"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated via superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-tdd",
+    name: "Test-Driven Development",
+    category: "skill",
+    description:
+      "RED-GREEN-REFACTOR TDD cycle enforcement with automated test generation and validation.",
+    summary:
+      "Enforces the TDD workflow: write a failing test (RED), implement the minimum code to pass (GREEN), then refactor. Generates test skeletons, validates test isolation, and ensures proper coverage. Works with the testing rules for consistent test quality.",
+    tags: ["Superpowers", "Plugin", "Testing", "TDD"],
+    dependencies: ["everything-claude-code plugin", "Test framework"],
+    integrationSteps: ["Installed via plugin", "Activated via /tdd or superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers
+# Invoke via: /tdd`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-debugging",
+    name: "Systematic Debugging",
+    category: "skill",
+    description:
+      "4-phase root cause analysis: reproduce, isolate, diagnose, and fix.",
+    summary:
+      "A structured debugging methodology with four phases: reproduce the issue reliably, isolate the failing component, diagnose the root cause (not just symptoms), and implement a targeted fix. Prevents shotgun debugging and ensures fixes address the actual problem.",
+    tags: ["Superpowers", "Plugin", "Debugging"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated via superpowers gateway on bug reports"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-verification",
+    name: "Verification Before Completion",
+    category: "skill",
+    description:
+      "Evidence-based validation that work is truly complete before marking tasks done.",
+    summary:
+      "Prevents premature task completion by requiring evidence that the work actually works. Checks for passing tests, successful builds, no regressions, and proper documentation before allowing a task to be marked as complete.",
+    tags: ["Superpowers", "Plugin", "Quality", "Verification"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated via /verify or superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers
+# Invoke via: /verify`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-worktrees",
+    name: "Using Git Worktrees",
+    category: "skill",
+    description:
+      "Isolated workspace setup using git worktrees for parallel development branches.",
+    summary:
+      "Sets up git worktrees for working on multiple branches simultaneously without stashing or switching. Each worktree gets an isolated copy of the repo at a specific branch, enabling parallel development, testing, and comparison. Handles cleanup and lifecycle management.",
+    tags: ["Superpowers", "Plugin", "Git", "Workflow"],
+    dependencies: ["everything-claude-code plugin", "Git"],
+    integrationSteps: ["Installed via plugin", "Activated via superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-finish-branch",
+    name: "Finishing a Development Branch",
+    category: "skill",
+    description:
+      "Merge/PR decision workflow for completed feature branches with quality gates.",
+    summary:
+      "Guides the process of finishing a development branch: running final tests, checking for merge conflicts, deciding between merge and PR, writing PR descriptions, and cleaning up after merge. Ensures branches are properly closed out.",
+    tags: ["Superpowers", "Plugin", "Git", "Workflow"],
+    dependencies: ["everything-claude-code plugin", "Git"],
+    integrationSteps: ["Installed via plugin", "Activated via superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-request-review",
+    name: "Requesting Code Review",
+    category: "skill",
+    description:
+      "Dispatches the code-reviewer agent to review completed work before submission.",
+    summary:
+      "Prepares and dispatches a code review request to the code-reviewer agent. Generates a review context summary, identifies high-risk areas, and presents the review findings. Used before creating PRs or merging branches.",
+    tags: ["Superpowers", "Plugin", "Code Review"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated via /code-review or superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers
+# Invoke via: /code-review`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-receive-review",
+    name: "Receiving Code Review",
+    category: "skill",
+    description:
+      "Evaluates code review feedback before implementing changes to filter noise.",
+    summary:
+      "Processes code review feedback with critical evaluation. Not all review comments are actionable or correct. This skill evaluates each piece of feedback, determines if it's valid, and decides whether to implement, push back, or discuss. Prevents blind implementation of review suggestions.",
+    tags: ["Superpowers", "Plugin", "Code Review"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated via superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-parallel-agents",
+    name: "Dispatching Parallel Agents",
+    category: "skill",
+    description:
+      "Concurrent agent execution with result aggregation and error handling.",
+    summary:
+      "Patterns for dispatching multiple agents in parallel, collecting their results, handling partial failures, and synthesizing outputs. Covers agent fan-out, result aggregation, timeout handling, and captain-agent coordination.",
+    tags: ["Superpowers", "Plugin", "Multi-Agent", "Performance"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated via superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-writing-skills",
+    name: "Writing Skills",
+    category: "skill",
+    description:
+      "TDD-based skill authoring methodology for creating robust, testable Claude Code skills.",
+    summary:
+      "A meta-skill for writing new skills using test-driven development. Covers skill file structure, YAML frontmatter, prompt engineering for skill instructions, testing skill behavior, and the skill review cycle. Produces skills that are reliable and maintainable.",
+    tags: ["Superpowers", "Plugin", "Skills", "TDD"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Activated via superpowers gateway"],
+    codeSnippet: `# Part of everything-claude-code plugin superpowers`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+  {
+    id: "superpowers-code-reviewer",
+    name: "Code Reviewer Agent (Plugin)",
+    category: "agent",
+    description:
+      "Plugin agent that reviews completed work for quality, security, and correctness.",
+    summary:
+      "A specialized review agent from the everything-claude-code plugin. Reviews code changes for quality issues, security vulnerabilities, performance problems, and architectural concerns. Dispatched by the requesting-code-review superpower skill. Provides structured feedback with severity levels.",
+    tags: ["Superpowers", "Plugin", "Code Review", "Quality"],
+    dependencies: ["everything-claude-code plugin"],
+    integrationSteps: ["Installed via plugin", "Dispatched by requesting-code-review skill"],
+    codeSnippet: `# Part of everything-claude-code plugin
+# Dispatched automatically via /code-review`,
+    author: "Affaan Mustafa",
+    repo: "affaan-m/everything-claude-code",
+  },
+
+  // ── Homunculus System ──────────────────────────────────────────
+  {
+    id: "homunculus-system",
+    name: "Homunculus Continuous Learning",
+    category: "configuration",
+    description:
+      "50 personal instincts, identity templates, and evolutionary agent system for continuous learning.",
+    summary:
+      "The Homunculus is a continuous learning system that gives Claude Code a form of persistent behavioral memory. It captures 50 personal instincts organized into 6 categories (Claude Code, Security, Next.js, Platform, Workflow, API/Testing). Each instinct starts at 0.4 confidence and increases with supporting evidence. When 3+ instincts cluster around a theme, the evolve-synthesizer agent can promote them into permanent learned skills, new agents, or commands. Behavioral observations are captured by the observe-homunculus.sh hook during every session.",
+    tags: ["Homunculus", "Learning", "Evolution", "Core"],
+    dependencies: [
+      "Claude Code CLI",
+      "observe-homunculus.sh hook",
+      "evolve-synthesizer agent",
+      "promote-evolved.sh script",
+    ],
+    integrationSteps: [
+      "Copy homunculus/ directory to ~/.claude/homunculus/",
+      "Install observe-homunculus.sh hook",
+      "Install evolve-synthesizer agent",
+      "Instincts are captured automatically during sessions",
+      "Run evolve-synthesizer periodically to check for promotions",
+    ],
+    codeSnippet: `# Install the full Homunculus system
+cp -r homunculus/ ~/.claude/homunculus/
+
+# Install the observer hook
+cp hooks/observe-homunculus.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/observe-homunculus.sh
+
+# Install the evolution agent
+cp agents/evolve-synthesizer.md ~/.claude/agents/
+
+# Check for promotable instinct clusters
+# Task(subagent_type="evolve-synthesizer", model="sonnet")`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
