@@ -57,6 +57,9 @@ import {
   CaptainCoordinatorDiagram,
   FivePhaseExecutionDiagram,
   PIIProtectionLayersDiagram,
+  ThreeTierResearchDiagram,
+  FiveLayerArchitectureDiagram,
+  MemoryAuditFlowDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -197,6 +200,9 @@ export default async function BacklogPostPage({ params }: Props) {
               CaptainCoordinatorDiagram,
               FivePhaseExecutionDiagram,
               PIIProtectionLayersDiagram,
+              ThreeTierResearchDiagram,
+              FiveLayerArchitectureDiagram,
+              MemoryAuditFlowDiagram,
               img: ImageLightbox,
             }}
           />

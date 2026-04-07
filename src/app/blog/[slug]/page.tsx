@@ -54,6 +54,9 @@ import {
   CaptainCoordinatorDiagram,
   FivePhaseExecutionDiagram,
   PIIProtectionLayersDiagram,
+  ThreeTierResearchDiagram,
+  FiveLayerArchitectureDiagram,
+  MemoryAuditFlowDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 import {
@@ -315,6 +318,9 @@ export default async function BlogPostPage({ params }: Props) {
                     CaptainCoordinatorDiagram,
                     FivePhaseExecutionDiagram,
                     PIIProtectionLayersDiagram,
+                    ThreeTierResearchDiagram,
+                    FiveLayerArchitectureDiagram,
+                    MemoryAuditFlowDiagram,
                     img: ImageLightbox,
                   }}
                 />

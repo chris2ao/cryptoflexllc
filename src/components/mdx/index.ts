@@ -60,4 +60,11 @@ export {
   FivePhaseExecutionDiagram,
   PIIProtectionLayersDiagram,
 } from "./diagrams-family-wiki-biography";
+export {
+  ThreeTierResearchDiagram,
+} from "./diagrams-deep-research";
+export {
+  FiveLayerArchitectureDiagram,
+  MemoryAuditFlowDiagram,
+} from "./diagrams-memory-comparison";
 export { ImageLightbox } from "./image-lightbox";

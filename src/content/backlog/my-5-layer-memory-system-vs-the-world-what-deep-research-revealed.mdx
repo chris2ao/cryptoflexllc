@@ -1,0 +1,278 @@
+---
+title: 'My 5-Layer Memory System vs. The World: What Deep Research Revealed'
+date: '2026-04-06'
+description: >-
+  22 sources, 3 parallel research agents, 18 search queries. I pointed my
+  deep research skill at the question every Claude Code power user asks:
+  what's the best way to give an AI persistent memory? Here's what the
+  community is doing, how my setup compares, and the 3 improvements I
+  shipped the same day.
+tags:
+  - Claude Code
+  - Memory
+  - Architecture
+  - Research
+  - MCP
+  - Vector Memory
+author: Chris Johnson
+readingTime: 14 min read
+series: 'Under the Hood'
+seriesOrder: 2
+---
+
+import { FiveLayerArchitectureDiagram, MemoryAuditFlowDiagram } from '@/components/mdx';
+
+22 sources. 3 parallel research agents. 18 search queries across Exa semantic search and Firecrawl scraping. I pointed my new `/deep-research` skill at the question every Claude Code power user eventually asks: what's the best way to give an AI persistent memory?
+
+The short version: the community has converged on a three-tier architecture. My setup has five layers. Two of those layers have no community equivalent. And the research uncovered three gaps I fixed the same day.
+
+<Info title="Series Context">
+This is the second post in the [Under the Hood](/blog/series/under-the-hood) series, which covers the infrastructure behind my Claude Code setup. The first post covered [the Homunculus evolution layer](/blog/homunculus-evolution-layer-when-your-ai-learns-to-upgrade-itself), the behavioral learning system that synthesizes session observations into reusable skills. This post zooms out to the full memory architecture.
+</Info>
+
+## The Research Method
+
+This was the first real test of `/deep-research`, a skill I built the same day (covered in the [companion backlog post](/backlog/from-websearch-to-deep-research-adding-exa-and-firecrawl-to-claude-code)). The skill launches three parallel Haiku research agents, each covering two sub-questions. They use Exa for semantic search and Firecrawl for JS-rendered page scraping, with WebSearch as a fallback.
+
+The agents investigated six questions:
+
+1. How does Claude Code's native memory system actually work?
+2. What MCP-based memory solutions has the community built?
+3. What cross-workspace sync patterns exist?
+4. What does the research literature say about AI memory best practices?
+5. What multi-layer architecture patterns have emerged?
+6. What implementations exist on GitHub?
+
+They came back with 22 sources: academic-style blog posts, GitHub repos, framework comparisons, and community guides. The full report is saved at `docs/research/claude-code-persistent-memory-2026-04-06.md` in the `CJClaudin_Mac` repo for anyone who wants the raw data.
+
+<Tip title="Parallel Research Pays Off">
+Three Haiku agents running in parallel costs about the same as one Sonnet agent doing serial research, but finishes 3x faster. Each agent brings back sources the others missed because they're searching from different angles. The diversity matters more than the depth of any single query.
+</Tip>
+
+## What the Community Is Building
+
+The research revealed three distinct camps. Each represents a different trade-off between simplicity and capability.
+
+### Camp 1: The Markdown Brain
+
+The simplest production-tested approach comes from [Benji Banwart's dev.to post](https://dev.to/benji_banwart/building-persistent-memory-for-claude-code-agents-3b5m). The idea: give your agent a folder of markdown files organized by purpose. Identity, Memory, Skills, Projects, People, Journal. The agent reads them at startup via CLAUDE.md and writes to them during operation.
+
+```text
+AgentBrain/
+  Index.md
+  Identity/     (Who I Am, How I Think)
+  Memory/       (Conversation Log, Learnings, Corrections)
+  Skills/       (Skill Registry)
+  Projects/     (Active Projects)
+  People/       ([Person].md)
+  Journal/      (Reflection entries)
+```
+
+The insight that stuck with me: **corrections matter more than learnings.** A learning is additive. A correction is transformative. The Corrections file directly changes behavior and prevents repeating mistakes across sessions.
+
+This maps almost exactly to what my Homunculus instincts do, except Banwart's approach is manual while mine extracts corrections automatically from tool usage observations.
+
+The trade-offs are clear. Zero dependencies and human-readable, but no semantic search and it scales poorly beyond about 20 files (the startup context cost gets expensive).
+
+### Camp 2: MCP Memory Servers
+
+At least six community implementations exist, ranging from simple key-value stores to full hybrid search engines.
+
+| Server | Stars | Key Feature |
+|--------|-------|-------------|
+| [yuvalsuede/memory-mcp](https://github.com/yuvalsuede/memory-mcp) | 90 | Most popular, "never lose context" |
+| [WhenMoon-afk/claude-memory-mcp](https://github.com/WhenMoon-afk/claude-memory-mcp) | 64 | Research-backed optimal LLM memory |
+| [wyckit/mcp-engram-memory](https://github.com/wyckit/mcp-engram-memory) | N/A | 52 tools, hybrid BM25+vector, local embeddings |
+| [ForNeverAnd/mcp-memory-engine](https://github.com/ForNeverAnd/mcp-memory-engine) | N/A | Rust, contradiction detection |
+| [vbcherepanov/claude-total-memory](https://github.com/vbcherepanov/claude-total-memory) | 7 | 4-tier search, 20 tools, self-improving |
+
+The standout is **mcp-engram-memory**. It packs 52 MCP tools into a single server, runs hybrid search combining BM25 text matching with vector embeddings (using local Ruri v3-310m embeddings, so zero API cost), and supports both project-scoped and global search modes. The architecture is impressively close to what I built with my vector memory setup.
+
+The official `@modelcontextprotocol/server-memory` from Anthropic has 5,410+ stars but no vector search. It's a knowledge graph (entities + relations + observations) stored in local SQLite. Good for structured relationships, but it can't answer "what did we discuss about auth middleware last week?"
+
+<Warning title="Stars Are Not Quality">
+The most popular MCP memory server (90 stars) is far simpler than less popular alternatives. Star counts measure discoverability and marketing, not architectural quality. The mcp-engram-memory server with no star count listed is more capable than several servers with higher numbers.
+</Warning>
+
+### Camp 3: The AGENTS.md Standard
+
+This one surprised me. The Linux Foundation (via OpenAI's initial push in August 2025) created a cross-tool standard file called AGENTS.md. It's now recognized by Claude Code, Cursor, Copilot, Windsurf, and others.
+
+The numbers are compelling: 60,000+ repos contain AGENTS.md files, and [research from Augment Code](https://www.augmentcode.com/guides/why-ai-agents-repeat-questions) measured a 29% wall-clock time decrease and 17% fewer output tokens across 124 PRs.
+
+It's not a memory system, exactly. It's a way to give any AI tool project context without being locked into one vendor's configuration format. Think of it as CLAUDE.md that works everywhere.
+
+## The Three-Tier Consensus
+
+Across all 22 sources, one architectural pattern kept appearing. The community has converged on what I'm calling the L1/L2/L3 model:
+
+**L1: Active Context (Hot).** Current session state, working memory, task context. In-memory, fast access, ephemeral. This is what lives in the conversation window and gets destroyed on compaction.
+
+**L2: Session Persistence (Warm).** Vector stores for contextual recall. You ask "what did we discuss about X?" and semantic search finds the relevant memories. This is the layer most MCP memory servers target.
+
+**L3: Knowledge Persistence (Cold).** Graph databases for structured, long-term knowledge. Entity relationships, temporal evolution, multi-hop reasoning. "What services depend on the auth service?" requires this layer.
+
+Multiple sources confirmed this independently: [Antigravity Lab](https://antigravitylab.net/en/articles/agents/ai-agent-memory-architecture-complete-guide), [Stackademic](https://blog.stackademic.com/layered-memory-architecture-for-intelligent-ai-agents-from-fast-context-to-deep-knowledge-e7d0bb578841), [N1n.ai](https://explore.n1n.ai/blog/designing-3-tier-memory-system-local-ai-agent-2026-02-24). The naming varies (STM/MTM/LTM, hot/warm/cold, working/episodic/semantic), but the structure is the same.
+
+The production consensus from [MarkTechPost](https://www.marktechpost.com/2025/11/10/comparing-memory-systems-for-llm-agents-vector-graph-and-event-logs) and real-world frameworks like Mem0, Zep, and Letta: most serious implementations combine vector and graph rather than choosing one. Neither alone covers the full retrieval problem.
+
+<Info title="Vector vs. Graph: When Each Excels">
+Vector memory is best for semantic similarity, pattern recognition, and fuzzy queries: "find discussions about auth middleware." Knowledge graphs are best for entity relationships, temporal evolution, and causality: "what services depend on auth?" The key difference for contradiction handling: vector search retrieves both conflicting facts without flagging them. Graphs can version facts with timestamps and retire old knowledge.
+</Info>
+
+## My Five-Layer Architecture
+
+Here's where things get interesting. My setup maps to the community L1/L2/L3 model, but adds two layers that have no equivalent in any solution I found.
+
+<FiveLayerArchitectureDiagram />
+
+### Layer 1: MEMORY.md (Maps to L1)
+
+Per-project auto-memory with a 200-line index. Topic files (4KB each) are selected per turn via a Sonnet sidequery. Synced across Mac and Windows via Syncthing.
+
+This is my working memory. Stable facts that apply every session: build commands, deploy scripts, naming conventions. The 200-line limit is actually a feature, not a limitation. It forces me to keep this layer concise and push detailed context to vector memory.
+
+### Layer 2: Vector Memory (Maps to L2)
+
+Ollama with nomic-embed-text (768 dimensions), sqlite-vec storage, hybrid search weighted 0.7 vector / 0.3 text with MMR lambda 0.7 for diversity. Runs as an SSE server on port 8765 on the Mac, with the Windows machine connecting remotely.
+
+This is where the detailed context lives: bug resolutions, architectural decisions, workarounds, error patterns. The hybrid search weighting matches what the research literature recommends for balancing semantic recall with keyword precision.
+
+### Layer 3: Knowledge Graph (Maps to L3)
+
+The official MCP memory server with 84 entities and 71 relations. Service dependencies, data flow between systems, team structures. Maintained via a 5-phase reconciliation command (`/Knowledge-Graph-Sync`) that catches drift between the graph and actual files on disk.
+
+### Layer 4: Homunculus (No Community Equivalent)
+
+This is the layer that made me sit up during the research. Nobody else is doing this.
+
+PostToolUse hooks capture every tool call. An observer agent processes those raw observations into "instincts," individual behavioral patterns with confidence scores, triggers, and evidence. The `/evolve` command then clusters related instincts and synthesizes them into reusable agents, skills, and commands.
+
+13,292 observations compressed into 50 instincts, further synthesized into 5 promoted skills. That's a 2,658:1 compression ratio from raw behavioral data to actionable tools.
+
+The closest analog in the community is Benji Banwart's manual Corrections file. But where his approach requires the developer to notice and write down corrections, Homunculus extracts them automatically from session behavior. The difference is passive observation versus active documentation.
+
+<Tip title="Why Behavioral Learning Matters">
+Memory systems answer "what do I know?" Behavioral learning answers "how should I work?" Every other solution in the research stores facts. Homunculus stores patterns: when I forget to update the knowledge graph after creating a hook, when multi-agent teams need phase gates, when OpenClaw config changes need a gateway restart. These are not facts to recall. They are behaviors to reinforce.
+</Tip>
+
+### Layer 5: Session Archives (Partial Community Equivalents)
+
+Full transcript backup via a SessionEnd hook, with a 7-phase ingestion pipeline that processes archives into vector memories and instincts. This feeds Layer 4 (behavioral extraction) and Layer 2 (memory population).
+
+Some community solutions have session logging. None have the structured ingestion pipeline that converts raw transcripts into typed memories across multiple storage layers.
+
+## The Comparison Table
+
+Here's the full feature matrix:
+
+| Feature | My Setup | Markdown Brain | engram MCP | Official MCP | Augment Code |
+|---------|----------|----------------|------------|--------------|--------------|
+| Semantic search | Hybrid 0.7/0.3 | No | BM25 + vector | No | Proprietary |
+| Relational reasoning | Knowledge graph | No | Limited | Entities/relations | Context Engine |
+| Behavioral learning | Homunculus | Manual corrections | No | No | No |
+| Cross-workspace | SSE + Syncthing | Manual copy | Single machine | Single machine | Cloud-native |
+| Autonomous updates | Hooks + nudges | Agent writes in session | Agent via tools | Agent via tools | Automatic |
+| Contradiction handling | Partial (graph timestamps) | Manual | No | No | Automatic |
+| Setup complexity | High (5 systems) | Low (folder + CLAUDE.md) | Medium (1 MCP server) | Low (1 MCP server) | Zero (SaaS) |
+
+The complexity column is the honest trade-off. Five interconnected memory systems require more maintenance than a folder of markdown files. Whether that complexity pays for itself depends on your use case.
+
+## What I Fixed (Same Day)
+
+The research didn't just validate the architecture. It exposed three gaps I addressed immediately.
+
+### 1. Fact Versioning Protocol
+
+The research from [db0.ai](https://db0.ai) and the mcp-memory-engine project highlighted a problem I'd been ignoring: fact accumulation. My vector memory stores facts but never retires superseded ones. When I search for "Syncthing configuration," I get results from six months ago alongside current state, with no way to know which is correct.
+
+I added a fact versioning protocol to my memory-management rules. Before storing a new memory, search for similar existing content. If a match is found, supersede the old memory (tag it as superseded, store the new one with a reference to what it replaced). Simple, but it prevents the slow decay of retrieval quality that happens when outdated facts accumulate.
+
+```markdown
+## Fact Versioning Protocol
+
+Before storing any memory:
+1. Search for similar existing memories (keyword overlap > 60%)
+2. If match found: tag existing as superseded, note reason
+3. Store new memory with supersedes: <old-memory-id> reference
+4. Old memories remain searchable but rank lower in retrieval
+```
+
+<Warning title="Fact Decay Is Silent">
+Unlike a broken feature (which throws errors), stale memories just make retrieval slightly worse over time. You don't notice until the system confidently tells you something that was true three months ago but isn't anymore. The Syncthing example below illustrates this perfectly.
+</Warning>
+
+### 2. The /memory-audit Command
+
+Fact versioning prevents future accumulation. But what about the stale memories already in the system? I built a `/memory-audit` command that scans vector memory for three types of problems:
+
+1. **Contradictions:** Memories that assert conflicting facts about the same topic
+2. **Stale superseded entries:** Memories tagged as superseded that are still ranking in search results
+3. **Duplicate clusters:** Multiple memories storing essentially the same information (usually from repeated session ingestion)
+
+<MemoryAuditFlowDiagram />
+
+The first run was illuminating. Three contradictions, three duplicate clusters, nine memories cleaned up. Here are the highlights:
+
+**Syncthing folder count.** One memory said four synced folders. The actual state was two. I'd removed `gws-creds` and `openclaw` from sync months ago, but the memory persisted. Any agent querying "how is Syncthing configured?" would get the wrong answer.
+
+**iMessage plugin architecture.** Detailed documentation about the iMessage plugin was still in memory, including architecture diagrams and API details. I removed that plugin for security reasons and wrote a [full blog post about it](/blog/imessage-channels-for-claude-code-proof-of-concept). The memory was a ghost of deleted infrastructure.
+
+**Settings override gotcha.** The same gotcha about settings.json override behavior appeared four times. Session ingestion had created redundant copies each time I encountered (and solved) the same problem. Four identical memories, each consuming retrieval slots.
+
+<Tip title="Run Audits After Ingestion">
+Session ingestion is the biggest source of duplicate memories. The ingestion pipeline processes each session independently, so if you encounter the same problem in three sessions, you get three copies of the solution. Running `/memory-audit` after batch ingestion catches these clusters before they accumulate.
+</Tip>
+
+### 3. AGENTS.md Adoption
+
+The AGENTS.md research was convincing enough that I created one immediately. I extracted the universal conventions from `.claude/rules/` (the parts that aren't Claude Code-specific) and wrote them into an AGENTS.md at the project root.
+
+Now any AI tool gets the project context: coding style, testing requirements, commit message format, file organization preferences. None of these are Claude-specific conventions. They're engineering standards that apply regardless of which tool is reading them.
+
+The 29% speed improvement and 17% token reduction from the Augment Code research probably won't replicate exactly in my setup (their study measured 124 PRs across diverse codebases). But even a fraction of those gains makes the ten-minute effort worthwhile.
+
+```markdown
+# AGENTS.md (excerpt)
+
+## Coding Style
+- Immutability: create new objects, never mutate
+- Files: 200-400 lines typical, 800 max
+- Functions: under 50 lines, nesting under 4 levels
+
+## Testing
+- Minimum 80% coverage
+- TDD mandatory: RED, GREEN, IMPROVE
+
+## Git
+- Conventional commits: feat, fix, refactor, docs, test, chore
+- No em dashes in commit messages or content
+```
+
+## What I Learned
+
+Three takeaways from the research that changed how I think about the problem.
+
+**The markdown brain works for 90% of users.** If you're on a single machine, working on one or two projects, and don't need semantic search, Banwart's folder-of-markdown approach is genuinely all you need. It has zero dependencies, it's human-readable, and the agent can read and write it directly. The only reason I went beyond it was cross-machine access and the desire for autonomous behavioral learning.
+
+**The memory problem is mostly solved for single-machine use.** Between Claude Code's native MEMORY.md, the official MCP memory server, and community hybrid search implementations, the tooling exists to give an AI effective persistent memory on one machine. The remaining frontiers are cross-workspace sync and fact lifecycle management.
+
+**Complexity isn't free.** Five memory systems means five things that can break, five things to maintain, and five things consuming context budget at startup. The audit found real problems: stale memories, ghost documentation, duplicate entries. These are maintenance costs that simpler architectures don't pay.
+
+<Info title="Honest Assessment">
+My setup is among the most advanced in the community. But "most advanced" and "best" are not the same thing. For most developers, a single MCP memory server with vector search would deliver 80% of the value at 20% of the complexity. What pushed me beyond that threshold was specific needs: cross-machine development, automated behavioral learning, and the engineering curiosity to see how far you can take it.
+</Info>
+
+## What's Next
+
+The research pointed to two areas worth exploring.
+
+**Remote MCP servers.** The MCP spec added Streamable HTTP transport, which enables deploying a memory server once (cloud or home server) and connecting from all workstations. No file sync needed. All writes go to one database. My SSE server on the Mac is 80% of the way there, but it's still a single point of failure: when the Mac is off, the Windows machine loses memory access.
+
+**Contradiction detection at write time.** Right now, `/memory-audit` catches contradictions after the fact. The mcp-memory-engine project (Rust + Python) detects contradictions at write time, before the conflicting fact enters storage. That's a better pattern. Fix the problem at the gate, not during spring cleaning.
+
+The full 22-source research report lives in the `CJClaudin_Mac` repo at `docs/research/claude-code-persistent-memory-2026-04-06.md`. If you want to go deeper on any of the community solutions or architecture patterns, start there.
+
+This is the second post in the [Under the Hood](/blog/series/under-the-hood) series. The first covered [the Homunculus evolution layer](/blog/homunculus-evolution-layer-when-your-ai-learns-to-upgrade-itself). Next up: I'll cover the cross-workstation sync architecture and why Syncthing was the right call (and where it's starting to show its limits).
+
+If you want to see the full Claude Code configuration that powers all of this, it's public at [chris2ao/claude-code-config](https://github.com/chris2ao/claude-code-config).
