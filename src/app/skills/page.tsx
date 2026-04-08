@@ -5,7 +5,7 @@ import { BASE_URL } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Skills & Tools Catalog",
   description:
-    "Browse CryptoFlex LLC's full catalog of Claude Code skills, agents, hooks, commands, configurations, and MCP servers. Each item includes integration steps and code snippets.",
+    "Browse 127 Claude Code skills, agents, hooks, commands, configurations, and MCP servers. Each item includes linked integration steps and copy-paste install commands.",
   alternates: {
     canonical: `${BASE_URL}/skills`,
   },
@@ -26,9 +26,9 @@ export default function SkillsPage() {
             Skills & Tools Catalog
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            A production-ready collection of Claude Code skills, agents, hooks,
-            commands, and configurations — built through hands-on exploration,
-            not theory. Click any item to see integration steps and code.
+            127 production-ready Claude Code skills, agents, hooks,
+            commands, and configurations. Click any item to see
+            integration steps with download links and copy-paste install commands.
           </p>
         </div>
 

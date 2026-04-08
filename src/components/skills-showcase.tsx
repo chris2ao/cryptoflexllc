@@ -24,6 +24,36 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+const LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+
+function LinkedText({ text }: { text: string }) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  const re = new RegExp(LINK_RE.source, "g");
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <a
+        key={match.index}
+        href={match[2]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline underline-offset-2 hover:text-primary/80"
+      >
+        {match[1]}
+      </a>
+    );
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return <>{parts}</>;
+}
+
 const categoryIcons: Record<ItemCategory, React.ElementType> = {
   skill: Sparkles,
   agent: Bot,
@@ -209,7 +239,7 @@ function SkillDetail({
                     className="flex items-center gap-2 text-sm text-muted-foreground"
                   >
                     <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                    {dep}
+                    <LinkedText text={dep} />
                   </li>
                 ))}
               </ul>
@@ -225,7 +255,7 @@ function SkillDetail({
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                     {i + 1}
                   </span>
-                  <span className="pt-0.5">{step}</span>
+                  <span className="pt-0.5"><LinkedText text={step} /></span>
                 </li>
               ))}
             </ol>

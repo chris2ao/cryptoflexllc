@@ -70,20 +70,27 @@ export const skillItems: SkillItem[] = [
     dependencies: [
       "Claude Code CLI",
       "Git",
-      "skill-extractor agent",
-      "changelog-writer agent",
+      "[skill-extractor agent](https://github.com/chris2ao/claude-code-config/blob/master/agents/skill-extractor.md)",
+      "[changelog-writer agent](https://github.com/chris2ao/claude-code-config/blob/master/agents/changelog-writer.md)",
     ],
     integrationSteps: [
-      "Copy skills/wrap-up/SKILL.md to ~/.claude/skills/wrap-up/SKILL.md",
-      "Ensure agents/ directory is in ~/.claude/agents/",
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/wrap-up/SKILL.md) to ~/.claude/skills/wrap-up/",
+      "Download [wrap-up-orchestrator.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/wrap-up-orchestrator.md) to ~/.claude/agents/",
+      "Download [skill-extractor.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/skill-extractor.md) and [changelog-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/changelog-writer.md) to ~/.claude/agents/",
       "Run /wrap-up at the end of any coding session",
-      "Review the generated changelog and memory updates before pushing",
     ],
     codeSnippet: `# Install
-mkdir -p ~/.claude/skills/wrap-up
-cp skills/wrap-up/SKILL.md ~/.claude/skills/wrap-up/SKILL.md
+mkdir -p ~/.claude/skills/wrap-up ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/wrap-up/SKILL.md \\
+  -o ~/.claude/skills/wrap-up/SKILL.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/wrap-up-orchestrator.md \\
+  -o ~/.claude/agents/wrap-up-orchestrator.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/skill-extractor.md \\
+  -o ~/.claude/agents/skill-extractor.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/changelog-writer.md \\
+  -o ~/.claude/agents/changelog-writer.md
 
-# Usage — run at end of session
+# Usage
 /wrap-up`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
@@ -93,26 +100,39 @@ cp skills/wrap-up/SKILL.md ~/.claude/skills/wrap-up/SKILL.md
     name: "/blog-post",
     category: "skill",
     description:
-      "Interactive blog writing agent that guides topic selection, writes MDX content, and validates output.",
+      "5-agent blog production team that guides topic selection, writes MDX content, and validates output.",
     summary:
-      "An interactive skill that walks you through writing a complete blog post. It asks for your topic and angle, references the blog style guide and MDX reference, then delegates content generation to a Sonnet-class model for high-quality prose. The output is a properly formatted MDX file with frontmatter, callout components, and code blocks ready to commit to your blog's content directory.",
-    tags: ["Blog", "Content", "MDX", "Writing"],
+      "An interactive skill that walks you through writing a complete blog post using a coordinated team of five agents: a captain (Opus) that directs the pipeline, a writer (Sonnet) that drafts MDX content, a voice guardian that ensures consistency with your established writing style, an editor that scores drafts on hook strength, pacing, and accuracy, and a UX reviewer that validates the build and MDX structure. The output is a properly formatted MDX file ready to commit.",
+    tags: ["Blog", "Content", "MDX", "Writing", "Multi-Agent"],
     dependencies: [
       "Claude Code CLI",
-      "blog-style-guide.md",
-      "blog-mdx-reference.md",
+      "[blog-captain.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-captain.md)",
+      "[blog-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-writer.md)",
+      "[blog-voice.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-voice.md)",
+      "[blog-editor.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-editor.md)",
+      "[blog-ux.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-ux.md)",
+      "[blog-style-guide.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/blog-style-guide.md)",
     ],
     integrationSteps: [
-      "Copy skills/blog-post/SKILL.md to ~/.claude/skills/blog-post/SKILL.md",
-      "Copy skills/blog-style-guide.md and blog-mdx-reference.md to ~/.claude/skills/",
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/blog-post/SKILL.md) to ~/.claude/skills/blog-post/",
+      "Download [blog-style-guide.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/blog-style-guide.md) and [blog-mdx-reference.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/blog-mdx-reference.md) to ~/.claude/skills/",
+      "Download blog team agents (blog-captain, blog-writer, blog-voice, blog-editor, blog-ux) to ~/.claude/agents/",
       "Invoke /blog-post and follow the interactive prompts",
-      "Review generated MDX file in src/content/blog/",
     ],
     codeSnippet: `# Install
-mkdir -p ~/.claude/skills/blog-post
-cp skills/blog-post/SKILL.md ~/.claude/skills/blog-post/SKILL.md
-cp skills/blog-style-guide.md ~/.claude/skills/
-cp skills/blog-mdx-reference.md ~/.claude/skills/
+mkdir -p ~/.claude/skills/blog-post ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/blog-post/SKILL.md \\
+  -o ~/.claude/skills/blog-post/SKILL.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/blog-style-guide.md \\
+  -o ~/.claude/skills/blog-style-guide.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/blog-mdx-reference.md \\
+  -o ~/.claude/skills/blog-mdx-reference.md
+
+# Download blog team agents
+for agent in blog-captain blog-writer blog-voice blog-editor blog-ux; do
+  curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/$agent.md \\
+    -o ~/.claude/agents/$agent.md
+done
 
 # Usage
 /blog-post`,
@@ -130,14 +150,14 @@ cp skills/blog-mdx-reference.md ~/.claude/skills/
     tags: ["Git", "DevOps", "Automation", "Multi-Repo"],
     dependencies: ["Claude Code CLI", "Git", "Multiple cloned repositories"],
     integrationSteps: [
-      "Copy skills/multi-repo-status/SKILL.md to ~/.claude/skills/multi-repo-status/SKILL.md",
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/multi-repo-status/SKILL.md) to ~/.claude/skills/multi-repo-status/",
       "Update repo paths in SKILL.md to match your project layout",
       "Run /multi-repo-status for a quick dashboard",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/skills/multi-repo-status
-cp skills/multi-repo-status/SKILL.md \\
-   ~/.claude/skills/multi-repo-status/SKILL.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/multi-repo-status/SKILL.md \\
+  -o ~/.claude/skills/multi-repo-status/SKILL.md
 
 # Usage
 /multi-repo-status`,
@@ -155,20 +175,19 @@ cp skills/multi-repo-status/SKILL.md \\
     tags: ["Documentation", "Inventory", "Automation"],
     dependencies: ["Claude Code CLI"],
     integrationSteps: [
-      "Copy skills/skill-catalog/SKILL.md to ~/.claude/skills/skill-catalog/SKILL.md",
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/skill-catalog/SKILL.md) to ~/.claude/skills/skill-catalog/",
       "Run /skill-catalog to see your full capability inventory",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/skills/skill-catalog
-cp skills/skill-catalog/SKILL.md \\
-   ~/.claude/skills/skill-catalog/SKILL.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/skill-catalog/SKILL.md \\
+  -o ~/.claude/skills/skill-catalog/SKILL.md
 
 # Usage
 /skill-catalog`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
-
   {
     id: "ingest-sessions",
     name: "/ingest-sessions",
@@ -186,15 +205,322 @@ cp skills/skill-catalog/SKILL.md \\
     integrationSteps: [
       "Ensure session transcripts are archived in .claude/session_archive/",
       "Ensure vector-memory MCP server is configured",
+      "Download [ingest-sessions.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/ingest-sessions.md) to ~/.claude/commands/",
       "Run /ingest-sessions to process new transcripts",
-      "Query vector-memory later to retrieve extracted insights",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/commands
-cp commands/ingest-sessions.md ~/.claude/commands/
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/commands/ingest-sessions.md \\
+  -o ~/.claude/commands/ingest-sessions.md
 
 # Usage
 /ingest-sessions`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "sync",
+    name: "/sync",
+    category: "skill",
+    description:
+      "Bidirectional config sync between live ~/.claude/ and three Git repositories.",
+    summary:
+      "Compares your live Claude Code configuration against three repos (CJClaudin_Mac, CJClaude_1, claude-code-config) using a survey script that hashes every file. Presents a drift summary, asks for sync direction and targets, then spawns a sync-orchestrator agent to copy files, handle security blocks, skip platform-specific files, and commit and push to each repo.",
+    tags: ["Config Sync", "Git", "Multi-Repo", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "[sync-orchestrator agent](https://github.com/chris2ao/claude-code-config/blob/master/agents/sync-orchestrator.md)",
+      "[sync-survey.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/sync-survey.sh)",
+    ],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/sync/SKILL.md) to ~/.claude/skills/sync/",
+      "Download [sync-orchestrator.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/sync-orchestrator.md) to ~/.claude/agents/",
+      "Download [sync-survey.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/sync-survey.sh) to ~/.claude/scripts/",
+      "Run /sync to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/sync ~/.claude/agents ~/.claude/scripts
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/sync/SKILL.md \\
+  -o ~/.claude/skills/sync/SKILL.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/sync-orchestrator.md \\
+  -o ~/.claude/agents/sync-orchestrator.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/scripts/sync-survey.sh \\
+  -o ~/.claude/scripts/sync-survey.sh
+chmod +x ~/.claude/scripts/sync-survey.sh
+
+# Usage
+/sync`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "cmux",
+    name: "/cmux",
+    category: "skill",
+    description:
+      "Complete CLI reference for cmux, the Ghostty-based macOS terminal built for AI coding agents.",
+    summary:
+      "Covers workspaces, panes, browser automation, notifications, sidebar metadata, and multi-agent orchestration patterns. Includes commands for sending input to panes, reading screen output, and managing an embedded browser with full DOM interaction and JavaScript execution.",
+    tags: ["macOS", "Terminal", "Automation", "Multi-Agent", "Browser"],
+    dependencies: ["Claude Code CLI", "cmux application (macOS)"],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/cmux/SKILL.md) to ~/.claude/skills/cmux/",
+      "Install cmux from https://cmux.app and create the CLI symlink",
+      "Run /cmux to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/cmux
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/cmux/SKILL.md \\
+  -o ~/.claude/skills/cmux/SKILL.md
+
+# Usage
+/cmux`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "content-validation",
+    name: "/content-validation",
+    category: "skill",
+    description:
+      "Validate content integrity beyond HTTP status codes for media, API responses, and data contracts.",
+    summary:
+      "Teaches three validation patterns that catch common silent failures: CDN placeholders that return HTTP 200 with broken content, API field name mismatches between documentation and actual responses, and Gmail API format modes that omit recipient headers. Each pattern includes concrete code examples and known failure cases.",
+    tags: ["Validation", "API", "Media", "Gmail", "Data Contracts"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/content-validation/SKILL.md) to ~/.claude/skills/content-validation/",
+      "Run /content-validation to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/content-validation
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/content-validation/SKILL.md \\
+  -o ~/.claude/skills/content-validation/SKILL.md
+
+# Usage
+/content-validation`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "cross-platform-parsing",
+    name: "/cross-platform-parsing",
+    category: "skill",
+    description:
+      "Safe text and CLI output parsing patterns that work correctly across Windows and Unix environments.",
+    summary:
+      "Provides three concrete patterns to prevent silent data corruption in cross-platform code: CRLF-safe regex for line endings, execFileSync instead of execSync to bypass Windows shell metacharacter interpretation, and correct handling of positional whitespace in structured CLI output like git status.",
+    tags: ["Cross-Platform", "Windows", "Parsing", "CLI", "TypeScript"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/cross-platform-parsing/SKILL.md) to ~/.claude/skills/cross-platform-parsing/",
+      "Run /cross-platform-parsing to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/cross-platform-parsing
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/cross-platform-parsing/SKILL.md \\
+  -o ~/.claude/skills/cross-platform-parsing/SKILL.md
+
+# Usage
+/cross-platform-parsing`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "deep-research",
+    name: "/deep-research",
+    category: "skill",
+    description:
+      "Produce thorough, cited research reports from multiple web sources using a three-tier search and scrape stack.",
+    summary:
+      "Orchestrates parallel research agents using Exa for semantic search, Firecrawl for JavaScript-rendered page scraping, and WebSearch/WebFetch as a fallback tier. Each run breaks the topic into sub-questions, searches 15-30 sources in parallel, deep-reads key sources, and synthesizes a structured report with inline citations, a source list, and methodology notes.",
+    tags: ["Research", "Exa", "Firecrawl", "Web Search", "Citations"],
+    dependencies: ["Claude Code CLI", "Exa MCP server", "Firecrawl MCP server"],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/deep-research/SKILL.md) to ~/.claude/skills/deep-research/",
+      "Add EXA_API_KEY and FIRECRAWL_API_KEY to your environment",
+      "Add the exa and firecrawl MCP servers to ~/.claude.json",
+      "Run /deep-research to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/deep-research
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/deep-research/SKILL.md \\
+  -o ~/.claude/skills/deep-research/SKILL.md
+
+# Usage
+/deep-research`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-dev",
+    name: "/game-dev",
+    category: "skill",
+    description:
+      "Orchestrates a coordinated team of game development specialists to create, fix, debug, or enhance games.",
+    summary:
+      "Runs a user discovery flow to gather the project path, mode (create, fix, debug, add), tech stack, and desired team composition, then spawns a game-director agent to coordinate the appropriate specialists. The six available specialist roles are game-director, game-developer, game-artist, game-designer, game-writer, and game-ux, with team size scaled from a minimal two-person pair up to the full six-agent studio.",
+    tags: ["Game Development", "Multi-Agent", "Web Games", "Canvas", "Phaser"],
+    dependencies: [
+      "Claude Code CLI",
+      "[game-director](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-director.md)",
+      "[game-developer](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-developer.md)",
+      "[game-artist](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-artist.md)",
+      "[game-designer](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-designer.md)",
+      "[game-writer](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-writer.md)",
+      "[game-ux](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-ux.md)",
+    ],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/game-dev/SKILL.md) to ~/.claude/skills/game-dev/",
+      "Download all game team agents to ~/.claude/agents/",
+      "Run /game-dev to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/game-dev ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/game-dev/SKILL.md \\
+  -o ~/.claude/skills/game-dev/SKILL.md
+
+# Download game team agents
+for agent in game-director game-developer game-artist game-designer game-writer game-ux; do
+  curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/\\$agent.md \\
+    -o ~/.claude/agents/\\$agent.md
+done
+
+# Usage
+/game-dev`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "gws",
+    name: "/gws",
+    category: "skill",
+    description:
+      "Interact with Google Workspace services via the gws CLI, covering Drive, Gmail, Calendar, Docs, Sheets, Slides, Tasks, and more.",
+    summary:
+      "Provides a safety-tiered command reference for the gws CLI with auto-execute for reads, confirmation gates for creates, dry-run enforcement for modifications, and explicit-request-only rules for deletes. Emphasizes runtime schema discovery via gws schema so Claude learns any API surface on demand.",
+    tags: ["Google Workspace", "Gmail", "Drive", "Calendar", "CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "gws CLI (npm install -g @googleworkspace/cli)",
+    ],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/gws/SKILL.md) to ~/.claude/skills/gws/",
+      "Install the gws CLI: npm install -g @googleworkspace/cli",
+      "Authenticate: gws auth login",
+      "Run /gws to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/gws
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/gws/SKILL.md \\
+  -o ~/.claude/skills/gws/SKILL.md
+
+# Usage
+/gws`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "memory-architecture",
+    name: "/memory-architecture",
+    category: "skill",
+    description:
+      "Design and configure a two-tier persistent memory system for Claude sessions using rules and a vector database.",
+    summary:
+      "Explains why single-layer memory fails and how to combine rule-based triggers (CLAUDE.md and rules directories) with a SQLite-vec vector database for persistent recall across sessions. Covers hybrid search weight tuning and a session-restart pattern for debugging sessions that stall after multiple failed hypotheses.",
+    tags: ["Memory", "Vector Database", "SQLite", "Persistence", "MCP"],
+    dependencies: ["Claude Code CLI", "mcp-memory-service MCP server"],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/memory-architecture/SKILL.md) to ~/.claude/skills/memory-architecture/",
+      "Install and configure mcp-memory-service",
+      "Run /memory-architecture to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/memory-architecture
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/memory-architecture/SKILL.md \\
+  -o ~/.claude/skills/memory-architecture/SKILL.md
+
+# Usage
+/memory-architecture`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "multi-agent-orchestration",
+    name: "/multi-agent-orchestration",
+    category: "skill",
+    description:
+      "Patterns for structuring multi-agent teams with phase gating, dependency mapping, sandbox constraints, and infrastructure selection.",
+    summary:
+      "Covers four structural patterns for large parallel builds: a four-phase gate sequence (plan, build, review, polish), dependency mapping before spawning parallel streams, a return-content-as-output workaround for restricted paths, and a comparison of Channels, Remote Control, and Dispatch modes for choosing the right agent infrastructure.",
+    tags: ["Multi-Agent", "Orchestration", "Phase Gating", "Parallel", "Architecture"],
+    dependencies: ["Claude Code CLI"],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/multi-agent-orchestration/SKILL.md) to ~/.claude/skills/multi-agent-orchestration/",
+      "Run /multi-agent-orchestration to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/multi-agent-orchestration
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/multi-agent-orchestration/SKILL.md \\
+  -o ~/.claude/skills/multi-agent-orchestration/SKILL.md
+
+# Usage
+/multi-agent-orchestration`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "notebooklm-content-skill",
+    name: "/notebooklm-content",
+    category: "skill",
+    description:
+      "Create branded infographics and slide decks from blog posts using Google NotebookLM.",
+    summary:
+      "Accepts a blog post slug or MDX file path, loads the content into a NotebookLM notebook via MCP, primes it with branding guidelines, and generates infographics or slide decks. Output goes through a QA review cycle covering spelling, accuracy, brand compliance, and DLP scanning before delivery.",
+    tags: ["NotebookLM", "Content", "Infographic", "Slides", "Blog"],
+    dependencies: [
+      "Claude Code CLI",
+      "[notebooklm-content agent](https://github.com/chris2ao/claude-code-config/blob/master/agents/notebooklm-content.md)",
+      "notebooklm MCP server",
+    ],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/notebooklm-content/SKILL.md) to ~/.claude/skills/notebooklm-content/",
+      "Download [notebooklm-content.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/notebooklm-content.md) to ~/.claude/agents/",
+      "Install notebooklm MCP server and authenticate",
+      "Run /notebooklm-content to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/notebooklm-content
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/notebooklm-content/SKILL.md \\
+  -o ~/.claude/skills/notebooklm-content/SKILL.md
+
+# Usage
+/notebooklm-content`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "openclaw-ops",
+    name: "/openclaw-ops",
+    category: "skill",
+    description:
+      "Configuration gotchas and operational patterns for OpenClaw multi-agent systems.",
+    summary:
+      "Documents four non-obvious failure modes in OpenClaw: the doctor command reverting manual config, the correct nesting depth for memorySearch config, the double-nested agents.agents path when parsing status JSON, and a cron-based watchdog to restart Telegram long-polling connections that silently die after eight minutes idle.",
+    tags: ["OpenClaw", "Multi-Agent", "Telegram", "Configuration", "Operations"],
+    dependencies: ["Claude Code CLI", "OpenClaw (multi-agent runtime)"],
+    integrationSteps: [
+      "Download [SKILL.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/openclaw-ops/SKILL.md) to ~/.claude/skills/openclaw-ops/",
+      "Run /openclaw-ops to invoke",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/skills/openclaw-ops
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/openclaw-ops/SKILL.md \\
+  -o ~/.claude/skills/openclaw-ops/SKILL.md
+
+# Usage
+/openclaw-ops`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -209,14 +535,20 @@ cp commands/ingest-sessions.md ~/.claude/commands/
     summary:
       "A lightweight agent assigned to the Haiku model for fast, cost-effective changelog generation. It reads git diffs between the last tag and HEAD, categorizes changes (added, changed, fixed, removed), and appends a properly formatted entry to CHANGELOG.md following the Keep a Changelog convention. Designed to run as part of the /wrap-up workflow but can be invoked standalone.",
     tags: ["Git", "Documentation", "Automation"],
-    dependencies: ["Claude Code CLI", "Git"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "[changelog-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/changelog-writer.md)",
+    ],
     integrationSteps: [
-      "Copy agents/changelog-writer.md to ~/.claude/agents/",
+      "Download [changelog-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/changelog-writer.md) to ~/.claude/agents/",
       "The agent is auto-invoked by /wrap-up or can be called via Task tool",
       "Ensure your repo has a CHANGELOG.md file initialized",
     ],
     codeSnippet: `# Install
-cp agents/changelog-writer.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/changelog-writer.md \\
+  -o ~/.claude/agents/changelog-writer.md
 
 # The agent is invoked automatically via the Task tool:
 # Task(subagent_type="changelog-writer", model="haiku")`,
@@ -232,14 +564,21 @@ cp agents/changelog-writer.md ~/.claude/agents/
     summary:
       "Coordinates git operations (pull, status, push, branch cleanup) across multiple repositories in parallel. Uses Haiku for cost efficiency since git operations don't need complex reasoning. Each repo gets its own Task agent, and results are aggregated into a unified report. Supports custom operations via prompt injection.",
     tags: ["Git", "DevOps", "Multi-Repo", "Automation"],
-    dependencies: ["Claude Code CLI", "Git", "Multiple cloned repositories"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "[multi-repo-orchestrator.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/multi-repo-orchestrator.md)",
+      "Multiple cloned repositories",
+    ],
     integrationSteps: [
-      "Copy agents/multi-repo-orchestrator.md to ~/.claude/agents/",
+      "Download [multi-repo-orchestrator.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/multi-repo-orchestrator.md) to ~/.claude/agents/",
       "Update the repo paths list in the agent definition",
       "Invoke via Task tool or through /multi-repo-status skill",
     ],
     codeSnippet: `# Install
-cp agents/multi-repo-orchestrator.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/multi-repo-orchestrator.md \\
+  -o ~/.claude/agents/multi-repo-orchestrator.md
 
 # Invoked via Task tool with specific operations
 # Task(subagent_type="multi-repo-orchestrator")`,
@@ -255,14 +594,20 @@ cp agents/multi-repo-orchestrator.md ~/.claude/agents/
     summary:
       "A Sonnet-class agent that reads session archive transcripts and extracts recurring patterns, debugging strategies, and workflow optimizations. Identifies what went well, what was repeated unnecessarily, and what could be automated. Produces structured output that feeds into the skill-extractor agent for creating new learned skills.",
     tags: ["Session Management", "Analysis", "Learning"],
-    dependencies: ["Claude Code CLI", "Session archive transcripts"],
+    dependencies: [
+      "Claude Code CLI",
+      "[session-analyzer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/session-analyzer.md)",
+      "Session archive transcripts",
+    ],
     integrationSteps: [
-      "Copy agents/session-analyzer.md to ~/.claude/agents/",
+      "Download [session-analyzer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/session-analyzer.md) to ~/.claude/agents/",
       "Ensure session transcripts are archived (see hooks.md)",
       "Run via Task tool pointing to a transcript directory",
     ],
     codeSnippet: `# Install
-cp agents/session-analyzer.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/session-analyzer.md \\
+  -o ~/.claude/agents/session-analyzer.md
 
 # Analyze a specific session transcript
 # Task(subagent_type="session-analyzer", model="sonnet")`,
@@ -278,14 +623,20 @@ cp agents/session-analyzer.md ~/.claude/agents/
     summary:
       "A Haiku-powered agent that runs after deployments to verify the production site is functioning correctly. Checks HTTP status codes, validates critical pages load, verifies security headers (CSP, HSTS), tests API endpoints, and confirms assets are served correctly. Reports any issues found with severity levels.",
     tags: ["CI/CD", "DevOps", "Security", "Verification"],
-    dependencies: ["Claude Code CLI", "curl or web fetch capability"],
+    dependencies: [
+      "Claude Code CLI",
+      "[deploy-verifier.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/deploy-verifier.md)",
+      "curl or web fetch capability",
+    ],
     integrationSteps: [
-      "Copy agents/deploy-verifier.md to ~/.claude/agents/",
+      "Download [deploy-verifier.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/deploy-verifier.md) to ~/.claude/agents/",
       "Update the target URL to your production domain",
       "Run after each deployment or integrate into CI pipeline",
     ],
     codeSnippet: `# Install
-cp agents/deploy-verifier.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/deploy-verifier.md \\
+  -o ~/.claude/agents/deploy-verifier.md
 
 # Run post-deploy verification
 # Task(subagent_type="deploy-verifier", model="haiku")`,
@@ -301,14 +652,21 @@ cp agents/deploy-verifier.md ~/.claude/agents/
     summary:
       "Compares your local Claude Code configuration files against the canonical versions in the claude-code-config git repository. Identifies added, modified, and deleted files, then produces a diff report. Helps prevent configuration drift when you make local tweaks that should be committed back to the repo, or when the repo has updates you haven't pulled.",
     tags: ["DevOps", "Configuration", "Git", "Automation"],
-    dependencies: ["Claude Code CLI", "Git", "claude-code-config repo cloned"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "[config-sync.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/config-sync.md)",
+      "claude-code-config repo cloned",
+    ],
     integrationSteps: [
-      "Copy agents/config-sync.md to ~/.claude/agents/",
+      "Download [config-sync.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/config-sync.md) to ~/.claude/agents/",
       "Clone claude-code-config repo to a known path",
       "Run to detect drift between local config and repo",
     ],
     codeSnippet: `# Install
-cp agents/config-sync.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/config-sync.md \\
+  -o ~/.claude/agents/config-sync.md
 
 # Detect config drift
 # Task(subagent_type="config-sync", model="haiku")`,
@@ -324,14 +682,19 @@ cp agents/config-sync.md ~/.claude/agents/
     summary:
       "Tracks context window consumption during long sessions and alerts when you're approaching limits. Suggests ideal points to compact the conversation, identifies which parts of context are most valuable to preserve, and recommends when to start a fresh session. Runs on Haiku for minimal overhead.",
     tags: ["Performance", "Session Management", "Automation"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[context-health.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/context-health.md)",
+    ],
     integrationSteps: [
-      "Copy agents/context-health.md to ~/.claude/agents/",
+      "Download [context-health.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/context-health.md) to ~/.claude/agents/",
       "Invoke periodically during long sessions",
       "Follow compaction suggestions to maintain session quality",
     ],
     codeSnippet: `# Install
-cp agents/context-health.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/context-health.md \\
+  -o ~/.claude/agents/context-health.md
 
 # Check context health mid-session
 # Task(subagent_type="context-health", model="haiku")`,
@@ -345,21 +708,24 @@ cp agents/context-health.md ~/.claude/agents/
     description:
       "Extracts debugging instincts from session transcripts and creates reusable learned skills.",
     summary:
-      "The Homunculus v2 agent — named for the idea of creating a 'little person' inside Claude who remembers hard-won debugging knowledge. Analyzes session transcripts for moments where you hit a wall, found a non-obvious solution, or discovered a platform gotcha. Produces structured learned skill files with the problem, the wrong approach, and the correct fix. These skills are loaded into future sessions so you never debug the same issue twice.",
+      "The Homunculus v2 agent named for the idea of creating a 'little person' inside Claude who remembers hard-won debugging knowledge. Analyzes session transcripts for moments where you hit a wall, found a non-obvious solution, or discovered a platform gotcha. Produces structured learned skill files with the problem, the wrong approach, and the correct fix. These skills are loaded into future sessions so you never debug the same issue twice.",
     tags: ["Learning", "Documentation", "Session Management", "Automation"],
     dependencies: [
       "Claude Code CLI",
+      "[skill-extractor.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/skill-extractor.md)",
       "Session archive transcripts",
       "skills/learned/ directory",
     ],
     integrationSteps: [
-      "Copy agents/skill-extractor.md to ~/.claude/agents/",
+      "Download [skill-extractor.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/skill-extractor.md) to ~/.claude/agents/",
       "Ensure session transcripts are being archived",
       "Run after difficult debugging sessions to capture learnings",
       "Review extracted skills in skills/learned/",
     ],
     codeSnippet: `# Install
-cp agents/skill-extractor.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/skill-extractor.md \\
+  -o ~/.claude/agents/skill-extractor.md
 
 # Extract skills from a session transcript
 # Task(subagent_type="skill-extractor", model="sonnet")`,
@@ -368,28 +734,36 @@ cp agents/skill-extractor.md ~/.claude/agents/
   },
   {
     id: "blog-post-orchestrator",
-    name: "Blog Post Orchestrator",
+    name: "Blog Captain (blog-captain)",
     category: "agent",
     description:
-      "Orchestrates the full blog post creation pipeline from ideation to published MDX.",
+      "Opus-class captain that orchestrates the full blog post pipeline across five specialist agents.",
     summary:
-      "A meta-agent that coordinates the entire blog post workflow. Delegates to specialized sub-agents for content research, outline generation, prose writing, MDX formatting, image sourcing, and SEO optimization. Ensures consistent style guide adherence and proper frontmatter generation.",
+      "The blog-captain agent runs as the director of the /blog-post skill's five-agent team. It uses the game-director pattern: runs a six-phase pipeline (discover, outline, write, voice-check, edit, UX-verify), gates between phases, runs up to two revision cycles, and delivers a finished MDX file. Delegates prose to blog-writer (Sonnet), voice scoring to blog-voice, editorial review to blog-editor, and build validation to blog-ux.",
     tags: ["Blog", "Content", "Orchestration", "Automation"],
     dependencies: [
       "Claude Code CLI",
-      "blog-style-guide.md",
-      "blog-mdx-reference.md",
+      "[blog-captain.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-captain.md)",
+      "[blog-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-writer.md)",
+      "[blog-voice.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-voice.md)",
+      "[blog-editor.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-editor.md)",
+      "[blog-ux.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-ux.md)",
     ],
     integrationSteps: [
-      "Copy agents/blog-post-orchestrator.md to ~/.claude/agents/",
-      "Ensure blog style guide and MDX reference are in place",
-      "Invoke via Task tool for full pipeline execution",
+      "Download [blog-captain.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-captain.md) to ~/.claude/agents/",
+      "Download the remaining blog team agents (blog-writer, blog-voice, blog-editor, blog-ux) to ~/.claude/agents/",
+      "Invoke via /blog-post skill or directly via Task tool",
     ],
-    codeSnippet: `# Install
-cp agents/blog-post-orchestrator.md ~/.claude/agents/
+    codeSnippet: `# Install blog captain + full team
+mkdir -p ~/.claude/agents
+for agent in blog-captain blog-writer blog-voice blog-editor blog-ux; do
+  curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/\\$agent.md \\
+    -o ~/.claude/agents/\\$agent.md
+done
 
-# Run the orchestrator
-# Task(subagent_type="blog-post-orchestrator")`,
+# Invoked automatically by /blog-post skill
+# or directly:
+# Task(subagent_type="blog-captain", model="opus")`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -402,14 +776,20 @@ cp agents/blog-post-orchestrator.md ~/.claude/agents/
     summary:
       "Scans staged files for security issues (hardcoded secrets, exposed API keys, path traversal vulnerabilities), code quality problems (unused imports, console.log statements), and style violations before allowing a commit. Uses the security.md rules as its checklist. Lightweight enough to run on Haiku without noticeable delay.",
     tags: ["Security", "Git", "Quality", "Automation"],
-    dependencies: ["Claude Code CLI", "Git"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "[pre-commit-checker.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/pre-commit-checker.md)",
+    ],
     integrationSteps: [
-      "Copy agents/pre-commit-checker.md to ~/.claude/agents/",
+      "Download [pre-commit-checker.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/pre-commit-checker.md) to ~/.claude/agents/",
       "Configure as a pre-commit hook or invoke manually before commits",
       "Review flagged issues and fix before committing",
     ],
     codeSnippet: `# Install
-cp agents/pre-commit-checker.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/pre-commit-checker.md \\
+  -o ~/.claude/agents/pre-commit-checker.md
 
 # Runs automatically via hook or manually:
 # Task(subagent_type="pre-commit-checker", model="haiku")`,
@@ -423,16 +803,21 @@ cp agents/pre-commit-checker.md ~/.claude/agents/
     description:
       "Creates mid-session state snapshots for recovery and context preservation.",
     summary:
-      "Captures the current state of your working session — open tasks, modified files, in-progress reasoning, and conversation highlights — into a checkpoint file. Useful for long sessions where you might need to context-switch or recover from a crash. Checkpoints can be loaded into new sessions to resume where you left off.",
+      "Captures the current state of your working session (open tasks, modified files, in-progress reasoning, and conversation highlights) into a checkpoint file. Useful for long sessions where you might need to context-switch or recover from a crash. Checkpoints can be loaded into new sessions to resume where you left off.",
     tags: ["Session Management", "Recovery", "Automation"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[session-checkpoint.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/session-checkpoint.md)",
+    ],
     integrationSteps: [
-      "Copy agents/session-checkpoint.md to ~/.claude/agents/",
+      "Download [session-checkpoint.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/session-checkpoint.md) to ~/.claude/agents/",
       "Invoke periodically during long sessions",
       "Load checkpoint files when resuming work",
     ],
     codeSnippet: `# Install
-cp agents/session-checkpoint.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/session-checkpoint.md \\
+  -o ~/.claude/agents/session-checkpoint.md
 
 # Create a checkpoint
 # Task(subagent_type="session-checkpoint")`,
@@ -451,15 +836,18 @@ cp agents/session-checkpoint.md ~/.claude/agents/
     dependencies: [
       "Claude Code CLI",
       "Git",
-      "config-sync agent",
+      "[sync-orchestrator.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/sync-orchestrator.md)",
+      "[config-sync.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/config-sync.md)",
     ],
     integrationSteps: [
-      "Copy agents/sync-orchestrator.md to ~/.claude/agents/",
+      "Download [sync-orchestrator.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/sync-orchestrator.md) to ~/.claude/agents/",
       "Ensure config-sync agent is installed",
       "Run when setting up a new machine or after repo updates",
     ],
     codeSnippet: `# Install
-cp agents/sync-orchestrator.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/sync-orchestrator.md \\
+  -o ~/.claude/agents/sync-orchestrator.md
 
 # Synchronize configurations
 # Task(subagent_type="sync-orchestrator")`,
@@ -475,14 +863,20 @@ cp agents/sync-orchestrator.md ~/.claude/agents/
     summary:
       "Keeps your home directory's .claude/ configuration in sync with the claude-code-config git repository. Detects local changes that need to be committed upstream and repo changes that need to be pulled down. Handles the bidirectional sync with conflict resolution prompts.",
     tags: ["DevOps", "Configuration", "Git", "Automation"],
-    dependencies: ["Claude Code CLI", "Git"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "[home-sync.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/home-sync.md)",
+    ],
     integrationSteps: [
-      "Copy agents/home-sync.md to ~/.claude/agents/",
+      "Download [home-sync.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/home-sync.md) to ~/.claude/agents/",
       "Clone claude-code-config to a known path",
       "Run periodically to keep configs in sync",
     ],
     codeSnippet: `# Install
-cp agents/home-sync.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/home-sync.md \\
+  -o ~/.claude/agents/home-sync.md
 
 # Sync home config with repo
 # Task(subagent_type="home-sync")`,
@@ -494,26 +888,435 @@ cp agents/home-sync.md ~/.claude/agents/
     name: "Wrap-Up Orchestrator",
     category: "agent",
     description:
-      "Coordinates all wrap-up sub-agents for comprehensive end-of-session cleanup.",
+      "Multi-repo housekeeping: updates CHANGELOG, README, saves memory delta, commits, and pushes all repos.",
     summary:
-      "The master orchestrator for the /wrap-up skill. Coordinates the changelog-writer, skill-extractor, config-sync, and multi-repo-orchestrator agents in the correct sequence. Ensures all documentation is updated, all repos are clean, and all learnings are captured before the session ends.",
-    tags: ["Session Management", "Orchestration", "Automation"],
+      "The master orchestrator for the /wrap-up skill. Iterates over all configured repos and, for each, pulls latest, updates CHANGELOG.md (via changelog-writer), extracts new instincts (via skill-extractor), syncs MEMORY.md, stages changes, and commits with a structured message. Runs each repo's operations in parallel for speed, then sequentially pushes to avoid race conditions.",
+    tags: ["Wrap-Up", "Git", "Automation", "Multi-Repo"],
     dependencies: [
       "Claude Code CLI",
-      "changelog-writer agent",
-      "skill-extractor agent",
-      "config-sync agent",
+      "[wrap-up-orchestrator.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/wrap-up-orchestrator.md)",
+      "[changelog-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/changelog-writer.md)",
+      "[skill-extractor.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/skill-extractor.md)",
     ],
     integrationSteps: [
-      "Copy agents/wrap-up-orchestrator.md to ~/.claude/agents/",
-      "Ensure all dependent agents are installed",
+      "Download [wrap-up-orchestrator.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/wrap-up-orchestrator.md) to ~/.claude/agents/",
+      "Download changelog-writer and skill-extractor agents to ~/.claude/agents/",
       "Automatically invoked by /wrap-up skill",
     ],
     codeSnippet: `# Install
-cp agents/wrap-up-orchestrator.md ~/.claude/agents/
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/wrap-up-orchestrator.md \\
+  -o ~/.claude/agents/wrap-up-orchestrator.md
 
 # Invoked automatically by /wrap-up
 # Task(subagent_type="wrap-up-orchestrator")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "blog-editor",
+    name: "Blog Editor",
+    category: "agent",
+    description:
+      "Reviews blog drafts for hook strength, pacing, entertainment value, and factual accuracy.",
+    summary:
+      "A specialist agent in the /blog-post five-agent team. Scores each draft on four dimensions: hook strength (does the opening grab attention?), pacing (does the article flow without drag?), entertainment (is it genuinely engaging?), and accuracy (are technical claims correct?). Returns a numeric score and a list of specific revision requests for the blog-writer.",
+    tags: ["Blog", "Content", "Writing", "QA"],
+    dependencies: [
+      "Claude Code CLI",
+      "[blog-editor.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-editor.md)",
+    ],
+    integrationSteps: [
+      "Download [blog-editor.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-editor.md) to ~/.claude/agents/",
+      "Agent is invoked automatically by blog-captain during the /blog-post pipeline",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/blog-editor.md \\
+  -o ~/.claude/agents/blog-editor.md
+
+# Invoked by blog-captain (not called directly)
+# Task(subagent_type="blog-editor", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "blog-ux",
+    name: "Blog UX Reviewer",
+    category: "agent",
+    description:
+      "Build verification and MDX structural analysis for blog posts.",
+    summary:
+      "The final gate in the /blog-post pipeline. Runs a build check (next build or next lint), validates MDX structure (all imports present, no unclosed tags, frontmatter fields complete), checks image alt text, and verifies series navigation links are correct. Reports pass or fail with a specific list of issues that block publishing.",
+    tags: ["Blog", "MDX", "Build Verification", "UX"],
+    dependencies: [
+      "Claude Code CLI",
+      "[blog-ux.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-ux.md)",
+      "Node.js",
+    ],
+    integrationSteps: [
+      "Download [blog-ux.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-ux.md) to ~/.claude/agents/",
+      "Agent is invoked automatically by blog-captain as the final pipeline phase",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/blog-ux.md \\
+  -o ~/.claude/agents/blog-ux.md
+
+# Invoked by blog-captain as the UX gate
+# Task(subagent_type="blog-ux", model="haiku")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "blog-voice",
+    name: "Blog Voice Guardian",
+    category: "agent",
+    description:
+      "Maintains the living voice profile and scores blog drafts for voice consistency.",
+    summary:
+      "Reads the living voice profile (blog-voice-profile.md seeded from the full post archive) and scores each draft for consistency on tone, vocabulary, sentence rhythm, and personal-setup framing. Returns a voice score plus specific phrases to change. Also proposes additive-only updates to the voice profile when a draft introduces a new idiom or convention worth preserving.",
+    tags: ["Blog", "Voice", "Writing Style", "Content"],
+    dependencies: [
+      "Claude Code CLI",
+      "[blog-voice.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-voice.md)",
+      "[blog-voice-profile.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/blog-voice-profile.md)",
+    ],
+    integrationSteps: [
+      "Download [blog-voice.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-voice.md) to ~/.claude/agents/",
+      "Download [blog-voice-profile.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/blog-voice-profile.md) to ~/.claude/skills/",
+      "Agent is invoked automatically by blog-captain",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents ~/.claude/skills
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/blog-voice.md \\
+  -o ~/.claude/agents/blog-voice.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/blog-voice-profile.md \\
+  -o ~/.claude/skills/blog-voice-profile.md
+
+# Invoked by blog-captain for voice scoring
+# Task(subagent_type="blog-voice", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "blog-writer",
+    name: "Blog Writer",
+    category: "agent",
+    description:
+      "Drafts and revises MDX blog posts following the established style guide.",
+    summary:
+      "The prose engine of the /blog-post team. Receives an outline from blog-captain, reads 2-3 recent posts for tone calibration, and produces complete MDX drafts with proper frontmatter, callout components, and code blocks. Also handles revision cycles based on feedback from blog-editor and blog-voice. Always runs on Sonnet for the best writing quality.",
+    tags: ["Blog", "Writing", "MDX", "Content"],
+    dependencies: [
+      "Claude Code CLI",
+      "[blog-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-writer.md)",
+      "[blog-style-guide.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/blog-style-guide.md)",
+    ],
+    integrationSteps: [
+      "Download [blog-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/blog-writer.md) to ~/.claude/agents/",
+      "Download [blog-style-guide.md](https://github.com/chris2ao/claude-code-config/blob/master/skills/blog-style-guide.md) to ~/.claude/skills/",
+      "Agent is invoked automatically by blog-captain",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents ~/.claude/skills
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/blog-writer.md \\
+  -o ~/.claude/agents/blog-writer.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/skills/blog-style-guide.md \\
+  -o ~/.claude/skills/blog-style-guide.md
+
+# Invoked by blog-captain for prose drafting
+# Task(subagent_type="blog-writer", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "evolve-synthesizer",
+    name: "Evolve Synthesizer",
+    category: "agent",
+    description:
+      "Clusters Homunculus instincts and generates evolved agents, skills, and commands.",
+    summary:
+      "The intelligence layer of the /evolve command. Reads all instinct files from the Homunculus pipeline, performs semantic clustering to find recurring behavioral patterns, and generates candidate evolved agents, skills, and commands. Each candidate includes reasoning for why the pattern warrants a new component. The captain reviews candidates before any are promoted to the active configuration.",
+    tags: ["Homunculus", "Learning", "Agent Generation", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "[evolve-synthesizer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/evolve-synthesizer.md)",
+      "Homunculus instinct files in ~/.claude/homunculus/instincts/",
+    ],
+    integrationSteps: [
+      "Download [evolve-synthesizer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/evolve-synthesizer.md) to ~/.claude/agents/",
+      "Ensure instincts are being captured via the observe-homunculus hook",
+      "Run /evolve to invoke and review candidates",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/evolve-synthesizer.md \\
+  -o ~/.claude/agents/evolve-synthesizer.md
+
+# Invoked by /evolve command
+# Task(subagent_type="evolve-synthesizer", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-artist",
+    name: "Game Artist",
+    category: "agent",
+    description:
+      "Visual layer specialist: rendering, sprites, particles, and CSS animations.",
+    summary:
+      "Part of the /game-dev six-agent team. Responsible for the visual presentation of the game: Canvas 2D rendering pipelines, sprite sheet management, particle systems, CSS animations, color palettes, and responsive layouts. Works from the game-designer's TypeScript interfaces and produces visual components that the game-developer integrates into the engine.",
+    tags: ["Game Dev", "Canvas", "Rendering", "CSS"],
+    dependencies: [
+      "Claude Code CLI",
+      "[game-artist.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-artist.md)",
+    ],
+    integrationSteps: [
+      "Download [game-artist.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-artist.md) to ~/.claude/agents/",
+      "Agent is invoked by game-director when the /game-dev skill runs",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/game-artist.md \\
+  -o ~/.claude/agents/game-artist.md
+
+# Invoked by game-director
+# Task(subagent_type="game-artist", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-designer",
+    name: "Game Designer",
+    category: "agent",
+    description:
+      "Design specs: core loop, mechanics, balance, and TypeScript interfaces.",
+    summary:
+      "Part of the /game-dev team. Authors the game design document, defines the core gameplay loop, specifies mechanics and balance parameters, and produces TypeScript interface definitions that all other agents implement. Ensures the game is fun and achievable within the team's time budget.",
+    tags: ["Game Dev", "Design", "Mechanics", "TypeScript"],
+    dependencies: [
+      "Claude Code CLI",
+      "[game-designer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-designer.md)",
+    ],
+    integrationSteps: [
+      "Download [game-designer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-designer.md) to ~/.claude/agents/",
+      "Agent is invoked by game-director as the first phase",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/game-designer.md \\
+  -o ~/.claude/agents/game-designer.md
+
+# Invoked by game-director in the design phase
+# Task(subagent_type="game-designer", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-developer",
+    name: "Game Developer",
+    category: "agent",
+    description:
+      "Engine, state management, game loop, physics, AI, and TDD implementation.",
+    summary:
+      "The core implementation agent of the /game-dev team. Implements the game engine, state machine, game loop (requestAnimationFrame), physics, enemy AI, collision detection, and all game logic. Follows TDD: writes tests first, then implementation. Uses TypeScript with strict mode and the interfaces defined by game-designer.",
+    tags: ["Game Dev", "TypeScript", "TDD", "State Management"],
+    dependencies: [
+      "Claude Code CLI",
+      "[game-developer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-developer.md)",
+    ],
+    integrationSteps: [
+      "Download [game-developer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-developer.md) to ~/.claude/agents/",
+      "Agent is invoked by game-director for engine implementation",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/game-developer.md \\
+  -o ~/.claude/agents/game-developer.md
+
+# Invoked by game-director for core engine work
+# Task(subagent_type="game-developer", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-director",
+    name: "Game Director",
+    category: "agent",
+    description:
+      "Captain that orchestrates the full game team across create, fix, debug, and add modes.",
+    summary:
+      "The orchestration layer of the /game-dev skill. Reads the user's mode (create, fix, debug, add) and project path, selects the appropriate team composition (from a two-person pair up to the full six-agent studio), and coordinates parallel execution across game-designer, game-developer, game-artist, game-writer, and game-ux. Uses phase gating to ensure dependencies are resolved before each phase starts.",
+    tags: ["Game Dev", "Orchestration", "Multi-Agent", "Architecture"],
+    dependencies: [
+      "Claude Code CLI",
+      "[game-director.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-director.md)",
+      "[game-developer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-developer.md)",
+      "[game-artist.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-artist.md)",
+    ],
+    integrationSteps: [
+      "Download [game-director.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-director.md) to ~/.claude/agents/",
+      "Download all game team agents to ~/.claude/agents/",
+      "Invoked automatically by the /game-dev skill",
+    ],
+    codeSnippet: `# Install full game team
+mkdir -p ~/.claude/agents
+for agent in game-director game-developer game-artist game-designer game-writer game-ux; do
+  curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/\\$agent.md \\
+    -o ~/.claude/agents/\\$agent.md
+done
+
+# Task(subagent_type="game-director", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-ux",
+    name: "Game UX Designer",
+    category: "agent",
+    description:
+      "UI, menus, HUD, input handling, and accessibility for web games.",
+    summary:
+      "Part of the /game-dev team. Designs and implements all user-facing UI: main menu, pause screen, HUD overlays, score displays, settings panels, and tutorial tooltips. Handles keyboard, mouse, touch, and gamepad input mapping. Ensures all interactive elements are accessible and keyboard-navigable.",
+    tags: ["Game Dev", "React", "UX", "Accessibility"],
+    dependencies: [
+      "Claude Code CLI",
+      "[game-ux.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-ux.md)",
+    ],
+    integrationSteps: [
+      "Download [game-ux.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-ux.md) to ~/.claude/agents/",
+      "Agent is invoked by game-director for UI phases",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/game-ux.md \\
+  -o ~/.claude/agents/game-ux.md
+
+# Invoked by game-director for UI work
+# Task(subagent_type="game-ux", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "game-writer",
+    name: "Game Writer",
+    category: "agent",
+    description:
+      "Narrative, dialogue, world-building, and tutorial text as TypeScript data.",
+    summary:
+      "Part of the /game-dev team. Writes all in-game text: story narrative, character dialogue trees, enemy flavor text, item descriptions, tutorial prompts, and achievement labels. Delivers content as typed TypeScript data structures (not raw strings) so the game-developer can consume it directly without parsing.",
+    tags: ["Game Dev", "Writing", "Narrative", "Dialogue"],
+    dependencies: [
+      "Claude Code CLI",
+      "[game-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-writer.md)",
+    ],
+    integrationSteps: [
+      "Download [game-writer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/game-writer.md) to ~/.claude/agents/",
+      "Agent is invoked by game-director when narrative content is needed",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/game-writer.md \\
+  -o ~/.claude/agents/game-writer.md
+
+# Invoked by game-director for narrative content
+# Task(subagent_type="game-writer", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "gmail-assistant",
+    name: "Gmail Assistant",
+    category: "agent",
+    description:
+      "Daily inbox cleanup: classifies emails, auto-labels 9 categories, VIP detection, follow-up tracking, and attention summary.",
+    summary:
+      "A comprehensive Gmail automation agent designed to run as a daily unattended batch job. Classifies every new email into one of 9 categories (newsletters, receipts, action required, FYI, calendar, promotions, social, support, other), applies Gmail labels, detects VIP senders based on reply history, flags follow-up items, and sends a single attention-required summary email. Uses Gmail batch API for efficiency and logs run metrics to JSONL.",
+    tags: ["Gmail", "Email", "Automation", "Productivity"],
+    dependencies: [
+      "Claude Code CLI",
+      "[gmail-assistant.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/gmail-assistant.md)",
+      "Gmail MCP server",
+      "Google OAuth credentials",
+    ],
+    integrationSteps: [
+      "Download [gmail-assistant.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/gmail-assistant.md) to ~/.claude/agents/",
+      "Configure Gmail MCP server with OAuth credentials",
+      "Schedule as a daily automated run via cron or launchd",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/gmail-assistant.md \\
+  -o ~/.claude/agents/gmail-assistant.md
+
+# Run manually:
+# Task(subagent_type="gmail-assistant", model="sonnet")
+
+# Or schedule daily (macOS launchd / Linux cron)`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "notebooklm-assistant",
+    name: "NotebookLM Assistant",
+    category: "agent",
+    description:
+      "General NotebookLM orchestrator for notebooks, sources, content generation, and research.",
+    summary:
+      "A general-purpose NotebookLM agent that handles the full range of NotebookLM operations: creating and managing notebooks, adding sources (URL, text, Drive, file), querying notebooks, generating audio overviews, and running cross-notebook research. Used as a foundation layer by the notebooklm-content agent for branded content generation.",
+    tags: ["NotebookLM", "Google", "Research", "Content Generation"],
+    dependencies: [
+      "Claude Code CLI",
+      "[notebooklm-assistant.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/notebooklm-assistant.md)",
+      "notebooklm MCP server",
+    ],
+    integrationSteps: [
+      "Download [notebooklm-assistant.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/notebooklm-assistant.md) to ~/.claude/agents/",
+      "Install notebooklm MCP server: claude mcp add notebooklm -- npx -y notebooklm-mcp",
+      "Authenticate: run nlm login in your terminal",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/notebooklm-assistant.md \\
+  -o ~/.claude/agents/notebooklm-assistant.md
+
+# Install MCP server
+claude mcp add notebooklm -- npx -y notebooklm-mcp
+
+# Authenticate
+nlm login
+
+# Task(subagent_type="notebooklm-assistant", model="sonnet")`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "notebooklm-content",
+    name: "NotebookLM Content Agent",
+    category: "agent",
+    description:
+      "Creates branded infographics and slide decks from blog posts with QA and DLP review.",
+    summary:
+      "A specialized agent that loads blog posts into NotebookLM, primes it with CryptoFlex LLC branding guidelines, and generates visual assets: infographics (used in blog posts), slide decks (used on LinkedIn), and audio overviews. Output goes through a QA cycle that checks for spelling errors, truncated words (a known NotebookLM issue), brand compliance, and a DLP scan for private information before delivery.",
+    tags: ["NotebookLM", "Content", "Brand", "Infographics", "DLP"],
+    dependencies: [
+      "Claude Code CLI",
+      "[notebooklm-content.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/notebooklm-content.md)",
+      "notebooklm MCP server",
+    ],
+    integrationSteps: [
+      "Download [notebooklm-content.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/notebooklm-content.md) to ~/.claude/agents/",
+      "Install notebooklm MCP server and authenticate (nlm login)",
+      "Invoked automatically by the /notebooklm-content skill",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/notebooklm-content.md \\
+  -o ~/.claude/agents/notebooklm-content.md
+
+# Invoked by /notebooklm-content skill
+# Task(subagent_type="notebooklm-content", model="sonnet")`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -528,14 +1331,20 @@ cp agents/wrap-up-orchestrator.md ~/.claude/agents/
     summary:
       "The original command implementation of the wrap-up workflow, maintained for backward compatibility with Claude Code versions that don't support the newer skills system. Functionally identical to the /wrap-up skill but uses the commands/ directory format with YAML frontmatter.",
     tags: ["Session Management", "Documentation", "Git", "Legacy"],
-    dependencies: ["Claude Code CLI", "Git"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "[wrap-up.md (command)](https://github.com/chris2ao/claude-code-config/blob/master/commands/wrap-up.md)",
+    ],
     integrationSteps: [
-      "Copy commands/wrap-up.md to ~/.claude/commands/",
+      "Download [wrap-up.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/wrap-up.md) to ~/.claude/commands/",
       "Ensure YAML frontmatter is present (required for commands)",
       "The skill version takes priority if both exist",
     ],
     codeSnippet: `# Install
-cp commands/wrap-up.md ~/.claude/commands/
+mkdir -p ~/.claude/commands
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/commands/wrap-up.md \\
+  -o ~/.claude/commands/wrap-up.md
 
 # Usage (if skill version not installed)
 /wrap-up`,
@@ -551,22 +1360,467 @@ cp commands/wrap-up.md ~/.claude/commands/
     summary:
       "The original command implementation of the blog post workflow. Maintained for environments that don't support the skills system. Uses YAML frontmatter format required by the commands/ directory.",
     tags: ["Blog", "Content", "MDX", "Legacy"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[blog-post.md (command)](https://github.com/chris2ao/claude-code-config/blob/master/commands/blog-post.md)",
+    ],
     integrationSteps: [
-      "Copy commands/blog-post.md to ~/.claude/commands/",
+      "Download [blog-post.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/blog-post.md) to ~/.claude/commands/",
       "Ensure YAML frontmatter is present",
       "The skill version takes priority if both exist",
     ],
     codeSnippet: `# Install
-cp commands/blog-post.md ~/.claude/commands/
+mkdir -p ~/.claude/commands
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/commands/blog-post.md \\
+  -o ~/.claude/commands/blog-post.md
 
 # Usage (if skill version not installed)
 /blog-post`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
+  {
+    id: "cmd-claude-config-sync",
+    name: "/claude-config-sync",
+    category: "command",
+    description:
+      "Syncs live ~/.claude/ configuration to the claude-code-config repo with parallel agents.",
+    summary:
+      "Orchestrates a full config sync from your live ~/.claude/ directory to the canonical claude-code-config repository. Spawns parallel agents to diff, copy, and stage changes for each component type (agents, skills, commands, hooks, rules). Skips secrets and platform-specific files. Commits and pushes when done.",
+    tags: ["Config Sync", "Git", "Automation", "DevOps"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "[claude-config-sync.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/claude-config-sync.md)",
+    ],
+    integrationSteps: [
+      "Download [claude-config-sync.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/claude-config-sync.md) to ~/.claude/commands/",
+      "Ensure claude-code-config repo is cloned locally",
+      "Run /claude-config-sync to sync live config to repo",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/commands
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/commands/claude-config-sync.md \\
+  -o ~/.claude/commands/claude-config-sync.md
+
+# Usage
+/claude-config-sync`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "cmd-evolve",
+    name: "/evolve",
+    category: "command",
+    description:
+      "Clusters Homunculus instincts into evolved skills, agents, and commands.",
+    summary:
+      "Triggers the Homunculus evolution pipeline. Reads instinct files, invokes the evolve-synthesizer agent to cluster them, presents candidate evolved components for review, and writes accepted candidates to the evolved/ staging directory. Supports full (reprocess all instincts) and incremental (only new instincts since last run) modes.",
+    tags: ["Homunculus", "Learning", "Agent Generation", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "[evolve.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/evolve.md)",
+      "[evolve-synthesizer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/evolve-synthesizer.md)",
+    ],
+    integrationSteps: [
+      "Download [evolve.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/evolve.md) to ~/.claude/commands/",
+      "Download [evolve-synthesizer.md](https://github.com/chris2ao/claude-code-config/blob/master/agents/evolve-synthesizer.md) to ~/.claude/agents/",
+      "Run /evolve to cluster instincts and generate candidates",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/commands ~/.claude/agents
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/commands/evolve.md \\
+  -o ~/.claude/commands/evolve.md
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/agents/evolve-synthesizer.md \\
+  -o ~/.claude/agents/evolve-synthesizer.md
+
+# Usage
+/evolve
+/evolve full`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "cmd-kb-article",
+    name: "/kb-article",
+    category: "command",
+    description:
+      "Authors a knowledge base article with YAML frontmatter and canonical tags.",
+    summary:
+      "Creates a structured knowledge base article in the project's KB directory. Prompts for title, category, and content, then produces a Markdown file with proper YAML frontmatter (title, date, tags, related articles). Enforces a consistent KB article format across the knowledge base.",
+    tags: ["Documentation", "Knowledge Base", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "[kb-article.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/kb-article.md)",
+    ],
+    integrationSteps: [
+      "Download [kb-article.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/kb-article.md) to ~/.claude/commands/",
+      "Run /kb-article and follow the prompts",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/commands
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/commands/kb-article.md \\
+  -o ~/.claude/commands/kb-article.md
+
+# Usage
+/kb-article`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "cmd-knowledge-graph-sync",
+    name: "/Knowledge-Graph-Sync",
+    category: "command",
+    description:
+      "Reconciles the MCP knowledge graph against actual files on disk.",
+    summary:
+      "Runs a five-phase reconciliation between the knowledge graph (MCP memory server) and the actual files in ~/.claude/. Phase 1 reads the graph. Phase 2 scans disk files. Phase 3 identifies drift (missing entities, stale paths, incorrect descriptions). Phase 4 prompts for approval. Phase 5 applies updates. Prevents the KG from accumulating stale entries as the config evolves.",
+    tags: ["Knowledge Graph", "Memory", "Automation", "DevOps"],
+    dependencies: [
+      "Claude Code CLI",
+      "[Knowledge-Graph-Sync.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/Knowledge-Graph-Sync.md)",
+      "memory MCP server (knowledge graph)",
+    ],
+    integrationSteps: [
+      "Download [Knowledge-Graph-Sync.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/Knowledge-Graph-Sync.md) to ~/.claude/commands/",
+      "Ensure memory MCP server is configured",
+      "Run /Knowledge-Graph-Sync periodically during session wrap-up",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/commands
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/commands/Knowledge-Graph-Sync.md \\
+  -o ~/.claude/commands/Knowledge-Graph-Sync.md
+
+# Usage
+/Knowledge-Graph-Sync`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "cmd-memory-audit",
+    name: "/memory-audit",
+    category: "command",
+    description:
+      "Scans vector memory for contradictions, duplicates, and stale entries.",
+    summary:
+      "Queries the vector memory store and runs a three-pass audit: finds contradicting facts (same topic, different answers), identifies duplicate clusters (near-identical memories that can be merged), and flags stale entries (outdated facts that should be marked superseded). Produces a report with proposed cleanup actions for review before applying.",
+    tags: ["Memory", "Vector Memory", "Maintenance", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "[memory-audit.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/memory-audit.md)",
+      "vector-memory MCP server",
+    ],
+    integrationSteps: [
+      "Download [memory-audit.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/memory-audit.md) to ~/.claude/commands/",
+      "Ensure vector-memory MCP server is configured",
+      "Run /memory-audit periodically to keep memory clean",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/commands
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/commands/memory-audit.md \\
+  -o ~/.claude/commands/memory-audit.md
+
+# Usage
+/memory-audit`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "cmd-smart-compact",
+    name: "/smart-compact",
+    category: "command",
+    description:
+      "Saves in-flight context to vector memory and session scratchpad before running /compact.",
+    summary:
+      "A safer version of /compact that preserves critical context before compressing the conversation. Saves the current task, key decisions, open questions, and active file list to vector memory and to a session scratchpad in ~/.claude/session-state/. Then runs /compact. On resume, context can be recovered from either store.",
+    tags: ["Context Management", "Memory", "Session Management", "Automation"],
+    dependencies: [
+      "Claude Code CLI",
+      "[smart-compact.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/smart-compact.md)",
+      "vector-memory MCP server",
+    ],
+    integrationSteps: [
+      "Download [smart-compact.md](https://github.com/chris2ao/claude-code-config/blob/master/commands/smart-compact.md) to ~/.claude/commands/",
+      "Use /smart-compact instead of /compact during long sessions",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/commands
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/commands/smart-compact.md \\
+  -o ~/.claude/commands/smart-compact.md
+
+# Usage (replaces /compact)
+/smart-compact`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
 
   // ── Hooks / Scripts ────────────────────────────────────────────
+  {
+    id: "hook-file-guard",
+    name: "File Guard Hook",
+    category: "hook",
+    description:
+      "PreToolUse hook that blocks edits to .env, .pem, .key, and credentials files.",
+    summary:
+      "A PreToolUse hook that intercepts Edit and Write tool calls and blocks them if the target file matches a sensitive pattern: .env, .env.*, *.pem, *.key, credentials.json, or *.secret. Exits with a non-zero code and a clear error message, preventing accidental secret exposure. Essential when running Claude Code with auto-accept permissions enabled.",
+    tags: ["Security", "Hooks", "File Protection", "Automation"],
+    dependencies: [
+      "Bash",
+      "Claude Code CLI",
+      "[file-guard.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/file-guard.sh)",
+    ],
+    integrationSteps: [
+      "Download [file-guard.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/file-guard.sh) to ~/.claude/hooks/",
+      "Make executable: chmod +x ~/.claude/hooks/file-guard.sh",
+      "Register as a PreToolUse hook in ~/.claude/settings.json",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/hooks
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/hooks/file-guard.sh \\
+  -o ~/.claude/hooks/file-guard.sh
+chmod +x ~/.claude/hooks/file-guard.sh
+
+# Register in ~/.claude/settings.json:
+# "hooks": { "PreToolUse": [{ "type": "command",
+#   "command": "~/.claude/hooks/file-guard.sh" }] }`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-memory-nudge",
+    name: "Memory Nudge Hook",
+    category: "hook",
+    description:
+      "PostToolUse hook that counts work units and reminds you to save to vector memory.",
+    summary:
+      "Fires after every tool use, increments a work-unit counter, and once the threshold (default: 3) is reached, outputs a reminder to save important context to vector memory. Prevents the common pattern of finishing a session without persisting decisions or bug fixes. The threshold is configurable.",
+    tags: ["Memory", "Hooks", "Automation", "Session Management"],
+    dependencies: [
+      "Bash",
+      "Claude Code CLI",
+      "[memory-nudge.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/memory-nudge.sh)",
+    ],
+    integrationSteps: [
+      "Download [memory-nudge.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/memory-nudge.sh) to ~/.claude/hooks/",
+      "Make executable: chmod +x ~/.claude/hooks/memory-nudge.sh",
+      "Register as a PostToolUse hook in ~/.claude/settings.json",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/hooks
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/hooks/memory-nudge.sh \\
+  -o ~/.claude/hooks/memory-nudge.sh
+chmod +x ~/.claude/hooks/memory-nudge.sh
+
+# Register in ~/.claude/settings.json:
+# "hooks": { "PostToolUse": [{ "type": "command",
+#   "command": "~/.claude/hooks/memory-nudge.sh" }] }`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-memory-checkpoint",
+    name: "Memory Checkpoint Hook",
+    category: "hook",
+    description:
+      "Stop hook that runs a five-category memory review checklist at session end.",
+    summary:
+      "A Stop hook that fires when Claude Code ends a session. Presents a structured five-category checklist (tasks completed, decisions made, bugs found, gotchas discovered, errors resolved) and prompts to save anything uncaptured to vector memory. Runs once per session to avoid duplication. This is the second layer of the dual-layer memory reliability system.",
+    tags: ["Memory", "Hooks", "Session Management", "Automation"],
+    dependencies: [
+      "Bash",
+      "Claude Code CLI",
+      "[memory-checkpoint.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/memory-checkpoint.sh)",
+    ],
+    integrationSteps: [
+      "Download [memory-checkpoint.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/memory-checkpoint.sh) to ~/.claude/hooks/",
+      "Make executable: chmod +x ~/.claude/hooks/memory-checkpoint.sh",
+      "Register as a Stop hook in ~/.claude/settings.json",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/hooks
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/hooks/memory-checkpoint.sh \\
+  -o ~/.claude/hooks/memory-checkpoint.sh
+chmod +x ~/.claude/hooks/memory-checkpoint.sh
+
+# Register in ~/.claude/settings.json:
+# "hooks": { "Stop": [{ "type": "command",
+#   "command": "~/.claude/hooks/memory-checkpoint.sh" }] }`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-observe-homunculus",
+    name: "Observe Homunculus Hook",
+    category: "hook",
+    description:
+      "PostToolUse hook that captures tool usage patterns to JSONL for the Homunculus learning pipeline.",
+    summary:
+      "Appends a structured JSONL record to observations.jsonl after every tool use. Each record includes the tool name, parameters (sanitized), timestamp, and session ID. These observations feed the Homunculus behavioral pattern extraction pipeline that the /evolve command processes into new skills and agents.",
+    tags: ["Homunculus", "Learning", "Hooks", "Automation"],
+    dependencies: [
+      "Bash",
+      "Claude Code CLI",
+      "[observe-homunculus.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/observe-homunculus.sh)",
+    ],
+    integrationSteps: [
+      "Download [observe-homunculus.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/observe-homunculus.sh) to ~/.claude/hooks/",
+      "Make executable: chmod +x ~/.claude/hooks/observe-homunculus.sh",
+      "Register as an async PostToolUse hook in ~/.claude/settings.json",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/hooks
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/hooks/observe-homunculus.sh \\
+  -o ~/.claude/hooks/observe-homunculus.sh
+chmod +x ~/.claude/hooks/observe-homunculus.sh
+
+# Register with async: true so it doesn't block tool calls`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-kg-update-detect",
+    name: "KG Update Detect Hook",
+    category: "hook",
+    description:
+      "PostToolUse hook that detects config file edits and reminds Claude to update the knowledge graph.",
+    summary:
+      "Watches for Edit and Write operations on known Claude Code config files (agents/, skills/, hooks/, commands/, rules/). When it detects a config change, it outputs a reminder to update the MCP knowledge graph entity for that component. Prevents the graph from drifting out of sync with the actual files.",
+    tags: ["Knowledge Graph", "Memory", "Hooks", "Automation"],
+    dependencies: [
+      "Bash",
+      "Claude Code CLI",
+      "[kg-update-detect.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/kg-update-detect.sh)",
+    ],
+    integrationSteps: [
+      "Download [kg-update-detect.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/kg-update-detect.sh) to ~/.claude/hooks/",
+      "Make executable: chmod +x ~/.claude/hooks/kg-update-detect.sh",
+      "Register as a PostToolUse hook in ~/.claude/settings.json",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/hooks
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/hooks/kg-update-detect.sh \\
+  -o ~/.claude/hooks/kg-update-detect.sh
+chmod +x ~/.claude/hooks/kg-update-detect.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-pre-compact",
+    name: "Pre-Compact Hook",
+    category: "hook",
+    description:
+      "PreCompact hook that saves session context to a scratchpad before compaction.",
+    summary:
+      "Fires before /compact runs. Writes a structured session scratchpad to ~/.claude/session-state/{project}-{timestamp}.md covering the current task, progress, key decisions, active files, and next steps. This scratchpad is the recovery source when context has been compacted and you need to resume mid-task.",
+    tags: ["Context Management", "Hooks", "Session Management", "Automation"],
+    dependencies: [
+      "Bash",
+      "Claude Code CLI",
+      "[pre-compact.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/pre-compact.sh)",
+    ],
+    integrationSteps: [
+      "Download [pre-compact.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/pre-compact.sh) to ~/.claude/hooks/",
+      "Make executable: chmod +x ~/.claude/hooks/pre-compact.sh",
+      "Register as a PreCompact hook in ~/.claude/settings.json",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/hooks
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/hooks/pre-compact.sh \\
+  -o ~/.claude/hooks/pre-compact.sh
+chmod +x ~/.claude/hooks/pre-compact.sh
+
+# Register in ~/.claude/settings.json:
+# "hooks": { "PreCompact": [{ "type": "command",
+#   "command": "~/.claude/hooks/pre-compact.sh" }] }`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-dispatch",
+    name: "Hook Dispatcher",
+    category: "hook",
+    description:
+      "Cross-platform hook dispatcher that routes to .sh on macOS and .ps1 on Windows.",
+    summary:
+      "A thin wrapper hook that detects the current platform and dispatches to the platform-appropriate hook implementation. On macOS it calls the .sh version, on Windows it invokes PowerShell with the .ps1 version. Eliminates the need to maintain separate settings.json files per platform.",
+    tags: ["Cross-Platform", "Hooks", "Windows", "macOS"],
+    dependencies: [
+      "Bash",
+      "Claude Code CLI",
+      "[dispatch.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/dispatch.sh)",
+    ],
+    integrationSteps: [
+      "Download [dispatch.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/dispatch.sh) to ~/.claude/hooks/",
+      "Make executable: chmod +x ~/.claude/hooks/dispatch.sh",
+      "Use as the single hook command entry in settings.json",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/hooks
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/hooks/dispatch.sh \\
+  -o ~/.claude/hooks/dispatch.sh
+chmod +x ~/.claude/hooks/dispatch.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-session-scratchpad",
+    name: "Session Scratchpad Hook",
+    category: "hook",
+    description:
+      "PostToolUse hook that counts tool calls and reminds Claude to update the session scratchpad.",
+    summary:
+      "Counts tool invocations and, at a configured interval (default every 10 tool calls), outputs a nudge to update the session state scratchpad. The scratchpad is the in-flight context recovery document written to ~/.claude/session-state/. Pairs with the pre-compact hook to ensure context is never lost.",
+    tags: ["Context Management", "Hooks", "Session Management", "Automation"],
+    dependencies: [
+      "Bash",
+      "Claude Code CLI",
+      "[session-scratchpad.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/session-scratchpad.sh)",
+    ],
+    integrationSteps: [
+      "Download [session-scratchpad.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/session-scratchpad.sh) to ~/.claude/hooks/",
+      "Make executable: chmod +x ~/.claude/hooks/session-scratchpad.sh",
+      "Register as a PostToolUse hook in ~/.claude/settings.json",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/hooks
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/hooks/session-scratchpad.sh \\
+  -o ~/.claude/hooks/session-scratchpad.sh
+chmod +x ~/.claude/hooks/session-scratchpad.sh`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "hook-prompt-notify",
+    name: "Prompt Notify Hook",
+    category: "hook",
+    description:
+      "Stop hook that plays a notification sound when Claude finishes and needs attention.",
+    summary:
+      "A Stop hook that fires when Claude Code completes a task and is waiting for the next prompt. Plays a system notification sound (using osascript on macOS) so you know Claude is done even if you've switched to another window. Eliminates the need to watch the terminal while waiting for long tasks to complete.",
+    tags: ["Productivity", "Hooks", "macOS", "Notifications"],
+    dependencies: [
+      "Bash",
+      "Claude Code CLI",
+      "[prompt-notify.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/prompt-notify.sh)",
+      "macOS (osascript)",
+    ],
+    integrationSteps: [
+      "Download [prompt-notify.sh](https://github.com/chris2ao/claude-code-config/blob/master/hooks/prompt-notify.sh) to ~/.claude/hooks/",
+      "Make executable: chmod +x ~/.claude/hooks/prompt-notify.sh",
+      "Register as a Stop hook in ~/.claude/settings.json",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/hooks
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/hooks/prompt-notify.sh \\
+  -o ~/.claude/hooks/prompt-notify.sh
+chmod +x ~/.claude/hooks/prompt-notify.sh
+
+# Register in ~/.claude/settings.json:
+# "hooks": { "Stop": [{ "type": "command",
+#   "command": "~/.claude/hooks/prompt-notify.sh" }] }`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
   {
     id: "blog-inventory",
     name: "Blog Inventory",
@@ -576,14 +1830,20 @@ cp commands/blog-post.md ~/.claude/commands/
     summary:
       "Scans the blog content directory and produces a formatted inventory of all posts including title, date, tags, word count, and reading time. Useful for content planning, identifying gaps in topic coverage, and tracking publishing cadence.",
     tags: ["Blog", "Documentation", "Shell"],
-    dependencies: ["Bash", "Blog content directory"],
+    dependencies: [
+      "Bash",
+      "[blog-inventory.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/blog-inventory.sh)",
+      "Blog content directory",
+    ],
     integrationSteps: [
-      "Copy scripts/blog-inventory.sh to your project",
-      "Make executable: chmod +x scripts/blog-inventory.sh",
-      "Run: ./scripts/blog-inventory.sh",
+      "Download [blog-inventory.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/blog-inventory.sh) to ~/.claude/scripts/",
+      "Make executable: chmod +x ~/.claude/scripts/blog-inventory.sh",
+      "Run: ~/.claude/scripts/blog-inventory.sh",
     ],
     codeSnippet: `# Install
-cp scripts/blog-inventory.sh ~/.claude/scripts/
+mkdir -p ~/.claude/scripts
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/scripts/blog-inventory.sh \\
+  -o ~/.claude/scripts/blog-inventory.sh
 chmod +x ~/.claude/scripts/blog-inventory.sh
 
 # Run
@@ -600,14 +1860,19 @@ chmod +x ~/.claude/scripts/blog-inventory.sh
     summary:
       "Post-session cleanup script that removes temporary files, clears build caches, and archives session transcripts. Prevents disk space accumulation from long-running Claude Code usage. Can be configured as a session-end hook or run manually.",
     tags: ["Session Management", "Automation", "Shell"],
-    dependencies: ["Bash"],
+    dependencies: [
+      "Bash",
+      "[cleanup-session.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/cleanup-session.sh)",
+    ],
     integrationSteps: [
-      "Copy scripts/cleanup-session.sh to ~/.claude/scripts/",
-      "Make executable: chmod +x",
+      "Download [cleanup-session.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/cleanup-session.sh) to ~/.claude/scripts/",
+      "Make executable: chmod +x ~/.claude/scripts/cleanup-session.sh",
       "Optionally configure as a session-end hook",
     ],
     codeSnippet: `# Install
-cp scripts/cleanup-session.sh ~/.claude/scripts/
+mkdir -p ~/.claude/scripts
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/scripts/cleanup-session.sh \\
+  -o ~/.claude/scripts/cleanup-session.sh
 chmod +x ~/.claude/scripts/cleanup-session.sh
 
 # Run manually or configure as hook
@@ -622,16 +1887,23 @@ chmod +x ~/.claude/scripts/cleanup-session.sh
     description:
       "Compares local Claude Code config against the repo version and shows differences.",
     summary:
-      "A shell script companion to the config-sync agent. Produces a colorized diff between your local ~/.claude/ configuration and the claude-code-config repository. Faster than the agent for quick checks — shows exactly which lines changed without the overhead of spawning an AI agent.",
+      "A shell script companion to the config-sync agent. Produces a colorized diff between your local ~/.claude/ configuration and the claude-code-config repository. Faster than the agent for quick checks: shows exactly which lines changed without the overhead of spawning an AI agent.",
     tags: ["Configuration", "DevOps", "Shell"],
-    dependencies: ["Bash", "diff", "Git"],
+    dependencies: [
+      "Bash",
+      "diff",
+      "Git",
+      "[config-diff.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/config-diff.sh)",
+    ],
     integrationSteps: [
-      "Copy scripts/config-diff.sh to ~/.claude/scripts/",
+      "Download [config-diff.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/config-diff.sh) to ~/.claude/scripts/",
       "Update REPO_PATH variable to your clone location",
       "Run to see local vs repo differences",
     ],
     codeSnippet: `# Install
-cp scripts/config-diff.sh ~/.claude/scripts/
+mkdir -p ~/.claude/scripts
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/scripts/config-diff.sh \\
+  -o ~/.claude/scripts/config-diff.sh
 chmod +x ~/.claude/scripts/config-diff.sh
 
 # Run
@@ -648,14 +1920,19 @@ chmod +x ~/.claude/scripts/config-diff.sh
     summary:
       "A lightweight shell script that estimates current context window usage based on conversation length and file reads. Faster than the context-health agent for a quick sanity check. Outputs a simple traffic-light status: green (under 50%), yellow (50-80%), red (over 80%).",
     tags: ["Performance", "Session Management", "Shell"],
-    dependencies: ["Bash"],
+    dependencies: [
+      "Bash",
+      "[context-health.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/context-health.sh)",
+    ],
     integrationSteps: [
-      "Copy scripts/context-health.sh to ~/.claude/scripts/",
-      "Make executable: chmod +x",
+      "Download [context-health.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/context-health.sh) to ~/.claude/scripts/",
+      "Make executable: chmod +x ~/.claude/scripts/context-health.sh",
       "Run mid-session for a quick context check",
     ],
     codeSnippet: `# Install
-cp scripts/context-health.sh ~/.claude/scripts/
+mkdir -p ~/.claude/scripts
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/scripts/context-health.sh \\
+  -o ~/.claude/scripts/context-health.sh
 chmod +x ~/.claude/scripts/context-health.sh
 
 # Run
@@ -672,14 +1949,20 @@ chmod +x ~/.claude/scripts/context-health.sh
     summary:
       "Produces a formatted report of git repository statistics including commit count, lines changed, most active files, commit frequency, and contributor breakdown. Useful for weekly status reports, sprint retrospectives, or tracking development velocity.",
     tags: ["Git", "DevOps", "Analytics", "Shell"],
-    dependencies: ["Bash", "Git"],
+    dependencies: [
+      "Bash",
+      "Git",
+      "[git-stats.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/git-stats.sh)",
+    ],
     integrationSteps: [
-      "Copy scripts/git-stats.sh to your project or ~/.claude/scripts/",
-      "Make executable: chmod +x",
+      "Download [git-stats.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/git-stats.sh) to ~/.claude/scripts/",
+      "Make executable: chmod +x ~/.claude/scripts/git-stats.sh",
       "Run in any git repository for stats",
     ],
     codeSnippet: `# Install
-cp scripts/git-stats.sh ~/.claude/scripts/
+mkdir -p ~/.claude/scripts
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/scripts/git-stats.sh \\
+  -o ~/.claude/scripts/git-stats.sh
 chmod +x ~/.claude/scripts/git-stats.sh
 
 # Run in any git repo
@@ -696,14 +1979,20 @@ chmod +x ~/.claude/scripts/git-stats.sh
     summary:
       "A pre-sync diagnostic script that surveys the state of all configuration sync points. Checks local ~/.claude/ against the repo, compares branch states across repos, and identifies any environment-specific overrides. Produces a report that the sync-orchestrator agent uses to plan its sync strategy.",
     tags: ["Configuration", "DevOps", "Multi-Repo", "Shell"],
-    dependencies: ["Bash", "Git"],
+    dependencies: [
+      "Bash",
+      "Git",
+      "[sync-survey.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/sync-survey.sh)",
+    ],
     integrationSteps: [
-      "Copy scripts/sync-survey.sh to ~/.claude/scripts/",
-      "Make executable: chmod +x",
+      "Download [sync-survey.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/sync-survey.sh) to ~/.claude/scripts/",
+      "Make executable: chmod +x ~/.claude/scripts/sync-survey.sh",
       "Run before sync operations for a status overview",
     ],
     codeSnippet: `# Install
-cp scripts/sync-survey.sh ~/.claude/scripts/
+mkdir -p ~/.claude/scripts
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/scripts/sync-survey.sh \\
+  -o ~/.claude/scripts/sync-survey.sh
 chmod +x ~/.claude/scripts/sync-survey.sh
 
 # Run
@@ -720,15 +2009,21 @@ chmod +x ~/.claude/scripts/sync-survey.sh
     summary:
       "Parses MDX files and validates frontmatter fields (title, date, description, tags are required), checks for proper component imports, validates code block language annotations, and catches common MDX syntax errors. Can be run as a pre-commit hook to prevent broken blog posts from being committed.",
     tags: ["Blog", "Validation", "MDX", "Shell"],
-    dependencies: ["Bash", "Blog content directory"],
+    dependencies: [
+      "Bash",
+      "[validate-mdx.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/validate-mdx.sh)",
+      "Blog content directory",
+    ],
     integrationSteps: [
-      "Copy scripts/validate-mdx.sh to your project",
-      "Make executable: chmod +x",
+      "Download [validate-mdx.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/validate-mdx.sh) to ~/.claude/scripts/",
+      "Make executable: chmod +x ~/.claude/scripts/validate-mdx.sh",
       "Run against your content directory or individual files",
       "Optionally configure as a pre-commit hook",
     ],
     codeSnippet: `# Install
-cp scripts/validate-mdx.sh ~/.claude/scripts/
+mkdir -p ~/.claude/scripts
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/scripts/validate-mdx.sh \\
+  -o ~/.claude/scripts/validate-mdx.sh
 chmod +x ~/.claude/scripts/validate-mdx.sh
 
 # Validate all MDX files
@@ -746,16 +2041,22 @@ chmod +x ~/.claude/scripts/validate-mdx.sh
     description:
       "Pre-wrap-up diagnostic that surveys session state before running the full wrap-up.",
     summary:
-      "Runs before the /wrap-up skill to gather session state — uncommitted changes, modified files, new learnings, and pending tasks. Produces a structured report that the wrap-up-orchestrator uses to decide which sub-agents to invoke. Skips unnecessary steps (e.g., changelog-writer if no commits since last run).",
+      "Runs before the /wrap-up skill to gather session state: uncommitted changes, modified files, new learnings, and pending tasks. Produces a structured report that the wrap-up-orchestrator uses to decide which sub-agents to invoke. Skips unnecessary steps (e.g., changelog-writer if no commits since last run).",
     tags: ["Session Management", "Automation", "Shell"],
-    dependencies: ["Bash", "Git"],
+    dependencies: [
+      "Bash",
+      "Git",
+      "[wrap-up-survey.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/wrap-up-survey.sh)",
+    ],
     integrationSteps: [
-      "Copy scripts/wrap-up-survey.sh to ~/.claude/scripts/",
-      "Make executable: chmod +x",
+      "Download [wrap-up-survey.sh](https://github.com/chris2ao/claude-code-config/blob/master/scripts/wrap-up-survey.sh) to ~/.claude/scripts/",
+      "Make executable: chmod +x ~/.claude/scripts/wrap-up-survey.sh",
       "Automatically invoked by /wrap-up or run manually",
     ],
     codeSnippet: `# Install
-cp scripts/wrap-up-survey.sh ~/.claude/scripts/
+mkdir -p ~/.claude/scripts
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/scripts/wrap-up-survey.sh \\
+  -o ~/.claude/scripts/wrap-up-survey.sh
 chmod +x ~/.claude/scripts/wrap-up-survey.sh
 
 # Run
@@ -774,15 +2075,19 @@ chmod +x ~/.claude/scripts/wrap-up-survey.sh
     summary:
       "Defines how Claude Code should break down complex tasks into smaller, parallelizable units of work. Requires the Task tool for multi-step operations, enforces the use of TodoWrite for progress tracking, and establishes patterns for agent orchestration. This is the foundation rule that makes Claude Code behave like a coordinated engineering team rather than a single-threaded assistant.",
     tags: ["Workflow", "Automation", "Core"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[agentic-workflow.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/core/agentic-workflow.md)",
+    ],
     integrationSteps: [
-      "Copy rules/core/agentic-workflow.md to ~/.claude/rules/core/",
+      "Download [agentic-workflow.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/core/agentic-workflow.md) to ~/.claude/rules/core/",
       "Rules are loaded automatically on every session",
       "No additional configuration needed",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/core
-cp rules/core/agentic-workflow.md ~/.claude/rules/core/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/core/agentic-workflow.md \\
+  -o ~/.claude/rules/core/agentic-workflow.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -793,16 +2098,20 @@ cp rules/core/agentic-workflow.md ~/.claude/rules/core/`,
     description:
       "Immutability preferences, file organization conventions, and writing style enforcement.",
     summary:
-      "Establishes coding conventions including preference for immutable data structures, functional patterns over mutation, consistent file organization (exports at top, implementation below), and writing style rules (including the infamous em-dash prohibition). Applied globally across all projects.",
+      "Establishes coding conventions including preference for immutable data structures, functional patterns over mutation, consistent file organization (exports at top, implementation below), and writing style rules (including the em-dash prohibition). Applied globally across all projects.",
     tags: ["Code Quality", "Style", "Core"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[coding-style.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/core/coding-style.md)",
+    ],
     integrationSteps: [
-      "Copy rules/core/coding-style.md to ~/.claude/rules/core/",
+      "Download [coding-style.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/core/coding-style.md) to ~/.claude/rules/core/",
       "Automatically active in all sessions",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/core
-cp rules/core/coding-style.md ~/.claude/rules/core/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/core/coding-style.md \\
+  -o ~/.claude/rules/core/coding-style.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -815,15 +2124,19 @@ cp rules/core/coding-style.md ~/.claude/rules/core/`,
     summary:
       "A comprehensive security ruleset that enforces pre-commit scanning for hardcoded secrets, API keys, and credentials. Includes rules for input validation, path traversal prevention, SSRF protection, and secure cookie handling. References OWASP Top 10 and applies security-first thinking to every code change.",
     tags: ["Security", "Core", "OWASP"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[security.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/core/security.md)",
+    ],
     integrationSteps: [
-      "Copy rules/core/security.md to ~/.claude/rules/core/",
+      "Download [security.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/core/security.md) to ~/.claude/rules/core/",
       "Automatically active in all sessions",
       "Works with pre-commit-checker agent for enforcement",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/core
-cp rules/core/security.md ~/.claude/rules/core/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/core/security.md \\
+  -o ~/.claude/rules/core/security.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -834,16 +2147,21 @@ cp rules/core/security.md ~/.claude/rules/core/`,
     description:
       "Conventional commits, PR conventions, and feature branch workflow enforcement.",
     summary:
-      "Enforces conventional commit message format, feature branch naming conventions, PR template compliance, and TDD-driven development workflow. Includes rules for commit body formatting (the 'Hulk Hogan body' convention — short, punchy descriptions), branch naming patterns, and merge strategy preferences.",
+      "Enforces conventional commit message format, feature branch naming conventions, PR template compliance, and TDD-driven development workflow. Includes rules for commit body formatting (short, punchy descriptions), branch naming patterns, and merge strategy preferences.",
     tags: ["Git", "Workflow", "Development"],
-    dependencies: ["Claude Code CLI", "Git"],
+    dependencies: [
+      "Claude Code CLI",
+      "Git",
+      "[git-workflow.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/development/git-workflow.md)",
+    ],
     integrationSteps: [
-      "Copy rules/development/git-workflow.md to ~/.claude/rules/development/",
+      "Download [git-workflow.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/development/git-workflow.md) to ~/.claude/rules/development/",
       "Automatically active in all sessions",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/development
-cp rules/development/git-workflow.md ~/.claude/rules/development/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/development/git-workflow.md \\
+  -o ~/.claude/rules/development/git-workflow.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -856,14 +2174,18 @@ cp rules/development/git-workflow.md ~/.claude/rules/development/`,
     summary:
       "Defines preferred architectural patterns including the Repository pattern for data access, standardized API response envelope format, error handling conventions, and service layer organization. Ensures consistency across all projects.",
     tags: ["Architecture", "API", "Development"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[patterns.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/development/patterns.md)",
+    ],
     integrationSteps: [
-      "Copy rules/development/patterns.md to ~/.claude/rules/development/",
+      "Download [patterns.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/development/patterns.md) to ~/.claude/rules/development/",
       "Automatically active in all sessions",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/development
-cp rules/development/patterns.md ~/.claude/rules/development/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/development/patterns.md \\
+  -o ~/.claude/rules/development/patterns.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -876,14 +2198,19 @@ cp rules/development/patterns.md ~/.claude/rules/development/`,
     summary:
       "Enforces test-driven development using the RED-GREEN-REFACTOR cycle. Requires writing failing tests before implementation, sets an 80% code coverage target, and establishes conventions for test file organization, naming, mocking strategies, and assertion patterns. Works with the TDD guide agent from the everything-claude-code plugin.",
     tags: ["Testing", "TDD", "Development"],
-    dependencies: ["Claude Code CLI", "Test framework (Vitest, Jest, etc.)"],
+    dependencies: [
+      "Claude Code CLI",
+      "[testing.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/development/testing.md)",
+      "Test framework (Vitest, Jest, etc.)",
+    ],
     integrationSteps: [
-      "Copy rules/development/testing.md to ~/.claude/rules/development/",
+      "Download [testing.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/development/testing.md) to ~/.claude/rules/development/",
       "Automatically active in all sessions",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/development
-cp rules/development/testing.md ~/.claude/rules/development/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/development/testing.md \\
+  -o ~/.claude/rules/development/testing.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -896,34 +2223,42 @@ cp rules/development/testing.md ~/.claude/rules/development/`,
     summary:
       "Defines the Claude Code hooks system configuration including pre-commit hooks, session-start hooks, file protection patterns (preventing modification of critical config files), and context preservation hooks that archive important state. Covers hook execution order, error handling, and platform-specific considerations.",
     tags: ["Hooks", "Automation", "Operations"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[hooks.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/hooks.md)",
+    ],
     integrationSteps: [
-      "Copy rules/operations/hooks.md to ~/.claude/rules/operations/",
+      "Download [hooks.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/hooks.md) to ~/.claude/rules/operations/",
       "Automatically active in all sessions",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/operations
-cp rules/operations/hooks.md ~/.claude/rules/operations/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/operations/hooks.md \\
+  -o ~/.claude/rules/operations/hooks.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
   {
     id: "rule-performance",
-    name: "Performance & Model Routing",
+    name: "Performance and Model Routing",
     category: "configuration",
     description:
       "Model routing (Haiku/Sonnet/Opus) and cost optimization strategies.",
     summary:
       "Defines when to use each model tier for optimal cost-performance balance. Haiku for simple lookups, git operations, and formatting tasks. Sonnet for code generation, analysis, and content writing. Opus for complex architectural decisions and nuanced reasoning. Includes token budget guidelines and strategies for reducing context window consumption.",
     tags: ["Performance", "Cost", "Operations"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[performance.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/performance.md)",
+    ],
     integrationSteps: [
-      "Copy rules/operations/performance.md to ~/.claude/rules/operations/",
+      "Download [performance.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/performance.md) to ~/.claude/rules/operations/",
       "Automatically active in all sessions",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/operations
-cp rules/operations/performance.md ~/.claude/rules/operations/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/operations/performance.md \\
+  -o ~/.claude/rules/operations/performance.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -936,15 +2271,20 @@ cp rules/operations/performance.md ~/.claude/rules/operations/`,
     summary:
       "Captures all the Windows-specific gotchas discovered through painful debugging sessions. Covers PowerShell stdin handling (the $input silent failure), Git Bash path mangling that breaks npm, OneDrive sync interference with node_modules, and Windows-specific hook execution differences. Essential for anyone running Claude Code on Windows.",
     tags: ["Windows", "PowerShell", "Operations", "Platform"],
-    dependencies: ["Claude Code CLI", "Windows"],
+    dependencies: [
+      "Claude Code CLI",
+      "Windows",
+      "[windows-platform.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/windows-platform.md)",
+    ],
     integrationSteps: [
-      "Copy rules/operations/windows-platform.md to ~/.claude/rules/operations/",
+      "Download [windows-platform.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/windows-platform.md) to ~/.claude/rules/operations/",
       "Only needed on Windows machines",
       "Automatically active in all sessions",
     ],
     codeSnippet: `# Install (Windows only)
 mkdir -p ~/.claude/rules/operations
-cp rules/operations/windows-platform.md ~/.claude/rules/operations/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/operations/windows-platform.md \\
+  -o ~/.claude/rules/operations/windows-platform.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -955,19 +2295,22 @@ cp rules/operations/windows-platform.md ~/.claude/rules/operations/`,
     description:
       "Plugin and custom agent coordination, activation triggers, and escalation patterns.",
     summary:
-      "Defines how plugin agents (from everything-claude-code) and custom agents work together. Establishes activation triggers — when a planner agent should be invoked vs. a security reviewer vs. a TDD guide. Covers agent escalation patterns, inter-agent communication, and model assignment conventions.",
+      "Defines how plugin agents (from everything-claude-code) and custom agents work together. Establishes activation triggers: when a planner agent should be invoked vs. a security reviewer vs. a TDD guide. Covers agent escalation patterns, inter-agent communication, and model assignment conventions.",
     tags: ["Agents", "Orchestration", "Operations"],
     dependencies: [
       "Claude Code CLI",
+      "[agents.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/agents.md)",
       "everything-claude-code plugin (optional)",
     ],
     integrationSteps: [
-      "Copy rules/agents.md to ~/.claude/rules/",
+      "Download [agents.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/agents.md) to ~/.claude/rules/",
       "Install everything-claude-code plugin for full agent support",
       "Automatically active in all sessions",
     ],
     codeSnippet: `# Install
-cp rules/agents.md ~/.claude/rules/
+mkdir -p ~/.claude/rules
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/agents.md \\
+  -o ~/.claude/rules/agents.md
 
 # Optional: install plugin for plugin agents
 /plugin marketplace add affaan-m/everything-claude-code
@@ -975,7 +2318,6 @@ cp rules/agents.md ~/.claude/rules/
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
-
   {
     id: "rule-memory-management",
     name: "Memory Management Rules",
@@ -987,17 +2329,19 @@ cp rules/agents.md ~/.claude/rules/
     tags: ["Memory", "Architecture", "Core"],
     dependencies: [
       "Claude Code CLI",
+      "[memory-management.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/core/memory-management.md)",
       "vector-memory MCP server",
       "memory MCP server (knowledge graph)",
     ],
     integrationSteps: [
-      "Copy rules/core/memory-management.md to ~/.claude/rules/core/",
+      "Download [memory-management.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/core/memory-management.md) to ~/.claude/rules/core/",
       "Ensure vector-memory and memory MCP servers are configured",
       "Automatically active in all sessions",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/core
-cp rules/core/memory-management.md ~/.claude/rules/core/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/core/memory-management.md \\
+  -o ~/.claude/rules/core/memory-management.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -1010,15 +2354,94 @@ cp rules/core/memory-management.md ~/.claude/rules/core/`,
     summary:
       "Prevents broken links in blog posts by enforcing rules about which GitHub repositories can be linked. Only public repos (chris2ao/cryptoflexllc, chris2ao/claude-code-config) may be linked directly. All other repos are private and must be referenced as inline code without hyperlinks. This rule prevents readers from encountering 404 errors when clicking repository links in published posts.",
     tags: ["Blog", "Content", "Security", "Core"],
-    dependencies: ["Claude Code CLI"],
+    dependencies: [
+      "Claude Code CLI",
+      "[blog-content.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/content/blog-content.md)",
+    ],
     integrationSteps: [
-      "Copy rules/content/blog-content.md to ~/.claude/rules/content/",
+      "Download [blog-content.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/content/blog-content.md) to ~/.claude/rules/content/",
       "Automatically active in all sessions",
       "Applies when writing or editing blog posts",
     ],
     codeSnippet: `# Install
 mkdir -p ~/.claude/rules/content
-cp rules/content/blog-content.md ~/.claude/rules/content/`,
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/content/blog-content.md \\
+  -o ~/.claude/rules/content/blog-content.md`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "rule-plan-docs",
+    name: "Plan Documentation Rules",
+    category: "configuration",
+    description:
+      "Plans saved as markdown files to docs/plans/ in the current project.",
+    summary:
+      "Enforces that implementation plans are always saved as markdown files in docs/plans/ (not in docs/superpowers/plans/ or any other location). Plans use descriptive filenames like auth-refactor-plan.md and should be committed alongside the code they describe. This ensures plans are versioned, reviewable, and findable.",
+    tags: ["Documentation", "Planning", "Development"],
+    dependencies: [
+      "Claude Code CLI",
+      "[plan-docs.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/development/plan-docs.md)",
+    ],
+    integrationSteps: [
+      "Download [plan-docs.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/development/plan-docs.md) to ~/.claude/rules/development/",
+      "Automatically active in all sessions",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/rules/development
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/development/plan-docs.md \\
+  -o ~/.claude/rules/development/plan-docs.md`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "rule-context-preservation",
+    name: "Context Preservation Rules",
+    category: "configuration",
+    description:
+      "How Claude recovers context after compaction: scratchpad, vector memory, and user confirmation flow.",
+    summary:
+      "Defines the three-step context recovery flow for post-compaction sessions: check ~/.claude/session-state/ for the most recent scratchpad, query vector memory with task keywords, and present recovered context to the user for confirmation before acting. Also defines when to write scratchpad updates (when nudged by hook) and what to include (task, progress, decisions, files, next steps, but never secrets).",
+    tags: ["Context Management", "Memory", "Operations", "Session Management"],
+    dependencies: [
+      "Claude Code CLI",
+      "[context-preservation.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/context-preservation.md)",
+    ],
+    integrationSteps: [
+      "Download [context-preservation.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/context-preservation.md) to ~/.claude/rules/operations/",
+      "Pair with the pre-compact and session-scratchpad hooks for full coverage",
+      "Automatically active in all sessions",
+    ],
+    codeSnippet: `# Install
+mkdir -p ~/.claude/rules/operations
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/operations/context-preservation.md \\
+  -o ~/.claude/rules/operations/context-preservation.md`,
+    author: "Chris Johnson",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "rule-macos-platform",
+    name: "macOS Platform Rules",
+    category: "configuration",
+    description:
+      "macOS-specific shell, path, MCP server, and hooks conventions.",
+    summary:
+      "Documents macOS-specific conventions for Claude Code: zsh as the default shell, Homebrew tool paths (/opt/homebrew/bin/), npx-based MCP server commands (no cmd /c wrapper), osascript for system notifications, APFS case-insensitivity caveats, and .sh hook scripts with executable permissions. The counterpart to the Windows platform rules.",
+    tags: ["macOS", "Platform", "Operations", "Hooks"],
+    dependencies: [
+      "Claude Code CLI",
+      "macOS",
+      "[macos-platform.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/macos-platform.md)",
+    ],
+    integrationSteps: [
+      "Download [macos-platform.md](https://github.com/chris2ao/claude-code-config/blob/master/rules/operations/macos-platform.md) to ~/.claude/rules/operations/",
+      "Only needed on macOS machines",
+      "Automatically active in all sessions",
+    ],
+    codeSnippet: `# Install (macOS only)
+mkdir -p ~/.claude/rules/operations
+curl -sL https://raw.githubusercontent.com/chris2ao/claude-code-config/master/rules/operations/macos-platform.md \\
+  -o ~/.claude/rules/operations/macos-platform.md`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -1031,7 +2454,7 @@ cp rules/content/blog-content.md ~/.claude/rules/content/`,
     description:
       "Persistent knowledge graph across sessions for cross-session memory.",
     summary:
-      "The @modelcontextprotocol/server-memory MCP server provides Claude Code with a persistent knowledge graph that survives across sessions. Claude can store entities, relationships, and observations during a session and retrieve them in future sessions. This is the closest thing to giving Claude a long-term memory. Particularly valuable for project context that would otherwise be lost between sessions — architecture decisions, naming conventions, known issues, and team preferences.",
+      "The @modelcontextprotocol/server-memory MCP server provides Claude Code with a persistent knowledge graph that survives across sessions. Claude can store entities, relationships, and observations during a session and retrieve them in future sessions. This is the closest thing to giving Claude a long-term memory. Particularly valuable for project context that would otherwise be lost between sessions -architecture decisions, naming conventions, known issues, and team preferences.",
     tags: ["MCP", "Memory", "Persistence"],
     dependencies: ["Node.js", "npx"],
     integrationSteps: [
@@ -1054,7 +2477,7 @@ claude mcp list`,
     name: "Context7 (Live Docs)",
     category: "mcp",
     description:
-      "Live documentation lookup for any library — gets current docs instead of training data.",
+      "Live documentation lookup for any library -gets current docs instead of training data.",
     summary:
       "The @upstash/context7-mcp server gives Claude Code access to live, up-to-date documentation for any library or framework. Instead of relying on potentially outdated training data, Claude can look up the current docs for React, Next.js, Tailwind, or any other library in real time. Eliminates hallucinated API references and ensures you get accurate, version-specific documentation.",
     tags: ["MCP", "Documentation", "Libraries"],
@@ -1168,12 +2591,12 @@ claude mcp list`,
       "Sending requires explicit user confirmation",
     ],
     codeSnippet: `# Key tools available:
-# gmail_search_messages — full Gmail search syntax
-# gmail_read_message — read a specific email
-# gmail_read_thread — read full conversation
-# gmail_create_draft — compose draft emails
-# gmail_list_labels — see your label structure
-# gmail_list_drafts — review unsent drafts`,
+# gmail_search_messages -full Gmail search syntax
+# gmail_read_message -read a specific email
+# gmail_read_thread -read full conversation
+# gmail_create_draft -compose draft emails
+# gmail_list_labels -see your label structure
+# gmail_list_drafts -review unsent drafts`,
     author: "Community",
     repo: "chris2ao/claude-code-config",
   },
@@ -1194,12 +2617,12 @@ claude mcp list`,
       "Event creation and deletion require user confirmation",
     ],
     codeSnippet: `# Key tools available:
-# gcal_list_events — view events in any calendar
-# gcal_create_event — schedule with attendees + Meet
-# gcal_find_meeting_times — mutual availability
-# gcal_find_my_free_time — personal schedule gaps
-# gcal_update_event — modify existing events
-# gcal_respond_to_event — accept/decline invitations`,
+# gcal_list_events -view events in any calendar
+# gcal_create_event -schedule with attendees + Meet
+# gcal_find_meeting_times -mutual availability
+# gcal_find_my_free_time -personal schedule gaps
+# gcal_update_event -modify existing events
+# gcal_respond_to_event -accept/decline invitations`,
     author: "Community",
     repo: "chris2ao/claude-code-config",
   },
@@ -1219,12 +2642,12 @@ claude mcp list`,
       "Claude can deploy, inspect, and debug Vercel deployments",
     ],
     codeSnippet: `# Key tools available:
-# deploy_to_vercel — deploy current project
-# get_deployment_build_logs — debug build failures
-# get_runtime_logs — view application output
-# list_deployments — see deployment history
-# search_vercel_documentation — query Vercel docs
-# check_domain_availability_and_price — domain lookup`,
+# deploy_to_vercel -deploy current project
+# get_deployment_build_logs -debug build failures
+# get_runtime_logs -view application output
+# list_deployments -see deployment history
+# search_vercel_documentation -query Vercel docs
+# check_domain_availability_and_price -domain lookup`,
     author: "Vercel",
     repo: "chris2ao/claude-code-config",
   },
@@ -1248,13 +2671,13 @@ claude mcp list`,
       "Optionally install Smart Connections for semantic search",
     ],
     codeSnippet: `# Key tools available:
-# get_vault_file — read any note
-# create_vault_file — create/update notes
-# search_vault_simple — text search
-# search_vault_smart — semantic search
-# patch_vault_file — insert at headings/blocks
-# execute_template — run Templater templates
-# list_vault_files — browse vault structure`,
+# get_vault_file -read any note
+# create_vault_file -create/update notes
+# search_vault_simple -text search
+# search_vault_smart -semantic search
+# patch_vault_file -insert at headings/blocks
+# execute_template -run Templater templates
+# list_vault_files -browse vault structure`,
     author: "Community",
     repo: "chris2ao/claude-code-config",
   },
@@ -1274,8 +2697,8 @@ claude mcp list`,
       "Use create_view to render diagrams with JSON element arrays",
     ],
     codeSnippet: `# Key tools available:
-# read_me — get element format reference + color palettes
-# create_view — render hand-drawn diagram from elements
+# read_me -get element format reference + color palettes
+# create_view -render hand-drawn diagram from elements
 
 # Usage pattern:
 # 1. Call read_me to learn the format
@@ -1301,15 +2724,15 @@ claude mcp list`,
       "Take screenshots, interact with pages, and automate workflows",
     ],
     codeSnippet: `# Key tools available:
-# computer — mouse/keyboard actions + screenshots
-# read_page — accessibility tree of page elements
-# find — natural language element search
-# form_input — fill form fields
-# navigate — go to URLs, back/forward
-# javascript_tool — execute JS in page context
-# get_page_text — extract article text
-# read_console_messages — browser console output
-# gif_creator — record browser session GIFs`,
+# computer -mouse/keyboard actions + screenshots
+# read_page -accessibility tree of page elements
+# find -natural language element search
+# form_input -fill form fields
+# navigate -go to URLs, back/forward
+# javascript_tool -execute JS in page context
+# get_page_text -extract article text
+# read_console_messages -browser console output
+# gif_creator -record browser session GIFs`,
     author: "ArcadeAI",
     repo: "chris2ao/claude-code-config",
   },
@@ -1329,11 +2752,11 @@ claude mcp list`,
       "Results are cached for performance",
     ],
     codeSnippet: `# Key tools available:
-# repo_status — cached git status across all repos
-# blog_posts — blog inventory with metadata
-# style_guide — cached blog reference docs
-# validate_blog_post — check MDX against style rules
-# session_artifacts — count session outputs`,
+# repo_status -cached git status across all repos
+# blog_posts -blog inventory with metadata
+# style_guide -cached blog reference docs
+# validate_blog_post -check MDX against style rules
+# session_artifacts -count session outputs`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -1417,13 +2840,100 @@ claude mcp list`,
       "User clicks Connect to authenticate and enable new integrations",
     ],
     codeSnippet: `# Key tools available:
-# search_mcp_registry — find connectors by keyword
-# suggest_connectors — show Connect buttons to user
+# search_mcp_registry -find connectors by keyword
+# suggest_connectors -show Connect buttons to user
 
 # Example: user says "check my Asana tasks"
 # 1. search_mcp_registry(keywords: ["asana", "tasks"])
 # 2. suggest_connectors(uuids: ["<asana-uuid>"])
 # 3. User clicks Connect to authenticate`,
+    author: "Community",
+    repo: "chris2ao/claude-code-config",
+  },
+  {
+    id: "mcp-exa",
+    name: "Exa (Semantic Search)",
+    category: "mcp",
+    description:
+      "Semantic web search via the Exa API for AI-optimized results and date filtering.",
+    summary:
+      "The Exa MCP server gives Claude Code access to Exa's semantic search engine. Unlike keyword search, Exa finds pages that are conceptually similar to your query. Supports LinkedIn profile search, date-filtered news, domain-restricted searches, and the get_code_context_exa tool for finding real code examples. Requires an EXA_API_KEY environment variable.",
+    tags: ["MCP", "Search", "Exa", "Research"],
+    dependencies: ["Node.js", "npx", "EXA_API_KEY"],
+    integrationSteps: [
+      "Get an API key from exa.ai",
+      "Add EXA_API_KEY to your shell environment or ~/.claude/secrets/secrets.env",
+      "Install the MCP server with the command below",
+    ],
+    codeSnippet: `# Set your API key
+export EXA_API_KEY=your-key-here
+
+# Install
+claude mcp add exa -- npx -y @modelcontextprotocol/server-exa
+
+# Key tools:
+# web_search_exa: semantic search
+# get_code_context_exa: find real code examples
+# crawling_exa: crawl a list of URLs`,
+    author: "Exa / MCP Community",
+    repo: "modelcontextprotocol/servers",
+  },
+  {
+    id: "mcp-firecrawl",
+    name: "Firecrawl (JS-Rendered Scraping)",
+    category: "mcp",
+    description:
+      "Scrapes JavaScript-rendered pages, bypasses anti-bot protection, and extracts structured content.",
+    summary:
+      "The Firecrawl MCP server lets Claude Code scrape pages that require JavaScript execution. Where standard WebFetch returns a blank page for SPAs or Cloudflare-protected sites, Firecrawl renders the full DOM and extracts clean Markdown content. Supports crawling, mapping site structure, and extracting structured data. Requires a FIRECRAWL_API_KEY environment variable.",
+    tags: ["MCP", "Scraping", "Firecrawl", "Research"],
+    dependencies: ["Node.js", "npx", "FIRECRAWL_API_KEY"],
+    integrationSteps: [
+      "Get an API key from firecrawl.dev",
+      "Add FIRECRAWL_API_KEY to your shell environment or ~/.claude/secrets/secrets.env",
+      "Install the MCP server with the command below",
+    ],
+    codeSnippet: `# Set your API key
+export FIRECRAWL_API_KEY=your-key-here
+
+# Install
+claude mcp add firecrawl -- npx -y firecrawl-mcp
+
+# Key tools:
+# firecrawl_scrape: scrape a single URL to Markdown
+# firecrawl_crawl: crawl a site recursively
+# firecrawl_map: map all URLs on a site
+# firecrawl_search: search + scrape results`,
+    author: "Firecrawl / MCP Community",
+    repo: "mendableai/firecrawl",
+  },
+  {
+    id: "mcp-notebooklm",
+    name: "NotebookLM",
+    category: "mcp",
+    description:
+      "Google NotebookLM operations: notebooks, sources, queries, audio, and infographic generation.",
+    summary:
+      "The NotebookLM MCP server exposes the full NotebookLM API to Claude Code. Create and manage notebooks, add sources from URLs, text, Drive, or local files, query notebooks with follow-up chat, generate audio overviews, create infographics and slide decks via the studio, and run cross-notebook research queries. Authentication uses the nlm CLI tool.",
+    tags: ["MCP", "NotebookLM", "Google", "Research", "Content Generation"],
+    dependencies: ["Node.js", "npx", "nlm CLI (notebooklm-mcp)"],
+    integrationSteps: [
+      "Install the MCP server with the command below",
+      "Authenticate: run nlm login in your terminal",
+      "Claude Code can now manage NotebookLM notebooks directly",
+    ],
+    codeSnippet: `# Install
+claude mcp add notebooklm -- npx -y notebooklm-mcp
+
+# Authenticate
+nlm login
+
+# Key tools:
+# notebook_create / notebook_list / notebook_get
+# source_add (url|text|drive|file)
+# notebook_query: ask questions to the notebook
+# studio_create (audio|infographic|slides)
+# download_artifact: save generated assets`,
     author: "Community",
     repo: "chris2ao/claude-code-config",
   },
@@ -1444,10 +2954,10 @@ claude mcp list`,
       "Use dot-sourcing (. ./script.ps1) instead of -File parameter",
       "Test hooks in isolation before integrating",
     ],
-    codeSnippet: `# Wrong — $input silently returns nothing
+    codeSnippet: `# Wrong -$input silently returns nothing
 $hookData = $input | ConvertFrom-Json
 
-# Correct — explicit stdin read
+# Correct -explicit stdin read
 $hookData = [Console]::In.ReadToEnd() | ConvertFrom-Json`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
@@ -1484,7 +2994,7 @@ cat ~/.claude/mcp-servers.json  # Claude Desktop (different!)`,
     description:
       "Custom slash commands are silently ignored without YAML frontmatter.",
     summary:
-      "Claude Code custom commands in the commands/ directory require YAML frontmatter at the top of the .md file. Without it, the command file is silently ignored — no error, no warning, just nothing happens when you type the slash command. The frontmatter must include at minimum a name field.",
+      "Claude Code custom commands in the commands/ directory require YAML frontmatter at the top of the .md file. Without it, the command file is silently ignored -no error, no warning, just nothing happens when you type the slash command. The frontmatter must include at minimum a name field.",
     tags: ["Commands", "Claude Code", "Configuration"],
     dependencies: ["Claude Code CLI"],
     integrationSteps: [
@@ -1574,10 +3084,10 @@ export default function Page() {
       "Add time offsets to same-day posts",
     ],
     codeSnippet: `---
-# Wrong — non-deterministic when multiple posts share a date
+# Wrong -non-deterministic when multiple posts share a date
 date: "2026-02-14"
 
-# Correct — deterministic ordering
+# Correct -deterministic ordering
 date: "2026-02-14T08:00:00"
 ---`,
     author: "Chris Johnson",
@@ -1629,10 +3139,10 @@ export function getPostBySlug(slug: string) {
       "Generate HMAC tokens from a server-side secret",
       "Set Secure, SameSite, and httpOnly flags on cookies",
     ],
-    codeSnippet: `// Wrong — secret in URL
+    codeSnippet: `// Wrong -secret in URL
 // GET /admin?secret=abc123
 
-// Correct — httpOnly cookie
+// Correct -httpOnly cookie
 import { cookies } from "next/headers";
 import crypto from "crypto";
 
@@ -1701,11 +3211,11 @@ async function isSafeUrl(url: string): Promise<boolean> {
       "Or use full fetch in CI/CD instead of --depth=1",
       "Check if repo is shallow: git rev-parse --is-shallow-repository",
     ],
-    codeSnippet: `# Wrong — fails with shallow clone
+    codeSnippet: `# Wrong -fails with shallow clone
 git fetch --depth=1 origin main
 git push --force origin feature
 
-# Correct — full fetch first
+# Correct -full fetch first
 git fetch --unshallow origin
 git push --force origin feature
 
@@ -1721,7 +3231,7 @@ git rev-parse --is-shallow-repository  # true/false`,
     description:
       "vercel.json uses routes with mitigate, not rules. Syntax is unique.",
     summary:
-      "Vercel's Web Application Firewall configuration in vercel.json uses a non-obvious syntax. Security rules go under a 'routes' array with 'mitigate' objects, not under a 'rules' key. The mitigate object uses conditions with rate limiting, IP blocking, and geographic restrictions. Getting the syntax wrong results in silent failures — no errors, just no protection.",
+      "Vercel's Web Application Firewall configuration in vercel.json uses a non-obvious syntax. Security rules go under a 'routes' array with 'mitigate' objects, not under a 'rules' key. The mitigate object uses conditions with rate limiting, IP blocking, and geographic restrictions. Getting the syntax wrong results in silent failures -no errors, just no protection.",
     tags: ["Security", "Vercel", "DevOps", "Configuration"],
     dependencies: ["Vercel"],
     integrationSteps: [
@@ -1729,7 +3239,7 @@ git rev-parse --is-shallow-repository  # true/false`,
       "Test with vercel dev before deploying",
       "Verify rules are active in Vercel dashboard",
     ],
-    codeSnippet: `// vercel.json — correct WAF syntax
+    codeSnippet: `// vercel.json -correct WAF syntax
 {
   "routes": [
     {
@@ -1761,10 +3271,10 @@ git rev-parse --is-shallow-repository  # true/false`,
       "Check docs.anthropic.com for current model IDs",
       "Update hardcoded IDs when new versions release",
     ],
-    codeSnippet: `// Wrong — may not resolve correctly
+    codeSnippet: `// Wrong -may not resolve correctly
 const model = "claude-3-5-haiku-latest";
 
-// Correct — exact date suffix
+// Correct -exact date suffix
 const model = "claude-3-5-haiku-20251001";
 
 // Sonnet and Opus support -latest
@@ -1787,12 +3297,12 @@ const sonnet = "claude-sonnet-4-20250514";`,
       "Use regular functions if class syntax is too verbose",
       "Test mock instantiation separately",
     ],
-    codeSnippet: `// Wrong — arrow functions can't be new'd
+    codeSnippet: `// Wrong -arrow functions can't be new'd
 vi.mock("./MyClass", () => ({
   MyClass: () => ({ doThing: vi.fn() }),
 }));
 
-// Correct — use a class
+// Correct -use a class
 vi.mock("./MyClass", () => ({
   MyClass: class {
     doThing = vi.fn();
@@ -1843,13 +3353,13 @@ const apiKey = process.env.API_KEY;`,
       "Avoid parentheses in commit message bodies when possible",
       "Review auto-approved permissions periodically",
     ],
-    codeSnippet: `# Wrong — parentheses may pollute permissions
+    codeSnippet: `# Wrong -parentheses may pollute permissions
 git commit -m "$(cat <<EOF
 feat: add auth (JWT-based)
 EOF
 )"
 
-# Correct — single-quoted delimiter
+# Correct -single-quoted delimiter
 git commit -m "$(cat <<'EOF'
 feat: add auth (JWT-based)
 EOF
@@ -1927,46 +3437,14 @@ claude doctor`,
       "Execute via: powershell -File ./temp-script.ps1",
       "Delete temp file after execution",
     ],
-    codeSnippet: `# Wrong — Git Bash strips the $
+    codeSnippet: `# Wrong -Git Bash strips the $
 powershell -Command "echo $env:PATH"
 # PowerShell receives: echo env:PATH
 
-# Correct — use a temp file
+# Correct -use a temp file
 echo 'echo $env:PATH' > /tmp/script.ps1
 powershell -File /tmp/script.ps1
 rm /tmp/script.ps1`,
-    author: "Chris Johnson",
-    repo: "chris2ao/claude-code-config",
-  },
-
-  // ── Missing Skill: /sync ───────────────────────────────────────
-  {
-    id: "sync",
-    name: "/sync",
-    category: "skill",
-    description:
-      "Config synchronization tool that detects drift and syncs ~/.claude/ with target repos.",
-    summary:
-      "A synchronization skill that runs a survey to detect configuration drift between your local ~/.claude/ directory and two target repositories (claude-code-config and CJClaudin_home). Prompts which repos to sync and how to handle post-copy operations (commit + push, review first, or copy files only). Uses the sync-orchestrator agent under the hood with secret-detection scanning before any copy.",
-    tags: ["Configuration", "DevOps", "Git", "Automation"],
-    dependencies: [
-      "Claude Code CLI",
-      "Git",
-      "sync-orchestrator agent",
-      "sync-survey.sh script",
-    ],
-    integrationSteps: [
-      "Copy skills/sync/SKILL.md to ~/.claude/skills/sync/SKILL.md",
-      "Ensure agents/sync-orchestrator.md is installed",
-      "Ensure scripts/sync-survey.sh is installed and executable",
-      "Run /sync to detect drift and synchronize configs",
-    ],
-    codeSnippet: `# Install
-mkdir -p ~/.claude/skills/sync
-cp skills/sync/SKILL.md ~/.claude/skills/sync/SKILL.md
-
-# Usage
-/sync`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -2009,13 +3487,13 @@ cp skills/sync/SKILL.md ~/.claude/skills/sync/SKILL.md
     description:
       "TUI freeze from corrupted project state. Fix: rename project state dir, restart.",
     summary:
-      "Claude Code's interactive TUI can freeze when the project state directory (~/.claude/projects/...) becomes corrupted, often from a crashed session or concurrent access. The fix is to rename the corrupted project state directory and restart Claude Code — it recreates the state directory automatically. This is faster than debugging the corruption.",
+      "Claude Code's interactive TUI can freeze when the project state directory (~/.claude/projects/...) becomes corrupted, often from a crashed session or concurrent access. The fix is to rename the corrupted project state directory and restart Claude Code -it recreates the state directory automatically. This is faster than debugging the corruption.",
     tags: ["Claude Code", "Debugging", "Recovery"],
     dependencies: ["Claude Code CLI"],
     integrationSteps: [
       "Identify the frozen project state directory in ~/.claude/projects/",
       "Rename it: mv <dir> <dir>.bak",
-      "Restart Claude Code — state is recreated automatically",
+      "Restart Claude Code -state is recreated automatically",
       "If the issue persists, check for disk space or permission issues",
     ],
     codeSnippet: `# Find the project state directory
@@ -2035,7 +3513,7 @@ claude`,
     name: "Settings Validation Debugging",
     category: "skill",
     description:
-      "\"Found N invalid settings files\" — debug with --debug, check YAML quoting and MCP type field.",
+      "\"Found N invalid settings files\" -debug with --debug, check YAML quoting and MCP type field.",
     summary:
       "The cryptic 'Found N invalid settings files' error on Claude Code startup usually means a settings.json or settings.local.json file has syntax issues. Common causes: missing quotes around YAML values, missing \"type\": \"stdio\" in MCP server configs, or trailing commas in JSON. Debug with `claude --debug` to see which specific file is invalid, then fix the syntax.",
     tags: ["Claude Code", "Configuration", "Debugging"],
@@ -2060,7 +3538,7 @@ claude --debug 2>&1 | grep -i "invalid\\|error\\|settings"
   }
 }
 
-# Correct — add "type": "stdio"
+# Correct -add "type": "stdio"
 {
   "mcpServers": {
     "memory": {
@@ -2090,14 +3568,14 @@ claude --debug 2>&1 | grep -i "invalid\\|error\\|settings"
       "Validate MDX with validate-mdx.sh before committing",
     ],
     codeSnippet: `# The 8-step blog production pipeline:
-# 1. Topic Selection — interactive prompts
-# 2. Research — parallel agents mine git logs, changelogs
-# 3. Tone Calibration — read 2-3 recent posts
-# 4. Outline — structure with sections, callouts
-# 5. Write — delegate to Sonnet via blog-post-orchestrator
-# 6. Validate — em dashes, GIFs, frontmatter, MDX syntax
-# 7. Review — code review pass for technical accuracy
-# 8. Publish — build, commit, push
+# 1. Topic Selection -interactive prompts
+# 2. Research -parallel agents mine git logs, changelogs
+# 3. Tone Calibration -read 2-3 recent posts
+# 4. Outline -structure with sections, callouts
+# 5. Write -delegate to Sonnet via blog-post-orchestrator
+# 6. Validate -em dashes, GIFs, frontmatter, MDX syntax
+# 7. Review -code review pass for technical accuracy
+# 8. Publish -build, commit, push
 
 # Quick start:
 /blog-post`,
@@ -2123,15 +3601,15 @@ claude --debug 2>&1 | grep -i "invalid\\|error\\|settings"
     codeSnippet: `# Captain Agent Pattern example:
 # 1. Captain (Sonnet) breaks down the task
 # 2. Spawns parallel workers:
-#    Task(model="haiku")  — scan files
-#    Task(model="haiku")  — check dependencies
-#    Task(model="haiku")  — validate configs
+#    Task(model="haiku")  -scan files
+#    Task(model="haiku")  -check dependencies
+#    Task(model="haiku")  -validate configs
 # 3. Captain collects results and synthesizes
 
 # Model routing heuristic:
-# Haiku  — exploration, file scanning, formatting
-# Sonnet — code generation, analysis, writing
-# Opus   — architecture, security, complex reasoning`,
+# Haiku  -exploration, file scanning, formatting
+# Sonnet -code generation, analysis, writing
+# Opus   -architecture, security, complex reasoning`,
     author: "Chris Johnson",
     repo: "chris2ao/claude-code-config",
   },
@@ -2144,7 +3622,7 @@ claude --debug 2>&1 | grep -i "invalid\\|error\\|settings"
     description:
       "SessionEnd hook that archives full conversation transcripts with timestamps and summaries.",
     summary:
-      "A PowerShell hook script that triggers on SessionEnd events. Archives the full conversation transcript with a timestamp and session ID, creates a human-readable summary, and updates an index file for easy browsing. This creates a persistent, searchable archive of all your Claude Code sessions — invaluable for the session-analyzer and skill-extractor agents.",
+      "A PowerShell hook script that triggers on SessionEnd events. Archives the full conversation transcript with a timestamp and session ID, creates a human-readable summary, and updates an index file for easy browsing. This creates a persistent, searchable archive of all your Claude Code sessions -invaluable for the session-analyzer and skill-extractor agents.",
     tags: ["Session Management", "PowerShell", "Automation", "Hooks"],
     dependencies: ["PowerShell", "Claude Code CLI"],
     integrationSteps: [
@@ -2175,7 +3653,7 @@ claude --debug 2>&1 | grep -i "invalid\\|error\\|settings"
     description:
       "PostToolUse hook that logs every Bash/Edit/Write operation with timestamps to activity_log.txt.",
     summary:
-      "An async PowerShell hook that fires after every tool use (Bash, Edit, Write, NotebookEdit). Logs each operation with a timestamp, session ID, tool name, and operation details to an activity_log.txt file. This creates an audit trail of everything Claude Code does in your project — useful for debugging, compliance, and understanding session patterns. Runs async to avoid slowing down the main workflow.",
+      "An async PowerShell hook that fires after every tool use (Bash, Edit, Write, NotebookEdit). Logs each operation with a timestamp, session ID, tool name, and operation details to an activity_log.txt file. This creates an audit trail of everything Claude Code does in your project -useful for debugging, compliance, and understanding session patterns. Runs async to avoid slowing down the main workflow.",
     tags: ["Monitoring", "PowerShell", "Automation", "Hooks"],
     dependencies: ["PowerShell", "Claude Code CLI"],
     integrationSteps: [
@@ -2212,7 +3690,7 @@ claude --debug 2>&1 | grep -i "invalid\\|error\\|settings"
     description:
       "13 specialized agents, 30+ commands, and 30+ skills from the gold-standard Claude Code plugin.",
     summary:
-      "The everything-claude-code plugin by Affaan Mustafa is the foundation of this configuration. It provides 13 specialized plugin agents (planner, architect, tdd-guide, code-reviewer, security-reviewer, build-error-resolver, e2e-runner, refactor-cleaner, doc-updater, and more) that automatically activate based on context. Includes 30+ slash commands (/plan, /verify, /tdd, /code-review, /security, /build-fix) and 30+ embedded skills. Agents orchestrate automatically — complex features trigger the planner, code changes trigger the reviewer, bugs trigger the TDD guide.",
+      "The everything-claude-code plugin by Affaan Mustafa is the foundation of this configuration. It provides 13 specialized plugin agents (planner, architect, tdd-guide, code-reviewer, security-reviewer, build-error-resolver, e2e-runner, refactor-cleaner, doc-updater, and more) that automatically activate based on context. Includes 30+ slash commands (/plan, /verify, /tdd, /code-review, /security, /build-fix) and 30+ embedded skills. Agents orchestrate automatically -complex features trigger the planner, code changes trigger the reviewer, bugs trigger the TDD guide.",
     tags: ["Plugin", "Agents", "Orchestration", "Core"],
     dependencies: ["Claude Code CLI"],
     integrationSteps: [
