@@ -50,6 +50,8 @@ I spent the first half of the day evaluating every community-built UI/UX skill I
 
 <UIUXResearchPipelineDiagram />
 
+![12 evaluated skills funneled through three tiers into data, philosophy, and rules](/images/blog/slides-ui-ux-skill/slide-4.png)
+
 ### Tier 1: Foundation Skills
 
 These three skills contributed the most to the final system. Each one brought something the others lacked.
@@ -108,6 +110,8 @@ With the research synthesized into four knowledge base files, the next step was 
 
 <UIUXAgentOrchestrationDiagram />
 
+![The 5-agent architecture: Design Lead orchestrating User Researcher, Visual Designer, Interaction Architect, and Prototype Engineer](/images/blog/slides-ui-ux-skill/slide-1.png)
+
 ### The Director
 
 The `ui-ux-director.md` agent (Sonnet) is the orchestrator. It does not design, build, or review anything directly. Instead, it routes work to the right specialist based on one of five modes:
@@ -159,6 +163,8 @@ The `ui-ux-reviewer.md` agent (Sonnet) is the quality gate. It runs four evaluat
 4. **Playwright visual QA** across 5 viewports: mobile portrait (375px), mobile landscape (667px), tablet (768px), desktop (1280px), and wide desktop (1920px)
 
 The quality gate has clear thresholds: heuristic average of 3.5 or above, TASTE average of 3.0 or above, and no critical rule violations. Results are PASS, CONDITIONAL PASS (minor issues to address), or FAIL. Maximum 2 revision cycles before the director escalates.
+
+![The parallel quality gate: Performance Reviewer checks bundle size, FCP, and client component ratio while UX Reviewer runs heuristic evaluation and Playwright visual QA across 5 viewports](/images/blog/slides-ui-ux-skill/slide-10.png)
 
 <Info title="Why Two Reviewers?">
 Performance and UX review are independent concerns. The Performance Reviewer checks technical constraints (bundle size, render timing, fetch patterns). The UX Reviewer checks experiential quality (usability, aesthetics, accessibility). Neither can substitute for the other. Running them in parallel saves time without losing coverage.
@@ -303,6 +309,8 @@ A design system gives you consistent, semantic building blocks. But swapping tok
 | Skills count increase | 4 to 5 (+25%) |
 
 ## Lessons Learned
+
+![Engineering takeaways: cherry-pick over cloning, map pipeline topology to dependency graph, enforce strict states for all interactive elements](/images/blog/slides-ui-ux-skill/slide-14.png)
 
 <Tip title="Cherry-Pick, Don't Clone">
 No single community skill had everything I needed. The value was in synthesis: taking the best ideas from 12 sources and combining them into a coherent system. Clone a skill and you inherit its assumptions, its limitations, and its security risks. Cherry-pick the knowledge and build your own structure.

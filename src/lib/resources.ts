@@ -12,6 +12,28 @@ export interface Resource {
 
 const resources: Resource[] = [
   {
+    slug: "ui-ux-skill-system-infographic",
+    title: "/ui-ux Skill System Infographic",
+    description:
+      "A visual overview of the 5-agent UI/UX design team: the 3-tier research pipeline, director + specialist architecture, shared knowledge base, performance budget, security firewall, and the reskin vs. redesign lesson.",
+    type: "document",
+    tags: ["Claude Code", "UI/UX", "Design Systems", "Agent Teams", "Infographic"],
+    date: "2026-04-12",
+    downloadPath: "/blog/ui-ux-skill-system-infographic.png",
+    downloadLabel: "Download Infographic",
+  },
+  {
+    slug: "ui-ux-skill-system-slides",
+    title: "/ui-ux Skill System Slide Deck",
+    description:
+      "15-slide deck covering the end-to-end journey of building a 5-agent UI/UX design team: 12 skills evaluated in 3 tiers, the 36% prompt injection security decision, director + 4 specialists architecture, shared knowledge base, parallel quality gate, and engineering takeaways.",
+    type: "document",
+    tags: ["Claude Code", "UI/UX", "Design Systems", "Agent Teams", "Slides"],
+    date: "2026-04-12",
+    downloadPath: "/resources/ui-ux-skill-system-slides.pdf",
+    downloadLabel: "Download Slide Deck",
+  },
+  {
     slug: "deep-research-slides",
     title: "Deep Research Stack: Exa + Firecrawl for Claude Code",
     description:
