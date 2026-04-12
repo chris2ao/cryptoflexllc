@@ -67,4 +67,11 @@ export {
   FiveLayerArchitectureDiagram,
   MemoryAuditFlowDiagram,
 } from "./diagrams-memory-comparison";
+export {
+  UIUXAgentOrchestrationDiagram,
+  UIUXResearchPipelineDiagram,
+} from "./diagrams-ui-ux-skill";
+export {
+  StorageCleanupFlowDiagram,
+} from "./diagrams-storage-cleanup";
 export { ImageLightbox } from "./image-lightbox";

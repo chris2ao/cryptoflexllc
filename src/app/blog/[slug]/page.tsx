@@ -57,6 +57,9 @@ import {
   ThreeTierResearchDiagram,
   FiveLayerArchitectureDiagram,
   MemoryAuditFlowDiagram,
+  UIUXAgentOrchestrationDiagram,
+  UIUXResearchPipelineDiagram,
+  StorageCleanupFlowDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 import {
@@ -319,6 +322,9 @@ export default async function BlogPostPage({ params }: Props) {
                     ThreeTierResearchDiagram,
                     FiveLayerArchitectureDiagram,
                     MemoryAuditFlowDiagram,
+                    UIUXAgentOrchestrationDiagram,
+                    UIUXResearchPipelineDiagram,
+                    StorageCleanupFlowDiagram,
                     img: ImageLightbox,
                   }}
                 />

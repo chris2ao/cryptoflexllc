@@ -60,6 +60,9 @@ import {
   ThreeTierResearchDiagram,
   FiveLayerArchitectureDiagram,
   MemoryAuditFlowDiagram,
+  UIUXAgentOrchestrationDiagram,
+  UIUXResearchPipelineDiagram,
+  StorageCleanupFlowDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -203,6 +206,9 @@ export default async function BacklogPostPage({ params }: Props) {
               ThreeTierResearchDiagram,
               FiveLayerArchitectureDiagram,
               MemoryAuditFlowDiagram,
+              UIUXAgentOrchestrationDiagram,
+              UIUXResearchPipelineDiagram,
+              StorageCleanupFlowDiagram,
               img: ImageLightbox,
             }}
           />
