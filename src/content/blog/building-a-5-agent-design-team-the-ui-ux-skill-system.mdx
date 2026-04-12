@@ -29,6 +29,8 @@ Here is the full story: what was missing, what I found, what I threw away, and w
 This is the second post in the [Under the Hood](/blog/series/under-the-hood) series, covering the internal infrastructure that makes Claude Code work better over time. The first post covered [the Homunculus Evolution Layer](/blog/homunculus-evolution-layer-when-your-ai-learns-to-upgrade-itself), which synthesizes behavioral patterns into reusable tools. This one builds a design team from scratch.
 </Info>
 
+![The /ui-ux Skill System: Building a High-Performance 5-Agent Design Team](/blog/ui-ux-skill-system-infographic.png)
+
 ## The Gap
 
 My Claude Code setup had two domain-specific UI agents: `game-ux.md` for game interfaces and `blog-ux.md` for blog post layouts. Both worked fine in their narrow lanes. Neither could handle general-purpose UI/UX work.
@@ -41,8 +43,6 @@ The gaps were concrete:
 - **No anti-pattern detection.** No way to flag AI-generated "slop" (generic Inter font, pure black backgrounds, zero border-radius, default everything). The aesthetic equivalent of code smell, but for interfaces.
 
 I needed a general-purpose system that could handle any UI/UX task, enforce quality standards, and integrate with my existing agent infrastructure.
-
-![Searching through community skills for the right building blocks](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDd5MzF5Y3k4OWNtOGk1b3RlcGRxbmdxcGY2dGRhbHZ5Njc5ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7btPCcdNniyf0ArS/giphy.gif)
 
 ## The Research: 12 Skills, 3 Tiers
 
@@ -83,8 +83,6 @@ Three more skills contributed high-value cherry-picks without becoming foundatio
 Six more skills contributed smaller pieces: AccessLint (contrast calculation formulas), claude-a11y-skill (runtime vs. static scan modes), Designer Skills Collection (command composition pattern), Refactoring UI (visual hierarchy auditing), UX Heuristics (Nielsen's 10 principles as a checklist), and Interface Design (persistent design decision tracking). Each contributed a specific idea or rule that made it into the final knowledge base.
 
 ## What Got Rejected (and Why It Matters)
-
-![The moment you realize a third of community skills have prompt injection](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExdmQ3bWE3bHR2NjVrZnFnNGNhczU3OGFqYmhhczVocDFqNXRqZjc5eiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l3q2K5jinAlChoCLS/giphy.gif)
 
 The rejection list is as important as the adoption list.
 
@@ -270,8 +268,6 @@ Custom agents increased from 13 to 18. Invocable skills increased from 4 to 5. T
 
 The first real-world application was immediate: the Cyber Editorial design refresh for cryptoflexllc.com, using dark-first oklch color tokens, Space Grotesk for headings, Source Serif 4 for body text, and JetBrains Mono for code.
 
-![The satisfaction of seeing a fresh design system applied](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExc2R2cWFjNXQzajF2dWJjcWtnbmxxNGt0cTk3ZGFkcXprZnBqa3M4biZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7qDSOvkaCER9CogE/giphy.gif)
-
 ## The Hard Lesson: Reskin vs. Overhaul
 
 And then I learned something that the 35 design rules and 12 community skills did not prepare me for.
@@ -281,8 +277,6 @@ Changing CSS tokens and fonts on existing layouts is a reskin, not a visual over
 The token swap was fast. oklch color tokens replaced the old hex palette in minutes. New fonts loaded cleanly. The spacing scale updated across every component. From a design system perspective, everything was correct. The tokens were semantic, the fonts were paired properly, the contrast ratios all passed.
 
 But the site looked structurally the same. The same card layouts. The same section patterns. The same visual rhythm. A new coat of paint on the same house.
-
-![When you realize the CSS swap didn't actually transform anything](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjd5YnM5am51NnVjb2l2Z2E5aHRkMzFtNzZhNjZ4cHllczR2bXVtdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT5LMHxhOfscxPfIfm/giphy.gif)
 
 True visual transformation requires rewriting JSX markup and layout composition. Not just updating `--color-primary` from one value to another, but rethinking how content blocks stack, how whitespace creates hierarchy, how typography sizes create emphasis. The design system provides the vocabulary. The JSX provides the sentences.
 
