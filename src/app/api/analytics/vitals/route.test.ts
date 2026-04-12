@@ -7,6 +7,13 @@ import { POST } from "./route";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/analytics");
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: () => ({
+    checkRateLimit: () => Promise.resolve({ allowed: true, remaining: 29 }),
+    store: new Map(),
+  }),
+  getClientIp: () => "127.0.0.1",
+}));
 
 describe("POST /api/analytics/vitals", () => {
   let mockSql: any;
