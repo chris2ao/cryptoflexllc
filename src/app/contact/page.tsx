@@ -36,16 +36,16 @@ export default function ContactPage() {
   return (
     <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
-        <h1 className="text-3xl sm:text-4xl font-bold">Let&apos;s Connect</h1>
-        <p className="mt-4 text-lg text-muted-foreground">
+        <h1 className="text-3xl sm:text-4xl font-heading font-bold">Let&apos;s Connect</h1>
+        <p className="mt-4 text-lg font-body text-muted-foreground">
           Whether you want to talk security, infrastructure, or just geek out
           about tech, I&apos;d love to hear from you.
         </p>
 
         {/* Contact Form */}
-        <Card className="mt-10 bg-card">
+        <Card className="mt-10 bg-card border border-border/40">
           <CardHeader>
-            <h2 className="text-xl font-semibold">Send a Message</h2>
+            <h2 className="text-xl font-heading font-semibold">Send a Message</h2>
           </CardHeader>
           <CardContent>
             <ContactForm />
@@ -53,12 +53,12 @@ export default function ContactPage() {
         </Card>
 
         {/* LinkedIn */}
-        <Card className="mt-6 bg-card">
+        <Card className="mt-6 bg-card border border-border/40">
           <CardHeader>
-            <h2 className="text-xl font-semibold">Connect on LinkedIn</h2>
+            <h2 className="text-xl font-heading font-semibold">Connect on LinkedIn</h2>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
+            <p className="font-body text-muted-foreground">
               You can also reach me directly through LinkedIn. Drop me a
               connection request or send a message.
             </p>
@@ -66,7 +66,7 @@ export default function ContactPage() {
               href="https://www.linkedin.com/in/chris-johnson-secops/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 rounded-md bg-[#0A66C2] px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-[#004182]"
+              className="inline-flex items-center gap-3 rounded-md bg-[var(--color-linkedin)] px-6 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
             >
               <LinkedInIcon className="h-5 w-5" />
               Connect on LinkedIn
@@ -75,16 +75,16 @@ export default function ContactPage() {
         </Card>
 
         {/* Email fallback */}
-        <Card className="mt-6 bg-card">
+        <Card className="mt-6 bg-card border border-border/40">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <MailIcon className="mt-0.5 h-5 w-5 text-muted-foreground shrink-0" />
+              <MailIcon className="mt-0.5 h-5 w-5 text-primary shrink-0" />
               <div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm font-body text-muted-foreground">
                   Prefer email? You can also reach me at{" "}
                   <a
                     href="mailto:Chris.Johnson@cryptoflexllc.com"
-                    className="text-primary hover:underline"
+                    className="text-primary hover:text-primary/80 transition-colors hover:underline"
                   >
                     Chris.Johnson@cryptoflexllc.com
                   </a>

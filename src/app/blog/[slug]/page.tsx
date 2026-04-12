@@ -76,6 +76,10 @@ import { SocialShare } from "@/components/social-share";
 import { RelatedPosts } from "@/components/related-posts";
 import { BlogSeriesNav } from "@/components/blog-series-nav";
 import { PostReadTracker } from "@/components/post-read-tracker";
+import { NewsletterPopup } from "@/components/newsletter/NewsletterPopup";
+import { NewsletterSentinel } from "@/components/newsletter/NewsletterSentinel";
+import { AuthorCard } from "@/components/blog/AuthorCard";
+import { PostMeta } from "@/components/blog/PostMeta";
 import { BASE_URL } from "@/lib/constants";
 
 interface Props {
@@ -216,18 +220,12 @@ export default async function BlogPostPage({ params }: Props) {
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
               {post.title}
             </h1>
-            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-              {post.author && <span>{post.author}</span>}
-              {post.author && <span>&middot;</span>}
-              <span>
-                {new Date(post.date).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </span>
-              {post.readingTime && <span>&middot;</span>}
-              {post.readingTime && <span>{post.readingTime}</span>}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <PostMeta
+                date={post.date}
+                author={post.author}
+                readingTime={post.readingTime}
+              />
               <BlogPostThumbsUp slug={slug} />
             </div>
           </header>
@@ -326,6 +324,9 @@ export default async function BlogPostPage({ params }: Props) {
                 />
               </div>
 
+              {/* Newsletter sentinel: fires popup when user reaches ~70% of article */}
+              <NewsletterSentinel />
+
               {/* Share + Subscribe */}
               <div className="mt-12 flex flex-col gap-8">
                 <div className="border-t border-border pt-6">
@@ -333,6 +334,9 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
                 <SubscribeForm />
               </div>
+
+              {/* Author profile card */}
+              <AuthorCard />
 
               {/* Related Posts */}
               <RelatedPosts posts={relatedPosts} />
@@ -348,6 +352,7 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
         </div>
       </article>
+      <NewsletterPopup />
     </>
   );
 }

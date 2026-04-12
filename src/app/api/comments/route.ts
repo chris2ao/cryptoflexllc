@@ -54,11 +54,8 @@ export async function GET(request: NextRequest) {
 
   const slug = request.nextUrl.searchParams.get("slug");
 
-  if (!slug) {
-    return NextResponse.json(
-      { error: "Missing slug parameter." },
-      { status: 400 }
-    );
+  if (!slug || slug.length > 200 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    return NextResponse.json({ comments: [] });
   }
 
   try {

@@ -77,7 +77,7 @@ describe("BlogList", () => {
   });
 
   it("renders all posts when no filters are active", () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript", "react"]} />);
+    render(<BlogList posts={mockPosts} />);
 
     expect(screen.getByText("First Post")).toBeInTheDocument();
     expect(screen.getByText("Second Post")).toBeInTheDocument();
@@ -85,28 +85,15 @@ describe("BlogList", () => {
   });
 
   it("renders search input", () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    expect(screen.getByPlaceholderText("Search posts... (Ctrl+K)")).toBeInTheDocument();
-  });
-
-  it("renders all tags as badges", () => {
-    render(
-      <BlogList
-        posts={mockPosts}
-        allTags={["typescript", "react", "testing"]}
-      />
-    );
-
-    expect(screen.getByText("typescript")).toBeInTheDocument();
-    expect(screen.getByText("react")).toBeInTheDocument();
-    expect(screen.getByText("testing")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search posts...")).toBeInTheDocument();
   });
 
   it("filters posts by search text", async () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
     fireEvent.change(searchInput, { target: { value: "testing" } });
 
     await waitFor(() => {
@@ -117,9 +104,9 @@ describe("BlogList", () => {
   });
 
   it("filters posts case-insensitively", async () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
     fireEvent.change(searchInput, { target: { value: "TESTING" } });
 
     await waitFor(() => {
@@ -129,9 +116,9 @@ describe("BlogList", () => {
   });
 
   it("searches across title, description, and tags", async () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
 
     // Search by title
     fireEvent.change(searchInput, { target: { value: "First" } });
@@ -155,55 +142,10 @@ describe("BlogList", () => {
     });
   });
 
-  it("toggles tag selection when tag badge is clicked", async () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript", "react"]} />);
-
-    const typescriptButton = screen.getByText("typescript").closest("button");
-    fireEvent.click(typescriptButton!);
-
-    await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith(
-        "/blog?tag=typescript",
-        { scroll: false }
-      );
-    });
-  });
-
-  it("removes tag when already selected tag is clicked", async () => {
-    mockSearchParams.getAll.mockReturnValue(["typescript"]);
-    mockSearchParams.toString.mockReturnValue("tag=typescript");
-
-    render(<BlogList posts={mockPosts} allTags={["typescript", "react"]} />);
-
-    const typescriptButton = screen.getByText("typescript").closest("button");
-    fireEvent.click(typescriptButton!);
-
-    await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith("/blog", { scroll: false });
-    });
-  });
-
-  it("adds multiple tags to filter", async () => {
-    mockSearchParams.getAll.mockReturnValue(["typescript"]);
-    mockSearchParams.toString.mockReturnValue("tag=typescript");
-
-    render(<BlogList posts={mockPosts} allTags={["typescript", "react"]} />);
-
-    const reactButton = screen.getByText("react").closest("button");
-    fireEvent.click(reactButton!);
-
-    await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith(
-        "/blog?tag=typescript&tag=react",
-        { scroll: false }
-      );
-    });
-  });
-
-  it("filters posts by selected tags using AND logic", () => {
+  it("filters posts by selected URL tags using AND logic", () => {
     mockSearchParams.getAll.mockReturnValue(["typescript", "react"]);
 
-    render(<BlogList posts={mockPosts} allTags={["typescript", "react"]} />);
+    render(<BlogList posts={mockPosts} />);
 
     // Only post-1 has both typescript AND react tags
     expect(screen.getByText("First Post")).toBeInTheDocument();
@@ -212,9 +154,9 @@ describe("BlogList", () => {
   });
 
   it("shows result count when filters are active", async () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
     fireEvent.change(searchInput, { target: { value: "testing" } });
 
     await waitFor(() => {
@@ -223,9 +165,9 @@ describe("BlogList", () => {
   });
 
   it("shows clear filters button when filters are active", async () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
     fireEvent.change(searchInput, { target: { value: "testing" } });
 
     await waitFor(() => {
@@ -236,7 +178,7 @@ describe("BlogList", () => {
   });
 
   it("hides result count and clear button when no filters are active", () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
     expect(screen.queryByText(/Showing/i)).not.toBeInTheDocument();
     expect(
@@ -248,9 +190,9 @@ describe("BlogList", () => {
     mockSearchParams.getAll.mockReturnValue(["typescript"]);
     mockSearchParams.toString.mockReturnValue("tag=typescript");
 
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
     fireEvent.change(searchInput, { target: { value: "test" } });
 
     await screen.findByRole("button", { name: /clear filters/i });
@@ -265,9 +207,9 @@ describe("BlogList", () => {
   });
 
   it("shows empty state when no posts match filters", async () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
     fireEvent.change(searchInput, { target: { value: "nonexistent" } });
 
     await waitFor(() => {
@@ -278,39 +220,17 @@ describe("BlogList", () => {
   });
 
   it("shows empty state when no posts are provided", () => {
-    render(<BlogList posts={[]} allTags={[]} />);
+    render(<BlogList posts={[]} />);
 
     expect(screen.getByText("No posts match your filters.")).toBeInTheDocument();
   });
 
-  it("marks selected tags with default variant", () => {
+  it("combines URL tag filter and text search", () => {
     mockSearchParams.getAll.mockReturnValue(["typescript"]);
 
-    render(<BlogList posts={mockPosts} allTags={["typescript", "react"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const typescriptBadge = screen.getByText("typescript");
-    const reactBadge = screen.getByText("react");
-
-    expect(typescriptBadge).toHaveAttribute("data-variant", "default");
-    expect(reactBadge).toHaveAttribute("data-variant", "outline");
-  });
-
-  it("compares tags case-insensitively", () => {
-    mockSearchParams.getAll.mockReturnValue(["TypeScript"]);
-
-    render(<BlogList posts={mockPosts} allTags={["typescript", "react"]} />);
-
-    // Should match case-insensitively
-    const typescriptBadge = screen.getByText("typescript");
-    expect(typescriptBadge).toHaveAttribute("data-variant", "default");
-  });
-
-  it("combines tag filter and text search", () => {
-    mockSearchParams.getAll.mockReturnValue(["typescript"]);
-
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
-
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
     fireEvent.change(searchInput, { target: { value: "first" } });
 
     // Should match posts with typescript tag AND "first" in text
@@ -319,9 +239,9 @@ describe("BlogList", () => {
   });
 
   it("trims whitespace from search input", async () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
     fireEvent.change(searchInput, { target: { value: "   testing   " } });
 
     await waitFor(() => {
@@ -331,9 +251,9 @@ describe("BlogList", () => {
   });
 
   it("treats empty whitespace search as no filter", () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
-    const searchInput = screen.getByPlaceholderText("Search posts... (Ctrl+K)");
+    const searchInput = screen.getByPlaceholderText("Search posts...");
     fireEvent.change(searchInput, { target: { value: "   " } });
 
     // Should show all posts
@@ -346,28 +266,12 @@ describe("BlogList", () => {
   });
 
   it("renders posts in a grid layout", () => {
-    render(<BlogList posts={mockPosts} allTags={["typescript"]} />);
+    render(<BlogList posts={mockPosts} />);
 
     // Check that BlogCard components are rendered
     expect(screen.getByTestId("blog-card-post-1")).toBeInTheDocument();
     expect(screen.getByTestId("blog-card-post-2")).toBeInTheDocument();
     expect(screen.getByTestId("blog-card-post-3")).toBeInTheDocument();
-  });
-
-  it("encodes tag in URL when navigating", async () => {
-    render(
-      <BlogList posts={mockPosts} allTags={["tag with spaces", "normal"]} />
-    );
-
-    const tagButton = screen.getByText("tag with spaces").closest("button");
-    fireEvent.click(tagButton!);
-
-    await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith(
-        "/blog?tag=tag+with+spaces",
-        { scroll: false }
-      );
-    });
   });
 
   it("handles posts with missing optional fields", () => {
@@ -383,7 +287,7 @@ describe("BlogList", () => {
       },
     ];
 
-    render(<BlogList posts={minimalPosts} allTags={[]} />);
+    render(<BlogList posts={minimalPosts} />);
 
     expect(screen.getByText("Minimal Post")).toBeInTheDocument();
   });

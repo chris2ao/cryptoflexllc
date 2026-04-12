@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Fuse from "fuse.js";
 import { Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { BlogCard } from "@/components/blog-card";
 import type { BlogPost } from "@/lib/blog";
 
@@ -13,28 +12,16 @@ export type BlogPostSummary = Omit<BlogPost, "content">;
 
 interface BlogListProps {
   posts: BlogPostSummary[];
-  allTags: string[];
+  allTags?: string[];
 }
 
-export function BlogList({ posts, allTags }: BlogListProps) {
+export function BlogList({ posts }: BlogListProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [search, setSearch] = useState("");
-
-  // Keyboard shortcut: Ctrl/Cmd+K to focus search
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   // Fuse.js instance for fuzzy search
   const fuse = useMemo(
@@ -80,32 +67,6 @@ export function BlogList({ posts, allTags }: BlogListProps) {
 
     return results;
   }, [posts, selectedTags, search, fuse]);
-
-  function toggleTag(tag: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    const current = params.getAll("tag");
-    const isSelected = current.some(
-      (t) => t.toLowerCase() === tag.toLowerCase()
-    );
-
-    // Rebuild tag params
-    params.delete("tag");
-    if (isSelected) {
-      for (const t of current) {
-        if (t.toLowerCase() !== tag.toLowerCase()) {
-          params.append("tag", t);
-        }
-      }
-    } else {
-      for (const t of current) {
-        params.append("tag", t);
-      }
-      params.append("tag", tag);
-    }
-
-    const qs = params.toString();
-    router.push(qs ? `/blog?${qs}` : "/blog", { scroll: false });
-  }
 
   function trackSearchQuery(query: string) {
     if (query.length < 2) return;
@@ -162,32 +123,9 @@ export function BlogList({ posts, allTags }: BlogListProps) {
           type="text"
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
-          placeholder="Search posts... (Ctrl+K)"
-          className="w-full max-w-md rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          placeholder="Search posts..."
+          className="w-full max-w-md rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
-      </div>
-
-      {/* Tag filter bar */}
-      <div className="mb-8 flex flex-wrap gap-2">
-        {allTags.map((tag) => {
-          const isActive = selectedTags.some(
-            (t) => t.toLowerCase() === tag.toLowerCase()
-          );
-          return (
-            <button
-              key={tag}
-              onClick={() => toggleTag(tag)}
-              type="button"
-            >
-              <Badge
-                variant={isActive ? "default" : "outline"}
-                className="cursor-pointer transition-colors"
-              >
-                {tag}
-              </Badge>
-            </button>
-          );
-        })}
       </div>
 
       {/* Result count + clear */}

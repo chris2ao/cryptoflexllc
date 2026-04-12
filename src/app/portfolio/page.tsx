@@ -65,8 +65,8 @@ export default function PortfolioPage() {
     <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold">Portfolio</h1>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <h1 className="text-3xl sm:text-4xl font-heading font-bold">Portfolio</h1>
+          <p className="mt-4 text-lg font-body text-muted-foreground">
             Projects I&apos;ve built, configured, and tinkered with.
           </p>
         </div>

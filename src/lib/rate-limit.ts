@@ -138,11 +138,8 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
       };
     } catch (error) {
       console.error("Rate limit check error:", error);
-      // On error, fail open (allow the request) to prevent service disruption
-      return {
-        allowed: true,
-        remaining: maxRequests,
-      };
+      // On DB error, fall back to in-memory rate limiting rather than failing open
+      return checkRateLimitMemory(ip);
     }
   }
 

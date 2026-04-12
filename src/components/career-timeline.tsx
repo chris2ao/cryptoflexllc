@@ -28,6 +28,16 @@ function TimelineItem({
     const el = ref.current;
     if (!el) return;
 
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (reducedMotion) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: skip animation, show immediately
+      setVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -45,7 +55,7 @@ function TimelineItem({
   return (
     <div
       ref={ref}
-      className={`flex gap-4 transition-all duration-700 ${
+      className={`flex gap-4 transition-all duration-700 motion-reduce:transition-none ${
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       }`}
       style={{ transitionDelay: `${index * 100}ms` }}

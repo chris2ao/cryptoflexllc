@@ -11,6 +11,7 @@ export interface BlogPost {
   readingTime: string;
   description: string;
   tags: string[];
+  featured?: boolean;
   series?: string;
   seriesOrder?: number;
   schemaType?: "Article" | "TechArticle" | "HowTo";
@@ -46,6 +47,7 @@ function parsePost(slug: string, filePath: string): BlogPost {
     readingTime: data.readingTime ?? "",
     description: data.description ?? "",
     tags: data.tags ?? [],
+    featured: data.featured ?? undefined,
     series: data.series ?? undefined,
     seriesOrder: data.seriesOrder ?? undefined,
     schemaType: data.schemaType ?? undefined,

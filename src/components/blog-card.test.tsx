@@ -190,7 +190,7 @@ describe("BlogCard", () => {
 
     const card = screen.getByTestId("card");
     expect(card).toHaveClass("group");
-    expect(card).toHaveClass("hover:border-primary/50");
+    expect(card).toHaveClass("hover:border-primary/30");
   });
 
   it("applies hover styles to title", () => {

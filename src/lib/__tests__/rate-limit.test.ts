@@ -165,16 +165,16 @@ describe("createRateLimiter (database-backed)", () => {
     expect(result.remaining).toBe(3);
   });
 
-  it("fails open on database error (database)", async () => {
-    // Mock database error
+  it("falls back to in-memory rate limiting on database error (database)", async () => {
+    // Mock database error on DELETE (cleanup step)
     mockSql.mockRejectedValueOnce(new Error("Database connection failed"));
 
     const limiter = createRateLimiter({ windowMs: 60000, maxRequests: 5 });
 
     const result = await limiter.checkRateLimit("192.168.1.1");
-    // Should fail open and allow the request
+    // Should fall back to in-memory and allow the first request, recording it
     expect(result.allowed).toBe(true);
-    expect(result.remaining).toBe(5);
+    expect(result.remaining).toBe(4);
   });
 });
 

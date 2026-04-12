@@ -23,10 +23,20 @@ function CounterItem({
     const el = ref.current;
     if (!el) return;
 
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
           setHasAnimated(true);
+
+          if (reducedMotion) {
+            setCount(value);
+            return;
+          }
+
           const startTime = performance.now();
 
           function animate(currentTime: number) {
@@ -53,7 +63,7 @@ function CounterItem({
 
   return (
     <div ref={ref} className="text-center">
-      <p className="text-4xl font-bold text-primary sm:text-5xl">
+      <p className="font-heading text-4xl font-bold text-primary sm:text-5xl tabular-nums">
         {count}
         {suffix}
       </p>
@@ -74,8 +84,8 @@ interface StatsSectionProps {
 
 export function StatsSection({ stats }: StatsSectionProps) {
   return (
-    <section className="border-t border-border/40 py-16 sm:py-20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <section className="texture-scanlines relative border-t border-border/40 py-16 sm:py-20">
+      <div className="relative z-[2] mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           {stats.map((stat) => (
             <CounterItem

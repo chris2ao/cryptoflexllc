@@ -85,7 +85,7 @@ export function ContactForm() {
             maxLength={100}
             value={form.name}
             onChange={(e) => updateField("name", e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="Your name"
           />
         </div>
@@ -103,7 +103,7 @@ export function ContactForm() {
             maxLength={254}
             value={form.email}
             onChange={(e) => updateField("email", e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="you@example.com"
           />
         </div>
@@ -122,7 +122,7 @@ export function ContactForm() {
           maxLength={200}
           value={form.subject}
           onChange={(e) => updateField("subject", e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           placeholder="What's this about?"
         />
       </div>
@@ -140,7 +140,7 @@ export function ContactForm() {
           rows={5}
           value={form.message}
           onChange={(e) => updateField("message", e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
           placeholder="Your message..."
         />
       </div>

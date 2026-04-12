@@ -2,21 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { sendGAEvent } from "@next/third-parties/google";
-import { ThumbsUp, ThumbsDown, Loader2, MessageSquare, Send, Reply, X } from "lucide-react";
-
-interface Comment {
-  id: number;
-  slug: string;
-  comment: string;
-  reaction: "up" | "down";
-  email: string;
-  created_at: string;
-  parent_id: number | null;
-}
-
-interface CommentWithReplies extends Comment {
-  replies: Comment[];
-}
+import { ThumbsUp, Loader2, MessageSquare } from "lucide-react";
+import { CommentForm, type CommentFormState } from "@/components/blog/CommentForm";
+import { CommentThread, type CommentWithReplies, type ReplyFormState } from "@/components/blog/CommentThread";
 
 interface BlogCommentsProps {
   slug: string;
@@ -94,10 +82,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
       setReaction("up");
       setEmail("");
 
-      // Refresh comments
       await fetchComments();
-
-      // Clear success message after a few seconds
       setTimeout(() => setSubmitStatus("idle"), 3000);
     } catch {
       setSubmitStatus("error");
@@ -142,7 +127,6 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
       setReplyReaction("up");
       setReplyEmail("");
 
-      // Refresh comments and close reply form
       await fetchComments();
       setTimeout(() => {
         setReplyingTo(null);
@@ -165,146 +149,24 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
     setReplyMessage("");
   }
 
-  // Mask email for display: show first 2 chars + domain
-  function maskEmail(email: string): string {
-    const [local, domain] = email.split("@");
-    if (!domain) return email;
-    const visible = local.slice(0, 2);
-    return `${visible}***@${domain}`;
-  }
+  const formState: CommentFormState = {
+    comment,
+    reaction,
+    email,
+    submitting,
+    submitStatus,
+    submitMessage,
+  };
 
-  function renderCommentCard(c: Comment, isReply: boolean = false) {
-    return (
-      <div
-        key={c.id}
-        id={`comment-${c.id}`}
-        className={`rounded-lg border border-border bg-card/50 p-4 ${isReply ? "ml-8 border-l-2 border-l-primary/30" : ""}`}
-      >
-        <div className="flex items-center gap-2 mb-2">
-          {isReply && <Reply className="h-3.5 w-3.5 text-muted-foreground" />}
-          {c.reaction === "up" ? (
-            <ThumbsUp className="h-4 w-4 text-green-400" />
-          ) : (
-            <ThumbsDown className="h-4 w-4 text-red-400" />
-          )}
-          <span className="text-xs text-muted-foreground font-mono">
-            {maskEmail(c.email)}
-          </span>
-          <span className="text-xs text-muted-foreground">&middot;</span>
-          <span className="text-xs text-muted-foreground">
-            {new Date(c.created_at).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-        </div>
-        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-          {c.comment}
-        </p>
-      </div>
-    );
-  }
-
-  function renderReplyForm(parentId: number) {
-    if (replyingTo !== parentId) return null;
-
-    return (
-      <div className="ml-8 mt-2">
-        <form onSubmit={handleReplySubmit} className="space-y-3 rounded-lg border border-primary/20 bg-card/30 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-primary">Replying to comment</span>
-            <button
-              type="button"
-              onClick={cancelReply}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-              Cancel
-            </button>
-          </div>
-
-          <textarea
-            value={replyComment}
-            onChange={(e) => {
-              setReplyComment(e.target.value);
-              if (replyStatus === "error") setReplyStatus("idle");
-            }}
-            placeholder="Write your reply..."
-            rows={2}
-            maxLength={2000}
-            required
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y min-h-[60px]"
-          />
-
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-            {/* Reaction toggle */}
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground mr-1">Reaction:</span>
-              <button
-                type="button"
-                onClick={() => setReplyReaction("up")}
-                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  replyReaction === "up"
-                    ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/40"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <ThumbsUp className="h-3.5 w-3.5" />
-                Up
-              </button>
-              <button
-                type="button"
-                onClick={() => setReplyReaction("down")}
-                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  replyReaction === "down"
-                    ? "bg-red-500/20 text-red-400 ring-1 ring-red-500/40"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <ThumbsDown className="h-3.5 w-3.5" />
-                Down
-              </button>
-            </div>
-
-            {/* Email + submit */}
-            <div className="flex flex-1 gap-2 w-full sm:w-auto">
-              <input
-                type="email"
-                required
-                value={replyEmail}
-                onChange={(e) => {
-                  setReplyEmail(e.target.value);
-                  if (replyStatus === "error") setReplyStatus("idle");
-                }}
-                placeholder="your-subscriber@email.com"
-                className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <button
-                type="submit"
-                disabled={replySubmitting}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-              >
-                {replySubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                Reply
-              </button>
-            </div>
-          </div>
-
-          {replyStatus === "success" && (
-            <p className="text-sm text-green-400">{replyMessage}</p>
-          )}
-          {replyStatus === "error" && (
-            <p className="text-sm text-red-400">{replyMessage}</p>
-          )}
-        </form>
-      </div>
-    );
-  }
+  const replyState: ReplyFormState = {
+    replyingTo,
+    replyComment,
+    replyReaction,
+    replyEmail,
+    replySubmitting,
+    replyStatus,
+    replyMessage,
+  };
 
   return (
     <div className="mt-16 border-t border-border pt-10">
@@ -320,86 +182,19 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
         </div>
       </div>
 
-      {/* Comment form */}
-      <form onSubmit={handleSubmit} className="mb-8 space-y-4">
-        <textarea
-          value={comment}
-          onChange={(e) => {
-            setComment(e.target.value);
-            if (submitStatus === "error") setSubmitStatus("idle");
-          }}
-          placeholder="Share your thoughts..."
-          rows={3}
-          maxLength={2000}
-          required
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y min-h-[80px]"
-        />
-
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-          {/* Reaction toggle */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground mr-1">Reaction:</span>
-            <button
-              type="button"
-              onClick={() => setReaction("up")}
-              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                reaction === "up"
-                  ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/40"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <ThumbsUp className="h-3.5 w-3.5" />
-              Thumbs Up
-            </button>
-            <button
-              type="button"
-              onClick={() => setReaction("down")}
-              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                reaction === "down"
-                  ? "bg-red-500/20 text-red-400 ring-1 ring-red-500/40"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <ThumbsDown className="h-3.5 w-3.5" />
-              Thumbs Down
-            </button>
-          </div>
-
-          {/* Email + submit */}
-          <div className="flex flex-1 gap-2 w-full sm:w-auto">
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (submitStatus === "error") setSubmitStatus("idle");
-              }}
-              placeholder="your-subscriber@email.com"
-              className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              Post
-            </button>
-          </div>
-        </div>
-
-        {submitStatus === "success" && (
-          <p className="text-sm text-green-400">{submitMessage}</p>
-        )}
-        {submitStatus === "error" && (
-          <p className="text-sm text-red-400">{submitMessage}</p>
-        )}
-      </form>
+      <CommentForm
+        state={formState}
+        onCommentChange={(v) => {
+          setComment(v);
+          if (submitStatus === "error") setSubmitStatus("idle");
+        }}
+        onReactionChange={setReaction}
+        onEmailChange={(v) => {
+          setEmail(v);
+          if (submitStatus === "error") setSubmitStatus("idle");
+        }}
+        onSubmit={handleSubmit}
+      />
 
       {/* Comments list */}
       {loading ? (
@@ -412,49 +207,28 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
           No comments yet. Be the first to share your thoughts!
         </p>
       ) : (
-        <div className="space-y-4">
-          {comments.map((c) => (
-            <div key={c.id}>
-              {/* Top-level comment */}
-              {renderCommentCard(c)}
-
-              {/* Reply button */}
-              <div className="mt-1 ml-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (replyingTo === c.id) {
-                      cancelReply();
-                    } else {
-                      cancelReply();
-                      setReplyingTo(c.id);
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <Reply className="h-3.5 w-3.5" />
-                  Reply
-                </button>
-              </div>
-
-              {/* Reply form (shown when replying to this comment) */}
-              {renderReplyForm(c.id)}
-
-              {/* Replies */}
-              {c.replies.length > 0 && (
-                <div className="mt-2 space-y-2">
-                  {c.replies.map((reply) => renderCommentCard(reply, true))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <CommentThread
+          comments={comments}
+          replyState={replyState}
+          onStartReply={setReplyingTo}
+          onCancelReply={cancelReply}
+          onReplyCommentChange={(v) => {
+            setReplyComment(v);
+            if (replyStatus === "error") setReplyStatus("idle");
+          }}
+          onReplyReactionChange={setReplyReaction}
+          onReplyEmailChange={(v) => {
+            setReplyEmail(v);
+            if (replyStatus === "error") setReplyStatus("idle");
+          }}
+          onReplySubmit={handleReplySubmit}
+        />
       )}
 
       {/* Thumbs up summary at bottom */}
       {!loading && thumbsUp > 0 && (
         <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <ThumbsUp className="h-4 w-4 text-green-400" />
+          <ThumbsUp className="h-4 w-4 text-success" />
           <span>
             {thumbsUp} {thumbsUp === 1 ? "person" : "people"} liked this post
           </span>

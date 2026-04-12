@@ -38,8 +38,8 @@ export default async function BacklogPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold">Blog Backlog</h1>
-            <p className="mt-2 text-muted-foreground">
+            <h1 className="text-3xl sm:text-4xl font-heading font-bold">Blog Backlog</h1>
+            <p className="mt-2 font-body text-muted-foreground">
               {posts.length} draft{posts.length !== 1 ? "s" : ""} waiting to
               publish
             </p>

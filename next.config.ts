@@ -80,7 +80,7 @@ const nextConfig: NextConfig = {
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https:",
             "font-src 'self'",
-            "connect-src 'self' https://www.google-analytics.com",
+            "connect-src 'self' https://www.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com",
             "frame-src 'self'",
             "frame-ancestors 'self'",
             "base-uri 'self'",

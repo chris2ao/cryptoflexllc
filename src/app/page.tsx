@@ -16,26 +16,16 @@ export default function HomePage() {
     <>
       <Hero />
 
-      {/* Stats */}
-      <StatsSection
-        stats={[
-          { value: allPosts.length, label: "Blog Posts" },
-          { value: 589, label: "Tests Passing" }, // Update manually when test suite changes
-          { value: 98, label: "Code Coverage", suffix: "%" },
-          { value: 5, label: "Active Projects" },
-        ]}
-      />
-
       {/* Featured Blog Posts */}
       {posts.length > 0 && (
         <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="flex items-end justify-between mb-8">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold">
+                <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">
                   Latest Posts
                 </h2>
-                <p className="mt-2 text-muted-foreground">
+                <p className="mt-2 font-body text-muted-foreground">
                   Thoughts on tech, security, and building things.
                 </p>
               </div>
@@ -43,10 +33,20 @@ export default function HomePage() {
                 <Link href="/blog">View all posts</Link>
               </Button>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map((post) => (
-                <BlogCard key={post.slug} post={post} />
-              ))}
+            {/* 1 large card on the left + 2 smaller on the right */}
+            <div className="grid gap-6 lg:grid-cols-5">
+              {posts[0] && (
+                <div className="lg:col-span-3">
+                  <BlogCard key={posts[0].slug} post={posts[0]} />
+                </div>
+              )}
+              {posts.length > 1 && (
+                <div className="lg:col-span-2 flex flex-col gap-6">
+                  {posts.slice(1).map((post) => (
+                    <BlogCard key={post.slug} post={post} />
+                  ))}
+                </div>
+              )}
             </div>
             <div className="mt-8 text-center sm:hidden">
               <Button asChild variant="ghost">
@@ -58,17 +58,17 @@ export default function HomePage() {
       )}
 
       {/* About Teaser */}
-      <section className="py-16 sm:py-20 border-t border-border/40 bg-muted/10">
+      <section className="py-16 sm:py-20 border-t border-border/40 bg-muted/20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="max-w-2xl">
-            <h2 className="text-2xl sm:text-3xl font-bold">About Me</h2>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
+            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">About Me</h2>
+            <p className="mt-4 font-body text-muted-foreground leading-relaxed">
               I&apos;m a military veteran who transitioned into IT and found
               my way to cybersecurity. My career has taken me from software
               development to sysadmin work to security engineering, and now
               into cybersecurity defense operations.
             </p>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
+            <p className="mt-4 font-body text-muted-foreground leading-relaxed">
               CryptoFlex LLC is my Florida-registered IT consulting company.
               This site is where I share what I&apos;m working on and learning.
             </p>
@@ -79,6 +79,16 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Stats - below the fold */}
+      <StatsSection
+        stats={[
+          { value: allPosts.length, label: "Blog Posts" },
+          { value: 589, label: "Tests Passing" },
+          { value: 98, label: "Code Coverage", suffix: "%" },
+          { value: 5, label: "Active Projects" },
+        ]}
+      />
+
       {/* Subscribe Inline */}
       <SubscribeInline />
 
@@ -86,8 +96,8 @@ export default function HomePage() {
       <section className="py-16 sm:py-20 border-t border-border/40">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="max-w-2xl">
-            <h2 className="text-2xl sm:text-3xl font-bold">Resources</h2>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
+            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">Resources</h2>
+            <p className="mt-4 font-body text-muted-foreground leading-relaxed">
               Visual recaps, slide decks, and reference material from my
               projects. Start with the &quot;7 Days, 117 Commits&quot; carousel
               for the full build story.
@@ -103,8 +113,8 @@ export default function HomePage() {
       <section className="py-16 sm:py-20 border-t border-border/40">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="max-w-2xl">
-            <h2 className="text-2xl sm:text-3xl font-bold">Games I Built</h2>
-            <p className="mt-2 text-muted-foreground">
+            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">Games I Built</h2>
+            <p className="mt-2 font-body text-muted-foreground">
               Side projects built with Claude Code. Playable right in the
               browser.
             </p>

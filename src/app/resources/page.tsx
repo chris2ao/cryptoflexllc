@@ -18,8 +18,8 @@ export default function ResourcesPage() {
   return (
     <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h1 className="text-3xl sm:text-4xl font-bold">Resources</h1>
-        <p className="mt-2 text-muted-foreground">
+        <h1 className="text-3xl sm:text-4xl font-heading font-bold">Resources</h1>
+        <p className="mt-2 font-body text-muted-foreground">
           Visual recaps, guides, and reference material.
         </p>
 

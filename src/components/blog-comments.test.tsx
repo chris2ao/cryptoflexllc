@@ -284,22 +284,22 @@ describe("BlogComments", () => {
     });
 
     // Default is thumbs up
-    expect(thumbsUpButton).toHaveClass("bg-green-500/20");
+    expect(thumbsUpButton).toHaveClass("bg-success/20");
 
     // Click thumbs down
     fireEvent.click(thumbsDownButton);
 
     await waitFor(() => {
-      expect(thumbsDownButton).toHaveClass("bg-red-500/20");
-      expect(thumbsUpButton).not.toHaveClass("bg-green-500/20");
+      expect(thumbsDownButton).toHaveClass("bg-destructive/20");
+      expect(thumbsUpButton).not.toHaveClass("bg-success/20");
     });
 
     // Click thumbs up again
     fireEvent.click(thumbsUpButton);
 
     await waitFor(() => {
-      expect(thumbsUpButton).toHaveClass("bg-green-500/20");
-      expect(thumbsDownButton).not.toHaveClass("bg-red-500/20");
+      expect(thumbsUpButton).toHaveClass("bg-success/20");
+      expect(thumbsDownButton).not.toHaveClass("bg-destructive/20");
     });
   });
 
@@ -587,7 +587,7 @@ describe("BlogComments", () => {
 
     const thumbsUpButton = screen.getByRole("button", { name: /thumbs up/i });
     await waitFor(() => {
-      expect(thumbsUpButton).toHaveClass("bg-green-500/20");
+      expect(thumbsUpButton).toHaveClass("bg-success/20");
     });
   });
 

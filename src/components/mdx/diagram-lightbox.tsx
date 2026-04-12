@@ -135,7 +135,7 @@ export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
           {/* Scrollable + zoomable content area */}
           <div className="relative z-10 flex-1 overflow-auto">
             <div
-              className="inline-block p-8 transition-transform duration-200 origin-top-left [&_svg]:max-w-none [&_svg]:w-auto [&_svg]:h-auto"
+              className="inline-block p-8 transition-transform duration-200 motion-reduce:transition-none origin-top-left [&_svg]:max-w-none [&_svg]:w-auto [&_svg]:h-auto"
               style={{
                 transform: `scale(${zoom})`,
                 minWidth: `${90 * zoom}vw`,

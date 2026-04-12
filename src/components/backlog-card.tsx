@@ -7,29 +7,29 @@ type BacklogCardPost = Omit<BlogPost, "content"> & { content?: string };
 
 export function BacklogCard({ post }: { post: BacklogCardPost }) {
   return (
-    <Card className="group relative h-full transition-colors hover:border-primary/50 bg-card border-dashed">
+    <Card className="group relative h-full transition-colors hover:border-primary/30 bg-card border border-border/40 border-dashed rounded-lg">
       <CardHeader className="pb-3">
         <div className="relative z-10 flex flex-wrap gap-2 mb-2">
-          <Badge variant="outline" className="text-xs border-yellow-500/40 text-yellow-400">
+          <Badge variant="outline" className="text-xs font-mono border-yellow-500/40 text-yellow-400">
             Draft
           </Badge>
           {post.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
+            <Badge key={tag} variant="secondary" className="text-xs font-mono text-primary/80">
               {tag}
             </Badge>
           ))}
         </div>
-        <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+        <h3 className="text-lg font-heading font-semibold group-hover:text-primary transition-colors">
           <Link href={`/backlog/${post.slug}`} className="after:absolute after:inset-0">
             {post.title}
           </Link>
         </h3>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground line-clamp-3">
+        <p className="text-sm font-body text-muted-foreground line-clamp-3">
           {post.description}
         </p>
-        <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="mt-4 flex items-center gap-2 text-xs font-mono text-muted-foreground">
           {post.author && <span>{post.author}</span>}
           {post.author && <span>&middot;</span>}
           <span>

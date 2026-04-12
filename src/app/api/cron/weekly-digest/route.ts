@@ -161,7 +161,14 @@ export async function GET(request: NextRequest) {
     // Ping healthcheck service (fire-and-forget, non-blocking)
     const healthcheckUrl = process.env.HEALTHCHECK_PING_URL;
     if (healthcheckUrl) {
-      fetch(healthcheckUrl).catch(() => {});
+      try {
+        const url = new URL(healthcheckUrl);
+        if (url.protocol === 'https:') {
+          fetch(healthcheckUrl).catch(() => {});
+        }
+      } catch {
+        // Invalid URL, skip healthcheck
+      }
     }
 
     return NextResponse.json({

@@ -182,7 +182,7 @@ export function ImageLightbox(
           {/* Scrollable + zoomable content area */}
           <div className="relative z-10 flex-1 overflow-auto flex items-start justify-center">
             <div
-              className="inline-block p-8 transition-transform duration-200 origin-top-center"
+              className="inline-block p-8 transition-transform duration-200 motion-reduce:transition-none origin-top-center"
               style={{ transform: `scale(${zoom})` }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}

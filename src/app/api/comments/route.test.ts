@@ -109,25 +109,25 @@ describe("GET /api/comments", () => {
     expect(data.thumbsUp).toBe(0);
   });
 
-  it("should return 400 when slug parameter is missing", async () => {
+  it("should return 200 with empty comments when slug parameter is missing", async () => {
     const request = new NextRequest("http://localhost/api/comments");
 
     const response = await GET(request);
     const data = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("Missing slug parameter.");
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ comments: [] });
     expect(mockSql).not.toHaveBeenCalled();
   });
 
-  it("should return 400 when slug parameter is empty", async () => {
+  it("should return 200 with empty comments when slug parameter is empty", async () => {
     const request = new NextRequest("http://localhost/api/comments?slug=");
 
     const response = await GET(request);
     const data = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("Missing slug parameter.");
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ comments: [] });
   });
 
   it("should return 500 when database query fails", async () => {

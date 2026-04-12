@@ -73,8 +73,8 @@ export default function AboutPage() {
   return (
     <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
-        <h1 className="text-3xl sm:text-4xl font-bold">About Me</h1>
-        <p className="mt-4 text-lg text-muted-foreground">
+        <h1 className="text-3xl sm:text-4xl font-heading font-bold">About Me</h1>
+        <p className="mt-4 text-lg font-body text-muted-foreground">
           Veteran. Engineer. Defender.
         </p>
 
@@ -82,7 +82,7 @@ export default function AboutPage() {
 
         <div className="grid gap-12 md:grid-cols-3">
           {/* Main content - shows second on mobile, first on desktop */}
-          <div className="order-2 md:order-1 md:col-span-2 space-y-6 text-muted-foreground leading-relaxed">
+          <div className="order-2 md:order-1 md:col-span-2 space-y-6 font-body text-muted-foreground leading-relaxed">
             <p>
               I&apos;m Chris Johnson, an engineer who uses this blog as a
               playground to explore technology and share what I learn as I build.
@@ -98,7 +98,7 @@ export default function AboutPage() {
             </p>
 
             {/* What I'm building */}
-            <h2 className="text-xl font-bold text-foreground pt-4">
+            <h2 className="text-xl font-heading font-bold text-foreground pt-4">
               What I&apos;m Building (and Writing About)
             </h2>
 
@@ -151,32 +151,34 @@ export default function AboutPage() {
             </p>
 
             {/* The Journey */}
-            <h2 className="text-xl font-bold text-foreground pt-4">
-              The Journey
-            </h2>
+            <div className="bracket-frame pt-4">
+              <h2 className="text-xl font-heading font-bold text-foreground">
+                The Journey
+              </h2>
 
-            <p>
-              My career has taken a few sharp turns, but each one added a useful
-              layer.
-            </p>
+              <p className="mt-4">
+                My career has taken a few sharp turns, but each one added a useful
+                layer.
+              </p>
 
-            <CareerTimeline events={careerEvents} />
+              <CareerTimeline events={careerEvents} />
 
-            <p>
-              At a certain point, I made the jump that changed everything: left
-              contracting, moved to Florida, and went all-in on building a
-              stronger technical foundation at FIU, earning my B.S. in
-              Information Technology (Magna Cum Laude).
-            </p>
+              <p>
+                At a certain point, I made the jump that changed everything: left
+                contracting, moved to Florida, and went all-in on building a
+                stronger technical foundation at FIU, earning my B.S. in
+                Information Technology (Magna Cum Laude).
+              </p>
 
-            <p className="text-sm italic">
-              Security is part of my career, but this blog is broader than
-              that. Think of it as an engineering lab notebook that occasionally
-              crosses into defense work when it&apos;s relevant.
-            </p>
+              <p className="text-sm italic">
+                Security is part of my career, but this blog is broader than
+                that. Think of it as an engineering lab notebook that occasionally
+                crosses into defense work when it&apos;s relevant.
+              </p>
+            </div>
 
             {/* Why I write */}
-            <h2 className="text-xl font-bold text-foreground pt-4">
+            <h2 className="text-xl font-heading font-bold text-foreground pt-4">
               Why I Write
             </h2>
 
@@ -188,7 +190,7 @@ export default function AboutPage() {
               patterns that actually hold up in the real world.
             </p>
 
-            <p className="font-medium text-foreground">
+            <p className="font-heading font-semibold text-foreground">
               Welcome to the playground.
             </p>
           </div>
@@ -205,7 +207,7 @@ export default function AboutPage() {
             />
 
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <h3 className="text-xs font-mono text-primary uppercase tracking-widest mb-3">
                 Skills & Expertise
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -218,12 +220,12 @@ export default function AboutPage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <h3 className="text-xs font-mono text-primary uppercase tracking-widest mb-3">
                 Education
               </h3>
-              <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="space-y-2 text-sm font-body text-muted-foreground">
                 <p>
-                  <span className="font-medium text-foreground">
+                  <span className="font-heading font-semibold text-foreground">
                     B.S. Information Technology
                   </span>
                   <br />

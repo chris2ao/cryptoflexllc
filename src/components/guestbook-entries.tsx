@@ -91,7 +91,7 @@ export function GuestbookEntries() {
                 maxLength={80}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Your name"
               />
             </div>
@@ -109,13 +109,13 @@ export function GuestbookEntries() {
                 rows={3}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
                 placeholder="Say hello..."
               />
             </div>
 
             {submitStatus === "success" && (
-              <p className="text-sm text-green-500">
+              <p className="text-sm text-success">
                 Thanks! Your message will appear after review.
               </p>
             )}

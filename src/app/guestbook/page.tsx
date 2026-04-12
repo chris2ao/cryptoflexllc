@@ -16,8 +16,8 @@ export default function GuestbookPage() {
   return (
     <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
-        <h1 className="text-3xl sm:text-4xl font-bold">Guestbook</h1>
-        <p className="mt-4 text-lg text-muted-foreground">
+        <h1 className="text-3xl sm:text-4xl font-heading font-bold">Guestbook</h1>
+        <p className="mt-4 text-lg font-body text-muted-foreground">
           Leave a message, say hello, or share what you&apos;re working on.
           All entries are reviewed before appearing.
         </p>

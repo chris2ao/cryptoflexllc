@@ -1,35 +1,36 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PostMeta } from "@/components/blog/PostMeta";
 import type { BlogPost } from "@/lib/blog";
 
-const tagColorMap: Record<string, string> = {
-  "Claude Code": "#06b6d4",
-  Security: "#ef4444",
-  AI: "#a855f7",
-  "Next.js": "#e5e7eb",
-  DevOps: "#22c55e",
-  Analytics: "#f59e0b",
-  Infrastructure: "#3b82f6",
+const tagVarMap: Record<string, string> = {
+  "Claude Code": "var(--color-tag-claude-code)",
+  Security: "var(--color-tag-security)",
+  AI: "var(--color-tag-ai)",
+  "Next.js": "var(--color-tag-nextjs)",
+  DevOps: "var(--color-tag-general)",
+  Analytics: "var(--color-tag-general)",
+  Infrastructure: "var(--color-tag-infrastructure)",
 };
 
-function getTagColor(tags: string[]): string {
+function getTagVar(tags: string[]): string {
   for (const tag of tags) {
-    if (tagColorMap[tag]) return tagColorMap[tag];
+    if (tagVarMap[tag]) return tagVarMap[tag];
   }
-  return "hsl(var(--border))";
+  return "var(--color-tag-default)";
 }
 
 type BlogCardPost = Omit<BlogPost, "content"> & { content?: string };
 
 export function BlogCard({ post }: { post: BlogCardPost }) {
-  const accentColor = getTagColor(post.tags);
+  const accentVar = getTagVar(post.tags);
 
   return (
-    <Card className="group relative h-full overflow-hidden transition-colors hover:border-primary/50 bg-card">
+    <Card className="group relative h-full overflow-hidden border border-border/40 bg-card transition-all duration-[250ms] hover:border-primary/30 hover:shadow-[0_0_24px_rgba(71,186,204,0.15)] hover:-translate-y-1">
       <div
-        className="h-[3px] w-full"
-        style={{ backgroundColor: accentColor }}
+        className="h-[5px] w-full"
+        style={{ backgroundColor: accentVar }}
       />
       <CardHeader className="pb-3">
         <div className="relative z-10 flex flex-wrap gap-2 mb-2">
@@ -44,28 +45,18 @@ export function BlogCard({ post }: { post: BlogCardPost }) {
             </Link>
           ))}
         </div>
-        <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+        <h3 className="font-heading text-lg font-semibold leading-snug group-hover:text-primary transition-colors">
           <Link href={`/blog/${post.slug}`} className="after:absolute after:inset-0">
             {post.title}
           </Link>
         </h3>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground line-clamp-3">
+        <p className="font-body text-sm text-muted-foreground line-clamp-3 leading-relaxed">
           {post.description}
         </p>
-        <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-          {post.author && <span>{post.author}</span>}
-          {post.author && <span>&middot;</span>}
-          <span>
-            {new Date(post.date + "T00:00:00").toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </span>
-          {post.readingTime && <span>&middot;</span>}
-          {post.readingTime && <span>{post.readingTime}</span>}
+        <div className="mt-4">
+          <PostMeta date={post.date} author={post.author} readingTime={post.readingTime} />
         </div>
       </CardContent>
     </Card>

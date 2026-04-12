@@ -27,7 +27,7 @@ export function SubscribeForm() {
       )}
 
       {status === "success" ? (
-        <div className="flex items-center gap-2 text-sm text-green-400">
+        <div className="flex items-center gap-2 text-sm text-success">
           <CheckCircle className="h-4 w-4 flex-shrink-0" />
           <span>{message}</span>
         </div>
@@ -41,12 +41,12 @@ export function SubscribeForm() {
             value={email}
             onChange={(e) => updateEmail(e.target.value)}
             placeholder="you@example.com"
-            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <button
             type="submit"
-            disabled={status === "loading"}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            disabled={status === "loading" || undefined}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
           >
             {status === "loading" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -57,7 +57,7 @@ export function SubscribeForm() {
       )}
 
       {status === "error" && (
-        <p className="mt-2 text-sm text-red-400">{message}</p>
+        <p className="mt-2 text-sm text-destructive">{message}</p>
       )}
     </div>
   );

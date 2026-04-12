@@ -12,8 +12,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/analytics";
 import { recordApiMetric } from "@/lib/api-timing";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 const VALID_METRICS = new Set(["LCP", "INP", "CLS", "FCP", "TTFB"]);
+
+// Rate limiter: 30 requests per IP per minute
+const vitalsRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+});
 
 // Zod schema for input validation
 const vitalsSchema = z.object({
@@ -27,6 +34,16 @@ const vitalsSchema = z.object({
 export async function POST(request: NextRequest) {
   const t0 = Date.now();
   try {
+    // Rate limit check
+    const clientIp = getClientIp(request);
+    const rateLimit = await vitalsRateLimiter.checkRateLimit(clientIp);
+    if (!rateLimit.allowed) {
+      return new NextResponse(null, {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfter || 60) },
+      });
+    }
+
     // Content-Type validation
     const contentType = request.headers.get("content-type");
     if (!contentType?.includes("application/json")) {
