@@ -1,0 +1,37 @@
+[
+  {
+    "timestamp": "2026-04-12T10:10:19Z",
+    "account": "chris2ao@gmail.com",
+    "duration_seconds": 256,
+    "emails_processed": 1,
+    "promotions_trashed": 0,
+    "newsletters_trashed": 0,
+    "primary_kept": 1,
+    "attention_email_sent": true,
+    "errors": []
+  },
+  {
+    "timestamp": "2026-04-12T15:35:51Z",
+    "account": "chris2ao@gmail.com",
+    "duration_seconds": 363,
+    "emails_processed": 21,
+    "promotions_trashed": 11,
+    "newsletters_trashed": 4,
+    "primary_kept": 2,
+    "attention_email_sent": true,
+    "errors": []
+  },
+  {
+    "timestamp": "2026-04-12T20:15:55Z",
+    "account": "chris2ao@gmail.com",
+    "duration_seconds": 232,
+    "emails_processed": 8,
+    "promotions_trashed": 4,
+    "newsletters_trashed": 1,
+    "primary_kept": 1,
+    "attention_email_sent": true,
+    "errors": [
+      "Delta sync format error"
+    ]
+  }
+]

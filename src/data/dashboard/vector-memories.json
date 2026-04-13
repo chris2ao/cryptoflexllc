@@ -1,0 +1,21 @@
+{
+  "totalCount": 250,
+  "recentTags": [
+    "cjclaudin_mac",
+    "ui-ux",
+    "ingested-from-archive",
+    "session-summary",
+    "cryptoflexllc",
+    "architecture",
+    "wrap-up",
+    "bug-fix"
+  ],
+  "byType": {
+    "note": 120,
+    "decision": 45,
+    "gotcha": 35,
+    "convention": 25,
+    "workaround": 15,
+    "log": 10
+  }
+}

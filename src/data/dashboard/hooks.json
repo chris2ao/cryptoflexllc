@@ -1,0 +1,69 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "script": "file-guard",
+      "description": "Blocks edits to sensitive files (.env, .pem, .key)"
+    },
+    {
+      "matcher": "Skill",
+      "script": "ccstatusline",
+      "description": "Status line hook"
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write|Bash",
+      "script": "log-activity",
+      "description": "Logs user activity and session metrics",
+      "timeout": 5000
+    },
+    {
+      "matcher": "Edit|Write|Bash|Read|Grep|Glob",
+      "script": "observe-homunculus",
+      "description": "Captures behavioral patterns for instinct extraction",
+      "timeout": 5000
+    },
+    {
+      "matcher": "Edit|Write|Bash|Agent|mcp__memory__*",
+      "script": "memory-nudge",
+      "description": "Nudges memory persistence at edit thresholds",
+      "timeout": 5000
+    },
+    {
+      "matcher": "Edit|Write",
+      "script": "kg-update-detect",
+      "description": "Detects writes to agent/skill/hook directories",
+      "timeout": 5000
+    }
+  ],
+  "Stop": [
+    {
+      "matcher": "",
+      "script": "prompt-notify",
+      "description": "Session end notification",
+      "timeout": 3000
+    },
+    {
+      "matcher": "",
+      "script": "memory-checkpoint",
+      "description": "5-category memory save checklist",
+      "timeout": 5000
+    }
+  ],
+  "SessionEnd": [
+    {
+      "matcher": "",
+      "script": "save-session",
+      "description": "Archives full transcript to session_archive/",
+      "timeout": 10000
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "matcher": "",
+      "script": "ccstatusline",
+      "description": "Status line update"
+    }
+  ]
+}

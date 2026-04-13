@@ -1,0 +1,860 @@
+[
+  {
+    "name": "Gmail Assistant Agent",
+    "type": "Agent",
+    "observations": [
+      "Daily Gmail inbox cleanup agent",
+      "v3: 17 changes across 4 pillars",
+      "8-step pipeline, 9 auto-labels",
+      "Scheduled on 5-hour intervals"
+    ]
+  },
+  {
+    "name": "Changelog Writer Agent",
+    "type": "Agent",
+    "observations": [
+      "Auto-generates CHANGELOG.md entries from git diffs"
+    ]
+  },
+  {
+    "name": "Skill Extractor Agent",
+    "type": "Agent",
+    "observations": [
+      "Parallel instinct extraction from session transcripts"
+    ]
+  },
+  {
+    "name": "Session Analyzer Agent",
+    "type": "Agent",
+    "observations": [
+      "Parallel session transcript analysis"
+    ]
+  },
+  {
+    "name": "Pre-Commit Checker Agent",
+    "type": "Agent",
+    "observations": [
+      "Unified pre-commit security and code quality gate"
+    ]
+  },
+  {
+    "name": "Context Health Agent",
+    "type": "Agent",
+    "observations": [
+      "Monitors context window usage"
+    ]
+  },
+  {
+    "name": "Sync Orchestrator Agent",
+    "type": "Agent",
+    "observations": [
+      "Bidirectional config sync with security scanning"
+    ]
+  },
+  {
+    "name": "Config Sync Agent",
+    "type": "Agent",
+    "observations": [
+      "Compares local config against claude-code-config repo"
+    ]
+  },
+  {
+    "name": "Multi-Repo Orchestrator Agent",
+    "type": "Agent",
+    "observations": [
+      "Parallel git operations across all project repos"
+    ]
+  },
+  {
+    "name": "Wrap-Up Orchestrator Agent",
+    "type": "Agent",
+    "observations": [
+      "Automated session wrap-up for multi-repo workflows"
+    ]
+  },
+  {
+    "name": "Session Checkpoint Agent",
+    "type": "Agent",
+    "observations": [
+      "Mid-session state preservation before compaction"
+    ]
+  },
+  {
+    "name": "Deploy Verifier Agent",
+    "type": "Agent",
+    "observations": [
+      "End-to-end deploy verification with parallel checks"
+    ]
+  },
+  {
+    "name": "Home Sync Agent",
+    "type": "Agent",
+    "observations": [
+      "Harvests config artifacts from all repos"
+    ]
+  },
+  {
+    "name": "Blog Post Orchestrator Agent",
+    "type": "Agent",
+    "observations": [
+      "Blog post research, drafting, and MDX generation"
+    ]
+  },
+  {
+    "name": "Game Director Agent",
+    "type": "Agent",
+    "observations": [
+      "Orchestrates game dev team: create, fix, debug, add"
+    ]
+  },
+  {
+    "name": "Game Designer Agent",
+    "type": "Agent",
+    "observations": [
+      "Core loop, systems, balance, progression"
+    ]
+  },
+  {
+    "name": "Game Developer Agent",
+    "type": "Agent",
+    "observations": [
+      "Engine logic, state management, game loop, physics"
+    ]
+  },
+  {
+    "name": "Game Artist Agent",
+    "type": "Agent",
+    "observations": [
+      "Sprites, animations, CSS styling, canvas, sound design"
+    ]
+  },
+  {
+    "name": "Game UX Agent",
+    "type": "Agent",
+    "observations": [
+      "Menus, HUD, controls, accessibility, responsive"
+    ]
+  },
+  {
+    "name": "Game Writer Agent",
+    "type": "Agent",
+    "observations": [
+      "Story, dialogue, world-building, lore"
+    ]
+  },
+  {
+    "name": "notebooklm-content-agent",
+    "type": "Agent",
+    "observations": [
+      "Creates branded infographics and slide decks via NotebookLM",
+      "DLP policy for PII scanning"
+    ]
+  },
+  {
+    "name": "wrap-up-orchestrator",
+    "type": "Agent",
+    "observations": [
+      "Multi-repo CHANGELOG/README updates and commits"
+    ]
+  },
+  {
+    "name": "evolve-synthesizer",
+    "type": "Agent",
+    "observations": [
+      "Semantic clustering of instincts into components"
+    ]
+  },
+  {
+    "name": "blog-captain",
+    "type": "Agent",
+    "observations": [
+      "5-agent blog post production team orchestrator"
+    ]
+  },
+  {
+    "name": "ui-ux-director",
+    "type": "Agent",
+    "observations": [
+      "Coordinates 4 UI/UX specialist sub-agents"
+    ]
+  },
+  {
+    "name": "ui-visual-designer",
+    "type": "Agent",
+    "observations": [
+      "Aesthetic direction, color, typography"
+    ]
+  },
+  {
+    "name": "ui-component-architect",
+    "type": "Agent",
+    "observations": [
+      "Design tokens, composition, responsive, 8 states"
+    ]
+  },
+  {
+    "name": "ui-performance-reviewer",
+    "type": "Agent",
+    "observations": [
+      "Bundle size, CWV, React patterns (read-only)"
+    ]
+  },
+  {
+    "name": "ui-ux-reviewer",
+    "type": "Agent",
+    "observations": [
+      "Heuristics, TASTE scoring, Playwright QA"
+    ]
+  },
+  {
+    "name": "game-director",
+    "type": "Agent",
+    "observations": [
+      "Opus captain for game dev team with Visual QA phase"
+    ]
+  },
+  {
+    "name": "game-developer",
+    "type": "Agent",
+    "observations": [
+      "Core engine with Audio Engine section"
+    ]
+  },
+  {
+    "name": "game-artist",
+    "type": "Agent",
+    "observations": [
+      "Artist and Audio Designer with sound design"
+    ]
+  },
+  {
+    "name": "game-ux",
+    "type": "Agent",
+    "observations": [
+      "UX/UI with Playwright responsive testing"
+    ]
+  },
+  {
+    "name": "Blog Post Skill",
+    "type": "Skill",
+    "observations": [
+      "Write blog posts for cryptoflexllc.com"
+    ]
+  },
+  {
+    "name": "GWS Skill",
+    "type": "Skill",
+    "observations": [
+      "Google Workspace CLI: Drive, Gmail, Calendar, Docs, Sheets"
+    ]
+  },
+  {
+    "name": "Game Dev Skill",
+    "type": "Skill",
+    "observations": [
+      "Game development workflow with coordinated team"
+    ]
+  },
+  {
+    "name": "Sync Skill",
+    "type": "Skill",
+    "observations": [
+      "Bidirectional config sync across repos"
+    ]
+  },
+  {
+    "name": "Wrap-Up Skill",
+    "type": "Skill",
+    "observations": [
+      "End-of-session wrap-up with vector memory persistence"
+    ]
+  },
+  {
+    "name": "Multi-Repo Status Skill",
+    "type": "Skill",
+    "observations": [
+      "Quick git status dashboard across all repos"
+    ]
+  },
+  {
+    "name": "Skill Catalog Skill",
+    "type": "Skill",
+    "observations": [
+      "Lists all agents, skills, commands, hooks"
+    ]
+  },
+  {
+    "name": "CMUX Skill",
+    "type": "Skill",
+    "observations": [
+      "cmux terminal CLI reference"
+    ]
+  },
+  {
+    "name": "notebooklm-content-skill",
+    "type": "Skill",
+    "observations": [
+      "Infographics and slide decks from blog posts"
+    ]
+  },
+  {
+    "name": "ui-ux skill",
+    "type": "Skill",
+    "observations": [
+      "5-agent UI/UX design studio, 5 modes"
+    ]
+  },
+  {
+    "name": "cross-platform-parsing",
+    "type": "Skill",
+    "observations": [
+      "Evolved: safe text/CLI parsing across platforms"
+    ]
+  },
+  {
+    "name": "memory-architecture",
+    "type": "Skill",
+    "observations": [
+      "Evolved: two-tier memory architecture"
+    ]
+  },
+  {
+    "name": "content-validation",
+    "type": "Skill",
+    "observations": [
+      "Evolved: content integrity validation"
+    ]
+  },
+  {
+    "name": "openclaw-ops",
+    "type": "Skill",
+    "observations": [
+      "Evolved: OpenClaw operational patterns"
+    ]
+  },
+  {
+    "name": "multi-agent-orchestration",
+    "type": "Skill",
+    "observations": [
+      "Evolved: multi-agent team patterns"
+    ]
+  },
+  {
+    "name": "deep-research",
+    "type": "Skill",
+    "observations": [
+      "Three-tier search: Exa > Firecrawl > WebSearch"
+    ]
+  },
+  {
+    "name": "vercel-nextjs-debugging skill",
+    "type": "Skill",
+    "observations": [
+      "Evolved: MDX debugging and Vercel deploy fixes"
+    ]
+  },
+  {
+    "name": "memory-capture-patterns skill",
+    "type": "Skill",
+    "observations": [
+      "Evolved: memory capture enforcement patterns"
+    ]
+  },
+  {
+    "name": "game-dev",
+    "type": "Skill",
+    "observations": [
+      "Game dev with 5 specialists and Playwright QA"
+    ]
+  },
+  {
+    "name": "File Guard Hook",
+    "type": "Hook",
+    "observations": [
+      "PreToolUse: blocks Edit/Write on sensitive files"
+    ]
+  },
+  {
+    "name": "Observe Homunculus Hook",
+    "type": "Hook",
+    "observations": [
+      "PostToolUse: captures behavioral patterns"
+    ]
+  },
+  {
+    "name": "Memory Nudge Hook",
+    "type": "Hook",
+    "observations": [
+      "PostToolUse: nudges memory persistence"
+    ]
+  },
+  {
+    "name": "Save Session Hook",
+    "type": "Hook",
+    "observations": [
+      "SessionEnd: archives session transcript"
+    ]
+  },
+  {
+    "name": "Log Activity Hook",
+    "type": "Hook",
+    "observations": [
+      "PostToolUse: logs user activity"
+    ]
+  },
+  {
+    "name": "Pre-Compact Hook",
+    "type": "Hook",
+    "observations": [
+      "Pre-compaction context preservation"
+    ]
+  },
+  {
+    "name": "Prompt Notify Hook",
+    "type": "Hook",
+    "observations": [
+      "Stop: notification on prompt changes"
+    ]
+  },
+  {
+    "name": "Session Scratchpad Hook",
+    "type": "Hook",
+    "observations": [
+      "Session scratchpad management"
+    ]
+  },
+  {
+    "name": "Dispatch Hook",
+    "type": "Hook",
+    "observations": [
+      "Script dispatcher for hook orchestration"
+    ]
+  },
+  {
+    "name": "Memory Checkpoint Hook",
+    "type": "Hook",
+    "observations": [
+      "Stop: 5-category memory save checklist"
+    ]
+  },
+  {
+    "name": "KG Update Detect Hook",
+    "type": "Hook",
+    "observations": [
+      "PostToolUse: detects writes to component directories"
+    ]
+  },
+  {
+    "name": "Memory MCP Server",
+    "type": "MCP Server",
+    "observations": [
+      "Knowledge graph: @modelcontextprotocol/server-memory"
+    ]
+  },
+  {
+    "name": "Context7 MCP Server",
+    "type": "MCP Server",
+    "observations": [
+      "Library documentation lookup"
+    ]
+  },
+  {
+    "name": "Sequential Thinking MCP Server",
+    "type": "MCP Server",
+    "observations": [
+      "Step-by-step reasoning"
+    ]
+  },
+  {
+    "name": "GitHub MCP Server",
+    "type": "MCP Server",
+    "observations": [
+      "GitHub repos, issues, PRs, code search"
+    ]
+  },
+  {
+    "name": "Project Tools MCP Server",
+    "type": "MCP Server",
+    "observations": [
+      "Custom project-specific tools"
+    ]
+  },
+  {
+    "name": "Vector Memory MCP Server",
+    "type": "MCP Server",
+    "observations": [
+      "Semantic search with sqlite-vec backend"
+    ]
+  },
+  {
+    "name": "Obsidian MCP Server",
+    "type": "MCP Server",
+    "observations": [
+      "Obsidian vault integration via HTTP API"
+    ]
+  },
+  {
+    "name": "Claude.ai Gmail MCP",
+    "type": "MCP Server",
+    "observations": [
+      "BLOCKED: replaced by GWS CLI skill"
+    ]
+  },
+  {
+    "name": "Claude.ai Google Calendar MCP",
+    "type": "MCP Server",
+    "observations": [
+      "BLOCKED: replaced by GWS CLI skill"
+    ]
+  },
+  {
+    "name": "Claude.ai Vercel MCP",
+    "type": "MCP Server",
+    "observations": [
+      "Deploy, build logs, runtime logs, toolbar"
+    ]
+  },
+  {
+    "name": "Claude.ai Excalidraw MCP",
+    "type": "MCP Server",
+    "observations": [
+      "Diagram creation and checkpoints"
+    ]
+  },
+  {
+    "name": "exa",
+    "type": "MCP Server",
+    "observations": [
+      "Semantic search, LinkedIn, date filtering"
+    ]
+  },
+  {
+    "name": "firecrawl",
+    "type": "MCP Server",
+    "observations": [
+      "JS-rendered page scraping, anti-bot bypass"
+    ]
+  },
+  {
+    "name": "CJClaudin_Mac",
+    "type": "Project",
+    "observations": [
+      "Primary Mac workstation config repo"
+    ]
+  },
+  {
+    "name": "cryptoflexllc",
+    "type": "Project",
+    "observations": [
+      "Next.js blog/portfolio site, deployed on Vercel"
+    ]
+  },
+  {
+    "name": "claude-code-config",
+    "type": "Project",
+    "observations": [
+      "Public config sync repo"
+    ]
+  },
+  {
+    "name": "Openclaw_MissionControl",
+    "type": "Project",
+    "observations": [
+      "Retro 8-bit Mission Control Dashboard v2"
+    ]
+  },
+  {
+    "name": "Core Rules",
+    "type": "Rule Set",
+    "observations": [
+      "agentic-workflow, coding-style, memory-management, security"
+    ]
+  },
+  {
+    "name": "Development Rules",
+    "type": "Rule Set",
+    "observations": [
+      "git-workflow, patterns, plan-docs, testing"
+    ]
+  },
+  {
+    "name": "Operations Rules",
+    "type": "Rule Set",
+    "observations": [
+      "context-preservation, hooks, platform rules, performance"
+    ]
+  },
+  {
+    "name": "Content Rules",
+    "type": "Rule Set",
+    "observations": [
+      "blog-content: no private repo links"
+    ]
+  },
+  {
+    "name": "Agent Orchestration Rule",
+    "type": "Rule Set",
+    "observations": [
+      "Automatic agent activation triggers"
+    ]
+  },
+  {
+    "name": "chris2ao@gmail.com",
+    "type": "Account",
+    "observations": [
+      "Personal Gmail, GWS CLI configured"
+    ]
+  },
+  {
+    "name": "chrisjohnson@cryptoflexllc.com",
+    "type": "Account",
+    "observations": [
+      "Work Google Workspace account"
+    ]
+  },
+  {
+    "name": "Vector Memory System",
+    "type": "Infrastructure",
+    "observations": [
+      "Ollama + nomic-embed-text, sqlite-vec, SSE port 8765"
+    ]
+  },
+  {
+    "name": "Knowledge Graph",
+    "type": "Infrastructure",
+    "observations": [
+      "MCP memory server for entity relationships"
+    ]
+  },
+  {
+    "name": "Homunculus System",
+    "type": "Infrastructure",
+    "observations": [
+      "56 instincts, behavioral pattern extraction"
+    ]
+  },
+  {
+    "name": "Syncthing",
+    "type": "Infrastructure",
+    "observations": [
+      "LAN-only cross-workstation sync v2.0.15"
+    ]
+  },
+  {
+    "name": "Mac Mini",
+    "type": "Infrastructure",
+    "observations": [
+      "Headless M4, runs OpenClaw with 7 agents"
+    ]
+  },
+  {
+    "name": "/blog-post Command",
+    "type": "Command",
+    "observations": [
+      "Phase-based blog post orchestrator"
+    ]
+  },
+  {
+    "name": "/claude-config-sync Command",
+    "type": "Command",
+    "observations": [
+      "Syncs config to claude-code-config repo"
+    ]
+  },
+  {
+    "name": "/ingest-sessions Command",
+    "type": "Command",
+    "observations": [
+      "Processes session archives into memory"
+    ]
+  },
+  {
+    "name": "/kb-article Command",
+    "type": "Command",
+    "observations": [
+      "Writes Knowledge Base articles"
+    ]
+  },
+  {
+    "name": "/smart-compact Command",
+    "type": "Command",
+    "observations": [
+      "Preserves context before compaction"
+    ]
+  },
+  {
+    "name": "/Knowledge-Graph-Sync Command",
+    "type": "Command",
+    "observations": [
+      "5-phase KG reconciliation against disk"
+    ]
+  },
+  {
+    "name": "/evolve command",
+    "type": "Command",
+    "observations": [
+      "Clusters instincts into evolved components"
+    ]
+  },
+  {
+    "name": "/storage-cleanup command",
+    "type": "Command",
+    "observations": [
+      "Three-tier Mac storage cleanup"
+    ]
+  },
+  {
+    "name": "memory-audit",
+    "type": "Command",
+    "observations": [
+      "Scans vector memory for contradictions/duplicates"
+    ]
+  },
+  {
+    "name": "com.anthropic.claude-remote-control",
+    "type": "Infrastructure",
+    "observations": [
+      "LaunchAgent for Claude remote-control daemon"
+    ]
+  },
+  {
+    "name": "bridge-launcher.sh",
+    "type": "Script",
+    "observations": [
+      "Auto-updates trigger environment_id on bridge restart"
+    ]
+  },
+  {
+    "name": "blog-inventory.sh",
+    "type": "Script",
+    "observations": [
+      "Pre-computes blog post metadata"
+    ]
+  },
+  {
+    "name": "cleanup-session.sh",
+    "type": "Script",
+    "observations": [
+      "Deletes session artifacts"
+    ]
+  },
+  {
+    "name": "config-diff.sh",
+    "type": "Script",
+    "observations": [
+      "Compares local config against git master"
+    ]
+  },
+  {
+    "name": "context-health.sh",
+    "type": "Script",
+    "observations": [
+      "Context window health check"
+    ]
+  },
+  {
+    "name": "env.sh",
+    "type": "Script",
+    "observations": [
+      "Platform-aware environment variables"
+    ]
+  },
+  {
+    "name": "git-stats.sh",
+    "type": "Script",
+    "observations": [
+      "Git history stats for a repository"
+    ]
+  },
+  {
+    "name": "memory-maintenance.py",
+    "type": "Script",
+    "observations": [
+      "Daily vector memory dedup and consolidation"
+    ]
+  },
+  {
+    "name": "memory-toggle.ps1",
+    "type": "Script",
+    "observations": [
+      "Switches vector-memory between SSE and stdio"
+    ]
+  },
+  {
+    "name": "sync-status.sh",
+    "type": "Script",
+    "observations": [
+      "Checks Syncthing sync status"
+    ]
+  },
+  {
+    "name": "sync-survey.sh",
+    "type": "Script",
+    "observations": [
+      "Bidirectional config inventory"
+    ]
+  },
+  {
+    "name": "validate-mdx.sh",
+    "type": "Script",
+    "observations": [
+      "Validates MDX blog post files"
+    ]
+  },
+  {
+    "name": "wrap-up-survey.sh",
+    "type": "Script",
+    "observations": [
+      "Pre-computes git state for wrap-up"
+    ]
+  },
+  {
+    "name": "promote-evolved.sh",
+    "type": "Script",
+    "observations": [
+      "Promotes evolved components to active dirs"
+    ]
+  },
+  {
+    "name": "exa-wrapper",
+    "type": "Script",
+    "observations": [
+      "Sources secrets.env for Exa MCP"
+    ]
+  },
+  {
+    "name": "firecrawl-wrapper",
+    "type": "Script",
+    "observations": [
+      "Sources secrets.env for Firecrawl MCP"
+    ]
+  },
+  {
+    "name": "obsidian-wrapper",
+    "type": "Script",
+    "observations": [
+      "Sources secrets.env for Obsidian MCP"
+    ]
+  },
+  {
+    "name": "notebooklm-py",
+    "type": "Infrastructure",
+    "observations": [
+      "Unofficial Python SDK/CLI for NotebookLM"
+    ]
+  },
+  {
+    "name": "notebooklm-wrapper-script",
+    "type": "Script",
+    "observations": [
+      "Executes notebooklm CLI from venv"
+    ]
+  },
+  {
+    "name": "storage-cleanup",
+    "type": "Command",
+    "observations": [
+      "Scans Mac storage, identifies cleanup opportunities"
+    ]
+  }
+]

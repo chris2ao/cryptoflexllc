@@ -1,0 +1,394 @@
+[
+  {
+    "id": "alert-health-separation",
+    "trigger": "when implementing alert aggregation systems that include health checks",
+    "confidence": 0.4,
+    "domain": "monitoring",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "alert-ux-ack",
+    "trigger": "when designing alert UX for system dashboards",
+    "confidence": 0.4,
+    "domain": "ux",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "async-first-cache-wrappers",
+    "trigger": "when designing cache wrappers that may handle both sync and async functions",
+    "confidence": 0.4,
+    "domain": "architecture",
+    "created": "2026-03-07"
+  },
+  {
+    "id": "bash-macos-arrays",
+    "trigger": "when scripts fail on macOS with unbound variable errors after set -u",
+    "confidence": 0.4,
+    "domain": "bash",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "catch-on-new-sql-queries",
+    "trigger": "when adding new SQL queries to a Promise.all block",
+    "confidence": 0.6,
+    "domain": "backend",
+    "created": "2026-02-15"
+  },
+  {
+    "id": "channels-over-dispatch",
+    "trigger": "when choosing between Channels, Dispatch, and Remote Control",
+    "confidence": 0.6,
+    "domain": "infrastructure",
+    "created": "2026-03-24"
+  },
+  {
+    "id": "deep-link-admin-to-public",
+    "trigger": "when building admin panels that reference public content",
+    "confidence": 0.5,
+    "domain": "frontend",
+    "created": "2026-02-15"
+  },
+  {
+    "id": "deterministic-ids-polling",
+    "trigger": "when implementing dismissible alerts in polling dashboards",
+    "confidence": 0.4,
+    "domain": "frontend",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "ephemeral-daemon-id-sync",
+    "trigger": "when setting up scheduled triggers depending on daemon IDs",
+    "confidence": 0.6,
+    "domain": "infrastructure",
+    "created": "2026-04-03"
+  },
+  {
+    "id": "gmail-api-full-format",
+    "trigger": "when using Gmail API to classify emails based on recipients",
+    "confidence": 0.7,
+    "domain": "api",
+    "created": "2026-03-24"
+  },
+  {
+    "id": "headless-mac-pmset",
+    "trigger": "when deploying to headless Mac hardware",
+    "confidence": 0.4,
+    "domain": "devops",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "imessage-storage-setting",
+    "trigger": "when Mac storage full and iMessage attachments exceed 10GB",
+    "confidence": 0.4,
+    "domain": "macos",
+    "created": "2026-04-12"
+  },
+  {
+    "id": "in-flight-dedup",
+    "trigger": "when multiple components poll the same expensive CLI command",
+    "confidence": 0.4,
+    "domain": "performance",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "launchctl-service-restart",
+    "trigger": "when managing macOS LaunchAgent services",
+    "confidence": 0.5,
+    "domain": "macos",
+    "created": "2026-03-14"
+  },
+  {
+    "id": "local-vs-cloud-scheduling",
+    "trigger": "when scheduling a task that needs local CLI tools",
+    "confidence": 0.6,
+    "domain": "infrastructure",
+    "created": "2026-03-24"
+  },
+  {
+    "id": "log-timestamp-anomalies",
+    "trigger": "when polling logs and seeing timestamp anomalies",
+    "confidence": 0.4,
+    "domain": "logging",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "mcp-sdk-capabilities",
+    "trigger": "when setting up new MCP servers with SDK v1.x",
+    "confidence": 0.4,
+    "domain": "mcp",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "mdx-jsx-comments",
+    "trigger": "when MDX fails to compile near comment-like patterns",
+    "confidence": 0.5,
+    "domain": "next-js",
+    "created": "2026-04-12"
+  },
+  {
+    "id": "mdx-no-imports",
+    "trigger": "when MDX file fails with Unexpected token errors",
+    "confidence": 0.5,
+    "domain": "next-js",
+    "created": "2026-04-12"
+  },
+  {
+    "id": "media-content-validation",
+    "trigger": "when validating embedded media in content",
+    "confidence": 0.4,
+    "domain": "content-validation",
+    "created": "2026-04-03"
+  },
+  {
+    "id": "memory-nudge-hook",
+    "trigger": "when implementing context persistence rules",
+    "confidence": 0.4,
+    "domain": "claude-code",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "memory-save-cadence",
+    "trigger": "when work accumulates past 50 units without saves",
+    "confidence": 0.5,
+    "domain": "claude-code",
+    "created": "2026-04-12"
+  },
+  {
+    "id": "merge-continuation-lines",
+    "trigger": "when parsing unstructured logs with continuation lines",
+    "confidence": 0.4,
+    "domain": "logging",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "mirror-existing-component-patterns",
+    "trigger": "when adding a new panel to an existing dashboard",
+    "confidence": 0.7,
+    "domain": "frontend",
+    "created": "2026-02-15"
+  },
+  {
+    "id": "multi-agent-phase-gating",
+    "trigger": "when starting a large project with 6+ files",
+    "confidence": 0.7,
+    "domain": "workflow",
+    "created": "2026-03-24"
+  },
+  {
+    "id": "nextjs-route-pages",
+    "trigger": "when linking to routes in Next.js app router",
+    "confidence": 0.4,
+    "domain": "next-js",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "no-trim-on-structured-cli-output",
+    "trigger": "when parsing structured CLI output",
+    "confidence": 0.5,
+    "domain": "parsing",
+    "created": "2026-03-07"
+  },
+  {
+    "id": "obsidian-401-http",
+    "trigger": "when mcp-tools Obsidian binary returns 401",
+    "confidence": 0.4,
+    "domain": "mcp",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "obsidian-cert-fallback",
+    "trigger": "when Obsidian MCP fails with self-signed certs",
+    "confidence": 0.4,
+    "domain": "mcp",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "openclaw-agents-nesting",
+    "trigger": "when parsing openclaw status output",
+    "confidence": 0.4,
+    "domain": "openclaw",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "openclaw-doctor-revert",
+    "trigger": "when running openclaw doctor after manual edits",
+    "confidence": 0.4,
+    "domain": "openclaw",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "openclaw-memorysearch",
+    "trigger": "when configuring memory search in OpenClaw",
+    "confidence": 0.4,
+    "domain": "openclaw",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "parallel-scaffolding",
+    "trigger": "when scaffolding large monolithic projects",
+    "confidence": 0.4,
+    "domain": "workflow",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "permission-path-consistency",
+    "trigger": "when defining permission strings in settings",
+    "confidence": 0.5,
+    "domain": "claude-code",
+    "created": "2026-03-14"
+  },
+  {
+    "id": "persona-agent-ux-testing",
+    "trigger": "when building tools for non-technical users",
+    "confidence": 0.4,
+    "domain": "design",
+    "created": "2026-04-03"
+  },
+  {
+    "id": "playwright-screenshots",
+    "trigger": "when dashboards need documentation screenshots",
+    "confidence": 0.4,
+    "domain": "automation",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "postToolUse-resilience",
+    "trigger": "when designing memory capture that must survive Ctrl+C",
+    "confidence": 0.4,
+    "domain": "claude-code",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "python-mcp-memory",
+    "trigger": "when installing mcp-memory-service",
+    "confidence": 0.4,
+    "domain": "environment",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "register-hooks-in-settings",
+    "trigger": "when creating hook scripts for Claude Code",
+    "confidence": 0.6,
+    "domain": "claude-code",
+    "created": "2026-03-07"
+  },
+  {
+    "id": "runaway-cpu-polling",
+    "trigger": "when dashboard shows runaway CPU usage",
+    "confidence": 0.4,
+    "domain": "performance",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "session-restart-pattern",
+    "trigger": "when debugging session stalls with no progress",
+    "confidence": 0.5,
+    "domain": "claude-code",
+    "created": "2026-03-24"
+  },
+  {
+    "id": "settings-override-not-merge",
+    "trigger": "when project has local settings alongside global",
+    "confidence": 0.7,
+    "domain": "claude-code",
+    "created": "2026-03-24"
+  },
+  {
+    "id": "static-agent-metadata",
+    "trigger": "when building dashboards for dynamic agent systems",
+    "confidence": 0.4,
+    "domain": "frontend",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "storage-cache-cleanup",
+    "trigger": "when Mac storage critical and caches exceed 5GB",
+    "confidence": 0.5,
+    "domain": "macos",
+    "created": "2026-04-12"
+  },
+  {
+    "id": "supabase-pooler-hostname",
+    "trigger": "when connecting to Supabase from serverless",
+    "confidence": 0.6,
+    "domain": "database",
+    "created": "2026-03-24"
+  },
+  {
+    "id": "supabase-uuid-functions",
+    "trigger": "when writing Supabase migrations with UUIDs",
+    "confidence": 0.6,
+    "domain": "database",
+    "created": "2026-03-24"
+  },
+  {
+    "id": "task-agent-sandbox-writes",
+    "trigger": "when Task agents need files in restricted dirs",
+    "confidence": 0.5,
+    "domain": "claude-code",
+    "created": "2026-03-14"
+  },
+  {
+    "id": "telegram-polling-watchdog",
+    "trigger": "when integrating Telegram with long-polling",
+    "confidence": 0.4,
+    "domain": "openclaw",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "two-tier-memory",
+    "trigger": "when setting up persistent memory for Claude",
+    "confidence": 0.4,
+    "domain": "claude-code",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "use-crlf-safe-regex",
+    "trigger": "when writing regex for cross-platform line endings",
+    "confidence": 0.5,
+    "domain": "cross-platform",
+    "created": "2026-03-07"
+  },
+  {
+    "id": "use-execfilesync-on-windows",
+    "trigger": "when using execSync with special chars on Windows",
+    "confidence": 0.5,
+    "domain": "windows",
+    "created": "2026-03-07"
+  },
+  {
+    "id": "validate-hooks-before-restart",
+    "trigger": "when creating or modifying hook scripts",
+    "confidence": 0.6,
+    "domain": "claude-code",
+    "created": "2026-02-16"
+  },
+  {
+    "id": "vector-memory-config",
+    "trigger": "when configuring vector memory systems",
+    "confidence": 0.4,
+    "domain": "memory",
+    "created": "2026-03-08"
+  },
+  {
+    "id": "vercel-build-cache-stale",
+    "trigger": "when Vercel deployment doesnt reflect recent commits",
+    "confidence": 0.6,
+    "domain": "vercel",
+    "created": "2026-03-24"
+  },
+  {
+    "id": "vercel-error-truncation",
+    "trigger": "when Vercel error message looks incomplete",
+    "confidence": 0.5,
+    "domain": "vercel",
+    "created": "2026-04-12"
+  },
+  {
+    "id": "verify-data-contracts",
+    "trigger": "when consuming structured data from external systems",
+    "confidence": 0.4,
+    "domain": "api",
+    "created": "2026-03-08"
+  }
+]

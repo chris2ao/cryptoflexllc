@@ -1,0 +1,407 @@
+[
+  {
+    "from": "Gmail Assistant Agent",
+    "to": "GWS Skill",
+    "type": "uses"
+  },
+  {
+    "from": "Gmail Assistant Agent",
+    "to": "chris2ao@gmail.com",
+    "type": "processes_inbox_of"
+  },
+  {
+    "from": "Gmail Assistant Agent",
+    "to": "chrisjohnson@cryptoflexllc.com",
+    "type": "processes_inbox_of"
+  },
+  {
+    "from": "Gmail Assistant Agent",
+    "to": "Mac Mini",
+    "type": "runs_on"
+  },
+  {
+    "from": "Game Director Agent",
+    "to": "Game Designer Agent",
+    "type": "orchestrates"
+  },
+  {
+    "from": "Game Director Agent",
+    "to": "Game Developer Agent",
+    "type": "orchestrates"
+  },
+  {
+    "from": "Game Director Agent",
+    "to": "Game Artist Agent",
+    "type": "orchestrates"
+  },
+  {
+    "from": "Game Director Agent",
+    "to": "Game UX Agent",
+    "type": "orchestrates"
+  },
+  {
+    "from": "Game Director Agent",
+    "to": "Game Writer Agent",
+    "type": "orchestrates"
+  },
+  {
+    "from": "Game Dev Skill",
+    "to": "Game Director Agent",
+    "type": "invokes"
+  },
+  {
+    "from": "Blog Post Orchestrator Agent",
+    "to": "Blog Post Skill",
+    "type": "implements"
+  },
+  {
+    "from": "Blog Post Orchestrator Agent",
+    "to": "cryptoflexllc",
+    "type": "writes_to"
+  },
+  {
+    "from": "Wrap-Up Orchestrator Agent",
+    "to": "Wrap-Up Skill",
+    "type": "implements"
+  },
+  {
+    "from": "Sync Orchestrator Agent",
+    "to": "Sync Skill",
+    "type": "implements"
+  },
+  {
+    "from": "Sync Orchestrator Agent",
+    "to": "claude-code-config",
+    "type": "syncs_to"
+  },
+  {
+    "from": "Config Sync Agent",
+    "to": "claude-code-config",
+    "type": "compares_against"
+  },
+  {
+    "from": "Home Sync Agent",
+    "to": "CJClaudin_Mac",
+    "type": "syncs_to"
+  },
+  {
+    "from": "Skill Extractor Agent",
+    "to": "Homunculus System",
+    "type": "feeds"
+  },
+  {
+    "from": "Observe Homunculus Hook",
+    "to": "Homunculus System",
+    "type": "feeds"
+  },
+  {
+    "from": "Save Session Hook",
+    "to": "Session Analyzer Agent",
+    "type": "provides_data_to"
+  },
+  {
+    "from": "Memory Nudge Hook",
+    "to": "Vector Memory System",
+    "type": "triggers_save_to"
+  },
+  {
+    "from": "Pre-Compact Hook",
+    "to": "Session Checkpoint Agent",
+    "type": "triggers"
+  },
+  {
+    "from": "File Guard Hook",
+    "to": "Pre-Commit Checker Agent",
+    "type": "complements"
+  },
+  {
+    "from": "Deploy Verifier Agent",
+    "to": "cryptoflexllc",
+    "type": "verifies"
+  },
+  {
+    "from": "Syncthing",
+    "to": "Mac Mini",
+    "type": "runs_on"
+  },
+  {
+    "from": "Vector Memory System",
+    "to": "Mac Mini",
+    "type": "runs_on"
+  },
+  {
+    "from": "Knowledge Graph",
+    "to": "Mac Mini",
+    "type": "runs_on"
+  },
+  {
+    "from": "GWS Skill",
+    "to": "chris2ao@gmail.com",
+    "type": "authenticates_to"
+  },
+  {
+    "from": "GWS Skill",
+    "to": "chrisjohnson@cryptoflexllc.com",
+    "type": "authenticates_to"
+  },
+  {
+    "from": "Memory MCP Server",
+    "to": "Knowledge Graph",
+    "type": "provides_backend_for"
+  },
+  {
+    "from": "Vector Memory MCP Server",
+    "to": "Vector Memory System",
+    "type": "provides_backend_for"
+  },
+  {
+    "from": "GitHub MCP Server",
+    "to": "Pre-Commit Checker Agent",
+    "type": "used_by"
+  },
+  {
+    "from": "Claude.ai Vercel MCP",
+    "to": "cryptoflexllc",
+    "type": "deploys"
+  },
+  {
+    "from": "Claude.ai Gmail MCP",
+    "to": "GWS Skill",
+    "type": "replaced_by"
+  },
+  {
+    "from": "Obsidian MCP Server",
+    "to": "/kb-article Command",
+    "type": "used_by"
+  },
+  {
+    "from": "Core Rules",
+    "to": "Gmail Assistant Agent",
+    "type": "governs"
+  },
+  {
+    "from": "Core Rules",
+    "to": "Game Director Agent",
+    "type": "governs"
+  },
+  {
+    "from": "Core Rules",
+    "to": "Blog Post Orchestrator Agent",
+    "type": "governs"
+  },
+  {
+    "from": "Development Rules",
+    "to": "Pre-Commit Checker Agent",
+    "type": "governs"
+  },
+  {
+    "from": "Operations Rules",
+    "to": "Context Health Agent",
+    "type": "governs"
+  },
+  {
+    "from": "Content Rules",
+    "to": "/blog-post Command",
+    "type": "governs"
+  },
+  {
+    "from": "Agent Orchestration Rule",
+    "to": "Multi-Repo Orchestrator Agent",
+    "type": "governs"
+  },
+  {
+    "from": "/blog-post Command",
+    "to": "Blog Post Orchestrator Agent",
+    "type": "invokes"
+  },
+  {
+    "from": "/claude-config-sync Command",
+    "to": "Config Sync Agent",
+    "type": "invokes"
+  },
+  {
+    "from": "/ingest-sessions Command",
+    "to": "Skill Extractor Agent",
+    "type": "invokes"
+  },
+  {
+    "from": "/smart-compact Command",
+    "to": "Session Checkpoint Agent",
+    "type": "invokes"
+  },
+  {
+    "from": "blog-inventory.sh",
+    "to": "Blog Post Orchestrator Agent",
+    "type": "supports"
+  },
+  {
+    "from": "validate-mdx.sh",
+    "to": "Blog Post Orchestrator Agent",
+    "type": "supports"
+  },
+  {
+    "from": "wrap-up-survey.sh",
+    "to": "Wrap-Up Orchestrator Agent",
+    "type": "supports"
+  },
+  {
+    "from": "config-diff.sh",
+    "to": "Config Sync Agent",
+    "type": "supports"
+  },
+  {
+    "from": "sync-status.sh",
+    "to": "Syncthing",
+    "type": "monitors"
+  },
+  {
+    "from": "memory-maintenance.py",
+    "to": "Vector Memory System",
+    "type": "maintains"
+  },
+  {
+    "from": "Memory Checkpoint Hook",
+    "to": "Vector Memory System",
+    "type": "enforces_saves_to"
+  },
+  {
+    "from": "Memory Checkpoint Hook",
+    "to": "Memory Nudge Hook",
+    "type": "complements"
+  },
+  {
+    "from": "KG Update Detect Hook",
+    "to": "Knowledge Graph",
+    "type": "enforces_updates_to"
+  },
+  {
+    "from": "/Knowledge-Graph-Sync Command",
+    "to": "Knowledge Graph",
+    "type": "reconciles"
+  },
+  {
+    "from": "notebooklm-content-skill",
+    "to": "notebooklm-content-agent",
+    "type": "delegates_to"
+  },
+  {
+    "from": "notebooklm-content-agent",
+    "to": "cryptoflexllc",
+    "type": "produces_content_for"
+  },
+  {
+    "from": "com.anthropic.claude-remote-control",
+    "to": "bridge-launcher.sh",
+    "type": "invokes"
+  },
+  {
+    "from": "bridge-launcher.sh",
+    "to": "Gmail Assistant Agent",
+    "type": "syncs_trigger_for"
+  },
+  {
+    "from": "com.anthropic.claude-remote-control",
+    "to": "Mac Mini",
+    "type": "runs_on"
+  },
+  {
+    "from": "Wrap-Up Skill",
+    "to": "wrap-up-orchestrator",
+    "type": "orchestrates"
+  },
+  {
+    "from": "evolve-synthesizer",
+    "to": "cross-platform-parsing",
+    "type": "generated"
+  },
+  {
+    "from": "evolve-synthesizer",
+    "to": "memory-architecture",
+    "type": "generated"
+  },
+  {
+    "from": "evolve-synthesizer",
+    "to": "content-validation",
+    "type": "generated"
+  },
+  {
+    "from": "evolve-synthesizer",
+    "to": "openclaw-ops",
+    "type": "generated"
+  },
+  {
+    "from": "evolve-synthesizer",
+    "to": "multi-agent-orchestration",
+    "type": "generated"
+  },
+  {
+    "from": "deep-research",
+    "to": "exa",
+    "type": "uses"
+  },
+  {
+    "from": "deep-research",
+    "to": "firecrawl",
+    "type": "uses"
+  },
+  {
+    "from": "memory-audit",
+    "to": "Vector Memory System",
+    "type": "scans"
+  },
+  {
+    "from": "game-dev",
+    "to": "game-director",
+    "type": "spawns"
+  },
+  {
+    "from": "ui-ux skill",
+    "to": "ui-ux-director",
+    "type": "spawns"
+  },
+  {
+    "from": "ui-ux-director",
+    "to": "ui-visual-designer",
+    "type": "coordinates"
+  },
+  {
+    "from": "ui-ux-director",
+    "to": "ui-component-architect",
+    "type": "coordinates"
+  },
+  {
+    "from": "ui-ux-director",
+    "to": "ui-performance-reviewer",
+    "type": "coordinates"
+  },
+  {
+    "from": "ui-ux-director",
+    "to": "ui-ux-reviewer",
+    "type": "coordinates"
+  },
+  {
+    "from": "/evolve command",
+    "to": "evolve-synthesizer",
+    "type": "orchestrates"
+  },
+  {
+    "from": "/storage-cleanup command",
+    "to": "Mac Mini",
+    "type": "manages"
+  },
+  {
+    "from": "exa-wrapper",
+    "to": "exa",
+    "type": "wraps"
+  },
+  {
+    "from": "firecrawl-wrapper",
+    "to": "firecrawl",
+    "type": "wraps"
+  },
+  {
+    "from": "obsidian-wrapper",
+    "to": "Obsidian MCP Server",
+    "type": "wraps"
+  }
+]
