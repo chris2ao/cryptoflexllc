@@ -85,16 +85,16 @@
   --snes-font-code:    var(--font-mono-var, "JetBrains Mono"), monospace;
 
   /* -- Font sizes ────────────────────────────────────────────── */
-  --snes-text-xs:    8px;
-  --snes-text-sm:    12px;
-  --snes-text-base:  16px;
-  --snes-text-lg:    20px;
-  --snes-text-xl:    24px;
-  --snes-text-2xl:   32px;
-  --snes-text-h4:    8px;
-  --snes-text-h3:    10px;
-  --snes-text-h2:    12px;
-  --snes-text-h1:    16px;
+  --snes-text-xs:    12px;
+  --snes-text-sm:    14px;
+  --snes-text-base:  18px;
+  --snes-text-lg:    22px;
+  --snes-text-xl:    28px;
+  --snes-text-2xl:   36px;
+  --snes-text-h4:    12px;
+  --snes-text-h3:    14px;
+  --snes-text-h2:    18px;
+  --snes-text-h1:    24px;
 
   /* -- Animation ─────────────────────────────────────────────── */
   --snes-anim-cursor: 530ms;

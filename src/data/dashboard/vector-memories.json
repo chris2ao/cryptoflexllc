@@ -8,7 +8,14 @@
     "cryptoflexllc",
     "architecture",
     "wrap-up",
-    "bug-fix"
+    "bug-fix",
+    "openclaw",
+    "knowledge-graph",
+    "mdx",
+    "security",
+    "macos",
+    "blog-post",
+    "multi-agent"
   ],
   "byType": {
     "note": 120,
@@ -17,5 +24,317 @@
     "convention": 25,
     "workaround": 15,
     "log": 10
-  }
+  },
+  "entries": [
+    {
+      "hash": "54ec1887",
+      "date": "2026-03-11",
+      "tags": [
+        "cryptoflexllc",
+        "smart-compact",
+        "security-review"
+      ],
+      "content": "Applied three-reviewer feedback to smart-compact skill. Key security fixes: secret scrubbing, defensive mkdir, vector memory failure warnings, project-scoped filenames."
+    },
+    {
+      "hash": "ae7d5a46",
+      "date": "2026-04-04",
+      "tags": [
+        "cve-2026-33579",
+        "multi-agent",
+        "security"
+      ],
+      "content": "Multi-agent CVE response workflow: Security agent threat hunt, builder agent designs, Claude Code implements with tests. Security panel on Mission Control: 7 files, 26 tests, 81%+ coverage."
+    },
+    {
+      "hash": "055db418",
+      "date": "2026-03-16",
+      "tags": [
+        "project-structure",
+        "claude-code",
+        "convention"
+      ],
+      "content": "Project structure pattern for greenfield projects: CLAUDE.md + .claude/rules/ + .claude/agents/ + .claude/commands/. Scales from startup to mature project."
+    },
+    {
+      "hash": "298ee668",
+      "date": "2026-04-02",
+      "tags": [
+        "config-management",
+        "data-drift",
+        "openclaw"
+      ],
+      "content": "Mission Control AGENT_ROSTER drifted from live OpenClaw config. Four emoji mappings wrong, all model versions stale. Recommendation: hydration step on startup."
+    },
+    {
+      "hash": "e45bf97c",
+      "date": "2026-04-07",
+      "tags": [
+        "deep-research",
+        "memory-audit",
+        "blog-post"
+      ],
+      "content": "Validated deep-research skill (Exa + Firecrawl). First deep research on AI memory architectures (22 sources). Implemented fact versioning + memory-audit. Published 2 blog posts."
+    },
+    {
+      "hash": "24e98d39",
+      "date": "2026-03-24",
+      "tags": [
+        "ai",
+        "game-development",
+        "goap"
+      ],
+      "content": "GOAP (Goal-Oriented Action Planning) replaces fixed FSM rules for emergent multi-goal AI. Agents plan backwards from goals, selecting actions based on preconditions and effects."
+    },
+    {
+      "hash": "8f14f0df",
+      "date": "2026-04-02",
+      "tags": [
+        "notebooklm",
+        "dlp",
+        "content-pipeline"
+      ],
+      "content": "NotebookLM DLP pattern: three-layer control (prevention, detection, remediation). Truncated word detection for ML-generated typos. Per-post asset directories with 300 DPI slide exports."
+    },
+    {
+      "hash": "b5550c0d",
+      "date": "2026-03-19",
+      "tags": [
+        "config-cleanup",
+        "rules",
+        "context-optimization"
+      ],
+      "content": "Removed 13 duplicate project-level rules (450 lines savings). Fixed Co-Authored-By contradiction. Removed redundant blog-post skill. Slimmed agents.md from 47 to 24 lines."
+    },
+    {
+      "hash": "17ae5423",
+      "date": "2026-03-29",
+      "tags": [
+        "omc",
+        "openclaw",
+        "feature-planning"
+      ],
+      "content": "OMC feature gap analysis: keyword-detector is foundational, should be first. Other features (routing, filtering, alerting) depend on it."
+    },
+    {
+      "hash": "b55cc936",
+      "date": "2026-04-02",
+      "tags": [
+        "openclaw",
+        "cron",
+        "breaking-change"
+      ],
+      "content": "OpenClaw 2026.4.2 changed cron JSON format from {cron, timezone} to {kind, expr, tz}. Broke Mission Control parser. Fixed with version detection in cron-utils.ts."
+    },
+    {
+      "hash": "442a569e",
+      "date": "2026-04-03",
+      "tags": [
+        "knowledge-graph",
+        "wrap-up",
+        "workflow-gap"
+      ],
+      "content": "Wrap-up automation doesn't update KG for new components. KG Update Detect Hook doesn't fire in wrap-up context. Recommend adding KG sync to wrap-up workflow."
+    },
+    {
+      "hash": "04126eb5",
+      "date": "2026-03-29",
+      "tags": [
+        "knowledge-graph",
+        "hooks",
+        "architecture"
+      ],
+      "content": "Built KG maintenance system: kg-update-detect.sh PostToolUse hook + /Knowledge-Graph-Sync 5-phase reconciliation command. Both registered in settings.json."
+    },
+    {
+      "hash": "0c87b225",
+      "date": "2026-03-24",
+      "tags": [
+        "claude-code",
+        "settings",
+        "gotcha"
+      ],
+      "content": "Claude Code project-level settings.json completely OVERRIDES (not merges) global settings. A partial project config shadows the entire global config section."
+    },
+    {
+      "hash": "0077f7e3",
+      "date": "2026-03-23",
+      "tags": [
+        "system-recovery",
+        "diagnostics",
+        "workaround"
+      ],
+      "content": "Power loss recovery: parallel integrity checks across 96 files (agents, workspaces, backups). Verify JSON parse, markdown fences, file termination, timestamps."
+    },
+    {
+      "hash": "b5f6db26",
+      "date": "2026-03-24",
+      "tags": [
+        "mission-control",
+        "dashboard",
+        "team-review"
+      ],
+      "content": "Mission Control 4-agent team review: 22 critical issues. Disk metric 12x off, global circuit breaker staling dashboard, ephemeral alert acks, font legibility at 7-8px."
+    },
+    {
+      "hash": "a63a2267",
+      "date": "2026-03-08",
+      "tags": [
+        "openclaw",
+        "telegram",
+        "schema"
+      ],
+      "content": "OpenClaw schema uses 'channel': 'telegram' not 'provider': 'telegram' in bindings configuration."
+    },
+    {
+      "hash": "a9d61712",
+      "date": "2026-04-03",
+      "tags": [
+        "wrap-up",
+        "gmail-assistant",
+        "bridge-launcher"
+      ],
+      "content": "Fixed Gmail scheduled trigger stale environment ID. Created bridge-launcher.sh auto-sync wrapper. Redesigned /wrap-up with vector memory, KG updates, component change detection."
+    },
+    {
+      "hash": "e7d71cb5",
+      "date": "2026-04-12",
+      "tags": [
+        "ui-ux",
+        "skill-system",
+        "multi-agent"
+      ],
+      "content": "Built /ui-ux skill: 5-agent tree (director + 4 specialists). 307 units of work. Knowledge base: 35 design rules, perceptual defaults, scaffold templates, React performance rules."
+    },
+    {
+      "hash": "024aef47",
+      "date": "2026-03-14",
+      "tags": [
+        "syncthing",
+        "case-sensitivity",
+        "macos"
+      ],
+      "content": "Syncthing SKILL.md vs skill.md conflict on APFS. Fix: two-step rename (SKILL.md -> _temp.md -> skill.md). Clean .syncthing.*.tmp files and manual rescan via REST API."
+    },
+    {
+      "hash": "094e631c",
+      "date": "2026-03-08",
+      "tags": [
+        "api",
+        "data-contract",
+        "openclaw"
+      ],
+      "content": "Alert API used wrong field names (message vs title/detail). Always verify actual field names in data, match to API contract."
+    },
+    {
+      "hash": "b3f8cc98",
+      "date": "2026-03-27",
+      "tags": [
+        "blog",
+        "style-guide",
+        "markdown"
+      ],
+      "content": "Never put markdown content (tables, headers) inside code fences. Code fences exclusively for actual code. Fixed instances in GWS CLI and Gmail agent posts."
+    },
+    {
+      "hash": "54ff7a6e",
+      "date": "2026-03-24",
+      "tags": [
+        "architecture",
+        "multi-agent",
+        "pattern"
+      ],
+      "content": "Multi-agent team with 6-7 specialists and phase gating catches critical issues early. Caught 2 critical + 4 high issues in Terry's vacation rental build."
+    },
+    {
+      "hash": "d9bc977b",
+      "date": "2026-04-12",
+      "tags": [
+        "ui-ux",
+        "design-system",
+        "feature-complete"
+      ],
+      "content": "UI/UX Design System deployed. 5 modes: Design, Build, Review, Fix, Audit. Cherry-picked from 6 frameworks. game-ux and blog-ux augmented with shared design rules."
+    },
+    {
+      "hash": "cc86fbc2",
+      "date": "2026-04-05",
+      "tags": [
+        "notebooklm",
+        "blog-post",
+        "superpowers"
+      ],
+      "content": "NotebookLM MCP integration complete. Blog captain produces good drafts when given detailed session context. Superpowers brainstorm -> plan -> subagent pipeline validated."
+    },
+    {
+      "hash": "5b4fb690",
+      "date": "2026-03-18",
+      "tags": [
+        "git-workflow",
+        "vercel-deploy",
+        "commit-format"
+      ],
+      "content": "Removed Co-Authored-By trailer from git-workflow.md. Vercel Hobby plan blocks deploys when GitHub can't resolve noreply@anthropic.com email."
+    },
+    {
+      "hash": "0faaed05",
+      "date": "2026-04-12",
+      "tags": [
+        "imessage",
+        "storage-optimization",
+        "macos"
+      ],
+      "content": "iMessage storage: set Mac 'Keep Messages: 30 days' to auto-purge, keep iPhone 'Forever' for full iCloud history. macOS lacks granular local-only attachment purging."
+    },
+    {
+      "hash": "0da49758",
+      "date": "2026-04-12",
+      "tags": [
+        "storage-cleanup",
+        "build-caches",
+        "macos"
+      ],
+      "content": "Tier 1 cleanup: delete .next, DerivedData, Homebrew, Playwright, pip, pnpm caches. ~7GB recovery, zero operational impact."
+    },
+    {
+      "hash": "0c7a59c1",
+      "date": "2026-04-12",
+      "tags": [
+        "mdx",
+        "next-mdx-remote",
+        "runtime-error"
+      ],
+      "content": "MDX imports crash at runtime with next-mdx-remote (no module resolution context). Remove imports, register via MDXRemote components prop in page.tsx."
+    },
+    {
+      "hash": "0a2a861c",
+      "date": "2026-04-12",
+      "tags": [
+        "mdx",
+        "syntax",
+        "compile-error"
+      ],
+      "content": "MDX does not support HTML comments (<!-- -->). Must use JSX comments ({/* */}). MDX compiles to JSX, HTML comments are invalid."
+    },
+    {
+      "hash": "9e4aaa11",
+      "date": "2026-04-12",
+      "tags": [
+        "vercel",
+        "debugging",
+        "error-truncation"
+      ],
+      "content": "Vercel dashboard truncates error messages. Get full logs via vercel CLI, MCP build logs tool, or local reproduction."
+    },
+    {
+      "hash": "f6fcb395",
+      "date": "2026-04-12",
+      "tags": [
+        "snes-dashboard",
+        "cryptoflexllc",
+        "architecture"
+      ],
+      "content": "SNES Environment Dashboard: static JSON export from Mac Mini, React Flow for KG graph, 7 pages, 16 custom SNES components. Auto-deploy via /dashboard-export."
+    }
+  ]
 }
