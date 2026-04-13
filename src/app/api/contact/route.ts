@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const resend = new Resend(resendKey);
 
     await resend.emails.send({
-      from: "CryptoFlex Contact Form <onboarding@resend.dev>",
+      from: "CryptoFlex Contact Form <contact@cryptoflexllc.com>",
       to: "chrisjohnson@cryptoflexllc.com",
       replyTo: email,
       subject: `[Contact] ${subject}`,
