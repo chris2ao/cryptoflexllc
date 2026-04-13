@@ -1105,6 +1105,12 @@ export default async function AnalyticsPage({
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/analytics/dashboard"
+              className="px-3 py-1.5 text-sm rounded-md bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Environment
+            </Link>
+            <Link
               href="/backlog"
               className="px-3 py-1.5 text-sm rounded-md bg-muted text-muted-foreground hover:text-foreground transition-colors"
             >
