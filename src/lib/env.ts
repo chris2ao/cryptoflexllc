@@ -7,6 +7,7 @@ const envSchema = z.object({
   SUBSCRIBER_SECRET: z.string().min(32),
   GMAIL_USER: z.string().email().optional(),
   GMAIL_APP_PASSWORD: z.string().min(1).optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   VERCEL_API_TOKEN: z.string().optional(),
   VERCEL_PROJECT_ID: z.string().optional(),

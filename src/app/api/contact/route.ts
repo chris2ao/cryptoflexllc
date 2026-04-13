@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Resend } from "resend";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 const contactSchema = z.object({
@@ -47,28 +48,24 @@ export async function POST(request: NextRequest) {
 
   const { name, email, subject, message } = parsed.data;
 
-  // Send email via nodemailer
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+  const resendKey = process.env.RESEND_API_KEY;
 
-  if (!gmailUser || !gmailPass) {
-    console.warn("[contact] Email credentials not configured, skipping send");
-    return NextResponse.json({ success: true });
+  if (!resendKey) {
+    console.error("[contact] RESEND_API_KEY not configured");
+    return NextResponse.json(
+      { error: "Failed to send message. Please try again later." },
+      { status: 500 }
+    );
   }
 
   try {
-    const nodemailer = await import("nodemailer");
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: gmailUser, pass: gmailPass },
-    });
+    const resend = new Resend(resendKey);
 
-    await transporter.sendMail({
-      from: `"CryptoFlex Contact Form" <${gmailUser}>`,
-      to: "Chris.Johnson@cryptoflexllc.com",
+    await resend.emails.send({
+      from: "CryptoFlex Contact Form <onboarding@resend.dev>",
+      to: "chrisjohnson@cryptoflexllc.com",
       replyTo: email,
       subject: `[Contact] ${subject}`,
-      text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
       html: `
         <div style="font-family: system-ui, sans-serif; max-width: 600px;">
           <h2 style="color: #06b6d4;">New Contact Form Submission</h2>
@@ -92,7 +89,7 @@ export async function POST(request: NextRequest) {
       `,
     });
 
-    console.log(`[contact] Message from ${name} <${email}> sent`);
+    console.log(`[contact] Message from ${name} <${email}> sent via Resend`);
   } catch (error) {
     console.error("[contact] Email send failed:", error);
     return NextResponse.json(
