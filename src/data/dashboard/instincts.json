@@ -36,37 +36,37 @@
   },
   {
     "id": "channels-over-dispatch",
-    "trigger": "when choosing between Channels, Dispatch, and Remote Control",
+    "trigger": "when choosing between Channels, Dispatch, and Remote Control for remote Claude Code access",
     "confidence": 0.6,
-    "domain": "infrastructure",
+    "domain": "",
     "created": "2026-03-24"
   },
   {
     "id": "deep-link-admin-to-public",
-    "trigger": "when building admin panels that reference public content",
+    "trigger": "when building admin/moderation panels that reference public-facing content",
     "confidence": 0.5,
     "domain": "frontend",
     "created": "2026-02-15"
   },
   {
     "id": "deterministic-ids-polling",
-    "trigger": "when implementing dismissible alerts in polling dashboards",
+    "trigger": "when implementing dismissible alerts or log entries in polling dashboards",
     "confidence": 0.4,
     "domain": "frontend",
     "created": "2026-03-08"
   },
   {
     "id": "ephemeral-daemon-id-sync",
-    "trigger": "when setting up scheduled triggers depending on daemon IDs",
+    "trigger": "when setting up scheduled triggers or configs that depend on daemon process IDs",
     "confidence": 0.6,
     "domain": "infrastructure",
     "created": "2026-04-03"
   },
   {
     "id": "gmail-api-full-format",
-    "trigger": "when using Gmail API to classify emails based on recipients",
+    "trigger": "when using Gmail API to classify or route emails based on recipients",
     "confidence": 0.7,
-    "domain": "api",
+    "domain": "",
     "created": "2026-03-24"
   },
   {
@@ -92,21 +92,21 @@
   },
   {
     "id": "launchctl-service-restart",
-    "trigger": "when managing macOS LaunchAgent services",
+    "trigger": "when managing macOS LaunchAgent services (restarts, watchdogs, cycling)",
     "confidence": 0.5,
     "domain": "macos",
     "created": "2026-03-14"
   },
   {
     "id": "local-vs-cloud-scheduling",
-    "trigger": "when scheduling a task that needs local CLI tools",
+    "trigger": "when scheduling a task that needs local CLI tools (gws, git, shell scripts)",
     "confidence": 0.6,
-    "domain": "infrastructure",
-    "created": "2026-03-24"
+    "domain": "",
+    "created": ""
   },
   {
     "id": "log-timestamp-anomalies",
-    "trigger": "when polling logs and seeing timestamp anomalies",
+    "trigger": "when polling logs from files and seeing timestamp anomalies",
     "confidence": 0.4,
     "domain": "logging",
     "created": "2026-03-08"
@@ -120,21 +120,21 @@
   },
   {
     "id": "mdx-jsx-comments",
-    "trigger": "when MDX fails to compile near comment-like patterns",
+    "trigger": "when MDX fails to compile with syntax errors near comment-like patterns",
     "confidence": 0.5,
     "domain": "next-js",
     "created": "2026-04-12"
   },
   {
     "id": "mdx-no-imports",
-    "trigger": "when MDX file fails with Unexpected token errors",
+    "trigger": "when MDX file fails with 'Unexpected token' or '___m' errors at runtime",
     "confidence": 0.5,
     "domain": "next-js",
     "created": "2026-04-12"
   },
   {
     "id": "media-content-validation",
-    "trigger": "when validating embedded media in content",
+    "trigger": "when validating embedded media (GIFs, images, videos) in content",
     "confidence": 0.4,
     "domain": "content-validation",
     "created": "2026-04-03"
@@ -148,7 +148,7 @@
   },
   {
     "id": "memory-save-cadence",
-    "trigger": "when work accumulates past 50 units without saves",
+    "trigger": "when work accumulates past 50 units without explicit vector memory save",
     "confidence": 0.5,
     "domain": "claude-code",
     "created": "2026-04-12"
@@ -162,56 +162,56 @@
   },
   {
     "id": "mirror-existing-component-patterns",
-    "trigger": "when adding a new panel to an existing dashboard",
+    "trigger": "when adding a new panel/card/table to an existing dashboard",
     "confidence": 0.7,
     "domain": "frontend",
     "created": "2026-02-15"
   },
   {
     "id": "multi-agent-phase-gating",
-    "trigger": "when starting a large project with 6+ files",
+    "trigger": "when starting a large project with 6 or more files and 3 or more distinct features",
     "confidence": 0.7,
-    "domain": "workflow",
+    "domain": "",
     "created": "2026-03-24"
   },
   {
     "id": "nextjs-route-pages",
     "trigger": "when linking to routes in Next.js app router",
     "confidence": 0.4,
-    "domain": "next-js",
+    "domain": "next.js",
     "created": "2026-03-08"
   },
   {
     "id": "no-trim-on-structured-cli-output",
-    "trigger": "when parsing structured CLI output",
+    "trigger": "when parsing structured CLI output where whitespace has semantic meaning",
     "confidence": 0.5,
     "domain": "parsing",
     "created": "2026-03-07"
   },
   {
     "id": "obsidian-401-http",
-    "trigger": "when mcp-tools Obsidian binary returns 401",
+    "trigger": "when mcp-tools Obsidian binary returns 401 authentication failures",
     "confidence": 0.4,
     "domain": "mcp",
     "created": "2026-03-08"
   },
   {
     "id": "obsidian-cert-fallback",
-    "trigger": "when Obsidian MCP fails with self-signed certs",
+    "trigger": "when Obsidian MCP authentication fails with self-signed certificates",
     "confidence": 0.4,
     "domain": "mcp",
     "created": "2026-03-08"
   },
   {
     "id": "openclaw-agents-nesting",
-    "trigger": "when parsing openclaw status output",
+    "trigger": "when parsing openclaw status --json output",
     "confidence": 0.4,
     "domain": "openclaw",
     "created": "2026-03-08"
   },
   {
     "id": "openclaw-doctor-revert",
-    "trigger": "when running openclaw doctor after manual edits",
+    "trigger": "when running openclaw doctor after manual config edits",
     "confidence": 0.4,
     "domain": "openclaw",
     "created": "2026-03-08"
@@ -225,21 +225,21 @@
   },
   {
     "id": "parallel-scaffolding",
-    "trigger": "when scaffolding large monolithic projects",
+    "trigger": "when scaffolding large monolithic projects (50+ files)",
     "confidence": 0.4,
     "domain": "workflow",
     "created": "2026-03-08"
   },
   {
     "id": "permission-path-consistency",
-    "trigger": "when defining permission strings in settings",
+    "trigger": "when defining permission strings in Claude Code settings.local.json",
     "confidence": 0.5,
     "domain": "claude-code",
     "created": "2026-03-14"
   },
   {
     "id": "persona-agent-ux-testing",
-    "trigger": "when building tools for non-technical users",
+    "trigger": "when building tools or dashboards for non-technical end users",
     "confidence": 0.4,
     "domain": "design",
     "created": "2026-04-03"
@@ -253,7 +253,7 @@
   },
   {
     "id": "postToolUse-resilience",
-    "trigger": "when designing memory capture that must survive Ctrl+C",
+    "trigger": "when designing session-end memory capture that must survive Ctrl+C",
     "confidence": 0.4,
     "domain": "claude-code",
     "created": "2026-03-08"
@@ -274,23 +274,23 @@
   },
   {
     "id": "runaway-cpu-polling",
-    "trigger": "when dashboard shows runaway CPU usage",
+    "trigger": "when dashboard shows runaway CPU usage and rapid process cycling",
     "confidence": 0.4,
     "domain": "performance",
     "created": "2026-03-08"
   },
   {
     "id": "session-restart-pattern",
-    "trigger": "when debugging session stalls with no progress",
+    "trigger": "when debugging session stalls with no progress after multiple hypotheses",
     "confidence": 0.5,
-    "domain": "claude-code",
-    "created": "2026-03-24"
+    "domain": "",
+    "created": ""
   },
   {
     "id": "settings-override-not-merge",
-    "trigger": "when project has local settings alongside global",
+    "trigger": "when working in a project that has .claude/settings.json alongside global ~/.claude/settings.json",
     "confidence": 0.7,
-    "domain": "claude-code",
+    "domain": "",
     "created": "2026-03-24"
   },
   {
@@ -302,28 +302,28 @@
   },
   {
     "id": "storage-cache-cleanup",
-    "trigger": "when Mac storage critical and caches exceed 5GB",
+    "trigger": "when Mac storage critical (>90%) and regeneratable caches exceed 5GB",
     "confidence": 0.5,
     "domain": "macos",
     "created": "2026-04-12"
   },
   {
     "id": "supabase-pooler-hostname",
-    "trigger": "when connecting to Supabase from serverless",
+    "trigger": "when connecting to Supabase from serverless or edge environments",
     "confidence": 0.6,
-    "domain": "database",
+    "domain": "",
     "created": "2026-03-24"
   },
   {
     "id": "supabase-uuid-functions",
-    "trigger": "when writing Supabase migrations with UUIDs",
+    "trigger": "when writing Supabase database migrations that generate UUIDs",
     "confidence": 0.6,
-    "domain": "database",
+    "domain": "",
     "created": "2026-03-24"
   },
   {
     "id": "task-agent-sandbox-writes",
-    "trigger": "when Task agents need files in restricted dirs",
+    "trigger": "when spawning Task agents that need to create files in restricted directories",
     "confidence": 0.5,
     "domain": "claude-code",
     "created": "2026-03-14"
@@ -337,28 +337,28 @@
   },
   {
     "id": "two-tier-memory",
-    "trigger": "when setting up persistent memory for Claude",
+    "trigger": "when setting up persistent memory for Claude sessions",
     "confidence": 0.4,
     "domain": "claude-code",
     "created": "2026-03-08"
   },
   {
     "id": "use-crlf-safe-regex",
-    "trigger": "when writing regex for cross-platform line endings",
+    "trigger": "when writing regex to match line endings in cross-platform code",
     "confidence": 0.5,
     "domain": "cross-platform",
     "created": "2026-03-07"
   },
   {
     "id": "use-execfilesync-on-windows",
-    "trigger": "when using execSync with special chars on Windows",
+    "trigger": "when using execSync with format strings containing %, ^, !, or & on Windows",
     "confidence": 0.5,
-    "domain": "windows",
+    "domain": "windows/node",
     "created": "2026-03-07"
   },
   {
     "id": "validate-hooks-before-restart",
-    "trigger": "when creating or modifying hook scripts",
+    "trigger": "when creating or modifying Claude Code hook scripts (.ps1 or .sh files)",
     "confidence": 0.6,
     "domain": "claude-code",
     "created": "2026-02-16"
@@ -372,14 +372,14 @@
   },
   {
     "id": "vercel-build-cache-stale",
-    "trigger": "when Vercel deployment doesnt reflect recent commits",
+    "trigger": "when a Vercel deployment does not reflect recently pushed commits",
     "confidence": 0.6,
-    "domain": "vercel",
+    "domain": "",
     "created": "2026-03-24"
   },
   {
     "id": "vercel-error-truncation",
-    "trigger": "when Vercel error message looks incomplete",
+    "trigger": "when Vercel error message looks incomplete or cuts off mid-sentence",
     "confidence": 0.5,
     "domain": "vercel",
     "created": "2026-04-12"

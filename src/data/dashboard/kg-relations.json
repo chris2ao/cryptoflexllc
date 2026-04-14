@@ -65,6 +65,11 @@
     "type": "implements"
   },
   {
+    "from": "Multi-Repo Orchestrator Agent",
+    "to": "Multi-Repo Status Skill",
+    "type": "supports"
+  },
+  {
     "from": "Sync Orchestrator Agent",
     "to": "Sync Skill",
     "type": "implements"
@@ -93,6 +98,11 @@
     "from": "Observe Homunculus Hook",
     "to": "Homunculus System",
     "type": "feeds"
+  },
+  {
+    "from": "Observe Homunculus Hook",
+    "to": "Skill Extractor Agent",
+    "type": "provides_data_to"
   },
   {
     "from": "Save Session Hook",
@@ -135,6 +145,11 @@
     "type": "runs_on"
   },
   {
+    "from": "Openclaw_MissionControl",
+    "to": "Mac Mini",
+    "type": "runs_on"
+  },
+  {
     "from": "GWS Skill",
     "to": "chris2ao@gmail.com",
     "type": "authenticates_to"
@@ -160,12 +175,22 @@
     "type": "used_by"
   },
   {
+    "from": "GitHub MCP Server",
+    "to": "Deploy Verifier Agent",
+    "type": "used_by"
+  },
+  {
     "from": "Claude.ai Vercel MCP",
     "to": "cryptoflexllc",
     "type": "deploys"
   },
   {
     "from": "Claude.ai Gmail MCP",
+    "to": "GWS Skill",
+    "type": "replaced_by"
+  },
+  {
+    "from": "Claude.ai Google Calendar MCP",
     "to": "GWS Skill",
     "type": "replaced_by"
   },
@@ -195,8 +220,23 @@
     "type": "governs"
   },
   {
+    "from": "Development Rules",
+    "to": "Changelog Writer Agent",
+    "type": "governs"
+  },
+  {
     "from": "Operations Rules",
     "to": "Context Health Agent",
+    "type": "governs"
+  },
+  {
+    "from": "Operations Rules",
+    "to": "Session Checkpoint Agent",
+    "type": "governs"
+  },
+  {
+    "from": "Content Rules",
+    "to": "Blog Post Orchestrator Agent",
     "type": "governs"
   },
   {
@@ -207,6 +247,11 @@
   {
     "from": "Agent Orchestration Rule",
     "to": "Multi-Repo Orchestrator Agent",
+    "type": "governs"
+  },
+  {
+    "from": "Agent Orchestration Rule",
+    "to": "Wrap-Up Orchestrator Agent",
     "type": "governs"
   },
   {
@@ -223,6 +268,16 @@
     "from": "/ingest-sessions Command",
     "to": "Skill Extractor Agent",
     "type": "invokes"
+  },
+  {
+    "from": "/ingest-sessions Command",
+    "to": "Session Analyzer Agent",
+    "type": "invokes"
+  },
+  {
+    "from": "/ingest-sessions Command",
+    "to": "Homunculus System",
+    "type": "feeds"
   },
   {
     "from": "/smart-compact Command",
@@ -255,9 +310,29 @@
     "type": "monitors"
   },
   {
+    "from": "sync-survey.sh",
+    "to": "Sync Orchestrator Agent",
+    "type": "supports"
+  },
+  {
     "from": "memory-maintenance.py",
     "to": "Vector Memory System",
     "type": "maintains"
+  },
+  {
+    "from": "memory-toggle.ps1",
+    "to": "Vector Memory MCP Server",
+    "type": "configures"
+  },
+  {
+    "from": "context-health.sh",
+    "to": "Context Health Agent",
+    "type": "supports"
+  },
+  {
+    "from": "cleanup-session.sh",
+    "to": "Save Session Hook",
+    "type": "cleans_up_after"
   },
   {
     "from": "Memory Checkpoint Hook",
@@ -286,8 +361,23 @@
   },
   {
     "from": "notebooklm-content-agent",
+    "to": "notebooklm-py",
+    "type": "uses"
+  },
+  {
+    "from": "notebooklm-content-agent",
+    "to": "notebooklm-wrapper-script",
+    "type": "uses"
+  },
+  {
+    "from": "notebooklm-content-agent",
     "to": "cryptoflexllc",
     "type": "produces_content_for"
+  },
+  {
+    "from": "notebooklm-py",
+    "to": "chrisjohnson@cryptoflexllc.com",
+    "type": "authenticates_with"
   },
   {
     "from": "com.anthropic.claude-remote-control",
@@ -305,9 +395,39 @@
     "type": "runs_on"
   },
   {
+    "from": "bridge-launcher.sh",
+    "to": "Mac Mini",
+    "type": "runs_on"
+  },
+  {
     "from": "Wrap-Up Skill",
     "to": "wrap-up-orchestrator",
     "type": "orchestrates"
+  },
+  {
+    "from": "wrap-up-orchestrator",
+    "to": "wrap-up-survey.sh",
+    "type": "uses-output-from"
+  },
+  {
+    "from": "bridge-launcher.sh",
+    "to": "gmail-assistant",
+    "type": "supports"
+  },
+  {
+    "from": "evolve",
+    "to": "evolve-synthesizer",
+    "type": "spawns"
+  },
+  {
+    "from": "evolve",
+    "to": "promote-evolved.sh",
+    "type": "references"
+  },
+  {
+    "from": "Wrap-Up Skill",
+    "to": "evolve",
+    "type": "nudges user to run"
   },
   {
     "from": "evolve-synthesizer",
@@ -345,13 +465,53 @@
     "type": "uses"
   },
   {
+    "from": "deep-research",
+    "to": "exa-wrapper",
+    "type": "depends_on"
+  },
+  {
+    "from": "deep-research",
+    "to": "firecrawl-wrapper",
+    "type": "depends_on"
+  },
+  {
+    "from": "exa-wrapper",
+    "to": "secrets.env",
+    "type": "sources"
+  },
+  {
+    "from": "firecrawl-wrapper",
+    "to": "secrets.env",
+    "type": "sources"
+  },
+  {
     "from": "memory-audit",
-    "to": "Vector Memory System",
+    "to": "vector-memory",
     "type": "scans"
+  },
+  {
+    "from": "obsidian-wrapper",
+    "to": "secrets.env",
+    "type": "sources"
   },
   {
     "from": "game-dev",
     "to": "game-director",
+    "type": "spawns"
+  },
+  {
+    "from": "game-director",
+    "to": "game-developer",
+    "type": "spawns"
+  },
+  {
+    "from": "game-director",
+    "to": "game-artist",
+    "type": "spawns"
+  },
+  {
+    "from": "game-director",
+    "to": "game-ux",
     "type": "spawns"
   },
   {
@@ -381,27 +541,167 @@
   },
   {
     "from": "/evolve command",
-    "to": "evolve-synthesizer",
+    "to": "evolve-synthesizer agent",
     "type": "orchestrates"
   },
   {
+    "from": "/evolve command",
+    "to": "Homunculus Instincts",
+    "type": "reads from"
+  },
+  {
+    "from": "/evolve command",
+    "to": "Evolved Skills Directory",
+    "type": "writes to"
+  },
+  {
     "from": "/storage-cleanup command",
-    "to": "Mac Mini",
+    "to": "Mac Mini Infrastructure",
     "type": "manages"
   },
   {
+    "from": "/dashboard-export command",
+    "to": "Knowledge Graph",
+    "type": "reads from"
+  },
+  {
+    "from": "/dashboard-export command",
+    "to": "Vector Memory System",
+    "type": "reads from"
+  },
+  {
+    "from": "/dashboard-export command",
+    "to": "Homunculus System",
+    "type": "reads from"
+  },
+  {
+    "from": "/dashboard-export command",
+    "to": "cryptoflexllc",
+    "type": "writes to"
+  },
+  {
+    "from": "/Knowledge-Graph-Sync Command",
+    "to": "/dashboard-export command",
+    "type": "triggers"
+  },
+  {
+    "from": "exa",
+    "to": "Exa API",
+    "type": "requires_api_key_from"
+  },
+  {
+    "from": "firecrawl",
+    "to": "Firecrawl API",
+    "type": "requires_api_key_from"
+  },
+  {
+    "from": "Neon Postgres",
+    "to": "cryptoflexllc",
+    "type": "stores_data_for"
+  },
+  {
+    "from": "Gmail OAuth",
+    "to": "Gmail Assistant Agent",
+    "type": "authenticates"
+  },
+  {
+    "from": "Vercel Hosting",
+    "to": "cryptoflexllc",
+    "type": "deploys"
+  },
+  {
+    "from": "NotebookLM Service",
+    "to": "notebooklm-content-agent",
+    "type": "used_by"
+  },
+  {
+    "from": "Google Workspace",
+    "to": "GWS Skill",
+    "type": "accessed_via"
+  },
+  {
     "from": "exa-wrapper",
-    "to": "exa",
-    "type": "wraps"
+    "to": "secrets.env",
+    "type": "sources_secrets_from"
   },
   {
     "from": "firecrawl-wrapper",
-    "to": "firecrawl",
-    "type": "wraps"
+    "to": "secrets.env",
+    "type": "sources_secrets_from"
   },
   {
     "from": "obsidian-wrapper",
-    "to": "Obsidian MCP Server",
+    "to": "secrets.env",
+    "type": "sources_secrets_from"
+  },
+  {
+    "from": "blog-captain",
+    "to": "cryptoflexllc MDX Registry",
+    "type": "requires_registry_in"
+  },
+  {
+    "from": "notebooklm-content-agent",
+    "to": "cryptoflexllc MDX Registry",
+    "type": "requires_registry_in"
+  },
+  {
+    "from": "dashboard-export command",
+    "to": "Knowledge Graph",
+    "type": "reads_from"
+  },
+  {
+    "from": "dashboard-export command",
+    "to": "Vector Memory System",
+    "type": "reads_from"
+  },
+  {
+    "from": "dashboard-export command",
+    "to": "cryptoflexllc",
+    "type": "writes_to"
+  },
+  {
+    "from": "deep-research skill",
+    "to": "Exa API",
+    "type": "uses_for_tier_1_search"
+  },
+  {
+    "from": "deep-research skill",
+    "to": "Firecrawl API",
+    "type": "uses_for_tier_2_rendering"
+  },
+  {
+    "from": "exa",
+    "to": "deep-research skill",
+    "type": "enables"
+  },
+  {
+    "from": "firecrawl",
+    "to": "deep-research skill",
+    "type": "enables"
+  },
+  {
+    "from": "Gmail Assistant Agent",
+    "to": "Google Workspace",
+    "type": "depends_on"
+  },
+  {
+    "from": "GWS Skill",
+    "to": "Google Workspace",
     "type": "wraps"
+  },
+  {
+    "from": "cryptoflexllc",
+    "to": "Vercel Hosting",
+    "type": "deployed_on"
+  },
+  {
+    "from": "cryptoflexllc",
+    "to": "Neon Postgres",
+    "type": "uses_database"
+  },
+  {
+    "from": "notebooklm-content-agent",
+    "to": "NotebookLM Service",
+    "type": "depends_on"
   }
 ]

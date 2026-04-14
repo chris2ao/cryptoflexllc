@@ -2,68 +2,71 @@
   "PreToolUse": [
     {
       "matcher": "Edit|Write",
-      "script": "file-guard",
-      "description": "Blocks edits to sensitive files (.env, .pem, .key)"
+      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" file-guard",
+      "description": "dispatch.sh\" file-guard",
+      "timeout": 5000
     },
     {
       "matcher": "Skill",
-      "script": "ccstatusline",
-      "description": "Status line hook"
+      "script": "ccstatusline --hook",
+      "description": "ccstatusline --hook",
+      "timeout": 5000
     }
   ],
   "PostToolUse": [
     {
       "matcher": "Edit|Write|Bash",
-      "script": "log-activity",
-      "description": "Logs user activity and session metrics",
+      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" log-activity",
+      "description": "dispatch.sh\" log-activity",
       "timeout": 5000
     },
     {
       "matcher": "Edit|Write|Bash|Read|Grep|Glob",
-      "script": "observe-homunculus",
-      "description": "Captures behavioral patterns for instinct extraction",
+      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" observe-homunculus",
+      "description": "dispatch.sh\" observe-homunculus",
       "timeout": 5000
     },
     {
-      "matcher": "Edit|Write|Bash|Agent|mcp__memory__*",
-      "script": "memory-nudge",
-      "description": "Nudges memory persistence at edit thresholds",
+      "matcher": "Edit|Write|Bash|Agent|mcp__memory__create_entities|mcp__memory__create_relations|mcp__memory__delete_entities|mcp__memory__add_observations|mcp__obsidian__create_vault_file|mcp__obsidian__patch_vault_file|mcp__github__create_pull_request|mcp__github__create_issue|mcp__github__push_files",
+      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" memory-nudge",
+      "description": "dispatch.sh\" memory-nudge",
       "timeout": 5000
     },
     {
       "matcher": "Edit|Write",
-      "script": "kg-update-detect",
-      "description": "Detects writes to agent/skill/hook directories",
+      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" kg-update-detect",
+      "description": "dispatch.sh\" kg-update-detect",
       "timeout": 5000
     }
   ],
   "Stop": [
     {
       "matcher": "",
-      "script": "prompt-notify",
-      "description": "Session end notification",
+      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" prompt-notify",
+      "description": "dispatch.sh\" prompt-notify",
       "timeout": 3000
     },
     {
       "matcher": "",
-      "script": "memory-checkpoint",
-      "description": "5-category memory save checklist",
+      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" memory-checkpoint",
+      "description": "dispatch.sh\" memory-checkpoint",
       "timeout": 5000
     }
   ],
   "SessionEnd": [
     {
       "matcher": "",
-      "script": "save-session",
-      "description": "Archives full transcript to session_archive/",
+      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" save-session",
+      "description": "dispatch.sh\" save-session",
       "timeout": 10000
     }
   ],
   "UserPromptSubmit": [
     {
       "matcher": "",
-      "script": "ccstatusline",
-      "description": "Status line update"
+      "script": "ccstatusline --hook",
+      "description": "ccstatusline --hook",
+      "timeout": 5000
     }
   ]
 }
