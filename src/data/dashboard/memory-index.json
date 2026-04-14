@@ -1,8 +1,9 @@
 [
   {
-    "project": "CJClaudin_Mac",
-    "lineCount": 293,
+    "project": "CJClaudin-Mac",
+    "lineCount": 300,
     "keyTopics": [
+      "UniFi MCP Integration Research (2026-04-14)",
       "Contact Form: Resend Migration (2026-04-13)",
       "/ui-ux Skill System (2026-04-12)",
       "NotebookLM Slide Stall Pattern (2026-04-12)",
@@ -21,22 +22,21 @@
       "Blog Posts / Content Generation",
       "Feedback",
       "NotebookLM Content Pipeline Hardening (2026-04-02)",
-      "Blog Diagram Infrastructure (2026-03-30)",
-      "Cross-Workstation Sync (2026-03-13)"
+      "Blog Diagram Infrastructure (2026-03-30)"
     ]
   },
   {
-    "project": "Cann_Cann",
+    "project": "Cann-Cann",
     "lineCount": 5,
     "keyTopics": []
   },
   {
-    "project": "Openclaw_MissionControl",
+    "project": "Openclaw-MissionControl",
     "lineCount": 1,
     "keyTopics": []
   },
   {
-    "project": "Third_Conflict",
+    "project": "Third-Conflict",
     "lineCount": 3,
     "keyTopics": []
   },
@@ -46,7 +46,7 @@
     "keyTopics": []
   },
   {
-    "project": "terry_website",
+    "project": "terry-website",
     "lineCount": 14,
     "keyTopics": [
       "Project",
@@ -55,19 +55,19 @@
     ]
   },
   {
-    "project": "_Users_chris2ao_GitProjects",
+    "project": "-Users-chris2ao-GitProjects",
     "lineCount": 1,
     "keyTopics": []
   },
   {
-    "project": "unknown",
+    "project": "C--ClaudeProjects-CJClaude-1",
     "lineCount": 44,
     "keyTopics": [
       "Path Migration Lessons"
     ]
   },
   {
-    "project": "unknown",
+    "project": "C--ClaudeProjects-Third-Conflict",
     "lineCount": 26,
     "keyTopics": [
       "Key Architecture Notes",
@@ -77,7 +77,7 @@
     ]
   },
   {
-    "project": "unknown",
+    "project": "C--ClaudeProjects-ThirdConflict-ios",
     "lineCount": 37,
     "keyTopics": [
       "Architecture",
@@ -88,7 +88,7 @@
     ]
   },
   {
-    "project": "unknown",
+    "project": "C--ClaudeProjects-cryptoflexllc",
     "lineCount": 11,
     "keyTopics": [
       "Vector Memory",
@@ -97,14 +97,14 @@
     ]
   },
   {
-    "project": "unknown",
+    "project": "C--ClaudeProjects",
     "lineCount": 10,
     "keyTopics": [
       "Session Summary (2026-02-25)"
     ]
   },
   {
-    "project": "unknown",
+    "project": "D--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-Second-Conflict",
     "lineCount": 30,
     "keyTopics": [
       "Architecture",
@@ -114,7 +114,7 @@
     ]
   },
   {
-    "project": "unknown",
+    "project": "D--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-Third-Conflict",
     "lineCount": 64,
     "keyTopics": [
       "Current State",
@@ -129,7 +129,7 @@
     ]
   },
   {
-    "project": "unknown",
+    "project": "D--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-cryptoflexllc",
     "lineCount": 70,
     "keyTopics": [
       "Project Overview",
@@ -142,7 +142,7 @@
     ]
   },
   {
-    "project": "unknown",
+    "project": "d--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-CJClaude-1-backup",
     "lineCount": 118,
     "keyTopics": [
       "Project Purpose",
@@ -159,7 +159,7 @@
     ]
   },
   {
-    "project": "unknown",
+    "project": "d--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-CJClaude-1",
     "lineCount": 195,
     "keyTopics": [
       "Project Purpose",
@@ -178,7 +178,7 @@
     ]
   },
   {
-    "project": "unknown",
+    "project": "d--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-claude-code-config",
     "lineCount": 23,
     "keyTopics": [
       "Repositories",

@@ -1,18 +1,13 @@
 {
-  "totalCount": 284,
-  "recentTags": [
-    "wrap-up",
-    "session-summary",
-    "cryptoflexllc",
-    "CJClaudin_Mac",
-    "architecture",
-    "bug-fix",
-    "gotcha",
-    "claude-code",
-    "openclaw",
-    "gmail-assistant"
-  ],
+  "totalCount": 0,
+  "recentTags": [],
   "byType": {
-    "observation": 284
-  }
+    "note": 0,
+    "decision": 0,
+    "gotcha": 0,
+    "convention": 0,
+    "workaround": 0,
+    "log": 0
+  },
+  "entries": []
 }

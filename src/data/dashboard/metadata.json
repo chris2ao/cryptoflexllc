@@ -1,9 +1,11 @@
 {
-  "lastUpdated": "2026-04-14T02:28:23.974897+00:00",
-  "exportVersion": 2,
+  "lastUpdated": "2026-04-14T04:20:14.871987+00:00",
+  "exportVersion": 3,
   "entityCount": 133,
   "relationCount": 141,
   "instinctCount": 56,
-  "observationCount": 20986,
-  "memoryCount": 284
+  "observationCount": 21084,
+  "memoryCount": 18,
+  "metricsCount": 52,
+  "sessionCount": 27
 }
