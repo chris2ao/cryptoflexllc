@@ -703,5 +703,15 @@
     "from": "notebooklm-content-agent",
     "to": "NotebookLM Service",
     "type": "depends_on"
+  },
+  {
+    "from": "chris2ao-unifi-mcp",
+    "to": "UDM-Pro-Console",
+    "type": "CONNECTS_TO"
+  },
+  {
+    "from": "chris2ao-unifi-mcp",
+    "to": "Claude Code",
+    "type": "INTEGRATES_WITH"
   }
 ]

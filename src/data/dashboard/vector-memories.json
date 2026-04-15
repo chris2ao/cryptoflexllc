@@ -1,13 +1,6 @@
 {
-  "totalCount": 0,
+  "totalCount": 290,
   "recentTags": [],
-  "byType": {
-    "note": 0,
-    "decision": 0,
-    "gotcha": 0,
-    "convention": 0,
-    "workaround": 0,
-    "log": 0
-  },
-  "entries": []
+  "byType": {},
+  "error": "no such column: type"
 }

@@ -1,131 +1,38 @@
 [
   {
-    "project": "CJClaudin-Mac",
-    "lineCount": 300,
-    "keyTopics": [
-      "UniFi MCP Integration Research (2026-04-14)",
-      "Contact Form: Resend Migration (2026-04-13)",
-      "/ui-ux Skill System (2026-04-12)",
-      "NotebookLM Slide Stall Pattern (2026-04-12)",
-      "Cyber Editorial Design (2026-04-12)",
-      "Pre-Commit Checks",
-      "Infrastructure / Scheduled Tasks",
-      "Security",
-      "Gmail Assistant Scheduled Trigger Fix (2026-04-09)",
-      "Skills Tab Overhaul - cryptoflexllc.com (2026-04-08)",
-      "Deep Research Validation + Memory Audit + Blog Publishing (2026-04-07)",
-      "Deep Research Skill + MCP Setup (2026-04-06)",
-      "Autoresearch Evaluation and Vector Memory Tuning (2026-04-04)",
-      "Homunculus Evolution Layer (2026-04-03)",
-      "Blog Diagram Infrastructure Update (2026-04-03)",
-      "Blog Series: Under the Hood (2026-04-03)",
-      "Blog Posts / Content Generation",
-      "Feedback",
-      "NotebookLM Content Pipeline Hardening (2026-04-02)",
-      "Blog Diagram Infrastructure (2026-03-30)"
-    ]
-  },
-  {
-    "project": "Cann-Cann",
-    "lineCount": 5,
-    "keyTopics": []
-  },
-  {
-    "project": "Openclaw-MissionControl",
-    "lineCount": 1,
-    "keyTopics": []
-  },
-  {
-    "project": "Third-Conflict",
-    "lineCount": 3,
-    "keyTopics": []
-  },
-  {
-    "project": "cryptoflexllc",
+    "project": "-Users-chris2ao-GitProjects-cryptoflexllc",
     "lineCount": 2,
-    "keyTopics": []
-  },
-  {
-    "project": "terry-website",
-    "lineCount": 14,
-    "keyTopics": [
-      "Project",
-      "Reference",
-      "Feedback"
-    ]
-  },
-  {
-    "project": "-Users-chris2ao-GitProjects",
-    "lineCount": 1,
     "keyTopics": []
   },
   {
     "project": "C--ClaudeProjects-CJClaude-1",
     "lineCount": 44,
     "keyTopics": [
-      "Path Migration Lessons"
+      "Path Migration Lessons",
+      ".claude.json Maintenance",
+      "Config Layer Complexity",
+      "MCP Server Verification (2026-02-28, updated 2026-04-04)",
+      "Multi-Agent Research Pipeline (2026-04-05)",
+      "Syncthing Cross-Platform Sync (2026-03-13)"
     ]
   },
   {
-    "project": "C--ClaudeProjects-Third-Conflict",
-    "lineCount": 26,
+    "project": "d--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-claude-code-config",
+    "lineCount": 23,
     "keyTopics": [
-      "Key Architecture Notes",
-      "Fleet Orders System (QER)",
-      "Resource Bar Command Panels",
-      "Recent Fixes"
-    ]
-  },
-  {
-    "project": "C--ClaudeProjects-ThirdConflict-ios",
-    "lineCount": 37,
-    "keyTopics": [
-      "Architecture",
-      "Key Patterns",
-      "Faction Mechanics",
-      "Testing Gaps",
-      "App Icon"
-    ]
-  },
-  {
-    "project": "C--ClaudeProjects-cryptoflexllc",
-    "lineCount": 11,
-    "keyTopics": [
-      "Vector Memory",
-      "SEO / GSC Patterns",
-      "Session Habits"
+      "Repositories",
+      "Key Agents",
+      "Commit Style",
+      "User Preferences"
     ]
   },
   {
     "project": "C--ClaudeProjects",
     "lineCount": 10,
     "keyTopics": [
-      "Session Summary (2026-02-25)"
-    ]
-  },
-  {
-    "project": "D--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-Second-Conflict",
-    "lineCount": 30,
-    "keyTopics": [
-      "Architecture",
-      "Security Assessment (2026-02-21)",
-      "Blog Post",
-      "Cross-Project Fixes (cryptoflexllc)"
-    ]
-  },
-  {
-    "project": "D--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-Third-Conflict",
-    "lineCount": 64,
-    "keyTopics": [
-      "Current State",
-      "Future Plans",
-      "Faction System (Implemented)",
-      "Stealth Scout (Implemented)",
-      "Map Scale",
-      "AI Overhaul",
-      "Key Architecture",
-      "Build & Test",
-      "Manual"
+      "Session Summary (2026-02-25)",
+      "Config/Setup Work",
+      "Key Insight"
     ]
   },
   {
@@ -135,10 +42,26 @@
       "Project Overview",
       "Key Architecture",
       "Important Patterns",
+      "Anthropic SDK",
+      "Vitest Mocking SDK Constructors",
+      "Vercel",
+      "Windows / Git Bash",
+      "Blog Images",
       "Blog Series Navigation",
       "Repos",
       "Ignored Repos (skip during multi-repo searches)",
       "Commit Convention"
+    ]
+  },
+  {
+    "project": "D--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-Second-Conflict",
+    "lineCount": 30,
+    "keyTopics": [
+      "Architecture",
+      "Security Assessment (2026-02-21)",
+      "Key Findings",
+      "Blog Post",
+      "Cross-Project Fixes (cryptoflexllc)"
     ]
   },
   {
@@ -159,6 +82,101 @@
     ]
   },
   {
+    "project": "C--ClaudeProjects-Third-Conflict",
+    "lineCount": 26,
+    "keyTopics": [
+      "Key Architecture Notes",
+      "Fleet Orders System (QER)",
+      "Resource Bar Command Panels",
+      "Recent Fixes"
+    ]
+  },
+  {
+    "project": "C--ClaudeProjects-cryptoflexllc",
+    "lineCount": 11,
+    "keyTopics": [
+      "Vector Memory",
+      "SEO / GSC Patterns",
+      "Session Habits"
+    ]
+  },
+  {
+    "project": "D--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-Third-Conflict",
+    "lineCount": 64,
+    "keyTopics": [
+      "Current State",
+      "Future Plans",
+      "Faction System (Implemented)",
+      "Stealth Scout (Implemented)",
+      "Map Scale",
+      "AI Overhaul",
+      "Key Architecture",
+      "Build & Test",
+      "Manual"
+    ]
+  },
+  {
+    "project": "C--ClaudeProjects-ThirdConflict-ios",
+    "lineCount": 37,
+    "keyTopics": [
+      "Architecture",
+      "Key Patterns",
+      "Faction Mechanics",
+      "Testing Gaps",
+      "App Icon"
+    ]
+  },
+  {
+    "project": "-Users-chris2ao-GitProjects-Third-Conflict",
+    "lineCount": 3,
+    "keyTopics": []
+  },
+  {
+    "project": "-Users-chris2ao-GitProjects-terry-website",
+    "lineCount": 14,
+    "keyTopics": [
+      "Project",
+      "Reference",
+      "Feedback"
+    ]
+  },
+  {
+    "project": "-Users-chris2ao-GitProjects-Openclaw-MissionControl",
+    "lineCount": 1,
+    "keyTopics": []
+  },
+  {
+    "project": "-Users-chris2ao-GitProjects-Cann-Cann",
+    "lineCount": 5,
+    "keyTopics": []
+  },
+  {
+    "project": "-Users-chris2ao-GitProjects-CJClaudin-Mac",
+    "lineCount": 306,
+    "keyTopics": [
+      "chris2ao-unifi-mcp (2026-04-14)",
+      "Contact Form: Resend Migration (2026-04-13)",
+      "/ui-ux Skill System (2026-04-12)",
+      "NotebookLM Slide Stall Pattern (2026-04-12)",
+      "Cyber Editorial Design (2026-04-12)",
+      "Pre-Commit Checks",
+      "Infrastructure / Scheduled Tasks",
+      "Security",
+      "Gmail Assistant Scheduled Trigger Fix (2026-04-09)",
+      "Skills Tab Overhaul - cryptoflexllc.com (2026-04-08)",
+      "Deep Research Validation + Memory Audit + Blog Publishing (2026-04-07)",
+      "Deep Research Skill + MCP Setup (2026-04-06)",
+      "Autoresearch Evaluation and Vector Memory Tuning (2026-04-04)",
+      "Homunculus Evolution Layer (2026-04-03)",
+      "Blog Diagram Infrastructure Update (2026-04-03)"
+    ]
+  },
+  {
+    "project": "-Users-chris2ao-GitProjects",
+    "lineCount": 1,
+    "keyTopics": []
+  },
+  {
     "project": "d--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-CJClaude-1",
     "lineCount": 195,
     "keyTopics": [
@@ -175,16 +193,6 @@
       "Blog Posts (cryptoflexllc)",
       "Session Patterns",
       "Past Mistakes"
-    ]
-  },
-  {
-    "project": "d--Users-chris-dnlqpqd-OneDrive-AI-Projects-Claude-claude-code-config",
-    "lineCount": 23,
-    "keyTopics": [
-      "Repositories",
-      "Key Agents",
-      "Commit Style",
-      "User Preferences"
     ]
   }
 ]

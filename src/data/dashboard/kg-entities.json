@@ -1261,5 +1261,32 @@
       "Gotcha: forgetting backlog registry causes backlog post rendering failures",
       "Contains: MermaidDiagram, DiagramLightbox, ImageLightbox, LinkedText, Code, Heading, etc."
     ]
+  },
+  {
+    "name": "chris2ao-unifi-mcp",
+    "type": "mcp-server",
+    "observations": [
+      "Custom unified UniFi MCP server combining sirkirby and enuno capabilities",
+      "Location: ~/GitProjects/chris2ao-unifi-mcp/",
+      "Stack: Python 3.12+, FastMCP, httpx, Pydantic v2",
+      "Phase 1 MVP complete: 85 tools, 183 tests, 89.5% coverage, 22 commits",
+      "Auth: API-key-only against local gateway (https://172.16.27.1)",
+      "MCP config added to ~/.claude.json as 'unifi' (dev mode, uv run)",
+      "Env vars: UNIFI_HOST, UNIFI_API_KEY in ~/.claude/secrets/secrets.env",
+      "Next: test if cloud API key works against local gateway, then Phase 2 (Protect)"
+    ]
+  },
+  {
+    "name": "UDM-Pro-Console",
+    "type": "infrastructure",
+    "observations": [
+      "UniFi Dream Machine Pro at https://172.16.27.1",
+      "UniFi OS 5.0.16, Network 10.2.105, Protect 7.0.104",
+      "Access not installed (available to install)",
+      "API key generated via unifi.ui.com cloud portal",
+      "Local console has no Integrations tab for local API key generation",
+      "SSH disabled, Remote Access enabled",
+      "Self-signed SSL cert (UNIFI_VERIFY_SSL=false)"
+    ]
   }
 ]
