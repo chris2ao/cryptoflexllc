@@ -2,71 +2,68 @@
   "PreToolUse": [
     {
       "matcher": "Edit|Write",
-      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" file-guard",
-      "description": "PreToolUse hook for Edit|Write",
-      "timeout": 0
+      "script": "bash",
+      "description": ""
     },
     {
       "matcher": "Skill",
-      "script": "ccstatusline --hook",
-      "description": "PreToolUse hook for Skill",
-      "timeout": 0
+      "script": "ccstatusline",
+      "description": ""
     }
   ],
   "PostToolUse": [
     {
       "matcher": "Edit|Write|Bash",
-      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" log-activity",
-      "description": "PostToolUse hook for Edit|Write|Bash",
+      "script": "bash",
+      "description": "",
       "timeout": 5000
     },
     {
       "matcher": "Edit|Write|Bash|Read|Grep|Glob",
-      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" observe-homunculus",
-      "description": "PostToolUse hook for Edit|Write|Bash|Read|Grep|Glob",
+      "script": "bash",
+      "description": "",
       "timeout": 5000
     },
     {
       "matcher": "Edit|Write|Bash|Agent|mcp__memory__create_entities|mcp__memory__create_relations|mcp__memory__delete_entities|mcp__memory__add_observations|mcp__obsidian__create_vault_file|mcp__obsidian__patch_vault_file|mcp__github__create_pull_request|mcp__github__create_issue|mcp__github__push_files",
-      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" memory-nudge",
-      "description": "PostToolUse hook for Edit|Write|Bash|Agent|mcp__memory__create_entities|mcp__memory__create_relations|mcp__memory__delete_entities|mcp__memory__add_observations|mcp__obsidian__create_vault_file|mcp__obsidian__patch_vault_file|mcp__github__create_pull_request|mcp__github__create_issue|mcp__github__push_files",
+      "script": "bash",
+      "description": "",
       "timeout": 5000
     },
     {
       "matcher": "Edit|Write",
-      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" kg-update-detect",
-      "description": "PostToolUse hook for Edit|Write",
+      "script": "bash",
+      "description": "",
       "timeout": 5000
     }
   ],
   "Stop": [
     {
       "matcher": "",
-      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" prompt-notify",
-      "description": "Stop hook for ",
+      "script": "bash",
+      "description": "",
       "timeout": 3000
     },
     {
       "matcher": "",
-      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" memory-checkpoint",
-      "description": "Stop hook for ",
+      "script": "bash",
+      "description": "",
       "timeout": 5000
     }
   ],
   "SessionEnd": [
     {
       "matcher": "",
-      "script": "bash \"$HOME/.claude/hooks/dispatch.sh\" save-session",
-      "description": "SessionEnd hook for ",
+      "script": "bash",
+      "description": "",
       "timeout": 10000
     }
   ],
   "UserPromptSubmit": [
     {
       "matcher": "",
-      "script": "ccstatusline --hook",
-      "description": "UserPromptSubmit hook for ",
-      "timeout": 0
+      "script": "ccstatusline",
+      "description": ""
     }
   ]
 }

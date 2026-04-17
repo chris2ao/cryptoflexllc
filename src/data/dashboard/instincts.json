@@ -38,7 +38,7 @@
     "id": "channels-over-dispatch",
     "trigger": "when choosing between Channels, Dispatch, and Remote Control for remote Claude Code access",
     "confidence": 0.6,
-    "domain": "",
+    "domain": "general",
     "created": "2026-03-24"
   },
   {
@@ -66,7 +66,7 @@
     "id": "gmail-api-full-format",
     "trigger": "when using Gmail API to classify or route emails based on recipients",
     "confidence": 0.7,
-    "domain": "",
+    "domain": "general",
     "created": "2026-03-24"
   },
   {
@@ -101,7 +101,7 @@
     "id": "local-vs-cloud-scheduling",
     "trigger": "when scheduling a task that needs local CLI tools (gws, git, shell scripts)",
     "confidence": 0.6,
-    "domain": "",
+    "domain": "general",
     "created": ""
   },
   {
@@ -171,7 +171,7 @@
     "id": "multi-agent-phase-gating",
     "trigger": "when starting a large project with 6 or more files and 3 or more distinct features",
     "confidence": 0.7,
-    "domain": "",
+    "domain": "general",
     "created": "2026-03-24"
   },
   {
@@ -283,14 +283,14 @@
     "id": "session-restart-pattern",
     "trigger": "when debugging session stalls with no progress after multiple hypotheses",
     "confidence": 0.5,
-    "domain": "",
+    "domain": "general",
     "created": ""
   },
   {
     "id": "settings-override-not-merge",
     "trigger": "when working in a project that has .claude/settings.json alongside global ~/.claude/settings.json",
     "confidence": 0.7,
-    "domain": "",
+    "domain": "general",
     "created": "2026-03-24"
   },
   {
@@ -311,14 +311,14 @@
     "id": "supabase-pooler-hostname",
     "trigger": "when connecting to Supabase from serverless or edge environments",
     "confidence": 0.6,
-    "domain": "",
+    "domain": "general",
     "created": "2026-03-24"
   },
   {
     "id": "supabase-uuid-functions",
     "trigger": "when writing Supabase database migrations that generate UUIDs",
     "confidence": 0.6,
-    "domain": "",
+    "domain": "general",
     "created": "2026-03-24"
   },
   {
@@ -374,7 +374,7 @@
     "id": "vercel-build-cache-stale",
     "trigger": "when a Vercel deployment does not reflect recently pushed commits",
     "confidence": 0.6,
-    "domain": "",
+    "domain": "general",
     "created": "2026-03-24"
   },
   {

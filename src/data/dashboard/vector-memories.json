@@ -1,6 +1,29 @@
 {
-  "totalCount": 290,
-  "recentTags": [],
-  "byType": {},
-  "error": "no such column: type"
+  "totalCount": 295,
+  "recentTags": [
+    "cjclaudin_mac",
+    "ingested-from-archive",
+    "cryptoflexllc",
+    "gotcha",
+    "openclaw",
+    "mcp",
+    "architecture",
+    "claude-code",
+    "wrap-up",
+    "gmail-assistant"
+  ],
+  "byType": {
+    "observation": 152,
+    "decision": 48,
+    "note": 38,
+    "gotcha": 36,
+    "reference": 7,
+    "architecture": 4,
+    "research": 4,
+    "workflow": 2,
+    "pattern": 1,
+    "configuration": 1,
+    "bug": 1,
+    "learning": 1
+  }
 }

@@ -1288,5 +1288,15 @@
       "SSH disabled, Remote Access enabled",
       "Self-signed SSL cert (UNIFI_VERIFY_SSL=false)"
     ]
+  },
+  {
+    "name": "unifi-wrapper",
+    "type": "Script",
+    "observations": [
+      "File path: ~/.claude/scripts/unifi-wrapper.sh",
+      "Sources ~/.claude/secrets/secrets.env to inject UNIFI_HOST and UNIFI_API_KEY, then exec uv run to launch the chris2ao-unifi-mcp server",
+      "Created 2026-04-14 as part of chris2ao-unifi-mcp Phase 1 MVP",
+      "Used as the MCP server launch wrapper in ~/.claude.json under the 'unifi' server entry"
+    ]
   }
 ]
