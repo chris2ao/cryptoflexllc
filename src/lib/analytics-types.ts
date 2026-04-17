@@ -345,3 +345,41 @@ export interface SearchQueryRow {
   query: string;
   search_count: number;
 }
+
+// ---- Claude Automation types ----
+
+/** Single run record from the Gmail assistant */
+export interface GmailRun {
+  timestamp: string;
+  account: string;
+  duration_seconds: number;
+  sync_mode?: string;
+  emails_processed: number;
+  promotions_trashed: number;
+  promotions_rescued?: number;
+  social_trashed?: number;
+  social_rescued?: number;
+  newsletters_trashed: number;
+  newsletters_rescued?: number;
+  primary_kept: number;
+  primary_archived?: number;
+  primary_trashed?: number;
+  primary_flagged?: number;
+  urgent_count?: number;
+  vip_overrides?: number;
+  security_threats_detected?: number;
+  drafts_generated?: number;
+  pending_replies?: number;
+  attention_email_sent?: boolean;
+  errors: string[];
+  circuit_breaker_triggered?: boolean;
+}
+
+/** Single session archive entry from the local Claude Code install */
+export interface SessionEntry {
+  id: string;
+  date: string;
+  time: string;
+  sizeBytes: number;
+  sizeMB: string;
+}

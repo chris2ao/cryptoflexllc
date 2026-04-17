@@ -30,6 +30,8 @@ import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import { getDb } from "@/lib/analytics";
 import { getAnalyticsCookieName, verifyAuthToken } from "@/lib/analytics-auth";
+import gmailMetricsRaw from "@/data/gmail-metrics.json";
+import sessionArchiveRaw from "@/data/session-archive.json";
 import type {
   DailyViews,
   MapLocation,
@@ -61,6 +63,8 @@ import type {
   SubscriberGrowthRow,
   ConvertingPageRow,
   SearchQueryRow,
+  GmailRun,
+  SessionEntry,
 } from "@/lib/analytics-types";
 import {
   isVercelApiConfigured,
@@ -83,6 +87,9 @@ import { SearchQueriesPanel } from "./_components/search-queries-panel";
 import { ClientErrorsPanel } from "./_components/client-errors-panel";
 import { TopConvertingPanel } from "./_components/top-converting-panel";
 import { RecentVisitsTable } from "./_components/recent-visits-table";
+import { GmailRunsPanel } from "./_components/gmail-runs-panel";
+import { SessionArchivePanel } from "./_components/session-archive-panel";
+import { PanelWrapper } from "./_components/panel-wrapper";
 
 // ---------------------------------------------------------------------------
 // Lazy-loaded Recharts chart components (eliminates 300KB+ eager bundle)
@@ -185,6 +192,11 @@ const NewVsReturningChart = nextDynamic(
 const SubscriberGrowthChart = nextDynamic(
   () => import("./_components/subscriber-growth-chart").then((m) => m.SubscriberGrowthChart),
   { loading: () => <ChartSkeleton /> }
+);
+
+const GmailMetricsChart = nextDynamic(
+  () => import("./_components/gmail-metrics-chart").then((m) => m.GmailMetricsChart),
+  { loading: () => <TallChartSkeleton /> }
 );
 
 // ---------------------------------------------------------------------------
@@ -935,6 +947,93 @@ async function NewsletterSection({ days: _days }: { days: number }) {
   );
 }
 
+function ClaudeAutomationSection() {
+  const gmailRuns = gmailMetricsRaw as unknown as GmailRun[];
+  const sessions = sessionArchiveRaw as unknown as SessionEntry[];
+
+  const totalRuns = gmailRuns.length;
+  const totalProcessed = gmailRuns.reduce((s, r) => s + r.emails_processed, 0);
+  const totalTrashed = gmailRuns.reduce(
+    (s, r) => s + r.promotions_trashed + r.newsletters_trashed,
+    0
+  );
+  const totalDuration = gmailRuns.reduce((s, r) => s + r.duration_seconds, 0);
+  const avgDuration = totalRuns > 0 ? Math.round(totalDuration / totalRuns) : 0;
+  const totalErrors = gmailRuns.reduce((s, r) => s + r.errors.length, 0);
+
+  // Build chart data: newest first, trim to last 30, then reverse for chronological display
+  function formatChartLabel(ts: string): string {
+    const d = new Date(ts);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+
+  const chartData = gmailRuns
+    .slice()
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 30)
+    .reverse()
+    .map((r) => ({
+      label: formatChartLabel(r.timestamp),
+      processed: r.emails_processed,
+      trashed: r.promotions_trashed + r.newsletters_trashed,
+      kept: r.primary_kept,
+    }));
+
+  return (
+    <>
+      <SectionHeader
+        title="Claude Automation"
+        description="Gmail assistant runs and local session archive from the Claude Code install."
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
+        <StatCard
+          label="Runs"
+          value={String(totalRuns)}
+          tooltip="Total Gmail assistant runs recorded"
+        />
+        <StatCard
+          label="Processed"
+          value={totalProcessed.toLocaleString()}
+          tooltip="Total emails processed across all runs"
+        />
+        <StatCard
+          label="Trashed"
+          value={totalTrashed.toLocaleString()}
+          tooltip="Total emails trashed (promotions + newsletters) across all runs"
+        />
+        <StatCard
+          label="Avg Duration"
+          value={`${avgDuration}s`}
+          tooltip="Average run duration in seconds"
+        />
+        <StatCard
+          label="Errors"
+          value={String(totalErrors)}
+          tooltip="Total error entries across all runs"
+        />
+      </div>
+
+      <div className="mb-8">
+        <PanelWrapper
+          title="Emails Processed per Run"
+          tooltip="Trend of emails processed, trashed, and kept across the last 30 runs."
+        >
+          <GmailMetricsChart data={chartData} />
+        </PanelWrapper>
+      </div>
+
+      <div className="mb-8">
+        <GmailRunsPanel runs={gmailRuns.slice(0, 25)} />
+      </div>
+
+      <div className="mb-10">
+        <SessionArchivePanel sessions={sessions.slice(0, 25)} />
+      </div>
+    </>
+  );
+}
+
 async function ActivitySection({ days }: { days: number }) {
   const sql = getDb();
 
@@ -1105,12 +1204,6 @@ export default async function AnalyticsPage({
           </div>
           <div className="flex items-center gap-3">
             <Link
-              href="/analytics/dashboard"
-              className="px-3 py-1.5 text-sm rounded-md bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Environment
-            </Link>
-            <Link
               href="/backlog"
               className="px-3 py-1.5 text-sm rounded-md bg-muted text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -1184,7 +1277,14 @@ export default async function AnalyticsPage({
         </Suspense>
 
         {/* ═══════════════════════════════════════════
-            SECTION 9: RECENT ACTIVITY
+            SECTION 9: CLAUDE AUTOMATION
+            ═══════════════════════════════════════════ */}
+        <Suspense fallback={<SectionSkeleton />}>
+          <ClaudeAutomationSection />
+        </Suspense>
+
+        {/* ═══════════════════════════════════════════
+            SECTION 10: RECENT ACTIVITY
             ═══════════════════════════════════════════ */}
         <Suspense fallback={<ActivitySkeleton />}>
           <ActivitySection days={days} />
