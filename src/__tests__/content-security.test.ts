@@ -96,7 +96,7 @@ describe("Content Security: Information Disclosure Prevention", () => {
         // Match chris2ao NOT followed by common URL patterns
         // This catches: `authenticated as chris2ao` or `gh repo create chris2ao/...`
         // But allows: [github.com/chris2ao/repo](https://...)
-        const codeExamplePattern = /(?<!github\.com\/)(?<!linkedin\.com\/)chris2ao(?!\/cryptoflexllc)(?!\/CJClaude_1)(?!["'\])])/g;
+        const codeExamplePattern = /(?<!github\.com\/)(?<!linkedin\.com\/)(?<!@)chris2ao(?!\/cryptoflexllc)(?!\/CJClaude_1)(?!\/unifi-mcp)(?!\/claude-code-config)(?!["'\])])/g;
 
         const matches = content.match(codeExamplePattern);
 

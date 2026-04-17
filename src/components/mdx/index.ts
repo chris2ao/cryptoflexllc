@@ -74,4 +74,9 @@ export {
 export {
   StorageCleanupFlowDiagram,
 } from "./diagrams-storage-cleanup";
+export {
+  UniFiMCPArchitectureDiagram,
+  UniFiMCPToolSurfaceDiagram,
+  ProbeDecisionFlowDiagram,
+} from "./diagrams-unifi-mcp";
 export { ImageLightbox } from "./image-lightbox";

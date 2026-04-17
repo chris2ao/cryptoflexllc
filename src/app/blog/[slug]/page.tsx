@@ -60,6 +60,9 @@ import {
   UIUXAgentOrchestrationDiagram,
   UIUXResearchPipelineDiagram,
   StorageCleanupFlowDiagram,
+  UniFiMCPArchitectureDiagram,
+  UniFiMCPToolSurfaceDiagram,
+  ProbeDecisionFlowDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 import {
@@ -325,6 +328,9 @@ export default async function BlogPostPage({ params }: Props) {
                     UIUXAgentOrchestrationDiagram,
                     UIUXResearchPipelineDiagram,
                     StorageCleanupFlowDiagram,
+                    UniFiMCPArchitectureDiagram,
+                    UniFiMCPToolSurfaceDiagram,
+                    ProbeDecisionFlowDiagram,
                     img: ImageLightbox,
                   }}
                 />

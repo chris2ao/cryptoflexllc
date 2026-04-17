@@ -63,6 +63,9 @@ import {
   UIUXAgentOrchestrationDiagram,
   UIUXResearchPipelineDiagram,
   StorageCleanupFlowDiagram,
+  UniFiMCPArchitectureDiagram,
+  UniFiMCPToolSurfaceDiagram,
+  ProbeDecisionFlowDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -209,6 +212,9 @@ export default async function BacklogPostPage({ params }: Props) {
               UIUXAgentOrchestrationDiagram,
               UIUXResearchPipelineDiagram,
               StorageCleanupFlowDiagram,
+              UniFiMCPArchitectureDiagram,
+              UniFiMCPToolSurfaceDiagram,
+              ProbeDecisionFlowDiagram,
               img: ImageLightbox,
             }}
           />

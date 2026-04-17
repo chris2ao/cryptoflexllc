@@ -12,6 +12,28 @@ export interface Resource {
 
 const resources: Resource[] = [
   {
+    slug: "unifi-mcp-infographic",
+    title: "Custom UniFi MCP for Claude Code: Infographic",
+    description:
+      "A visual overview of composing a custom UniFi MCP server from two open-source libraries: 103 tools across Network and Protect, the FastMCP closure trick, probe-by-status-code endpoint archaeology, PRODUCT_UNAVAILABLE stubs, and the single-repo plugin marketplace pattern.",
+    type: "document",
+    tags: ["Claude Code", "MCP", "UniFi", "Home Lab", "Infographic"],
+    date: "2026-04-17",
+    downloadPath: "/blog/unifi-mcp-infographic.png",
+    downloadLabel: "Download Infographic",
+  },
+  {
+    slug: "unifi-mcp-slides",
+    title: "Custom UniFi MCP for Claude Code: Slide Deck",
+    description:
+      "A slide deck covering the full build of chris2ao/unifi-mcp: the /deep-research survey that found two contenders, the compose-don't-clone decision, three-loader lazy architecture, the FastMCP _bind_client closure, probe-by-status-code endpoint archaeology, AJV_PARSE_ERROR as a negative-space signal, PRODUCT_UNAVAILABLE stubs, and the Claude Code plugin install path.",
+    type: "document",
+    tags: ["Claude Code", "MCP", "UniFi", "Home Lab", "Slides"],
+    date: "2026-04-17",
+    downloadPath: "/resources/unifi-mcp-slides.pdf",
+    downloadLabel: "Download Slide Deck",
+  },
+  {
     slug: "ui-ux-skill-system-infographic",
     title: "/ui-ux Skill System Infographic",
     description:
