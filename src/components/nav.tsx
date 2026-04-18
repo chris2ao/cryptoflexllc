@@ -56,8 +56,8 @@ export function Nav() {
             <Image
               src="/CFLogo.png"
               alt="CryptoFlex"
-              width={993}
-              height={314}
+              fill
+              sizes="(max-width: 768px) 114px, 177px"
               priority
               className="masthead-brand-img"
             />
@@ -117,8 +117,8 @@ export function Nav() {
                     <Image
                       src="/CFLogo.png"
                       alt="CryptoFlex"
-                      width={993}
-                      height={314}
+                      fill
+                      sizes="114px"
                       className="masthead-brand-img"
                     />
                   </span>

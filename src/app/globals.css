@@ -703,40 +703,23 @@
 
 .masthead-brand-mark {
   position: relative;
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
   height: 56px;
+  width: 177px;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .masthead-brand-img {
-  height: 56px;
-  width: auto;
   object-fit: contain;
-  display: block;
+  object-position: left center;
 }
 
 @media (max-width: 768px) {
-  .masthead-brand-mark { height: 40px; }
-  .masthead-brand-img { height: 40px; }
-}
-
-.masthead-brand-mark::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 0%, var(--primary) 48%, transparent 52%, transparent 100%);
-  opacity: 0;
-  transform: translateY(-100%);
-  transition:
-    opacity 160ms ease,
-    transform 420ms cubic-bezier(.5, 0, .5, 1);
-  pointer-events: none;
-}
-
-.masthead-brand:hover .masthead-brand-mark::after {
-  opacity: 0.7;
-  transform: translateY(100%);
+  .masthead-brand-mark {
+    height: 36px;
+    width: 114px;
+  }
 }
 
 .masthead-brand-kicker {

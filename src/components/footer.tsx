@@ -12,8 +12,8 @@ export function Footer() {
               <Image
                 src="/CFLogo.png"
                 alt="CryptoFlex"
-                width={993}
-                height={314}
+                fill
+                sizes="(max-width: 768px) 114px, 177px"
                 className="masthead-brand-img"
               />
             </span>
