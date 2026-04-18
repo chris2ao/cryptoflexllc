@@ -26,11 +26,11 @@ const nextConfig: NextConfig = {
       destination: "/resources",
       permanent: true,
     },
-    // Portfolio detail pages don't exist yet; redirect crawled 404s
+    // Portfolio detail pages were removed permanently; 301 transfers equity
     {
       source: "/portfolio/:slug",
       destination: "/portfolio",
-      permanent: false,
+      permanent: true,
     },
   ],
   outputFileTracingIncludes: {

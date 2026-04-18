@@ -13,10 +13,19 @@ export const metadata: Metadata = {
     canonical: `${BASE_URL}/portfolio`,
   },
   openGraph: {
-    title: "Portfolio — Chris Johnson",
+    title: "Portfolio: Chris Johnson",
     description:
       "Engineering projects spanning full-stack web development, game development, AI agent systems, and developer tooling.",
     url: `${BASE_URL}/portfolio`,
+    type: "website",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?title=Portfolio&author=Chris+Johnson`,
+        width: 1200,
+        height: 630,
+        alt: "Chris Johnson Portfolio",
+      },
+    ],
   },
 };
 

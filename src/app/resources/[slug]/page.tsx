@@ -18,11 +18,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const resource = getResourceBySlug(slug);
   if (!resource) return {};
+  const ogUrl = `${BASE_URL}/api/og?title=${encodeURIComponent(resource.title)}&author=Chris+Johnson`;
   return {
-    title: `${resource.title} | CryptoFlex LLC`,
+    title: resource.title,
     description: resource.description,
     alternates: {
       canonical: `${BASE_URL}/resources/${slug}`,
+    },
+    openGraph: {
+      title: resource.title,
+      description: resource.description,
+      url: `${BASE_URL}/resources/${slug}`,
+      type: "article",
+      images: [
+        {
+          url: ogUrl,
+          width: 1200,
+          height: 630,
+          alt: resource.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: resource.title,
+      description: resource.description,
+      images: [ogUrl],
     },
   };
 }

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { HeroIdentity } from "@/components/home/hero-identity";
 import { TickerStrip } from "@/components/home/ticker-strip";
 import { JournalSection } from "@/components/home/journal-section";
@@ -8,6 +9,33 @@ import { CVTimeline } from "@/components/home/cv-timeline";
 import { SubscribeBlock } from "@/components/home/subscribe-block";
 import { MotionLayer } from "@/components/home/motion-layer";
 import { getAllPosts } from "@/lib/blog";
+import { BASE_URL } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "CryptoFlex LLC | Chris Johnson — Build in public. Break things on purpose.",
+  },
+  description:
+    "Personal blog and portfolio of Chris Johnson: cybersecurity engineering, AI-assisted development with Claude Code, and infrastructure built from the ground up.",
+  alternates: {
+    canonical: BASE_URL,
+  },
+  openGraph: {
+    title: "CryptoFlex LLC: Build in public. Break things on purpose.",
+    description:
+      "Personal blog and portfolio: cybersecurity engineering, AI-assisted development, and infrastructure.",
+    url: BASE_URL,
+    type: "website",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?title=Build+in+public.+Break+things+on+purpose.&author=Chris+Johnson`,
+        width: 1200,
+        height: 630,
+        alt: "CryptoFlex LLC — Chris Johnson",
+      },
+    ],
+  },
+};
 
 export default function HomePage() {
   const allPosts = getAllPosts();

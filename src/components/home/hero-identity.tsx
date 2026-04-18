@@ -26,7 +26,7 @@ export function HeroIdentity() {
         <div className="ed-hero-grid">
           <div>
             <div className="ed-overline reveal">
-              Personal journal · Field notes
+              Personal blog · Field notes
             </div>
             <h1 className="ed-hero-title">
               Build in public.

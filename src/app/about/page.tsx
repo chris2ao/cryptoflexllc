@@ -52,6 +52,14 @@ export const metadata: Metadata = {
       "Combat veteran turned cybersecurity professional. Security engineering, SOC operations, and AI-assisted development.",
     url: `${BASE_URL}/about`,
     type: "profile",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?title=About+Chris+Johnson&author=CryptoFlex+LLC`,
+        width: 1200,
+        height: 630,
+        alt: "About Chris Johnson",
+      },
+    ],
   },
 };
 

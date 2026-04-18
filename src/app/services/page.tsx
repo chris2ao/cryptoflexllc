@@ -25,6 +25,15 @@ export const metadata: Metadata = {
     description:
       "Cybersecurity assessments, infrastructure architecture, cloud strategy, and security engineering from CryptoFlex LLC.",
     url: `${BASE_URL}/services`,
+    type: "website",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?title=Consulting+Services&author=CryptoFlex+LLC`,
+        width: 1200,
+        height: 630,
+        alt: "CryptoFlex LLC Consulting Services",
+      },
+    ],
   },
 };
 

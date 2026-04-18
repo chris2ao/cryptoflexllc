@@ -5,11 +5,26 @@ import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Resources | CryptoFlex LLC",
+  title: "Resources",
   description:
-    "Carousels, guides, and downloadable resources from CryptoFlex LLC.",
+    "Carousels, guides, slide decks, infographics, and downloadable references from CryptoFlex LLC.",
   alternates: {
     canonical: `${BASE_URL}/resources`,
+  },
+  openGraph: {
+    title: "Resources — CryptoFlex LLC",
+    description:
+      "Visual recaps, slide decks, infographics, and downloadable references.",
+    url: `${BASE_URL}/resources`,
+    type: "website",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?title=Resources&author=Chris+Johnson`,
+        width: 1200,
+        height: 630,
+        alt: "CryptoFlex LLC Resources",
+      },
+    ],
   },
 };
 

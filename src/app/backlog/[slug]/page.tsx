@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft } from "lucide-react";

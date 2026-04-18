@@ -22,6 +22,19 @@ export function WebsiteJsonLd({ url, name, description }: WebsiteJsonLdProps) {
         "@type": "ImageObject",
         url: `${url}/CFLogo.png`,
       },
+      contactPoint: [
+        {
+          "@type": "ContactPoint",
+          contactType: "customer support",
+          email: "contact@cryptoflexllc.com",
+          url: `${url}/contact`,
+          availableLanguage: ["en"],
+        },
+      ],
+      sameAs: [
+        "https://github.com/chris2ao",
+        "https://www.linkedin.com/in/chris-johnson-secops/",
+      ],
     },
     potentialAction: {
       "@type": "SearchAction",
@@ -88,7 +101,8 @@ interface ArticleJsonLdProps {
   dateModified?: string;
   author: string;
   tags: string[];
-  schemaType?: "Article" | "TechArticle" | "HowTo";
+  schemaType?: "Article" | "TechArticle" | "HowTo" | "BlogPosting";
+  image?: string;
 }
 
 export function ArticleJsonLd({
@@ -100,7 +114,10 @@ export function ArticleJsonLd({
   author,
   tags,
   schemaType = "Article",
+  image,
 }: ArticleJsonLdProps) {
+  const imageUrl =
+    image ?? `${BASE_URL}/api/og?title=${encodeURIComponent(title)}`;
   const data = {
     "@context": "https://schema.org",
     "@type": schemaType,
@@ -128,7 +145,7 @@ export function ArticleJsonLd({
       "@id": url,
     },
     keywords: tags.join(", "),
-    image: `${BASE_URL}/api/og?title=${encodeURIComponent(title)}`,
+    image: imageUrl,
   };
 
   return (
@@ -137,6 +154,15 @@ export function ArticleJsonLd({
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
+}
+
+/**
+ * BlogPosting schema. Emit alongside Article on blog single-post pages for
+ * broader rich-result eligibility (Google treats BlogPosting as a distinct
+ * content type suitable for topic cards and blog carousels).
+ */
+export function BlogPostingJsonLd(props: ArticleJsonLdProps) {
+  return <ArticleJsonLd {...props} schemaType="BlogPosting" />;
 }
 
 export function BreadcrumbJsonLd({

@@ -1,6 +1,32 @@
+import type { Metadata } from "next";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ContactForm } from "@/components/contact-form";
 import { EditorialPageHeader } from "@/components/editorial-page-header";
+import { BASE_URL } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description:
+    "Get in touch with Chris Johnson at CryptoFlex LLC. For consulting inquiries, speaking engagements, or just to say hello.",
+  alternates: {
+    canonical: `${BASE_URL}/contact`,
+  },
+  openGraph: {
+    title: "Contact Chris Johnson",
+    description:
+      "Reach out about cybersecurity consulting, AI-assisted development, or infrastructure work.",
+    url: `${BASE_URL}/contact`,
+    type: "website",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?title=Contact&author=Chris+Johnson`,
+        width: 1200,
+        height: 630,
+        alt: "Contact CryptoFlex LLC",
+      },
+    ],
+  },
+};
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (

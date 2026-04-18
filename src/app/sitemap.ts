@@ -51,9 +51,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/resources`,
-      lastModified: new Date("2026-02-25"),
+      lastModified: new Date("2026-04-17"),
       changeFrequency: "monthly",
-      priority: 0.7,
+      priority: 0.8,
     },
     {
       url: `${BASE_URL}/contact`,
@@ -69,9 +69,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/skills`,
-      lastModified: new Date("2026-02-14"),
+      lastModified: new Date("2026-04-17"),
       changeFrequency: "monthly",
-      priority: 0.6,
+      priority: 0.7,
     },
   ];
 

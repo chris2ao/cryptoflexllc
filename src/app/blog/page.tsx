@@ -8,20 +8,42 @@ import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { getAllPosts, getAllTags } from "@/lib/blog";
 import { BASE_URL } from "@/lib/constants";
 
-export const metadata: Metadata = {
-  title: "Blog",
-  description:
-    "Tech articles about cybersecurity, AI-assisted development with Claude Code, web infrastructure, Next.js, and hands-on engineering projects.",
-  alternates: {
-    canonical: `${BASE_URL}/blog`,
-  },
-  openGraph: {
-    title: "Blog — CryptoFlex LLC",
+type BlogSearchParams = Promise<{ tag?: string; category?: string; q?: string }>;
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: BlogSearchParams;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const isFiltered = Boolean(sp.tag || sp.category || sp.q);
+  return {
+    title: "Blog",
     description:
-      "Tech articles about cybersecurity, AI-assisted development, and hands-on engineering projects.",
-    url: `${BASE_URL}/blog`,
-  },
-};
+      "Tech articles about cybersecurity, AI-assisted development with Claude Code, web infrastructure, Next.js, and hands-on engineering projects.",
+    alternates: {
+      canonical: `${BASE_URL}/blog`,
+    },
+    robots: isFiltered
+      ? { index: false, follow: true }
+      : { index: true, follow: true },
+    openGraph: {
+      title: "Blog: CryptoFlex LLC",
+      description:
+        "Tech articles about cybersecurity, AI-assisted development, and hands-on engineering projects.",
+      url: `${BASE_URL}/blog`,
+      type: "website",
+      images: [
+        {
+          url: `${BASE_URL}/api/og?title=The+Blog&author=Chris+Johnson`,
+          width: 1200,
+          height: 630,
+          alt: "CryptoFlex LLC Blog",
+        },
+      ],
+    },
+  };
+}
 
 /** The primary categories shown in the filter bar. Order matters. */
 const FEATURED_CATEGORIES = [

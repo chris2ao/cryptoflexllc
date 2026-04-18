@@ -15,6 +15,15 @@ export const metadata: Metadata = {
     description:
       "A comprehensive catalog of Claude Code skills, agents, hooks, commands, and configurations built by CryptoFlex LLC.",
     url: `${BASE_URL}/skills`,
+    type: "website",
+    images: [
+      {
+        url: `${BASE_URL}/api/og?title=Skills+%26+Tools+Catalog&author=Chris+Johnson`,
+        width: 1200,
+        height: 630,
+        alt: "Claude Code Skills & Tools Catalog",
+      },
+    ],
   },
 };
 

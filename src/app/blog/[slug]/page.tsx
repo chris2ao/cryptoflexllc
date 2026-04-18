@@ -75,7 +75,7 @@ import {
   getSeriesPosts,
 } from "@/lib/blog";
 import { extractHeadings, slugify, getTextContent } from "@/lib/headings";
-import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
+import { ArticleJsonLd, BlogPostingJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
 import { SubscribeForm } from "@/components/subscribe-form";
 import { BlogPostThumbsUp } from "@/components/blog-post-engagement";
 import { BlogComments } from "@/components/blog-comments";
@@ -216,7 +216,20 @@ export default async function BlogPostPage({ params }: Props) {
           author={post.author}
           tags={post.tags}
           schemaType={post.schemaType ?? "Article"}
+          image={post.coverImage ? `${BASE_URL}${post.coverImage}` : undefined}
         />
+        {(post.schemaType ?? "Article") === "Article" && (
+          <BlogPostingJsonLd
+            title={post.title}
+            description={post.description}
+            url={postUrl}
+            datePublished={post.date}
+            dateModified={post.updatedAt}
+            author={post.author}
+            tags={post.tags}
+            image={post.coverImage ? `${BASE_URL}${post.coverImage}` : undefined}
+          />
+        )}
         <BreadcrumbJsonLd
           items={[
             { name: "Home", url: BASE_URL },
