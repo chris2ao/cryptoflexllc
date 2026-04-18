@@ -9,7 +9,7 @@ export function Footer() {
           <Link href="/" className="masthead-brand" aria-label="CryptoFlex — home">
             <span className="masthead-brand-mark" aria-hidden="true">CF</span>
             <span>CryptoFlex</span>
-            <span className="masthead-brand-kicker">// chris johnson</span>
+            <span className="masthead-brand-kicker">{"// chris johnson"}</span>
           </Link>
         </div>
 
