@@ -35,6 +35,9 @@ const projects: Project[] = [
       "103 tools, 208 unit tests, 12 hours across three days. A lazy-loading UniFi MCP server packaged as a Claude Code plugin that installs with two slash commands.",
     tech: ["Python", "FastMCP", "UniFi"],
     link: "/blog/building-a-custom-unifi-mcp-103-tools-across-three-days",
+    image: "/blog/unifi-mcp-infographic.png",
+    imageAlt: "UniFi MCP infographic — 103 tools, 208 tests, three days",
+    imageFit: "cover",
   },
   {
     title: "Claude Code Config",
@@ -59,6 +62,9 @@ const projects: Project[] = [
       "22 sources, 3 parallel research agents, 18 search queries. Benchmarked my 5-layer memory architecture against community norms and shipped three improvements the same day.",
     tech: ["Deep Research", "MCP", "Memory"],
     link: "/blog/my-5-layer-memory-system-vs-the-world-what-deep-research-revealed",
+    image: "/images/blog/memory-comparison-infographic.png",
+    imageAlt: "5-layer memory architecture vs. community approaches — comparison infographic",
+    imageFit: "cover",
   },
 ];
 
