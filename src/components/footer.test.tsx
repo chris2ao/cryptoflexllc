@@ -15,17 +15,14 @@ vi.mock("@/components/ui/separator", () => ({
 }));
 
 describe("Footer", () => {
-  it("renders company name and description", () => {
+  it("renders brand name", () => {
     render(<Footer />);
-    expect(screen.getByAltText("CryptoFlex LLC")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Tech blog and engineering portfolio based in Florida/)
-    ).toBeInTheDocument();
+    expect(screen.getAllByText("CryptoFlex").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("has all 5 navigation links", () => {
+  it("has navigation links", () => {
     render(<Footer />);
-    expect(screen.getByRole("link", { name: "Blog" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Journal" })).toHaveAttribute(
       "href",
       "/blog"
     );
@@ -33,13 +30,13 @@ describe("Footer", () => {
       "href",
       "/about"
     );
-    expect(screen.getByRole("link", { name: "Portfolio" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Work" })).toHaveAttribute(
       "href",
       "/portfolio"
     );
-    expect(screen.getByRole("link", { name: "Resources" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Services" })).toHaveAttribute(
       "href",
-      "/resources"
+      "/services"
     );
     expect(screen.getByRole("link", { name: "Contact" })).toHaveAttribute(
       "href",
@@ -73,9 +70,7 @@ describe("Footer", () => {
     render(<Footer />);
     const currentYear = new Date().getFullYear();
     expect(
-      screen.getByText(
-        new RegExp(`© ${currentYear} CryptoFlex LLC\\. All rights reserved\\.`)
-      )
+      screen.getByText(new RegExp(`© ${currentYear} CryptoFlex LLC`))
     ).toBeInTheDocument();
   });
 });

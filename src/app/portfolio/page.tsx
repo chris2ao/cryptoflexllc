@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { ProjectCard } from "@/components/project-card";
+import { EditorialPageHeader } from "@/components/editorial-page-header";
+import { ThirdConflictPromo } from "@/components/third-conflict-promo";
+import { CannCannPromo } from "@/components/cann-cann-promo";
 import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -26,20 +29,6 @@ const projects = [
     link: "https://github.com/chris2ao/cryptoflexllc",
   },
   {
-    title: "Third Conflict: 4X Space Strategy",
-    description:
-      "Browser-based 4X space strategy game rebuilt from a 1991 DOS classic. Technology trees, admiral system, four AI strategies, dynamic combat, and a retro terminal UI. Over 5,250 lines of pure-function architecture.",
-    tech: ["TypeScript", "React", "Game AI", "Claude Code"],
-    link: "https://third-conflict.vercel.app/game/setup",
-  },
-  {
-    title: "Cann Cann: Artillery Game",
-    description:
-      "Recreation of a 1990 Windows 3.1 artillery game for the modern web. Three-layer architecture (engine, store, rendering) with procedural terrain generation, physics-based AI opponents, multiple weapons, and four biomes.",
-    tech: ["TypeScript", "React", "Canvas", "Claude Code"],
-    link: "https://cann-cann.vercel.app",
-  },
-  {
     title: "Claude Code AI Infrastructure",
     description:
       "Automation system for Anthropic's Claude Code CLI: persistent vector memory with semantic search via MCP, knowledge graph, session archiving, 30+ custom skills, multi-repo orchestration, and a continuous learning loop. Open-source configuration repository.",
@@ -62,21 +51,26 @@ const projects = [
 
 export default function PortfolioPage() {
   return (
-    <section className="py-16 sm:py-20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mb-12">
-          <h1 className="text-3xl sm:text-4xl font-heading font-bold">Portfolio</h1>
-          <p className="mt-4 text-lg font-body text-muted-foreground">
-            Projects I&apos;ve built, configured, and tinkered with.
-          </p>
+    <>
+      <EditorialPageHeader
+        sectionLabel="§ 03 / Selected Work"
+        overline="Portfolio"
+        title={<>Things I&apos;ve <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>built.</em></>}
+        lede="Projects I&apos;ve shipped, configured, and tinkered with — full-stack sites, retro game rebuilds, agent systems, and infrastructure."
+      />
+      <section className="py-8 sm:py-12">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mb-10 grid gap-6 md:grid-cols-2">
+            <ThirdConflictPromo />
+            <CannCannPromo />
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project) => (
+              <ProjectCard key={project.title} project={project} />
+            ))}
+          </div>
         </div>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <ProjectCard key={project.title} project={project} />
-          ))}
-        </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

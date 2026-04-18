@@ -19,17 +19,23 @@ import "./globals.css";
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-heading-var",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 const sourceSerif4 = Source_Serif_4({
   variable: "--font-body-var",
   subsets: ["latin"],
   style: ["normal", "italic"],
+  weight: ["400", "600"],
+  display: "swap",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono-var",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {

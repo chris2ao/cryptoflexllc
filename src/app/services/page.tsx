@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Shield, Server, Lightbulb, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { BASE_URL } from "@/lib/constants";
 
 const serviceIcons: Record<string, React.ReactNode> = {
@@ -76,17 +77,16 @@ const services = [
 
 export default function ServicesPage() {
   return (
-    <section className="py-16 sm:py-20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="max-w-2xl mb-12">
-          <h1 className="text-3xl sm:text-4xl font-heading font-bold">Services</h1>
-          <p className="mt-4 text-lg font-body text-muted-foreground">
-            I take on select IT consulting projects through CryptoFlex LLC.
-            If you need practical, vendor-neutral tech help, let&apos;s talk.
-          </p>
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <>
+      <EditorialPageHeader
+        sectionLabel="§ 04 / Consulting"
+        overline="Services"
+        title={<>Selective <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>engagements.</em></>}
+        lede="I take on a small number of projects through CryptoFlex LLC each year. Cybersecurity, infrastructure, strategy, and web. Vendor-neutral, hands-on, accountable."
+      />
+      <section className="py-8 sm:py-12">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((service) => (
             <Card key={service.title} className="bg-card border border-border/40 rounded-lg">
               <CardHeader>
@@ -125,6 +125,7 @@ export default function ServicesPage() {
           </Button>
         </div>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

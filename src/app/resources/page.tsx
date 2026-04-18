@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getAllResources } from "@/lib/resources";
 import { ResourceCard } from "@/components/resource-card";
+import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -16,19 +17,22 @@ export default function ResourcesPage() {
   const resources = getAllResources();
 
   return (
-    <section className="py-16 sm:py-20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h1 className="text-3xl sm:text-4xl font-heading font-bold">Resources</h1>
-        <p className="mt-2 font-body text-muted-foreground">
-          Visual recaps, guides, and reference material.
-        </p>
-
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {resources.map((resource) => (
-            <ResourceCard key={resource.slug} resource={resource} />
-          ))}
+    <>
+      <EditorialPageHeader
+        sectionLabel="§ 07 / Resources"
+        overline="Library"
+        title={<>Visual <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>recaps.</em></>}
+        lede="Carousels, slide decks, infographics, and downloadable reference material from the work in progress."
+      />
+      <section className="py-8 sm:py-12">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {resources.map((resource) => (
+              <ResourceCard key={resource.slug} resource={resource} />
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

@@ -1,0 +1,2134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CryptoFlex — Chris Johnson (Motion)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CRYPTOFLEX — EDITORIAL REDESIGN
+   ============================================================ */
+:root {
+  --bg:            oklch(0.10 0.008 245);
+  --surface-1:     oklch(0.13 0.010 245);
+  --surface-2:     oklch(0.16 0.011 245);
+  --surface-3:     oklch(0.20 0.012 245);
+  --fg:            oklch(0.95 0.005 245);
+  --fg-2:          oklch(0.78 0.008 245);
+  --fg-3:          oklch(0.55 0.010 245);
+  --fg-4:          oklch(0.40 0.010 245);
+  --accent:        oklch(0.74 0.16 192);
+  --accent-dim:    oklch(0.74 0.16 192 / 0.15);
+  --accent-line:   oklch(0.74 0.16 192 / 0.35);
+  --amber:         oklch(0.80 0.15 72);
+  --border:        oklch(1 0 0 / 0.08);
+  --border-2:      oklch(1 0 0 / 0.14);
+  --grid-line:     oklch(0.74 0.16 192 / 0.06);
+  --scanline:      oklch(1 0 0 / 0.02);
+  --radius:        4px;
+  --rule:          1px solid var(--border);
+  --rule-strong:   1px solid var(--border-2);
+  --f-display: "Space Grotesk", system-ui, sans-serif;
+  --f-body: "Source Serif 4", Georgia, serif;
+  --f-mono: "JetBrains Mono", ui-monospace, monospace;
+  --motif: 1; /* 0 none, 1 subtle, 2 strong */
+  --motion: 1; /* 0 off, 1 subtle, 2 full */
+}
+[data-theme="light"] {
+  --bg:            oklch(0.97 0.005 245);
+  --surface-1:     oklch(0.99 0.003 245);
+  --surface-2:     oklch(0.94 0.006 245);
+  --surface-3:     oklch(0.90 0.007 245);
+  --fg:            oklch(0.13 0.008 245);
+  --fg-2:          oklch(0.30 0.010 245);
+  --fg-3:          oklch(0.48 0.008 245);
+  --fg-4:          oklch(0.62 0.008 245);
+  --accent:        oklch(0.48 0.15 195);
+  --accent-dim:    oklch(0.48 0.15 195 / 0.10);
+  --accent-line:   oklch(0.48 0.15 195 / 0.35);
+  --border:        oklch(0.13 0.008 245 / 0.12);
+  --border-2:      oklch(0.13 0.008 245 / 0.22);
+  --grid-line:     oklch(0.48 0.15 195 / 0.08);
+  --scanline:      oklch(0 0 0 / 0.025);
+}
+[data-accent="amber"] { --accent: oklch(0.80 0.15 72); --accent-dim: oklch(0.80 0.15 72 / 0.15); --accent-line: oklch(0.80 0.15 72 / 0.35); --grid-line: oklch(0.80 0.15 72 / 0.06); }
+[data-accent="green"] { --accent: oklch(0.78 0.17 150); --accent-dim: oklch(0.78 0.17 150 / 0.15); --accent-line: oklch(0.78 0.17 150 / 0.35); --grid-line: oklch(0.78 0.17 150 / 0.06); }
+[data-accent="red"]   { --accent: oklch(0.72 0.20 22);  --accent-dim: oklch(0.72 0.20 22 / 0.15);  --accent-line: oklch(0.72 0.20 22 / 0.35);  --grid-line: oklch(0.72 0.20 22 / 0.06); }
+[data-accent="violet"]{ --accent: oklch(0.70 0.22 295); --accent-dim: oklch(0.70 0.22 295 / 0.15); --accent-line: oklch(0.70 0.22 295 / 0.35); --grid-line: oklch(0.70 0.22 295 / 0.06); }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+::selection { background: var(--accent); color: var(--bg); }
+
+a { color: inherit; text-decoration: none; }
+
+/* ---- type helpers ---- */
+.display, h1, h2, h3, h4, .sans { font-family: var(--f-display); }
+.mono { font-family: var(--f-mono); }
+.serif { font-family: var(--f-body); }
+.overline {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  font-weight: 500;
+}
+.rule { border: 0; border-top: var(--rule); margin: 0; }
+.rule-strong { border: 0; border-top: var(--rule-strong); margin: 0; }
+
+/* ---- container ---- */
+.wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+@media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+/* ============================================================
+   TOPBAR — magazine masthead meets terminal status bar
+   ============================================================ */
+.masthead {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in oklab, var(--bg) 85%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: var(--rule);
+}
+.masthead-inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 32px;
+  height: 64px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--f-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.brand-mark {
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 2px;
+}
+.brand small { color: var(--fg-3); font-weight: 400; font-family: var(--f-mono); font-size: 11px; margin-left: 4px; letter-spacing: 0.05em; }
+.nav { display: flex; gap: 28px; justify-content: center; }
+.nav a {
+  font-family: var(--f-display);
+  font-size: 14px;
+  color: var(--fg-2);
+  position: relative;
+  padding: 4px 0;
+}
+.nav a.active { color: var(--fg); }
+.nav a.active::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -3px;
+  height: 2px; background: var(--accent);
+}
+.nav a:hover { color: var(--fg); }
+.masthead-right { display: flex; align-items: center; gap: 18px; font-family: var(--f-mono); font-size: 11px; color: var(--fg-3); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: oklch(0.78 0.17 150); box-shadow: 0 0 8px oklch(0.78 0.17 150 / 0.6); display: inline-block; margin-right: 6px; vertical-align: middle; }
+.masthead-right .btn { padding: 7px 14px; font-size: 12px; }
+@media (max-width: 900px) {
+  .nav { display: none; }
+  .masthead-inner { grid-template-columns: auto 1fr auto; }
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--f-display);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-2);
+  color: var(--fg);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+  letter-spacing: 0;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.btn-primary:hover { background: var(--accent); color: var(--bg); filter: brightness(1.08); }
+.btn-ghost { border-color: transparent; padding: 8px 12px; color: var(--fg-2); }
+.btn-ghost:hover { background: var(--surface-2); color: var(--fg); border-color: transparent; }
+.btn .arrow { transition: transform 160ms ease; display: inline-block; }
+.btn:hover .arrow { transform: translateX(3px); }
+
+/* ============================================================
+   LEFT RAIL — editorial index numbers
+   ============================================================ */
+.section {
+  position: relative;
+  padding: 80px 0;
+  border-top: var(--rule);
+}
+.section:first-of-type { border-top: 0; }
+.section-label {
+  position: absolute;
+  left: 40px; top: 32px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.12em;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label::before {
+  content: ""; display: inline-block;
+  width: 14px; height: 1px; background: var(--accent);
+}
+@media (max-width: 900px) { .section-label { position: static; margin-bottom: 24px; padding: 0 20px;} }
+
+/* ============================================================
+   HERO — base container, variants switch content
+   ============================================================ */
+.hero {
+  position: relative;
+  padding: 56px 0 80px;
+  border-bottom: var(--rule);
+  overflow: hidden;
+}
+.hero::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, var(--grid-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: calc(var(--motif) * 0.7);
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 90%);
+}
+.hero::after {
+  content: "";
+  position: absolute; top: -200px; right: -100px;
+  width: 700px; height: 700px; border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-dim) 0%, transparent 70%);
+  filter: blur(50px);
+  opacity: calc(var(--motif) * 0.9);
+  pointer-events: none;
+}
+
+/* --- HERO V1: IDENTITY (default) --- */
+.hero-identity { display: none; }
+[data-hero="identity"] .hero-identity { display: block; }
+.hero-identity-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 64px;
+  align-items: end;
+  position: relative;
+}
+.hero-meta-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 48px;
+  padding-bottom: 12px;
+  border-bottom: var(--rule);
+}
+.hero-meta-row .issue { font-family: var(--f-mono); font-size: 12px; color: var(--fg-3); letter-spacing: 0.1em; }
+.hero-meta-row .issue b { color: var(--accent); font-weight: 500; }
+.hero-eyebrow {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  display: flex; align-items: center; gap: 10px;
+}
+.hero-eyebrow::before {
+  content: ""; width: 28px; height: 1px; background: var(--accent);
+}
+.hero-title {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(44px, 7.5vw, 108px);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  margin: 0;
+  padding-bottom: 0.08em;
+  color: var(--fg);
+}
+.hero-title .it {
+  font-family: var(--f-body);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--fg-2);
+}
+.hero-title .accent { color: var(--accent); }
+.hero-sub {
+  margin-top: 48px;
+  font-family: var(--f-body);
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--fg-2);
+  max-width: 560px;
+}
+.hero-cta-row {
+  margin-top: 40px;
+  display: flex; flex-wrap: wrap; gap: 12px;
+}
+
+.hero-portrait {
+  position: relative;
+  width: 300px; aspect-ratio: 3/4;
+}
+.hero-portrait-ph {
+  width: 100%; height: 100%;
+  border: 1px solid var(--border-2);
+  background:
+    linear-gradient(135deg, transparent 49.5%, var(--border) 49.5%, var(--border) 50.5%, transparent 50.5%),
+    repeating-linear-gradient(45deg, transparent 0 8px, oklch(1 0 0 / 0.02) 8px 9px),
+    var(--surface-2);
+  display: grid; place-items: center;
+  position: relative;
+}
+.hero-portrait-ph span {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--bg);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+}
+.hero-portrait::before, .hero-portrait::after {
+  content: ""; position: absolute; width: 18px; height: 18px;
+  border: 2px solid var(--accent);
+}
+.hero-portrait::before { top: -8px; left: -8px; border-right: 0; border-bottom: 0; }
+.hero-portrait::after { bottom: -8px; right: -8px; border-left: 0; border-top: 0; }
+.hero-portrait-caption {
+  margin-top: 16px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  text-align: right;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+}
+.hero-portrait-caption b { color: var(--fg-2); font-weight: 500; }
+@media (max-width: 900px) {
+  .hero-identity-grid { grid-template-columns: 1fr; }
+  .hero-portrait { width: 220px; }
+  .hero-title { font-size: clamp(40px, 12vw, 72px); }
+}
+
+/* --- HERO V2: FEATURED POST (magazine cover) --- */
+.hero-featured { display: none; }
+[data-hero="featured"] .hero-featured { display: block; }
+.hero-featured-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 56px;
+  align-items: start;
+  position: relative;
+}
+.hero-featured .kicker {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--accent-line);
+}
+.hero-featured .meta-block {
+  margin-top: 24px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.hero-featured .meta-item {
+  display: grid; grid-template-columns: 90px 1fr; gap: 12px;
+  font-family: var(--f-mono); font-size: 12px;
+  padding-bottom: 12px;
+  border-bottom: var(--rule);
+}
+.hero-featured .meta-item .k { color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+.hero-featured .meta-item .v { color: var(--fg-2); }
+.hero-featured h1 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(38px, 5.5vw, 78px);
+  line-height: 1.0;
+  letter-spacing: -0.028em;
+  margin: 0 0 24px 0;
+  text-wrap: balance;
+}
+.hero-featured h1 em { font-family: var(--f-body); font-weight: 400; color: var(--fg-2); }
+.hero-featured .lede {
+  font-family: var(--f-body);
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--fg-2);
+  max-width: 640px;
+  margin-bottom: 32px;
+}
+.hero-featured .byline {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--fg-3);
+  letter-spacing: 0.06em;
+}
+.hero-featured .byline b { color: var(--fg); font-weight: 500; }
+@media (max-width: 900px) { .hero-featured-grid { grid-template-columns: 1fr; } }
+
+/* --- HERO V3: NOW-LOG (terminal changelog) --- */
+.hero-now { display: none; }
+[data-hero="now"] .hero-now { display: block; }
+.hero-now-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 64px;
+  align-items: start;
+}
+.hero-now h1 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(40px, 6vw, 84px);
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.hero-now h1 .u { border-bottom: 4px solid var(--accent); padding-bottom: 2px; }
+.hero-now .sub {
+  margin-top: 28px;
+  font-size: 18px; line-height: 1.55;
+  color: var(--fg-2);
+  max-width: 520px;
+  font-family: var(--f-body);
+}
+.now-panel {
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  border-radius: var(--radius);
+  font-family: var(--f-mono);
+  font-size: 13px;
+  overflow: hidden;
+}
+.now-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: var(--rule);
+  background: var(--surface-2);
+  color: var(--fg-3);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.now-panel-head .dots { display: flex; gap: 5px; }
+.now-panel-head .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--border-2); display: inline-block; }
+.now-panel-body { padding: 18px 18px 14px; }
+.now-row {
+  display: grid;
+  grid-template-columns: 76px 20px 1fr;
+  gap: 10px;
+  padding: 6px 0;
+  color: var(--fg-2);
+  line-height: 1.45;
+}
+.now-row .t { color: var(--fg-3); }
+.now-row .s { color: var(--accent); font-weight: 600; }
+.now-row .s.warn { color: var(--amber); }
+.now-row .s.info { color: oklch(0.70 0.15 230); }
+.now-row b { color: var(--fg); font-weight: 500; }
+.now-row a { color: var(--accent); text-decoration: underline; text-decoration-color: var(--accent-line); text-underline-offset: 3px; }
+.now-footer {
+  padding: 10px 14px;
+  border-top: var(--rule);
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex; justify-content: space-between;
+  background: var(--surface-2);
+}
+.now-footer b { color: var(--accent); font-weight: 500; }
+@media (max-width: 900px) { .hero-now-grid { grid-template-columns: 1fr; } }
+
+/* --- HERO V4: MAGAZINE COVER --- */
+.hero-cover { display: none; }
+[data-hero="cover"] .hero-cover { display: block; padding: 0; }
+[data-hero="cover"] .hero { padding: 0; border-bottom: var(--rule); }
+.cover-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 78vh;
+  position: relative;
+}
+.cover-topline {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 0;
+  border-bottom: var(--rule);
+  font-family: var(--f-mono); font-size: 12px; color: var(--fg-3);
+  letter-spacing: 0.1em;
+}
+.cover-topline b { color: var(--fg); }
+.cover-topline .price { color: var(--accent); }
+.cover-main {
+  flex: 1; display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) minmax(0, 240px);
+  gap: 32px;
+  padding: 40px 0;
+  align-items: center;
+}
+.cover-side-num {
+  font-family: var(--f-display);
+  font-size: 160px;
+  line-height: 0.85;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  opacity: 0.9;
+}
+.cover-title {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(56px, 9vw, 148px);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  margin: 0;
+  text-wrap: balance;
+}
+.cover-title em {
+  font-family: var(--f-body); font-style: italic;
+  font-weight: 400; color: var(--fg-2);
+}
+.cover-title .accent { color: var(--accent); }
+.cover-blurbs {
+  display: flex; flex-direction: column; gap: 20px;
+  font-family: var(--f-mono); font-size: 12px;
+  color: var(--fg-2);
+  line-height: 1.5;
+}
+.cover-blurbs .b {
+  padding-top: 10px; border-top: 1px solid var(--accent-line);
+}
+.cover-blurbs .b b { color: var(--accent); font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 4px; font-size: 11px; }
+.cover-bottom {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 0;
+  border-top: var(--rule);
+  font-family: var(--f-mono); font-size: 11px; color: var(--fg-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.cover-barcode {
+  display: flex; gap: 1.5px; align-items: end;
+  height: 28px;
+}
+.cover-barcode i {
+  display: block; width: 2px; background: var(--fg-2);
+  opacity: 0.7;
+}
+@media (max-width: 1100px) {
+  .cover-main { grid-template-columns: 1fr; gap: 24px; }
+  .cover-side-num { writing-mode: horizontal-tb; transform: none; font-size: 80px; }
+}
+
+/* ============================================================
+   TICKER / MARQUEE-LIKE STATS STRIP
+   ============================================================ */
+.ticker {
+  border-top: var(--rule);
+  border-bottom: var(--rule);
+  padding: 18px 0;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--fg-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: flex;
+  gap: 48px;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ticker-item { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.ticker-item b { color: var(--fg); font-weight: 500; font-size: 14px; text-transform: none; letter-spacing: 0; }
+.ticker-item .ac { color: var(--accent); }
+.ticker-item::after {
+  content: "◆"; color: var(--fg-4); margin-left: 48px;
+}
+.ticker-item:last-child::after { display: none; }
+
+/* ============================================================
+   LATEST POSTS — asymmetric editorial grid
+   ============================================================ */
+.section-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 48px;
+  padding-bottom: 16px;
+  border-bottom: var(--rule);
+}
+.section-head h2 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(32px, 4vw, 44px);
+  letter-spacing: -0.025em;
+  line-height: 1;
+  margin: 0;
+}
+.section-head .lede {
+  font-family: var(--f-body);
+  font-size: 16px;
+  color: var(--fg-3);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.posts-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 56px;
+}
+@media (max-width: 900px) { .posts-grid { grid-template-columns: 1fr; gap: 40px; } }
+
+.post-hero {
+  display: flex; flex-direction: column;
+  border-right: var(--rule);
+  padding-right: 56px;
+}
+@media (max-width: 900px) { .post-hero { border-right: 0; padding-right: 0; border-bottom: var(--rule); padding-bottom: 40px; } }
+.post-image {
+  aspect-ratio: 16/10;
+  background:
+    repeating-linear-gradient(45deg, transparent 0 10px, oklch(1 0 0 / 0.02) 10px 11px),
+    var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid; place-items: center;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.post-image::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 60%, color-mix(in oklab, var(--accent) 30%, transparent) 120%);
+  opacity: 0.3;
+}
+.post-image .ph-label {
+  font-family: var(--f-mono); font-size: 11px; color: var(--fg-3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  background: var(--bg); padding: 6px 10px; border: 1px solid var(--border);
+  position: relative;
+}
+.post-image .tag-bar {
+  position: absolute; top: 14px; left: 14px;
+  display: flex; gap: 6px;
+}
+.post-hero .tags { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.tag {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: 1px solid var(--border-2);
+  border-radius: 2px;
+  color: var(--fg-2);
+}
+.tag.hot { color: var(--accent); border-color: var(--accent-line); background: var(--accent-dim); }
+.post-hero h3 {
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0 0 18px 0;
+  text-wrap: balance;
+}
+.post-hero p {
+  font-family: var(--f-body);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--fg-2);
+  margin: 0 0 20px 0;
+  max-width: 600px;
+}
+.post-meta {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.08em;
+  display: flex; gap: 16px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: var(--rule);
+}
+.post-meta b { color: var(--fg-2); font-weight: 500; }
+
+.post-list { display: flex; flex-direction: column; }
+.post-row {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 20px;
+  padding: 22px 0;
+  border-bottom: var(--rule);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.post-row:hover { background: color-mix(in oklab, var(--accent) 4%, transparent); }
+.post-row:hover h4 { color: var(--accent); }
+.post-row:first-child { padding-top: 0; }
+.post-row:last-child { border-bottom: 0; }
+.post-row .idx {
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--fg-4);
+  padding-top: 3px;
+  letter-spacing: 0.08em;
+}
+.post-row .kicker {
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.post-row h4 {
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px 0;
+  transition: color 140ms ease;
+  text-wrap: balance;
+}
+.post-row .byline {
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.04em;
+}
+.post-row .byline span { color: var(--fg-4); }
+
+.posts-footer {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: var(--rule);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 16px;
+}
+.posts-footer .count { font-family: var(--f-mono); font-size: 12px; color: var(--fg-3); letter-spacing: 0.08em; }
+
+/* ============================================================
+   ABOUT STRIP — editorial pull quote with CV timeline
+   ============================================================ */
+.about {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 80px;
+}
+@media (max-width: 900px) { .about { grid-template-columns: 1fr; gap: 40px; } }
+.about-left .quote {
+  font-family: var(--f-body);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.3;
+  color: var(--fg);
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+  margin: 0;
+}
+.about-left .quote::before {
+  content: "“"; color: var(--accent);
+  font-size: 64px;
+  line-height: 0;
+  vertical-align: -24px;
+  margin-right: 6px;
+  font-style: normal;
+}
+.about-left .attr {
+  margin-top: 32px;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--fg-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding-top: 16px;
+  border-top: 1px solid var(--accent-line);
+  display: inline-block;
+}
+.about-left .attr b { color: var(--accent); font-weight: 500; }
+
+.cv-list {
+  display: flex; flex-direction: column;
+}
+.cv-row {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: var(--rule);
+  align-items: baseline;
+}
+.cv-row:first-child { padding-top: 0; }
+.cv-row:last-child { border-bottom: 0; }
+.cv-row .yr { font-family: var(--f-mono); font-size: 12px; color: var(--accent); letter-spacing: 0.06em; }
+.cv-row .role { font-family: var(--f-display); font-size: 17px; font-weight: 500; color: var(--fg); }
+.cv-row .role small { display: block; font-weight: 400; color: var(--fg-3); font-size: 13px; font-family: var(--f-body); font-style: italic; margin-top: 3px; }
+.cv-row .where { font-family: var(--f-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.04em; text-align: right; }
+@media (max-width: 600px) {
+  .cv-row { grid-template-columns: 80px 1fr; }
+  .cv-row .where { grid-column: 2; text-align: left; margin-top: 4px; }
+}
+
+/* ============================================================
+   PORTFOLIO / WORK GRID
+   ============================================================ */
+.work-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.work {
+  background: var(--bg);
+  padding: 28px;
+  display: flex; flex-direction: column;
+  min-height: 260px;
+  position: relative;
+  transition: background 160ms ease;
+  cursor: pointer;
+}
+.work:hover { background: var(--surface-1); }
+.work:hover .work-arrow { color: var(--accent); transform: translate(2px, -2px); }
+.work.span-3 { grid-column: span 3; }
+.work.span-2 { grid-column: span 2; }
+.work.span-4 { grid-column: span 4; }
+.work-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.work-idx { font-family: var(--f-mono); font-size: 11px; color: var(--fg-4); letter-spacing: 0.08em; }
+.work-arrow {
+  width: 18px; height: 18px;
+  color: var(--fg-3); transition: color 160ms, transform 160ms;
+  font-family: var(--f-mono); font-size: 18px;
+  line-height: 1;
+}
+.work h3 {
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 0 0 10px 0;
+  text-wrap: balance;
+}
+.work p {
+  font-family: var(--f-body);
+  font-size: 14px;
+  color: var(--fg-2);
+  line-height: 1.5;
+  margin: 0 0 auto 0;
+}
+.work-meta {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: var(--rule);
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.work-meta .chip {
+  font-family: var(--f-mono);
+  font-size: 10.5px; letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.work-meta .chip::before { content: "/ "; color: var(--fg-4); }
+.work-meta .chip:first-child::before { display: none; }
+.work-feat {
+  grid-column: span 3; grid-row: span 2;
+  background: linear-gradient(180deg, var(--surface-1), var(--bg));
+}
+.work-feat .shot {
+  margin-top: 24px;
+  aspect-ratio: 16/10;
+  background:
+    repeating-linear-gradient(45deg, transparent 0 10px, oklch(1 0 0 / 0.02) 10px 11px),
+    linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border: 1px solid var(--border);
+  display: grid; place-items: center;
+  color: var(--fg-3); font-family: var(--f-mono); font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+.work-feat .shot::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle at 70% 20%, var(--accent-dim) 0%, transparent 60%);
+}
+@media (max-width: 900px) {
+  .work-grid { grid-template-columns: repeat(2, 1fr); }
+  .work.span-2, .work.span-3, .work.span-4, .work-feat { grid-column: span 2; grid-row: auto; }
+}
+
+/* ============================================================
+   SERVICES STRIP
+   ============================================================ */
+.services {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-top: var(--rule);
+  border-bottom: var(--rule);
+}
+.svc {
+  padding: 32px 28px;
+  border-left: var(--rule);
+  position: relative;
+}
+.svc:first-child { border-left: 0; }
+.svc .num {
+  font-family: var(--f-mono); font-size: 11px; color: var(--accent);
+  letter-spacing: 0.12em;
+  margin-bottom: 24px;
+}
+.svc h4 {
+  font-family: var(--f-display);
+  font-size: 19px; font-weight: 600;
+  line-height: 1.2; letter-spacing: -0.015em;
+  margin: 0 0 12px 0;
+}
+.svc p {
+  font-family: var(--f-body);
+  font-size: 14px; line-height: 1.5;
+  color: var(--fg-2);
+  margin: 0 0 20px 0;
+}
+.svc ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.svc li {
+  font-family: var(--f-mono); font-size: 11.5px;
+  color: var(--fg-3); letter-spacing: 0.02em;
+  display: flex; gap: 8px;
+}
+.svc li::before { content: "›"; color: var(--accent); }
+@media (max-width: 900px) {
+  .services { grid-template-columns: repeat(2, 1fr); }
+  .svc:nth-child(3) { border-left: 0; border-top: var(--rule); }
+  .svc:nth-child(4) { border-top: var(--rule); }
+}
+@media (max-width: 500px) {
+  .services { grid-template-columns: 1fr; }
+  .svc { border-left: 0; border-top: var(--rule); }
+  .svc:first-child { border-top: 0; }
+}
+
+/* ============================================================
+   SUBSCRIBE STRIP
+   ============================================================ */
+.subscribe {
+  padding: 80px 40px;
+  border-top: var(--rule);
+  border-bottom: var(--rule);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  position: relative;
+}
+.subscribe::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(circle, var(--grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: calc(var(--motif) * 0.6);
+  pointer-events: none;
+}
+.subscribe > * { position: relative; z-index: 1; }
+.subscribe h2 {
+  font-family: var(--f-display);
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin: 0 0 20px 0;
+  text-wrap: balance;
+}
+.subscribe h2 em { font-family: var(--f-body); font-weight: 400; color: var(--fg-2); }
+.subscribe p { font-family: var(--f-body); font-size: 17px; color: var(--fg-2); max-width: 480px; }
+.subscribe-form {
+  display: flex; flex-direction: column; gap: 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  padding: 28px;
+}
+.subscribe-form .row { display: flex; gap: 8px; }
+.subscribe-form input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  padding: 12px 14px;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color 140ms ease;
+}
+.subscribe-form input:focus { border-color: var(--accent); }
+.subscribe-form .meta { font-family: var(--f-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; }
+.subscribe-form .meta b { color: var(--fg); font-weight: 500; }
+@media (max-width: 900px) { .subscribe { grid-template-columns: 1fr; padding: 48px 20px; gap: 32px; } }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer.site {
+  border-top: var(--rule);
+  padding: 64px 0 32px;
+}
+.foot-top {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 64px;
+}
+.foot-top h5 { font-family: var(--f-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 16px 0; font-weight: 500; }
+.foot-top ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.foot-top a { font-family: var(--f-display); font-size: 14px; color: var(--fg-2); }
+.foot-top a:hover { color: var(--accent); }
+.foot-brand-desc { font-family: var(--f-body); font-size: 15px; color: var(--fg-2); max-width: 340px; line-height: 1.55; margin: 20px 0 0 0; }
+.foot-bottom {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 24px;
+  border-top: var(--rule);
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--fg-3); letter-spacing: 0.08em;
+}
+.foot-bottom b { color: var(--accent); font-weight: 500; }
+@media (max-width: 900px) { .foot-top { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 500px) { .foot-top { grid-template-columns: 1fr; gap: 32px; } }
+
+/* ============================================================
+   TWEAKS PANEL
+   ============================================================ */
+#tweaks {
+  position: fixed; bottom: 24px; right: 24px;
+  width: 280px;
+  background: color-mix(in oklab, var(--bg) 92%, transparent);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  padding: 18px;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--fg-2);
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 20px 40px oklch(0 0 0 / 0.4);
+}
+#tweaks.open { display: block; }
+#tweaks h5 { margin: 0 0 14px 0; font-family: var(--f-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;}
+#tweaks h5 button { background: none; border: 0; color: var(--fg-3); cursor: pointer; font-family: inherit; font-size: 14px; padding: 0;}
+.tw-group { margin-bottom: 16px; }
+.tw-group label { display: block; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 8px; }
+.tw-options { display: flex; flex-wrap: wrap; gap: 4px; }
+.tw-options button {
+  flex: 1; min-width: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg-3);
+  font-family: var(--f-mono); font-size: 10.5px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: all 140ms ease;
+  white-space: nowrap;
+}
+.tw-options button:hover { color: var(--fg); border-color: var(--border-2); }
+.tw-options button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.tw-swatch { width: 22px; height: 22px; border-radius: 50%; padding: 0; border: 2px solid transparent; flex: 0 0 auto; }
+.tw-swatch.active { border-color: var(--fg); }
+
+/* ============================================================
+   MOTION LAYER — additive
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  :root { --motion: 0 !important; }
+}
+
+/* --- Status dot pulse --- */
+.status-dot {
+  position: relative;
+}
+.status-dot::after {
+  content: ""; position: absolute; inset: -2px;
+  border-radius: 50%;
+  background: oklch(0.78 0.17 150);
+  opacity: 0.6;
+  animation: pulse-ring 2.2s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1); opacity: 0.6; }
+  80%  { transform: scale(2.8); opacity: 0; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+[style*="--motion: 0"] .status-dot::after,
+[data-motion="0"] .status-dot::after { animation: none; display: none; }
+
+/* --- Scroll reveal primitives --- */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 700ms cubic-bezier(.2,.65,.2,1), transform 700ms cubic-bezier(.2,.65,.2,1);
+  will-change: opacity, transform;
+}
+.reveal.in { opacity: 1; transform: translateY(0); }
+[data-motion="0"] .reveal { opacity: 1; transform: none; transition: none; }
+
+/* --- Hero title: accent shimmer --- */
+.hero-title .accent, .cover-title .accent {
+  background: linear-gradient(90deg, var(--accent) 0%, oklch(0.88 0.13 192) 50%, var(--accent) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: shimmer 6s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%,100% { background-position: 0% 50%; }
+  50%     { background-position: 100% 50%; }
+}
+[data-motion="0"] .hero-title .accent,
+[data-motion="0"] .cover-title .accent { animation: none; }
+
+/* --- Hero italic word: hand-drawn underline that reveals on load --- */
+.hero-title .it {
+  position: relative;
+  display: inline-block;
+}
+.hero-title .it::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 8%; bottom: -4px;
+  height: 6px;
+  background: var(--accent);
+  opacity: 0.85;
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: draw-underline 1.4s cubic-bezier(.7,0,.3,1) 0.4s forwards;
+  border-radius: 2px;
+}
+@keyframes draw-underline {
+  to { transform: scaleX(1); }
+}
+[data-motion="0"] .hero-title .it::after { animation: none; transform: scaleX(1); }
+
+/* --- Portrait rangefinder brackets: snap in on load --- */
+.hero-portrait::before, .hero-portrait::after {
+  opacity: 0;
+  animation: bracket-in 600ms cubic-bezier(.2,.8,.2,1) 0.7s forwards;
+}
+.hero-portrait::before {
+  transform: translate(-12px, -12px);
+  animation-name: bracket-in-tl;
+}
+.hero-portrait::after {
+  transform: translate(12px, 12px);
+  animation-name: bracket-in-br;
+}
+@keyframes bracket-in-tl {
+  0%   { opacity: 0; transform: translate(-12px, -12px); }
+  100% { opacity: 1; transform: translate(0, 0); }
+}
+@keyframes bracket-in-br {
+  0%   { opacity: 0; transform: translate(12px, 12px); }
+  100% { opacity: 1; transform: translate(0, 0); }
+}
+[data-motion="0"] .hero-portrait::before,
+[data-motion="0"] .hero-portrait::after {
+  opacity: 1; animation: none; transform: translate(0,0);
+}
+
+/* --- Nav link underline slide --- */
+.nav a { overflow: visible; }
+.nav a::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 100%; bottom: -3px;
+  height: 2px; background: var(--accent);
+  transition: right 280ms cubic-bezier(.2,.8,.2,1);
+}
+.nav a:hover::before { right: 0; }
+.nav a.active::after { display: none; }
+.nav a.active::before { right: 0; }
+
+/* --- Brand mark scanline sweep on hover --- */
+.brand-mark { overflow: hidden; position: relative; }
+.brand-mark::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 0%, var(--accent) 48%, transparent 52%, transparent 100%);
+  opacity: 0;
+  transform: translateY(-100%);
+  transition: opacity 160ms, transform 420ms cubic-bezier(.5,0,.5,1);
+}
+.brand:hover .brand-mark::after { opacity: 0.7; transform: translateY(100%); }
+
+/* --- Ticker marquee --- */
+.ticker { position: relative; }
+.ticker .ticker-track {
+  display: flex; gap: 48px; align-items: center;
+  animation: ticker-scroll 48s linear infinite;
+  width: max-content;
+}
+.ticker:hover .ticker-track { animation-play-state: paused; }
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+[data-motion="0"] .ticker .ticker-track { animation: none; }
+
+/* --- Post row hover: teal underline draw --- */
+.post-row { position: relative; }
+.post-row::after {
+  content: ""; position: absolute;
+  left: 52px; right: 52px; bottom: 10px;
+  height: 2px; background: var(--accent);
+  transform: scaleX(0); transform-origin: left center;
+  transition: transform 360ms cubic-bezier(.2,.8,.2,1);
+}
+.post-row:hover::after { transform: scaleX(1); }
+[data-motion="0"] .post-row::after { display: none; }
+
+/* --- Work card: drift glow + parallax of .shot --- */
+.work-feat .shot::before {
+  animation: glow-drift 14s ease-in-out infinite alternate;
+}
+@keyframes glow-drift {
+  0%   { background: radial-gradient(circle at 20% 30%, var(--accent-dim) 0%, transparent 55%); }
+  50%  { background: radial-gradient(circle at 80% 60%, var(--accent-dim) 0%, transparent 55%); }
+  100% { background: radial-gradient(circle at 30% 80%, var(--accent-dim) 0%, transparent 55%); }
+}
+[data-motion="0"] .work-feat .shot::before { animation: none; }
+
+.work { transition: background 160ms ease, transform 220ms cubic-bezier(.2,.8,.2,1); }
+.work:hover { transform: translateY(-2px); }
+[data-motion="0"] .work:hover { transform: none; }
+
+/* --- Work arrow loop --- */
+.work .work-arrow {
+  display: inline-block;
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1), color 160ms;
+}
+.work:hover .work-arrow { transform: translate(3px, -3px); }
+
+/* --- CV rows: teal marker grows on hover --- */
+.cv-row { position: relative; overflow: hidden; }
+.cv-row::before {
+  content: ""; position: absolute; left: -4px; top: 0; bottom: 0;
+  width: 3px; background: var(--accent);
+  transform: scaleY(0); transform-origin: top center;
+  transition: transform 320ms cubic-bezier(.2,.8,.2,1);
+}
+.cv-row:hover::before { transform: scaleY(1); }
+.cv-row:hover .yr { color: oklch(0.88 0.13 192); }
+[data-motion="0"] .cv-row::before { display: none; }
+
+/* --- Services: underline on hover --- */
+.svc { transition: background 180ms; }
+.svc:hover { background: var(--surface-1); }
+.svc h4 { position: relative; display: inline-block; }
+.svc h4::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -4px;
+  height: 2px; background: var(--accent);
+  transform: scaleX(0); transform-origin: left center;
+  transition: transform 280ms cubic-bezier(.2,.8,.2,1);
+}
+.svc:hover h4::after { transform: scaleX(1); }
+
+/* --- Now-log: live cursor + new rows --- */
+.now-panel-body .now-row.new {
+  animation: row-in 520ms cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(-6px); background: var(--accent-dim); }
+  to   { opacity: 1; transform: translateY(0);     background: transparent; }
+}
+.now-cursor::after {
+  content: "▍"; color: var(--accent);
+  margin-left: 2px;
+  animation: blink 1.05s steps(2) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+[data-motion="0"] .now-cursor::after { animation: none; }
+
+/* --- Cover barcode draw-in --- */
+.cover-barcode i {
+  transform-origin: bottom center;
+  animation: bar-rise 800ms cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes bar-rise {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 0.7; }
+}
+[data-motion="0"] .cover-barcode i { animation: none; transform: scaleY(1); opacity: 0.7; }
+
+/* --- Button primary: glow pulse on hover --- */
+.btn-primary { position: relative; overflow: hidden; }
+.btn-primary::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.25), transparent);
+  transform: translateX(-120%);
+  transition: transform 600ms cubic-bezier(.2,.8,.2,1);
+}
+.btn-primary:hover::before { transform: translateX(120%); }
+
+/* --- Subscribe success sweep --- */
+.subscribe-form.ok .meta {
+  background: linear-gradient(90deg, var(--accent-dim), transparent);
+  animation: sweep 900ms ease-out both;
+}
+@keyframes sweep {
+  from { background-size: 0% 100%; background-repeat: no-repeat; }
+  to   { background-size: 100% 100%; background-repeat: no-repeat; }
+}
+
+/* --- Hero background glow drift --- */
+.hero::after {
+  animation: hero-glow-drift 22s ease-in-out infinite alternate;
+}
+@keyframes hero-glow-drift {
+  0%   { transform: translate(0, 0) scale(1); opacity: calc(var(--motif) * 0.9); }
+  50%  { transform: translate(-40px, 20px) scale(1.08); opacity: calc(var(--motif) * 1.0); }
+  100% { transform: translate(30px, -10px) scale(0.96); opacity: calc(var(--motif) * 0.85); }
+}
+[data-motion="0"] .hero::after { animation: none; }
+
+/* --- Section label line grows on scroll into view --- */
+.section-label::before {
+  transition: width 520ms cubic-bezier(.2,.8,.2,1);
+}
+.section.in .section-label::before { width: 28px; }
+
+</style>
+</head>
+<body data-theme="dark" data-hero="identity" data-accent="teal">
+
+<!-- ============================================================ MASTHEAD ============================================================ -->
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <a href="#" class="brand">
+      <span class="brand-mark">CF</span>
+      CryptoFlex <small>// chris johnson</small>
+    </a>
+    <nav class="nav">
+      <a href="#" class="active">Journal</a>
+      <a href="#">Work</a>
+      <a href="#">Services</a>
+      <a href="#">About</a>
+      <a href="#">Contact</a>
+    </nav>
+    <div class="masthead-right">
+      <span><span class="status-dot"></span>SHIPPING</span>
+      <a href="#" class="btn btn-primary">Subscribe <span class="arrow">→</span></a>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================ HERO ============================================================ -->
+<section class="hero">
+  <div class="wrap">
+
+    <!-- V1: IDENTITY -->
+    <div class="hero-identity">
+      <div class="hero-meta-row">
+        <span class="issue">ISSUE № <b>042</b> · APRIL 2026 · FIELD NOTES ON SHIPPING</span>
+        <span class="issue">LAT 25.76° N · LON 80.19° W · MIAMI, FL</span>
+      </div>
+      <div class="hero-identity-grid">
+        <div>
+          <div class="hero-eyebrow">Engineering Lab Notebook</div>
+          <h1 class="hero-title">
+            Build in&nbsp;public.<br>
+            <span class="it">Break things</span><br>
+            <span class="accent">on purpose.</span>
+          </h1>
+          <p class="hero-sub">
+            I'm Chris — veteran, cybersecurity engineer, and serial tinkerer.
+            This is where I document the work: AI agents, secure
+            infrastructure, games I rebuild from 1991, and whatever else
+            I'm breaking this week.
+          </p>
+          <div class="hero-cta-row">
+            <a href="#posts" class="btn btn-primary">Read the journal <span class="arrow">→</span></a>
+            <a href="#about" class="btn">About me</a>
+            <a href="#" class="btn btn-ghost">github/chris2ao ↗</a>
+          </div>
+        </div>
+        <div>
+          <div class="hero-portrait">
+            <div class="hero-portrait-ph"><span>Portrait drop</span></div>
+          </div>
+          <div class="hero-portrait-caption">
+            <b>FIG. 01</b> — C. Johnson, operator<br>
+            USMC · FIU · DEF / SEC OPS
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- V2: FEATURED POST -->
+    <div class="hero-featured">
+      <div class="hero-meta-row">
+        <span class="issue">THIS WEEK'S COVER STORY · ISSUE <b>042</b></span>
+        <span class="issue">READ TIME 14 MIN · UPDATED 2 DAYS AGO</span>
+      </div>
+      <div class="hero-featured-grid">
+        <div>
+          <div class="kicker">◎ Featured Deep Dive</div>
+          <div class="meta-block">
+            <div class="meta-item"><span class="k">Series</span><span class="v">OpenClaw Part 4</span></div>
+            <div class="meta-item"><span class="k">Stack</span><span class="v">Next.js · Ollama · MCP</span></div>
+            <div class="meta-item"><span class="k">Agents</span><span class="v">7 running 24/7</span></div>
+            <div class="meta-item"><span class="k">Commits</span><span class="v">117 in 7 days</span></div>
+          </div>
+        </div>
+        <div>
+          <h1>Mission Control for a fleet of AI agents <em>(and why I built the pixel-art dashboard first)</em></h1>
+          <p class="lede">
+            Seven Claude agents, one headless Mac Mini, a Telegram bot for each,
+            and a retro command center rendered in CSS. Here's the architecture,
+            the memory layer, and the 3am failure modes that shaped it.
+          </p>
+          <div class="hero-cta-row">
+            <a href="#" class="btn btn-primary">Read the piece <span class="arrow">→</span></a>
+            <a href="#" class="btn">View the code</a>
+          </div>
+          <div class="byline" style="margin-top: 28px;">
+            BY <b>CHRIS JOHNSON</b> · PUBLISHED APR 14, 2026 · FILED UNDER AI INFRASTRUCTURE
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- V3: NOW-LOG -->
+    <div class="hero-now">
+      <div class="hero-meta-row">
+        <span class="issue">/NOW · <b>LIVE</b> · SHIPPING THIS WEEK</span>
+        <span class="issue">LAST UPDATED 14:22 UTC · UPTIME 99.97%</span>
+      </div>
+      <div class="hero-now-grid">
+        <div>
+          <h1>What I'm<br>shipping <span class="u">right now</span>.</h1>
+          <p class="sub">
+            A rolling changelog of the projects, posts, and experiments
+            in flight this week. I treat this blog like a lab notebook —
+            always something half-deployed, always something to learn.
+          </p>
+          <div class="hero-cta-row" style="margin-top: 28px;">
+            <a href="#" class="btn btn-primary">Read the journal <span class="arrow">→</span></a>
+            <a href="#" class="btn">See all projects</a>
+          </div>
+        </div>
+        <div class="now-panel">
+          <div class="now-panel-head"><span>~/cryptoflex/now.log</span><div class="dots"><i></i><i></i><i></i></div></div>
+          <div class="now-panel-body">
+            <div class="now-row"><span class="t">10:14 AM</span><span class="s">+</span><span><b>published</b> openclaw-deployment-part-4-mission-control.mdx — 4,830 words, <a href="#">read →</a></span></div>
+            <div class="now-row"><span class="t">YESTERDAY</span><span class="s">✓</span><span><b>shipped</b> weekly digest v2 with AI-generated intros (Claude Haiku)</span></div>
+            <div class="now-row"><span class="t">APR 14</span><span class="s info">Δ</span><span><b>refactored</b> skills data layer — 183kb → 47kb, lazy-loaded</span></div>
+            <div class="now-row"><span class="t">APR 13</span><span class="s">+</span><span><b>deployed</b> Third Conflict 1.4 — four AI strategies, admiral system</span></div>
+            <div class="now-row"><span class="t">APR 12</span><span class="s warn">!</span><span><b>post-mortem</b> — Vercel cron drift, 3 missed digests, <a href="#">write-up →</a></span></div>
+            <div class="now-row"><span class="t">APR 11</span><span class="s">+</span><span><b>prototype</b> iMessage channels for Claude Code (proof of concept)</span></div>
+            <div class="now-row"><span class="t">APR 10</span><span class="s info">Δ</span><span><b>blog</b> — Unifi MCP server now at 103 tools across 3 days of work</span></div>
+          </div>
+          <div class="now-footer"><span>LOG TAIL -f</span><span><b>●</b> LIVE</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- V4: COVER -->
+    <div class="hero-cover">
+      <div class="wrap" style="padding-top: 24px; padding-bottom: 24px;">
+        <div class="cover-topline">
+          <span>CRYPTOFLEX LLC · <b>THE JOURNAL</b></span>
+          <span>VOL 1 · ISSUE № 042</span>
+          <span>APRIL 2026</span>
+          <span class="price">USD 0.00 / FREE</span>
+        </div>
+      </div>
+      <div class="wrap cover-grid">
+        <div class="cover-main">
+          <div class="cover-side-num">042</div>
+          <div>
+            <h1 class="cover-title">
+              Field notes <em>from the</em><br>
+              <span class="accent">cybersecurity</span><br>
+              workshop.
+            </h1>
+          </div>
+          <div class="cover-blurbs">
+            <div class="b"><b>→ Inside</b>Building a 5-agent design team with Claude Code — the skill system that actually works.</div>
+            <div class="b"><b>→ Long read</b>From 90% context waste to a memory layer that remembers everything.</div>
+            <div class="b"><b>→ Project</b>Third Conflict: rebuilding a 1991 4X game, 5,250 lines of pure functions.</div>
+            <div class="b"><b>→ Column</b>Why the cobbler's server finally got shoes.</div>
+          </div>
+        </div>
+      </div>
+      <div class="wrap">
+        <div class="cover-bottom">
+          <div class="cover-barcode" id="cover-barcode"></div>
+          <span>ENGINEERING · SECURITY · AI · GAMES</span>
+          <span>CRYPTOFLEXLLC.COM</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================================ TICKER ============================================================ -->
+<div class="ticker wrap" style="max-width: none; padding-left: 0; padding-right: 0;">
+  <div class="ticker-track">
+    <div class="ticker-item"><span>POSTS PUBLISHED</span><b class="ac">68</b></div>
+    <div class="ticker-item"><span>TESTS PASSING</span><b>589</b></div>
+    <div class="ticker-item"><span>CODE COVERAGE</span><b>98%</b></div>
+    <div class="ticker-item"><span>ACTIVE PROJECTS</span><b>5</b></div>
+    <div class="ticker-item"><span>AGENTS ORCHESTRATED</span><b class="ac">7</b></div>
+    <div class="ticker-item"><span>COMMITS / 7 DAYS</span><b>117</b></div>
+    <div class="ticker-item"><span>UPTIME / 90 DAYS</span><b>99.97%</b></div>
+    <div class="ticker-item"><span>COFFEE / WEEK</span><b class="ac">21 cups</b></div>
+    <!-- duplicate for seamless loop -->
+    <div class="ticker-item" aria-hidden="true"><span>POSTS PUBLISHED</span><b class="ac">68</b></div>
+    <div class="ticker-item" aria-hidden="true"><span>TESTS PASSING</span><b>589</b></div>
+    <div class="ticker-item" aria-hidden="true"><span>CODE COVERAGE</span><b>98%</b></div>
+    <div class="ticker-item" aria-hidden="true"><span>ACTIVE PROJECTS</span><b>5</b></div>
+    <div class="ticker-item" aria-hidden="true"><span>AGENTS ORCHESTRATED</span><b class="ac">7</b></div>
+    <div class="ticker-item" aria-hidden="true"><span>COMMITS / 7 DAYS</span><b>117</b></div>
+    <div class="ticker-item" aria-hidden="true"><span>UPTIME / 90 DAYS</span><b>99.97%</b></div>
+    <div class="ticker-item" aria-hidden="true"><span>COFFEE / WEEK</span><b class="ac">21 cups</b></div>
+  </div>
+</div>
+
+<!-- ============================================================ LATEST POSTS ============================================================ -->
+<section class="section" id="posts">
+  <div class="wrap">
+    <div class="section-label">§ 01 / THE JOURNAL</div>
+    <div class="section-head">
+      <div>
+        <div class="overline" style="margin-bottom: 12px;">Latest issues</div>
+        <h2>From the<br>workshop.</h2>
+      </div>
+      <div class="lede">
+        Long-form field notes from the lab: security, AI tooling,
+        infrastructure, and the occasional 1991 video-game rebuild.
+      </div>
+      <a href="#" class="btn">All posts (68) <span class="arrow">→</span></a>
+    </div>
+
+    <div class="posts-grid">
+
+      <!-- featured post -->
+      <article class="post-hero">
+        <div class="post-image">
+          <div class="tag-bar">
+            <span class="tag hot">● Lead Story</span>
+          </div>
+          <span class="ph-label">cover art · openclaw mission control</span>
+        </div>
+        <div class="tags">
+          <span class="tag">AI Infrastructure</span>
+          <span class="tag">OpenClaw</span>
+          <span class="tag">Part 4 of 4</span>
+        </div>
+        <h3>Mission Control for a fleet of AI agents — how agents remember, recover, and ship without me.</h3>
+        <p>
+          Seven autonomous agents, a headless Mac Mini, and a pixel-art
+          dashboard rendered in pure CSS. The architecture, the memory
+          layer, and the watchdog that saved it at 3am.
+        </p>
+        <div class="post-meta">
+          <span><b>14 min read</b></span>
+          <span>Apr 14, 2026</span>
+          <span>4,830 words</span>
+          <span style="margin-left: auto; color: var(--accent);">Read →</span>
+        </div>
+      </article>
+
+      <!-- post list -->
+      <div class="post-list">
+        <a class="post-row" href="#">
+          <div class="idx">01</div>
+          <div>
+            <div class="kicker">Claude Code · Skill System</div>
+            <h4>Building a 5-agent design team with the UI/UX skill system.</h4>
+            <div class="byline">APR 12 · <span>18 MIN</span></div>
+          </div>
+        </a>
+        <a class="post-row" href="#">
+          <div class="idx">02</div>
+          <div>
+            <div class="kicker">Memory · Deep Research</div>
+            <h4>My 5-layer memory system vs. the world — what deep research revealed.</h4>
+            <div class="byline">APR 09 · <span>22 MIN</span></div>
+          </div>
+        </a>
+        <a class="post-row" href="#">
+          <div class="idx">03</div>
+          <div>
+            <div class="kicker">Security · Games</div>
+            <h4>Securing a retro game: 26 findings, 9 agents, one weekend.</h4>
+            <div class="byline">APR 06 · <span>19 MIN</span></div>
+          </div>
+        </a>
+        <a class="post-row" href="#">
+          <div class="idx">04</div>
+          <div>
+            <div class="kicker">Claude Code · Context</div>
+            <h4>90% less context: how I optimized my Claude Code setup.</h4>
+            <div class="byline">APR 03 · <span>25 MIN</span></div>
+          </div>
+        </a>
+        <a class="post-row" href="#">
+          <div class="idx">05</div>
+          <div>
+            <div class="kicker">Unifi MCP · Three Days</div>
+            <h4>Building a custom Unifi MCP: 103 tools across three days.</h4>
+            <div class="byline">MAR 30 · <span>28 MIN</span></div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="posts-footer">
+      <span class="count">SHOWING 1–6 OF 68 ENTRIES · SORTED BY RECENCY</span>
+      <div style="display: flex; gap: 10px;">
+        <a href="#" class="btn">Browse by series</a>
+        <a href="#" class="btn">RSS feed</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ ABOUT ============================================================ -->
+<section class="section" id="about">
+  <div class="wrap">
+    <div class="section-label">§ 02 / ABOUT THE AUTHOR</div>
+    <div class="about">
+      <div class="about-left">
+        <p class="quote">
+          My career took a few sharp turns — intelligence analyst, Pentagon
+          support, service desk, developer, cloud architect, defender.
+          Each one added a useful layer.
+        </p>
+        <span class="attr">— <b>CHRIS JOHNSON</b> · FOUNDER, CRYPTOFLEX LLC</span>
+      </div>
+      <div class="cv-list">
+        <div class="cv-row">
+          <span class="yr">CURRENT</span>
+          <span class="role">Cybersecurity Defense Operations<small>Security engineering + SOC operations.</small></span>
+          <span class="where">FLORIDA</span>
+        </div>
+        <div class="cv-row">
+          <span class="yr">2022–</span>
+          <span class="role">Security Engineer & Cloud Architect<small>Security controls, hardened systems, hybrid cloud.</small></span>
+          <span class="where">DEF CONTRACT</span>
+        </div>
+        <div class="cv-row">
+          <span class="yr">2020</span>
+          <span class="role">B.S. Information Technology<small>Florida International University — Magna Cum Laude.</small></span>
+          <span class="where">FIU</span>
+        </div>
+        <div class="cv-row">
+          <span class="yr">2015–22</span>
+          <span class="role">IT Operations · Service Desk → Developer<small>Ran every layer of the stack.</small></span>
+          <span class="where">MULTI-ORG</span>
+        </div>
+        <div class="cv-row">
+          <span class="yr">2010–15</span>
+          <span class="role">Chem/Bio Defense Operations<small>Pentagon & US Capitol — reliability not optional.</small></span>
+          <span class="where">DC METRO</span>
+        </div>
+        <div class="cv-row">
+          <span class="yr">2001–10</span>
+          <span class="role">US Military · Intelligence Analyst<small>Iraq, Afghanistan. Pattern recognition under pressure.</small></span>
+          <span class="where">OVERSEAS</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ WORK / PORTFOLIO ============================================================ -->
+<section class="section" id="work">
+  <div class="wrap">
+    <div class="section-label">§ 03 / SELECTED WORK</div>
+    <div class="section-head">
+      <div>
+        <div class="overline" style="margin-bottom: 12px;">Projects in flight</div>
+        <h2>Things I've built<br>(and broken).</h2>
+      </div>
+      <div class="lede">
+        A mix of production systems, retro rebuilds, AI infrastructure,
+        and weekend experiments. Most are open source.
+      </div>
+      <a href="#" class="btn">Full portfolio <span class="arrow">→</span></a>
+    </div>
+
+    <div class="work-grid">
+      <div class="work work-feat">
+        <div class="work-head">
+          <span class="work-idx">WORK / 01</span>
+          <span class="work-arrow">↗</span>
+        </div>
+        <h3 style="font-size: 30px;">CryptoFlex LLC — this site</h3>
+        <p>Full-stack Next.js 16 with custom analytics, IP intelligence, AI-generated newsletter intros, and a ~70-post MDX engine. Built end-to-end with Claude Code.</p>
+        <div class="shot">PRODUCT SCREENSHOT · cryptoflexllc.com</div>
+        <div class="work-meta">
+          <span class="chip">Next.js</span>
+          <span class="chip">Postgres</span>
+          <span class="chip">TypeScript</span>
+          <span class="chip">Claude Code</span>
+        </div>
+      </div>
+      <div class="work span-3">
+        <div class="work-head"><span class="work-idx">WORK / 02</span><span class="work-arrow">↗</span></div>
+        <h3>Third Conflict — 4X space strategy</h3>
+        <p>Browser remake of a 1991 DOS classic. Four AI strategies, dynamic combat, admiral system. 5,250 lines of pure functions.</p>
+        <div class="work-meta"><span class="chip">TypeScript</span><span class="chip">React</span><span class="chip">Game AI</span></div>
+      </div>
+      <div class="work span-3">
+        <div class="work-head"><span class="work-idx">WORK / 03</span><span class="work-arrow">↗</span></div>
+        <h3>OpenClaw — 7-agent system</h3>
+        <p>Seven Claude agents on a headless Mac Mini. Telegram bots, hybrid vector memory, pixel-art Mission Control dashboard, watchdog.</p>
+        <div class="work-meta"><span class="chip">OpenClaw</span><span class="chip">Ollama</span><span class="chip">Telegram</span></div>
+      </div>
+      <div class="work span-2">
+        <div class="work-head"><span class="work-idx">WORK / 04</span><span class="work-arrow">↗</span></div>
+        <h3>Cann Cann — artillery game</h3>
+        <p>A 1990 Windows 3.1 artillery game, rebuilt. Procedural terrain, physics AI, four biomes.</p>
+        <div class="work-meta"><span class="chip">Canvas</span><span class="chip">Physics</span></div>
+      </div>
+      <div class="work span-2">
+        <div class="work-head"><span class="work-idx">WORK / 05</span><span class="work-arrow">↗</span></div>
+        <h3>Unifi MCP — 103 tools</h3>
+        <p>Unified Network + Protect MCP server. Lazy loading, preview-confirm safety, 103 tools in three days.</p>
+        <div class="work-meta"><span class="chip">MCP</span><span class="chip">Unifi</span></div>
+      </div>
+      <div class="work span-2">
+        <div class="work-head"><span class="work-idx">WORK / 06</span><span class="work-arrow">↗</span></div>
+        <h3>Claude Code config</h3>
+        <p>Vector memory, knowledge graph, 30+ skills, multi-repo orchestration. Open source.</p>
+        <div class="work-meta"><span class="chip">Config</span><span class="chip">Skills</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ SERVICES ============================================================ -->
+<section class="section" id="services">
+  <div class="wrap">
+    <div class="section-label">§ 04 / CONSULTING</div>
+    <div class="section-head">
+      <div>
+        <div class="overline" style="margin-bottom: 12px;">Selective engagements</div>
+        <h2>Available for<br>select projects.</h2>
+      </div>
+      <div class="lede">
+        I take on a small number of IT consulting projects through
+        CryptoFlex LLC. Vendor-neutral, practical, shipped.
+      </div>
+      <a href="#" class="btn btn-primary">Get in touch <span class="arrow">→</span></a>
+    </div>
+
+    <div class="services">
+      <div class="svc">
+        <div class="num">01 / SEC</div>
+        <h4>Security Consulting</h4>
+        <p>Posture assessments, architecture review, and practical defenses — not sales pressure.</p>
+        <ul>
+          <li>Risk & vulnerability analysis</li>
+          <li>Architecture review</li>
+          <li>IR planning</li>
+        </ul>
+      </div>
+      <div class="svc">
+        <div class="num">02 / INFRA</div>
+        <h4>Infrastructure</h4>
+        <p>Network design, server architecture, cloud migrations. Small office to complex hybrid.</p>
+        <ul>
+          <li>Network design</li>
+          <li>Cloud migration</li>
+          <li>Perf optimization</li>
+        </ul>
+      </div>
+      <div class="svc">
+        <div class="num">03 / STRAT</div>
+        <h4>IT Strategy</h4>
+        <p>Tech roadmaps and budget planning for small businesses that need a trusted set of eyes.</p>
+        <ul>
+          <li>Roadmapping</li>
+          <li>Vendor-neutral picks</li>
+          <li>Project management</li>
+        </ul>
+      </div>
+      <div class="svc">
+        <div class="num">04 / WEB</div>
+        <h4>Web Development</h4>
+        <p>Modern, fast, secure sites with ongoing management. Built like this one.</p>
+        <ul>
+          <li>Custom design & build</li>
+          <li>Hosting & maintenance</li>
+          <li>SEO & content ops</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ SUBSCRIBE ============================================================ -->
+<section class="section" style="padding: 0;">
+  <div class="wrap">
+    <div class="subscribe">
+      <div>
+        <div class="overline" style="margin-bottom: 20px;">↘ The weekly digest</div>
+        <h2>One email a week. <em>What I built, what broke, what I learned.</em></h2>
+        <p>
+          AI-generated intros (Claude Haiku), hand-picked posts, and the
+          occasional 3am post-mortem. No spam, no lead magnets.
+          Unsubscribe in one click.
+        </p>
+      </div>
+      <form class="subscribe-form" onsubmit="event.preventDefault(); this.querySelector('.meta').innerHTML='<b>✓ Subscribed.</b> Confirmation sent to your inbox.'">
+        <div class="meta">YOU + <b>1,247</b> ENGINEERS READ THE DIGEST</div>
+        <div class="row">
+          <input type="email" placeholder="you@domain.com" required />
+          <button type="submit" class="btn btn-primary">Subscribe <span class="arrow">→</span></button>
+        </div>
+        <div class="meta">FIRST DIGEST · FRIDAYS · 08:00 ET</div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ FOOTER ============================================================ -->
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-top">
+      <div>
+        <div class="brand" style="font-size: 22px;">
+          <span class="brand-mark">CF</span>
+          CryptoFlex <small>// EST 2024</small>
+        </div>
+        <p class="foot-brand-desc">
+          Personal lab notebook of Chris Johnson — veteran, cybersecurity
+          engineer, and serial tinkerer. CryptoFlex LLC is a Florida-registered
+          IT consultancy.
+        </p>
+      </div>
+      <div>
+        <h5>Journal</h5>
+        <ul>
+          <li><a href="#">All posts</a></li>
+          <li><a href="#">By series</a></li>
+          <li><a href="#">Backlog</a></li>
+          <li><a href="#">Resources</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Services</a></li>
+          <li><a href="#">Portfolio</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="#">GitHub ↗</a></li>
+          <li><a href="#">LinkedIn ↗</a></li>
+          <li><a href="#">RSS ↗</a></li>
+          <li><a href="#">Analytics ↗</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 CRYPTOFLEX LLC · <b>BUILT IN PUBLIC</b></span>
+      <span>MIAMI · FL · USA</span>
+      <span>V. 2.4.1 · LAST DEPLOY 2H AGO</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ============================================================ TWEAKS ============================================================ -->
+<div id="tweaks">
+  <h5>Tweaks <button onclick="document.getElementById('tweaks').classList.remove('open')">×</button></h5>
+  <div class="tw-group">
+    <label>Hero variant</label>
+    <div class="tw-options" data-key="hero">
+      <button data-val="identity">Identity</button>
+      <button data-val="featured">Featured</button>
+      <button data-val="now">Now-log</button>
+      <button data-val="cover">Cover</button>
+    </div>
+  </div>
+  <div class="tw-group">
+    <label>Accent hue</label>
+    <div class="tw-options" data-key="accent" style="gap: 8px;">
+      <button data-val="teal" class="tw-swatch" style="background: oklch(0.74 0.16 192);"></button>
+      <button data-val="amber" class="tw-swatch" style="background: oklch(0.80 0.15 72);"></button>
+      <button data-val="green" class="tw-swatch" style="background: oklch(0.78 0.17 150);"></button>
+      <button data-val="red" class="tw-swatch" style="background: oklch(0.72 0.20 22);"></button>
+      <button data-val="violet" class="tw-swatch" style="background: oklch(0.70 0.22 295);"></button>
+    </div>
+  </div>
+  <div class="tw-group">
+    <label>Theme</label>
+    <div class="tw-options" data-key="theme">
+      <button data-val="dark">Dark</button>
+      <button data-val="light">Light</button>
+    </div>
+  </div>
+  <div class="tw-group">
+    <label>Motif intensity</label>
+    <div class="tw-options" data-key="motif">
+      <button data-val="0">None</button>
+      <button data-val="1">Subtle</button>
+      <button data-val="2">Strong</button>
+    </div>
+  </div>
+  <div class="tw-group">
+    <label>Motion</label>
+    <div class="tw-options" data-key="motion">
+      <button data-val="0">Off</button>
+      <button data-val="1">Subtle</button>
+      <button data-val="2">Full</button>
+    </div>
+  </div>
+  <div class="tw-group">
+    <label>Live feed</label>
+    <div class="tw-options" data-key="live">
+      <button data-val="0">Paused</button>
+      <button data-val="1">Streaming</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Tweaks machinery ===== */
+const DEFAULTS = /*EDITMODE-BEGIN*/{
+  "hero": "identity",
+  "accent": "teal",
+  "theme": "dark",
+  "motif": "2",
+  "motion": "2",
+  "live": "1"
+}/*EDITMODE-END*/;
+
+const state = { ...DEFAULTS };
+
+function applyState() {
+  document.body.dataset.hero = state.hero;
+  document.body.dataset.accent = state.accent;
+  document.body.dataset.theme = state.theme;
+  document.body.dataset.motion = state.motion;
+  document.body.dataset.live = state.live;
+  document.body.style.setProperty('--motif', state.motif);
+  document.body.style.setProperty('--motion', state.motion);
+  // speed scale for animations
+  const speed = state.motion === '0' ? 0 : (state.motion === '1' ? 0.5 : 1);
+  document.body.style.setProperty('--mspeed', speed);
+  document.querySelectorAll('#tweaks .tw-options').forEach(group => {
+    const key = group.dataset.key;
+    group.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.val === state[key]);
+    });
+  });
+}
+
+document.querySelectorAll('#tweaks .tw-options').forEach(group => {
+  const key = group.dataset.key;
+  group.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => {
+      state[key] = b.dataset.val;
+      applyState();
+      try {
+        window.parent.postMessage({
+          type: '__edit_mode_set_keys',
+          edits: { [key]: b.dataset.val }
+        }, '*');
+      } catch(e){}
+    });
+  });
+});
+
+applyState();
+
+/* ===== Edit-mode protocol ===== */
+window.addEventListener('message', (e) => {
+  const d = e.data || {};
+  if (d.type === '__activate_edit_mode') document.getElementById('tweaks').classList.add('open');
+  if (d.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('open');
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+/* ===== Cover barcode ===== */
+const barcode = document.getElementById('cover-barcode');
+if (barcode) {
+  const heights = [22, 14, 26, 10, 20, 24, 12, 28, 16, 22, 18, 26, 10, 24, 14, 28, 12, 20, 22, 16, 26, 18, 24, 10, 22];
+  barcode.innerHTML = heights.map((h, i) => `<i style="height:${h}px; animation-delay:${i * 40}ms"></i>`).join('');
+}
+
+/* ===== Scroll reveal: fade/rise on entry ===== */
+(() => {
+  const targets = document.querySelectorAll(
+    '.section, .post-row, .cv-row, .work, .svc, .post-hero, .overline, .section-head > div, .section-head .lede, .ticker-item, .now-row, .hero-eyebrow, .hero-sub, .hero-cta, .hero-meta'
+  );
+  targets.forEach(el => el.classList.add('reveal'));
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  targets.forEach(el => io.observe(el));
+})();
+
+/* ===== Stagger reveal delay for grouped children ===== */
+(() => {
+  const groups = [
+    ['.post-list .post-row', 60],
+    ['.cv-list .cv-row', 45],
+    ['.work-grid .work', 80],
+    ['.services-grid .svc', 60],
+    ['.now-panel-body .now-row', 30]
+  ];
+  groups.forEach(([sel, step]) => {
+    document.querySelectorAll(sel).forEach((el, i) => {
+      el.style.transitionDelay = (i * step) + 'ms';
+    });
+  });
+})();
+
+/* ===== Now-log: live-tail (appends new rows, trims old) ===== */
+(() => {
+  const body = document.querySelector('.now-panel-body');
+  if (!body) return;
+  const rows = Array.from(body.querySelectorAll('.now-row'));
+  if (!rows.length) return;
+
+  // Pool of synthesized new events
+  const pool = [
+    { t: 'just now',   s: 'COMMIT',  html: '<b>openclaw/core</b> · watchdog: restarted stuck agent <a href="#">#04</a>' },
+    { t: 'just now',   s: 'DEPLOY',  html: '<b>cryptoflex.dev</b> · edge function pushed in 2.1s' },
+    { t: 'just now',   s: 'SHIP',    html: '<b>memory-layer v0.4.1</b> · vector dedupe cut recall time 38%' },
+    { t: '1m ago',     s: 'PASS',    html: '<b>589/589</b> tests green · coverage 98.2%' },
+    { t: '2m ago',     s: 'NOTE',    html: 'Switched rangefinder dashboard to pure CSS — <a href="#">writeup</a>' },
+    { t: '3m ago',     s: 'AGENT',   html: 'Agent <b>#07</b> finished refactor: 412 lines touched, 0 regressions' },
+    { t: '4m ago',     s: 'RESEARCH', html: 'Read 6 papers on retrieval-augmented memory · notes synced' },
+    { t: '5m ago',     s: 'SKETCH',  html: 'Sketched onboarding flow for CryptoFlex beta' },
+    { t: '6m ago',     s: 'FIX',     html: '<b>dark-mode</b> contrast on code blocks — WCAG AA' },
+    { t: '7m ago',     s: 'INFRA',   html: 'Headless Mac Mini · uptime 24d 03h' }
+  ];
+  let idx = 0;
+
+  function pulse() {
+    if (document.body.dataset.live === '0') return;
+    if (document.body.dataset.motion === '0') return;
+    const item = pool[idx++ % pool.length];
+    const row = document.createElement('div');
+    row.className = 'now-row new';
+    row.innerHTML = `<div class="t">${item.t}</div><div class="s ${item.s === 'NOTE' ? 'info' : item.s === 'FIX' || item.s === 'AGENT' ? 'warn' : ''}">${item.s}</div><div>${item.html}</div>`;
+    body.insertBefore(row, body.firstChild);
+    // Trim
+    const all = body.querySelectorAll('.now-row');
+    if (all.length > 7) all[all.length - 1].remove();
+    // Age the timestamps of previous rows subtly
+    setTimeout(() => row.classList.remove('new'), 700);
+  }
+  setInterval(pulse, 4200);
+})();
+
+/* ===== Now-cursor on hero ===== */
+(() => {
+  // add a blinking cursor span to hero-log last row if present
+  const logs = document.querySelectorAll('.now-panel-body .now-row:first-child');
+  logs.forEach(r => {
+    const last = r.querySelector('div:last-child');
+    if (last && !last.querySelector('.now-cursor')) {
+      const s = document.createElement('span');
+      s.className = 'now-cursor';
+      last.appendChild(s);
+    }
+  });
+})();
+
+/* ===== Section in-view toggle (for section-label animation) ===== */
+(() => {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => e.target.classList.toggle('in', e.isIntersecting));
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.section').forEach(s => io.observe(s));
+})();
+
+/* ===== Subscribe form success visual ===== */
+(() => {
+  document.querySelectorAll('.subscribe-form').forEach(f => {
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      f.classList.add('ok');
+      const btn = f.querySelector('button, .btn');
+      if (btn) btn.innerHTML = '✓ Subscribed';
+    });
+  });
+})();
+
+/* ===== Magnetic work-card shots: slight parallax on pointer ===== */
+(() => {
+  if (document.body.dataset.motion === '0') return;
+  document.querySelectorAll('.work .shot, .work-feat .shot').forEach(shot => {
+    const parent = shot.closest('.work, .work-feat');
+    if (!parent) return;
+    parent.addEventListener('mousemove', (e) => {
+      if (document.body.dataset.motion === '0') return;
+      const r = parent.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      shot.style.transform = `translate3d(${x * -6}px, ${y * -6}px, 0) scale(1.02)`;
+    });
+    parent.addEventListener('mouseleave', () => {
+      shot.style.transform = '';
+    });
+  });
+})();
+</script>
+</body>
+</html>

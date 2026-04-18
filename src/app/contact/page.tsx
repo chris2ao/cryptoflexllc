@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ContactForm } from "@/components/contact-form";
+import { EditorialPageHeader } from "@/components/editorial-page-header";
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -34,13 +35,15 @@ function MailIcon({ className }: { className?: string }) {
 
 export default function ContactPage() {
   return (
-    <section className="py-16 sm:py-20">
-      <div className="mx-auto max-w-2xl px-4 sm:px-6">
-        <h1 className="text-3xl sm:text-4xl font-heading font-bold">Let&apos;s Connect</h1>
-        <p className="mt-4 text-lg font-body text-muted-foreground">
-          Whether you want to talk security, infrastructure, or just geek out
-          about tech, I&apos;d love to hear from you.
-        </p>
+    <>
+      <EditorialPageHeader
+        sectionLabel="§ 06 / Contact"
+        overline="Get in touch"
+        title={<>Let&apos;s <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>connect.</em></>}
+        lede="Security, infrastructure, or just want to geek out about tech? I&apos;d love to hear from you."
+      />
+      <section className="py-8 sm:py-12">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6">
 
         {/* Contact Form */}
         <Card className="mt-10 bg-card border border-border/40">
@@ -94,6 +97,7 @@ export default function ContactPage() {
           </CardContent>
         </Card>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

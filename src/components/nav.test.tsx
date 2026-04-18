@@ -33,53 +33,63 @@ vi.mock("@/components/ui/sheet", () => ({
   ),
 }));
 
+vi.mock("@/components/theme-toggle", () => ({
+  ThemeToggle: () => <button data-testid="theme-toggle">Toggle</button>,
+}));
+
 describe("Nav", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders all 7 navigation links", () => {
+  it("renders primary navigation links", () => {
     render(<Nav />);
-    expect(screen.getAllByText("Blog").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Skills").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Journal").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Work").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("About").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Portfolio").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Services").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders mobile menu links including extended nav", () => {
+    render(<Nav />);
+    expect(screen.getAllByText("Skills").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Resources").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guestbook").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Contact").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders logo image", () => {
+  it("renders brand name", () => {
     render(<Nav />);
-    const logos = screen.getAllByAltText("CryptoFlex LLC");
-    expect(logos.length).toBeGreaterThanOrEqual(1);
-    expect(logos[0]).toHaveAttribute("src", "/CFLogo.png");
+    expect(screen.getByRole("link", { name: "CryptoFlex — home" })).toBeInTheDocument();
+    expect(screen.getAllByText("CryptoFlex").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("highlights active link with text-primary class", async () => {
+  it("highlights active link with aria-current when on /blog", async () => {
     const { usePathname } = await import("next/navigation");
     vi.mocked(usePathname).mockReturnValue("/blog");
 
     render(<Nav />);
 
-    const blogLinks = screen.getAllByText("Blog");
-    const hasActiveClass = blogLinks.some((link: HTMLElement) =>
-      link.className.includes("text-primary")
-    );
-    expect(hasActiveClass).toBe(true);
+    const journalLinks = screen.getAllByText("Journal");
+    const hasAriaCurrent = journalLinks.some((link: HTMLElement) => {
+      const anchor = link.closest("a");
+      return anchor?.getAttribute("aria-current") === "page";
+    });
+    expect(hasAriaCurrent).toBe(true);
   });
 
-  it("does not highlight inactive links with text-primary", async () => {
+  it("does not mark inactive links as current", async () => {
     const { usePathname } = await import("next/navigation");
     vi.mocked(usePathname).mockReturnValue("/blog");
 
     render(<Nav />);
 
     const aboutLinks = screen.getAllByText("About");
-    const hasActiveClass = aboutLinks.some((link: HTMLElement) =>
-      link.className.includes("text-primary")
-    );
-    expect(hasActiveClass).toBe(false);
+    const hasAriaCurrent = aboutLinks.some((link: HTMLElement) => {
+      const anchor = link.closest("a");
+      return anchor?.getAttribute("aria-current") === "page";
+    });
+    expect(hasAriaCurrent).toBe(false);
   });
 
   it("renders mobile menu components", () => {

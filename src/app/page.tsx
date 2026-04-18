@@ -1,131 +1,42 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Hero } from "@/components/hero";
-import { BlogCard } from "@/components/blog-card";
-import { SubscribeInline } from "@/components/subscribe-inline";
-import { ThirdConflictPromo } from "@/components/third-conflict-promo";
-import { CannCannPromo } from "@/components/cann-cann-promo";
-import { StatsSection } from "@/components/animated-counter";
+import { HeroIdentity } from "@/components/home/hero-identity";
+import { TickerStrip } from "@/components/home/ticker-strip";
+import { JournalSection } from "@/components/home/journal-section";
+import { AboutSection } from "@/components/home/about-section";
+import { SelectedWork } from "@/components/home/selected-work";
+import { ConsultingSection } from "@/components/home/consulting-section";
+import { CVTimeline } from "@/components/home/cv-timeline";
+import { SubscribeBlock } from "@/components/home/subscribe-block";
+import { MotionLayer } from "@/components/home/motion-layer";
 import { getAllPosts } from "@/lib/blog";
 
 export default function HomePage() {
   const allPosts = getAllPosts();
-  const posts = allPosts.slice(0, 3);
+  const posts = allPosts.slice(0, 6);
+
+  const tickerItems = [
+    { label: "POSTS PUBLISHED", value: String(allPosts.length), accent: true },
+    { label: "TESTS PASSING", value: "589" },
+    { label: "CODE COVERAGE", value: "98%", accent: true },
+    { label: "ACTIVE PROJECTS", value: "5" },
+    { label: "AGENTS ORCHESTRATED", value: "7", accent: true },
+    { label: "COMMITS / 7 DAYS", value: "117" },
+    { label: "UPTIME / 90 DAYS", value: "99.97%", accent: true },
+    { label: "COFFEE / WEEK", value: "21 cups" },
+  ];
 
   return (
     <>
-      <Hero />
-
-      {/* Featured Blog Posts */}
-      {posts.length > 0 && (
-        <section className="py-16 sm:py-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">
-                  Latest Posts
-                </h2>
-                <p className="mt-2 font-body text-muted-foreground">
-                  Thoughts on tech, security, and building things.
-                </p>
-              </div>
-              <Button asChild variant="ghost" className="hidden sm:flex">
-                <Link href="/blog">View all posts</Link>
-              </Button>
-            </div>
-            {/* 1 large card on the left + 2 smaller on the right */}
-            <div className="grid gap-6 lg:grid-cols-5">
-              {posts[0] && (
-                <div className="lg:col-span-3">
-                  <BlogCard key={posts[0].slug} post={posts[0]} />
-                </div>
-              )}
-              {posts.length > 1 && (
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                  {posts.slice(1).map((post) => (
-                    <BlogCard key={post.slug} post={post} />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="mt-8 text-center sm:hidden">
-              <Button asChild variant="ghost">
-                <Link href="/blog">View all posts</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* About Teaser */}
-      <section className="py-16 sm:py-20 border-t border-border/40 bg-muted/20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="max-w-2xl">
-            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">About Me</h2>
-            <p className="mt-4 font-body text-muted-foreground leading-relaxed">
-              I&apos;m a military veteran who transitioned into IT and found
-              my way to cybersecurity. My career has taken me from software
-              development to sysadmin work to security engineering, and now
-              into cybersecurity defense operations.
-            </p>
-            <p className="mt-4 font-body text-muted-foreground leading-relaxed">
-              CryptoFlex LLC is my Florida-registered IT consulting company.
-              This site is where I share what I&apos;m working on and learning.
-            </p>
-            <Button asChild variant="outline" className="mt-6">
-              <Link href="/about">Read my full story</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats - below the fold */}
-      <StatsSection
-        stats={[
-          { value: allPosts.length, label: "Blog Posts" },
-          { value: 589, label: "Tests Passing" },
-          { value: 98, label: "Code Coverage", suffix: "%" },
-          { value: 5, label: "Active Projects" },
-        ]}
-      />
-
-      {/* Subscribe Inline */}
-      <SubscribeInline />
-
-      {/* Resources Teaser */}
-      <section className="py-16 sm:py-20 border-t border-border/40">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="max-w-2xl">
-            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">Resources</h2>
-            <p className="mt-4 font-body text-muted-foreground leading-relaxed">
-              Visual recaps, slide decks, and reference material from my
-              projects. Start with the &quot;7 Days, 117 Commits&quot; carousel
-              for the full build story.
-            </p>
-            <Button asChild variant="outline" className="mt-6">
-              <Link href="/resources">Browse resources</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Games Section */}
-      <section className="py-16 sm:py-20 border-t border-border/40">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="max-w-2xl">
-            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">Games I Built</h2>
-            <p className="mt-2 font-body text-muted-foreground">
-              Side projects built with Claude Code. Playable right in the
-              browser.
-            </p>
-          </div>
-          <div className="mt-8 space-y-8">
-            <ThirdConflictPromo />
-            <CannCannPromo />
-          </div>
-        </div>
-      </section>
-
+      <main>
+        <HeroIdentity />
+        <TickerStrip items={tickerItems} />
+        <JournalSection posts={posts} totalCount={allPosts.length} />
+        <AboutSection />
+        <SelectedWork />
+        <ConsultingSection />
+        <CVTimeline />
+        <SubscribeBlock />
+      </main>
+      <MotionLayer />
     </>
   );
 }

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CareerTimeline } from "@/components/career-timeline";
+import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { BASE_URL } from "@/lib/constants";
 
 const careerEvents = [
@@ -71,13 +72,15 @@ const skills = [
 
 export default function AboutPage() {
   return (
-    <section className="py-16 sm:py-20">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6">
-        <h1 className="text-3xl sm:text-4xl font-heading font-bold">About Me</h1>
-        <p className="mt-4 text-lg font-body text-muted-foreground">
-          Veteran. Engineer. Defender.
-        </p>
-
+    <>
+      <EditorialPageHeader
+        sectionLabel="§ 02 / About the Author"
+        overline="Profile"
+        title={<>About <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>Chris.</em></>}
+        lede="Veteran. Engineer. Defender. A pragmatic operator who uses this site as a working lab."
+      />
+      <section className="py-8 sm:py-12">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
         <Separator className="my-10" />
 
         <div className="grid gap-12 md:grid-cols-3">
@@ -238,6 +241,7 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
-    </section>
+      </section>
+    </>
   );
 }
