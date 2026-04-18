@@ -7,17 +7,16 @@ export function Footer() {
     <footer className="editorial-footer">
       <div className="editorial-footer-inner">
         <div className="flex items-center gap-3">
-          <Link href="/" className="masthead-brand" aria-label="CryptoFlex — home">
-            <span className="masthead-brand-mark" aria-hidden="true">
+          <Link href="/" className="masthead-brand" aria-label="CryptoFlex home">
+            <span className="masthead-brand-mark">
               <Image
                 src="/CFLogo.png"
-                alt=""
-                width={28}
-                height={28}
+                alt="CryptoFlex"
+                width={993}
+                height={314}
                 className="masthead-brand-img"
               />
             </span>
-            <span>CryptoFlex</span>
             <span className="masthead-brand-kicker">{"// chris johnson"}</span>
           </Link>
         </div>

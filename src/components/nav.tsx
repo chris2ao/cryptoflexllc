@@ -51,18 +51,17 @@ export function Nav() {
     <>
     <header className="masthead">
       <div className="masthead-inner">
-        <Link href="/" className="masthead-brand" aria-label="CryptoFlex — home">
-          <span className="masthead-brand-mark" aria-hidden="true">
+        <Link href="/" className="masthead-brand" aria-label="CryptoFlex home">
+          <span className="masthead-brand-mark">
             <Image
               src="/CFLogo.png"
-              alt=""
-              width={28}
-              height={28}
+              alt="CryptoFlex"
+              width={993}
+              height={314}
               priority
               className="masthead-brand-img"
             />
           </span>
-          <span>CryptoFlex</span>
           <span className="masthead-brand-kicker">{"// chris johnson"}</span>
         </Link>
 
@@ -117,13 +116,12 @@ export function Nav() {
                   <span className="masthead-brand-mark">
                     <Image
                       src="/CFLogo.png"
-                      alt=""
-                      width={28}
-                      height={28}
+                      alt="CryptoFlex"
+                      width={993}
+                      height={314}
                       className="masthead-brand-img"
                     />
                   </span>
-                  <span>CryptoFlex</span>
                 </div>
               </SheetTitle>
               <nav className="flex flex-col gap-1" aria-label="Mobile">

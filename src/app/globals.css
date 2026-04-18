@@ -674,7 +674,7 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 32px;
-  height: 64px;
+  height: 88px;
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 40px;
@@ -682,9 +682,12 @@
 
 @media (max-width: 768px) {
   .masthead-inner {
-    padding: 0 20px;
-    gap: 16px;
+    padding: 0 16px;
+    gap: 12px;
+    height: 72px;
   }
+  .masthead-brand-kicker,
+  .status-pill { display: none; }
 }
 
 .masthead-brand {
@@ -700,19 +703,22 @@
 
 .masthead-brand-mark {
   position: relative;
-  overflow: hidden;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  height: 56px;
+  flex-shrink: 0;
 }
 
 .masthead-brand-img {
-  width: 100%;
-  height: 100%;
+  height: 56px;
+  width: auto;
   object-fit: contain;
   display: block;
+}
+
+@media (max-width: 768px) {
+  .masthead-brand-mark { height: 40px; }
+  .masthead-brand-img { height: 40px; }
 }
 
 .masthead-brand-mark::after {
@@ -755,7 +761,7 @@
 /* Editorial secondary nav — section bar under the masthead */
 .ed-subnav {
   position: sticky;
-  top: 64px;
+  top: 88px;
   z-index: 49;
   background: color-mix(in oklab, var(--background) 92%, transparent);
   backdrop-filter: blur(10px);
@@ -2589,7 +2595,7 @@ button.ed-post-cover:hover {
   padding: 16px 0;
   border-bottom: 1px solid var(--border);
   position: sticky;
-  top: 64px;
+  top: 88px;
   z-index: 40;
   background: color-mix(in oklab, var(--background) 92%, transparent);
   backdrop-filter: blur(10px);

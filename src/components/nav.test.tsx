@@ -60,8 +60,8 @@ describe("Nav", () => {
 
   it("renders brand name", () => {
     render(<Nav />);
-    expect(screen.getByRole("link", { name: "CryptoFlex — home" })).toBeInTheDocument();
-    expect(screen.getAllByText("CryptoFlex").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("link", { name: "CryptoFlex home" })).toBeInTheDocument();
+    expect(screen.getAllByAltText("CryptoFlex").length).toBeGreaterThanOrEqual(1);
   });
 
   it("highlights active link with aria-current when on /blog", async () => {

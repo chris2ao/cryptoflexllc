@@ -17,7 +17,7 @@ vi.mock("@/components/ui/separator", () => ({
 describe("Footer", () => {
   it("renders brand name", () => {
     render(<Footer />);
-    expect(screen.getAllByText("CryptoFlex").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByAltText("CryptoFlex").length).toBeGreaterThanOrEqual(1);
   });
 
   it("has navigation links", () => {
