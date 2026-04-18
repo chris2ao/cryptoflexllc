@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,17 @@ export function BlogCard({ post }: { post: BlogCardPost }) {
         className="h-[5px] w-full"
         style={{ backgroundColor: accentVar }}
       />
+      {post.coverImage && (
+        <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-border/40 bg-surface-2">
+          <Image
+            src={post.coverImage}
+            alt={post.coverImageAlt ?? post.title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          />
+        </div>
+      )}
       <CardHeader className="pb-3">
         <div className="relative z-10 flex flex-wrap gap-2 mb-2">
           {post.tags.map((tag) => (

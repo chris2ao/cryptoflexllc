@@ -15,6 +15,8 @@ export interface BlogPost {
   series?: string;
   seriesOrder?: number;
   schemaType?: "Article" | "TechArticle" | "HowTo";
+  coverImage?: string;
+  coverImageAlt?: string;
   content: string;
 }
 
@@ -51,6 +53,8 @@ function parsePost(slug: string, filePath: string): BlogPost {
     series: data.series ?? undefined,
     seriesOrder: data.seriesOrder ?? undefined,
     schemaType: data.schemaType ?? undefined,
+    coverImage: data.coverImage ?? undefined,
+    coverImageAlt: data.coverImageAlt ?? undefined,
     content,
   };
 }
