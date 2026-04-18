@@ -1,0 +1,2421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CryptoFlex — Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CRYPTOFLEX — ANALYTICS (matches Redesign v2 vocabulary)
+   ============================================================ */
+:root {
+  --bg:            oklch(0.10 0.008 245);
+  --surface-1:     oklch(0.13 0.010 245);
+  --surface-2:     oklch(0.16 0.011 245);
+  --surface-3:     oklch(0.20 0.012 245);
+  --fg:            oklch(0.95 0.005 245);
+  --fg-2:          oklch(0.78 0.008 245);
+  --fg-3:          oklch(0.55 0.010 245);
+  --fg-4:          oklch(0.40 0.010 245);
+  --accent:        oklch(0.74 0.16 192);
+  --accent-dim:    oklch(0.74 0.16 192 / 0.15);
+  --accent-line:   oklch(0.74 0.16 192 / 0.35);
+  --amber:         oklch(0.80 0.15 72);
+  --green:         oklch(0.78 0.17 150);
+  --red:           oklch(0.72 0.20 22);
+  --violet:        oklch(0.70 0.22 295);
+  --border:        oklch(1 0 0 / 0.08);
+  --border-2:      oklch(1 0 0 / 0.14);
+  --grid-line:     oklch(0.74 0.16 192 / 0.06);
+  --radius:        4px;
+  --rule:          1px solid var(--border);
+  --rule-strong:   1px solid var(--border-2);
+  --f-display: "Space Grotesk", system-ui, sans-serif;
+  --f-body: "Source Serif 4", Georgia, serif;
+  --f-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--accent); color: var(--bg); }
+a { color: inherit; text-decoration: none; }
+.display, h1, h2, h3, h4, .sans { font-family: var(--f-display); }
+.mono { font-family: var(--f-mono); }
+.serif { font-family: var(--f-body); }
+.wrap { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+@media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+/* ============================================================
+   MASTHEAD (same as site)
+   ============================================================ */
+.masthead {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in oklab, var(--bg) 85%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: var(--rule);
+}
+.masthead-inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 32px;
+  height: 64px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--f-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.brand-mark {
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--f-mono);
+  font-size: 10px; font-weight: 600;
+  border-radius: 2px;
+}
+.brand small { color: var(--fg-3); font-weight: 400; font-family: var(--f-mono); font-size: 11px; margin-left: 4px; letter-spacing: 0.05em; }
+.nav { display: flex; gap: 28px; justify-content: center; }
+.nav a { font-family: var(--f-display); font-size: 14px; color: var(--fg-2); position: relative; padding: 4px 0; }
+.nav a.active { color: var(--fg); }
+.nav a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -3px; height: 2px; background: var(--accent); }
+.nav a:hover { color: var(--fg); }
+.masthead-right { display: flex; align-items: center; gap: 18px; font-family: var(--f-mono); font-size: 11px; color: var(--fg-3); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px oklch(0.78 0.17 150 / 0.6); display: inline-block; margin-right: 6px; vertical-align: middle; }
+@media (max-width: 900px) { .nav { display: none; } }
+
+/* ============================================================
+   BUTTONS, PILLS, COMMON
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--f-display);
+  font-size: 13px; font-weight: 500;
+  padding: 9px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-2);
+  color: var(--fg); background: transparent;
+  cursor: pointer;
+  transition: border-color 160ms, color 160ms, background 160ms;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.btn-primary:hover { background: var(--accent); color: var(--bg); filter: brightness(1.08); }
+.btn-ghost { border-color: transparent; padding: 8px 10px; color: var(--fg-2); }
+.btn-ghost:hover { background: var(--surface-2); color: var(--fg); border-color: transparent; }
+.btn-sm { padding: 6px 10px; font-size: 12px; }
+
+.overline { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); font-weight: 500; }
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+.page-head {
+  padding: 36px 0 24px;
+  border-bottom: var(--rule);
+  position: relative;
+}
+.page-head::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(circle, var(--grid-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 90% 80% at 70% 0%, black 20%, transparent 80%);
+  opacity: 0.7;
+}
+.page-head-inner { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+.page-crumbs {
+  font-family: var(--f-mono); font-size: 11px; color: var(--fg-3);
+  letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px;
+  display: flex; gap: 10px; align-items: center;
+}
+.page-crumbs .sep { color: var(--fg-4); }
+.page-crumbs b { color: var(--accent); font-weight: 500; }
+.page-title {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(40px, 5.5vw, 68px);
+  line-height: 0.98;
+  letter-spacing: -0.032em;
+  margin: 0 0 10px 0;
+}
+.page-title em { font-family: var(--f-body); font-style: italic; font-weight: 400; color: var(--fg-2); }
+.page-title .accent { color: var(--accent); }
+.page-sub { font-family: var(--f-body); font-size: 17px; color: var(--fg-2); max-width: 620px; margin: 0; }
+
+.page-controls { display: flex; flex-direction: column; gap: 12px; align-items: end; }
+.live-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--fg-2); letter-spacing: 0.08em;
+}
+.live-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: livepulse 1.6s ease-in-out infinite; }
+@keyframes livepulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 oklch(0.78 0.17 150 / 0.5); } 50% { opacity: 0.5; box-shadow: 0 0 0 6px oklch(0.78 0.17 150 / 0); } }
+.page-controls .btn-group { display: flex; gap: 6px; }
+.page-meta-row {
+  display: flex; gap: 16px; margin-top: 20px;
+  padding-top: 16px; border-top: var(--rule);
+  font-family: var(--f-mono); font-size: 11px; color: var(--fg-3);
+  letter-spacing: 0.08em; flex-wrap: wrap;
+}
+.page-meta-row span b { color: var(--fg-2); font-weight: 500; }
+.page-meta-row span.ac b { color: var(--accent); }
+
+/* ============================================================
+   TOOLBAR (range, segments, search, export)
+   ============================================================ */
+.toolbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 16px; align-items: center;
+  padding: 16px 0;
+  border-bottom: var(--rule);
+  position: sticky; top: 64px; z-index: 40;
+  background: color-mix(in oklab, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+.seg {
+  display: inline-flex; border: 1px solid var(--border-2); border-radius: var(--radius);
+  overflow: hidden;
+}
+.seg button {
+  background: transparent; border: 0; color: var(--fg-2);
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em;
+  padding: 8px 12px; cursor: pointer;
+  border-right: 1px solid var(--border-2);
+  text-transform: uppercase;
+  transition: background 140ms, color 140ms;
+}
+.seg button:last-child { border-right: 0; }
+.seg button:hover { color: var(--fg); background: var(--surface-2); }
+.seg button.on { background: var(--accent); color: var(--bg); font-weight: 600; }
+.tabs-wrap { position: relative; display: flex; align-items: center; min-width: 0; }
+.tabs-wrap .tabs-arrow {
+  flex: 0 0 auto;
+  width: 28px; height: 32px;
+  display: grid; place-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  color: var(--fg-2);
+  font-family: var(--f-mono); font-size: 14px;
+  cursor: pointer;
+  transition: border-color 140ms, color 140ms, background 140ms, opacity 140ms;
+  z-index: 2;
+}
+.tabs-wrap .tabs-arrow:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.tabs-wrap .tabs-arrow:disabled { opacity: 0.25; cursor: not-allowed; }
+.tabs-wrap .tabs-arrow.left { margin-right: 6px; }
+.tabs-wrap .tabs-arrow.right { margin-left: 6px; }
+.toolbar-tabs {
+  display: flex; gap: 4px;
+  overflow-x: auto; scrollbar-width: none;
+  scroll-behavior: smooth;
+  flex: 1 1 auto; min-width: 0;
+  position: relative;
+  mask-image: linear-gradient(90deg, transparent 0, black 18px, black calc(100% - 18px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, black 18px, black calc(100% - 18px), transparent 100%);
+}
+.toolbar-tabs::-webkit-scrollbar { display: none; }
+.tab {
+  font-family: var(--f-display); font-size: 13px;
+  padding: 9px 14px;
+  color: var(--fg-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex; gap: 8px; align-items: center;
+  transition: color 140ms, border-color 140ms, background 140ms;
+}
+.tab:hover { color: var(--fg); }
+.tab.on { color: var(--fg); border-color: var(--accent-line); background: var(--accent-dim); }
+.tab .n { font-family: var(--f-mono); font-size: 10px; color: var(--fg-4); letter-spacing: 0.08em; }
+.tab.on .n { color: var(--accent); }
+.search {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border-2); border-radius: var(--radius);
+  padding: 7px 10px;
+  font-family: var(--f-mono); font-size: 12px;
+  min-width: 240px;
+  color: var(--fg-3);
+  background: var(--surface-1);
+}
+.search input {
+  background: transparent; border: 0; outline: 0;
+  color: var(--fg); font-family: var(--f-mono); font-size: 12px;
+  flex: 1; min-width: 0;
+}
+.search .k { padding: 2px 6px; border: 1px solid var(--border-2); border-radius: 3px; font-size: 10px; color: var(--fg-3); }
+
+/* ============================================================
+   SECTION HEADER / LABEL RAIL
+   ============================================================ */
+.section {
+  position: relative;
+  padding: 56px 0;
+  border-top: var(--rule);
+}
+.section:first-of-type { border-top: 0; }
+.section-label {
+  font-family: var(--f-mono); font-size: 11px; color: var(--fg-3);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.section-label::before { content: ""; width: 14px; height: 1px; background: var(--accent); }
+.section-head-h2 {
+  display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 16px;
+  margin-bottom: 28px; padding-bottom: 16px;
+  border-bottom: var(--rule);
+}
+.section-head-h2 h2 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(26px, 3vw, 34px);
+  letter-spacing: -0.02em;
+  line-height: 1; margin: 0;
+}
+.section-head-h2 h2 em { font-family: var(--f-body); font-style: italic; font-weight: 400; color: var(--fg-2); }
+.section-head-h2 .lede {
+  font-family: var(--f-body); font-size: 15px;
+  color: var(--fg-3); max-width: 380px; text-align: right; line-height: 1.4;
+}
+
+/* ============================================================
+   KPI STRIP
+   ============================================================ */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  margin-bottom: 32px;
+}
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+.kpi {
+  padding: 24px 24px 22px;
+  border-right: var(--rule);
+  position: relative;
+  cursor: pointer;
+  transition: background 140ms;
+}
+.kpi:hover { background: var(--surface-2); }
+.kpi:last-child { border-right: 0; }
+@media (max-width: 900px) {
+  .kpi:nth-child(2) { border-right: 0; }
+  .kpi:nth-child(-n+2) { border-bottom: var(--rule); }
+}
+.kpi .label {
+  font-family: var(--f-mono); font-size: 11px; color: var(--fg-3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.kpi .label .hint { color: var(--fg-4); }
+.kpi .val {
+  font-family: var(--f-display); font-weight: 700;
+  font-size: 44px; line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.kpi .val .unit { font-size: 22px; color: var(--fg-3); font-weight: 500; margin-left: 2px; }
+.kpi .delta {
+  font-family: var(--f-mono); font-size: 12px;
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--fg-3);
+}
+.kpi .delta b { color: var(--green); font-weight: 600; }
+.kpi .delta.down b { color: var(--red); }
+.kpi .spark { margin-top: 10px; height: 32px; }
+.kpi.on { background: var(--surface-2); }
+.kpi.on::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -1px;
+  height: 2px; background: var(--accent);
+}
+
+/* ============================================================
+   PANEL — reusable card
+   ============================================================ */
+.panel {
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+}
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: var(--rule);
+  background: var(--surface-2);
+}
+.panel-head .t {
+  font-family: var(--f-display); font-weight: 600;
+  font-size: 14px; letter-spacing: -0.005em;
+  display: flex; align-items: center; gap: 10px;
+}
+.panel-head .t .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.panel-head .t .n { font-family: var(--f-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; font-weight: 400; }
+.panel-head .actions { display: flex; gap: 4px; }
+.panel-head .chip {
+  font-family: var(--f-mono); font-size: 10.5px; color: var(--fg-3);
+  padding: 3px 8px; border: 1px solid var(--border-2); border-radius: 999px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer;
+}
+.panel-head .chip:hover { color: var(--fg); border-color: var(--accent-line); }
+.panel-head .chip.on { color: var(--accent); border-color: var(--accent-line); background: var(--accent-dim); }
+.panel-body { padding: 18px; }
+.panel-foot {
+  padding: 10px 18px;
+  border-top: var(--rule);
+  background: var(--surface-2);
+  display: flex; justify-content: space-between;
+  font-family: var(--f-mono); font-size: 11px; color: var(--fg-3);
+  letter-spacing: 0.08em;
+}
+.panel-foot b { color: var(--accent); font-weight: 500; }
+
+/* ============================================================
+   GRID LAYOUTS
+   ============================================================ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.grid-12 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.grid-21 { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+@media (max-width: 1000px) {
+  .grid-2, .grid-3, .grid-12, .grid-21 { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+.chart { width: 100%; display: block; }
+.chart .ax { stroke: var(--border); stroke-width: 1; }
+.chart .ax-tick { font-family: var(--f-mono); font-size: 10px; fill: var(--fg-4); letter-spacing: 0.05em; }
+.chart .grid-l { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
+.chart .area { fill: var(--accent-dim); }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 2; }
+.chart .line-2 { fill: none; stroke: var(--fg-3); stroke-width: 1.5; stroke-dasharray: 3 4; }
+.chart .bar { fill: var(--accent); }
+.chart .bar-2 { fill: var(--surface-3); }
+.chart .pt { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.chart .pt-hit { fill: transparent; cursor: pointer; }
+.chart .lbl { font-family: var(--f-mono); font-size: 10px; fill: var(--fg-3); letter-spacing: 0.04em; }
+.legend {
+  display: flex; gap: 16px; font-family: var(--f-mono); font-size: 11px;
+  color: var(--fg-3); letter-spacing: 0.06em; padding: 0 2px;
+}
+.legend .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: -1px; }
+.tooltip {
+  position: fixed; z-index: 80;
+  background: var(--bg);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--fg); letter-spacing: 0.04em;
+  pointer-events: none;
+  opacity: 0; transition: opacity 100ms;
+  box-shadow: 0 6px 24px oklch(0 0 0 / 0.5);
+  min-width: 120px;
+}
+.tooltip.show { opacity: 1; }
+.tooltip .k { color: var(--fg-3); }
+.tooltip b { color: var(--accent); font-weight: 500; }
+
+/* ============================================================
+   HEATMAP (peak hours)
+   ============================================================ */
+.heatmap { display: grid; gap: 3px; font-family: var(--f-mono); }
+.heatmap .hmap-row { display: grid; grid-template-columns: 40px repeat(24, 1fr); gap: 3px; align-items: center; }
+.heatmap .hmap-head { color: var(--fg-4); font-size: 10px; padding-right: 4px; }
+.heatmap .hmap-axis { color: var(--fg-4); font-size: 10px; letter-spacing: 0.06em; }
+.heatmap .cell {
+  aspect-ratio: 1/1;
+  background: var(--surface-2);
+  border-radius: 2px;
+  position: relative;
+  cursor: pointer;
+  transition: outline-color 100ms;
+  outline: 1px solid transparent;
+}
+.heatmap .cell:hover { outline-color: var(--accent); }
+
+/* ============================================================
+   WORLD MAP
+   ============================================================ */
+.map-wrap {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 50%, var(--surface-2) 0%, var(--surface-1) 70%);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.map-svg { width: 100%; height: auto; display: block; }
+.map-svg .land {
+  fill: transparent;
+  stroke: var(--border-2);
+  stroke-width: 0.4;
+}
+.map-svg .graticule { stroke: var(--border); stroke-width: 0.3; fill: none; }
+.map-svg .dot { fill: var(--accent); filter: drop-shadow(0 0 6px oklch(0.74 0.16 192 / 0.6)); }
+.map-svg .dot-pulse {
+  fill: none; stroke: var(--accent); stroke-width: 1;
+  animation: pulse 2.2s ease-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes pulse {
+  0% { r: 2; opacity: 0.8; }
+  100% { r: 20; opacity: 0; }
+}
+.map-legend {
+  position: absolute; bottom: 18px; left: 18px;
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-family: var(--f-mono); font-size: 10.5px; color: var(--fg-3);
+  letter-spacing: 0.06em;
+  display: flex; gap: 14px; align-items: center;
+}
+.map-legend .scale { display: flex; gap: 2px; }
+.map-legend .scale i { width: 10px; height: 10px; display: inline-block; border-radius: 2px; }
+
+/* ============================================================
+   LIST / TABLE
+   ============================================================ */
+.list { display: flex; flex-direction: column; }
+.list .row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto 80px;
+  gap: 12px; align-items: center;
+  padding: 10px 0;
+  border-bottom: var(--rule);
+  font-family: var(--f-mono); font-size: 12px;
+  cursor: pointer;
+  transition: background 140ms, padding 140ms;
+}
+.list .row:hover { background: var(--surface-2); padding-left: 8px; padding-right: 8px; }
+.list .row:last-child { border-bottom: 0; }
+.list .row .idx { color: var(--fg-4); letter-spacing: 0.06em; }
+.list .row .name { color: var(--fg); font-family: var(--f-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list .row .flag { width: 18px; height: 12px; border-radius: 1px; display: inline-block; margin-right: 8px; vertical-align: -1px; background: var(--surface-3); font-size: 11px; text-align: center; line-height: 12px; color: var(--fg-2); font-family: var(--f-mono); }
+.list .row .val { color: var(--fg); text-align: right; font-variant-numeric: tabular-nums; }
+.list .row .bar {
+  height: 6px; border-radius: 3px;
+  background: var(--surface-3);
+  position: relative; overflow: hidden;
+}
+.list .row .bar i {
+  position: absolute; left: 0; top: 0; height: 100%;
+  background: var(--accent);
+  transition: width 600ms cubic-bezier(.2,.8,.2,1);
+}
+
+table.tbl {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--f-mono); font-size: 12px;
+}
+.tbl th, .tbl td {
+  text-align: left; padding: 10px 12px;
+  border-bottom: var(--rule);
+}
+.tbl th {
+  font-weight: 500; color: var(--fg-3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  font-size: 10.5px;
+  background: var(--surface-2);
+  cursor: pointer;
+  user-select: none;
+  position: sticky; top: 0;
+}
+.tbl th .arr { color: var(--fg-4); margin-left: 4px; }
+.tbl th.sorted { color: var(--accent); }
+.tbl td { color: var(--fg-2); }
+.tbl td b { color: var(--fg); font-weight: 500; }
+.tbl td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--fg); }
+.tbl tr { transition: background 120ms; }
+.tbl tbody tr:hover { background: var(--surface-2); }
+.status-tag {
+  display: inline-block; padding: 2px 6px;
+  border: 1px solid var(--border-2); border-radius: 2px;
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.status-tag.ok { color: var(--green); border-color: oklch(0.78 0.17 150 / 0.4); background: oklch(0.78 0.17 150 / 0.08); }
+.status-tag.warn { color: var(--amber); border-color: oklch(0.80 0.15 72 / 0.4); background: oklch(0.80 0.15 72 / 0.08); }
+.status-tag.err { color: var(--red); border-color: oklch(0.72 0.20 22 / 0.4); background: oklch(0.72 0.20 22 / 0.08); }
+.status-tag.info { color: oklch(0.70 0.15 230); border-color: oklch(0.70 0.15 230 / 0.4); background: oklch(0.70 0.15 230 / 0.08); }
+
+/* ============================================================
+   DONUT + STACK
+   ============================================================ */
+.donut-wrap { display: grid; grid-template-columns: 180px 1fr; gap: 24px; align-items: center; }
+@media (max-width: 700px) { .donut-wrap { grid-template-columns: 1fr; } }
+.donut { width: 180px; height: 180px; }
+.donut-ctr {
+  position: relative;
+  display: grid; place-items: center;
+}
+.donut-ctr-inner {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  text-align: center;
+}
+.donut-ctr-inner .big { font-family: var(--f-display); font-weight: 700; font-size: 30px; letter-spacing: -0.02em; }
+.donut-ctr-inner .sm { font-family: var(--f-mono); font-size: 10px; color: var(--fg-3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+.donut-legend { display: flex; flex-direction: column; gap: 10px; font-family: var(--f-mono); font-size: 12px; }
+.donut-legend .lrow { display: grid; grid-template-columns: 14px 1fr auto auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: var(--rule); }
+.donut-legend .lrow:last-child { border-bottom: 0; }
+.donut-legend .lrow .sw { width: 10px; height: 10px; border-radius: 2px; }
+.donut-legend .lrow .v { color: var(--fg); font-weight: 500; }
+.donut-legend .lrow .p { color: var(--fg-3); }
+
+/* ============================================================
+   LIVE FEED (now-log style)
+   ============================================================ */
+.feed {
+  font-family: var(--f-mono); font-size: 12.5px;
+  max-height: 360px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.feed::-webkit-scrollbar { width: 6px; }
+.feed::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+.feed .frow {
+  display: grid;
+  grid-template-columns: 60px 66px 1fr auto;
+  gap: 12px;
+  padding: 8px 18px;
+  border-bottom: var(--rule);
+  align-items: center;
+  animation: slideIn 300ms ease-out;
+}
+@keyframes slideIn { from { opacity: 0; transform: translateY(-4px); background: var(--accent-dim); } to { opacity: 1; transform: translateY(0); background: transparent; } }
+.feed .frow .t { color: var(--fg-3); }
+.feed .frow .tag {
+  padding: 1px 6px; border: 1px solid var(--border-2);
+  text-align: center; color: var(--fg-2);
+  font-size: 10px; letter-spacing: 0.08em; border-radius: 2px;
+}
+.feed .frow .tag.hit { color: var(--accent); border-color: var(--accent-line); background: var(--accent-dim); }
+.feed .frow .tag.api { color: var(--violet); border-color: oklch(0.70 0.22 295 / 0.4); background: oklch(0.70 0.22 295 / 0.1); }
+.feed .frow .tag.err { color: var(--red); border-color: oklch(0.72 0.20 22 / 0.4); background: oklch(0.72 0.20 22 / 0.1); }
+.feed .frow .tag.sub { color: var(--green); border-color: oklch(0.78 0.17 150 / 0.4); background: oklch(0.78 0.17 150 / 0.1); }
+.feed .frow .body { color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed .frow .body .gr { color: var(--fg-3); }
+.feed .frow .body b { color: var(--fg); font-weight: 500; }
+.feed .frow .meta { color: var(--fg-4); font-size: 10.5px; }
+
+/* ============================================================
+   SCROLL DEPTH / FUNNEL
+   ============================================================ */
+.funnel { display: flex; flex-direction: column; gap: 6px; }
+.fstep { display: grid; grid-template-columns: 80px 1fr 80px; gap: 12px; align-items: center; font-family: var(--f-mono); font-size: 12px; }
+.fstep .k { color: var(--fg-3); letter-spacing: 0.08em; }
+.fstep .bar {
+  height: 20px; background: var(--surface-2); border-radius: 3px;
+  position: relative; overflow: hidden;
+}
+.fstep .bar i {
+  position: absolute; left: 0; top: 0; height: 100%;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+  display: flex; align-items: center; padding-left: 8px;
+  color: var(--bg); font-weight: 600; font-size: 11px;
+}
+.fstep .v { text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   WEB VITALS
+   ============================================================ */
+.vitals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+@media (max-width: 900px) { .vitals { grid-template-columns: repeat(2, 1fr); } }
+.vital {
+  padding: 16px 18px;
+  border-right: var(--rule);
+  border-bottom: var(--rule);
+}
+.vital:nth-child(4n) { border-right: 0; }
+.vital:nth-last-child(-n+1), .vital:nth-last-child(-n+2):nth-child(n+3) { border-bottom: 0; }
+.vital .lbl { font-family: var(--f-mono); font-size: 10.5px; color: var(--fg-3); letter-spacing: 0.1em; text-transform: uppercase; }
+.vital .val { font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: -0.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.vital .val .u { font-size: 13px; color: var(--fg-3); margin-left: 2px; font-weight: 500; }
+.vital .seg-bar { display: flex; height: 5px; margin-top: 10px; border-radius: 3px; overflow: hidden; background: var(--surface-3); }
+.vital .seg-bar i { height: 100%; }
+.vital .seg-bar .good { background: var(--green); }
+.vital .seg-bar .warn { background: var(--amber); }
+.vital .seg-bar .poor { background: var(--red); }
+.vital .note { font-family: var(--f-mono); font-size: 10.5px; color: var(--fg-4); letter-spacing: 0.06em; margin-top: 8px; }
+.vital .note b.good { color: var(--green); }
+.vital .note b.warn { color: var(--amber); }
+.vital .note b.poor { color: var(--red); }
+
+/* ============================================================
+   SPARKLINE
+   ============================================================ */
+.spark-svg { width: 100%; height: 32px; }
+.spark-svg .sline { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.spark-svg .sarea { fill: var(--accent-dim); }
+
+/* ============================================================
+   UTIL & FOOTER
+   ============================================================ */
+.foot-note {
+  margin: 48px 0 64px;
+  padding: 18px 0;
+  border-top: var(--rule);
+  border-bottom: var(--rule);
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--f-mono); font-size: 11px; color: var(--fg-3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.foot-note b { color: var(--accent); font-weight: 500; }
+
+.tab-panel { display: none; }
+.tab-panel.on { display: block; animation: fadeIn 220ms ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.pulsing-bar {
+  height: 3px; background: var(--surface-2); overflow: hidden; border-radius: 2px;
+  position: relative;
+}
+.pulsing-bar::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: sweep 2s linear infinite;
+}
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* Cursor blink */
+.cursor { display: inline-block; width: 8px; height: 13px; background: var(--accent); vertical-align: -2px; margin-left: 4px; animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<!-- ===================== MASTHEAD ===================== -->
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <a href="/" class="brand">
+      <span class="brand-mark">CF</span>
+      <span>CryptoFlex</span>
+      <small>EST. ’19</small>
+    </a>
+    <nav class="nav">
+      <a href="/">Index</a>
+      <a href="/portfolio">Work</a>
+      <a href="/blog">Journal</a>
+      <a href="/services">Services</a>
+      <a href="/about">About</a>
+      <a href="/analytics" class="active">Analytics</a>
+    </nav>
+    <div class="masthead-right">
+      <span><span class="status-dot"></span>LIVE · UTC<span id="clock">—</span></span>
+      <a href="/logout" class="btn btn-sm">Sign out</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== PAGE HEAD ===================== -->
+<section class="page-head">
+  <div class="wrap page-head-inner">
+    <div>
+      <div class="page-crumbs"><a href="/">HOME</a><span class="sep">›</span><b>ANALYTICS</b><span class="sep">›</span><span>OVERVIEW</span></div>
+      <h1 class="page-title">Signal, <em>not</em> <span class="accent">slop</span>.</h1>
+      <p class="page-sub">A live-reading telemetry room for cryptoflexllc.com — visitors, content, telemetry, security, and the ambient traffic of being online.</p>
+    </div>
+    <div class="page-controls">
+      <span class="live-pill"><span class="dot"></span>LIVE · <span id="live-count">12</span> SESSIONS</span>
+      <div class="btn-group">
+        <button class="btn btn-sm" id="refresh-btn"><span class="arrow">↻</span> Refresh</button>
+        <button class="btn btn-sm">Export CSV</button>
+        <button class="btn btn-sm btn-primary">Share view</button>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="page-meta-row">
+      <span class="ac">ISSUE <b>#184</b></span>
+      <span>RANGE · <b id="meta-range">LAST 30D</b></span>
+      <span>GENERATED · <b id="meta-gen">—</b></span>
+      <span>QUERY TIME · <b>142ms</b></span>
+      <span>CACHE · <b>EDGE · SWR</b></span>
+      <span>DATA · <b>PG · VERCEL · GMAIL</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TOOLBAR ===================== -->
+<div class="wrap">
+  <div class="toolbar">
+    <div class="seg" id="range-seg">
+      <button data-range="24h">24H</button>
+      <button data-range="7d">7D</button>
+      <button data-range="30d" class="on">30D</button>
+      <button data-range="90d">90D</button>
+      <button data-range="12m">12M</button>
+    </div>
+    <div class="tabs-wrap">
+    <button class="tabs-arrow left" id="tabs-left" aria-label="Scroll tabs left">‹</button>
+    <div class="toolbar-tabs" id="tabs">
+      <div class="tab on" data-tab="overview">Overview <span class="n">01</span></div>
+      <div class="tab" data-tab="audience">Audience <span class="n">02</span></div>
+      <div class="tab" data-tab="content">Content <span class="n">03</span></div>
+      <div class="tab" data-tab="technology">Technology <span class="n">04</span></div>
+      <div class="tab" data-tab="performance">Performance <span class="n">05</span></div>
+      <div class="tab" data-tab="security">Security <span class="n">06</span></div>
+      <div class="tab" data-tab="newsletter">Newsletter <span class="n">07</span></div>
+      <div class="tab" data-tab="activity">Activity <span class="n">08</span></div>
+    </div>
+    <button class="tabs-arrow right" id="tabs-right" aria-label="Scroll tabs right">›</button>
+    </div>
+    <div class="search">
+      <span>⌕</span>
+      <input placeholder="Filter pages, countries, events…" id="global-search" />
+      <span class="k">/</span>
+    </div>
+    <button class="btn btn-sm btn-ghost" id="auto-refresh">
+      <span class="live-pill" style="padding:0;border:0;"><span class="dot"></span></span>
+      AUTO · <span id="auto-label">ON</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===================== MAIN ===================== -->
+<main class="wrap">
+
+<!-- ==================================================
+     TAB · OVERVIEW
+     ================================================== -->
+<div class="tab-panel on" data-panel="overview">
+
+  <section class="section">
+    <div class="section-label">01 · Overview</div>
+    <div class="section-head-h2">
+      <h2>Pulse <em>at a glance.</em></h2>
+      <div class="lede">Page views, unique visitors, bounce, and split of new vs. returning — clicking a card retargets the trend chart.</div>
+    </div>
+
+    <!-- KPI STRIP -->
+    <div class="kpis" id="kpis">
+      <div class="kpi on" data-metric="views">
+        <div class="label">TOTAL PAGE VIEWS <span class="hint">▲</span></div>
+        <div class="val" data-count="48312">48,312</div>
+        <div class="delta"><b>+18.4%</b> vs. prev. 30d</div>
+        <svg class="spark spark-svg" viewBox="0 0 120 32" preserveAspectRatio="none" id="spark-views"></svg>
+      </div>
+      <div class="kpi" data-metric="uniques">
+        <div class="label">UNIQUE VISITORS <span class="hint">▲</span></div>
+        <div class="val" data-count="12841">12,841</div>
+        <div class="delta"><b>+11.2%</b> vs. prev. 30d</div>
+        <svg class="spark spark-svg" viewBox="0 0 120 32" preserveAspectRatio="none" id="spark-uniques"></svg>
+      </div>
+      <div class="kpi" data-metric="bounce">
+        <div class="label">BOUNCE RATE <span class="hint">▼</span></div>
+        <div class="val">38<span class="unit">%</span></div>
+        <div class="delta down"><b>−4.1pp</b> vs. prev. 30d</div>
+        <svg class="spark spark-svg" viewBox="0 0 120 32" preserveAspectRatio="none" id="spark-bounce"></svg>
+      </div>
+      <div class="kpi" data-metric="duration">
+        <div class="label">AVG. SESSION <span class="hint">▲</span></div>
+        <div class="val">2:47</div>
+        <div class="delta"><b>+0:22</b> vs. prev. 30d</div>
+        <svg class="spark spark-svg" viewBox="0 0 120 32" preserveAspectRatio="none" id="spark-duration"></svg>
+      </div>
+    </div>
+
+    <!-- MAIN TREND CHART -->
+    <div class="panel" style="margin-bottom: 20px;">
+      <div class="panel-head">
+        <div class="t"><span class="dot"></span>Trend · <span id="trend-metric-label">Page views</span> <span class="n">30D · DAILY</span></div>
+        <div class="actions">
+          <span class="chip on" data-chart-mode="area">AREA</span>
+          <span class="chip" data-chart-mode="line">LINE</span>
+          <span class="chip" data-chart-mode="bar">BAR</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <svg id="main-chart" class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="panel-foot">
+        <span>SERIES · <b id="trend-series-label">PAGE VIEWS</b></span>
+        <span>PEAK · <span id="trend-peak">—</span></span>
+      </div>
+    </div>
+
+    <!-- HEATMAP + LIVE FEED -->
+    <div class="grid-12" style="margin-bottom: 20px;">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>Peak hours <span class="n">DAY × HOUR · UTC</span></div>
+          <div class="actions">
+            <span class="chip on" data-heatmap="views">VIEWS</span>
+            <span class="chip" data-heatmap="uniques">UNIQUES</span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="heatmap" id="heatmap"></div>
+        </div>
+        <div class="panel-foot">
+          <span>HOTTEST · <b id="heat-hottest">—</b></span>
+          <span>COOLEST · <b id="heat-coolest">—</b></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>Live feed <span class="n">LAST 90s</span></div>
+          <div class="actions">
+            <span class="chip" id="feed-pause">PAUSE</span>
+          </div>
+        </div>
+        <div class="feed" id="feed"></div>
+        <div class="panel-foot">
+          <span>RATE · <b id="feed-rate">~0.9/s</b></span>
+          <span>BUFFER · <b id="feed-buffer">0</b></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW VS RETURNING + QUICK FACTS -->
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>New vs. returning <span class="n">30D</span></div>
+        </div>
+        <div class="panel-body">
+          <svg id="nvr-chart" class="chart" viewBox="0 0 1000 220" preserveAspectRatio="none"></svg>
+          <div class="legend" style="margin-top: 12px;">
+            <span><span class="sw" style="background: var(--accent);"></span>NEW · <b id="nvr-new">0</b></span>
+            <span><span class="sw" style="background: var(--fg-3);"></span>RETURNING · <b id="nvr-ret">0</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>Quick facts</div>
+        </div>
+        <div class="panel-body" style="padding: 0;">
+          <div class="list" id="facts">
+            <div class="row"><span class="idx">01</span><span class="name">Peak day</span><span class="val" style="padding-right:24px;">Apr 09</span><span></span></div>
+            <div class="row"><span class="idx">02</span><span class="name">Peak hour (UTC)</span><span class="val" style="padding-right:24px;">14:00</span><span></span></div>
+            <div class="row"><span class="idx">03</span><span class="name">Avg. pages / session</span><span class="val" style="padding-right:24px;">2.8</span><span></span></div>
+            <div class="row"><span class="idx">04</span><span class="name">Return rate</span><span class="val" style="padding-right:24px;">34%</span><span></span></div>
+            <div class="row"><span class="idx">05</span><span class="name">Newsletter CVR</span><span class="val" style="padding-right:24px;">2.1%</span><span></span></div>
+            <div class="row"><span class="idx">06</span><span class="name">API p95</span><span class="val" style="padding-right:24px;">218 ms</span><span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /overview panel -->
+
+<!-- ==================================================
+     TAB · AUDIENCE
+     ================================================== -->
+<div class="tab-panel" data-panel="audience">
+  <section class="section">
+    <div class="section-label">02 · Audience &amp; Geography</div>
+    <div class="section-head-h2">
+      <h2>Where <em>they</em> come from.</h2>
+      <div class="lede">Visitor locations, countries, and the split between new and returning traffic.</div>
+    </div>
+
+    <div class="panel" style="margin-bottom: 20px;">
+      <div class="panel-head">
+        <div class="t"><span class="dot"></span>Visitor map <span class="n">200 CITIES · 30D</span></div>
+        <div class="actions">
+          <span class="chip on">DOTS</span>
+          <span class="chip">CHOROPLETH</span>
+        </div>
+      </div>
+      <div class="map-wrap">
+        <svg class="map-svg" id="world-map" viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="map-legend">
+          <span>VISITS PER CITY</span>
+          <div class="scale">
+            <i style="background: var(--accent); opacity: 0.2;"></i>
+            <i style="background: var(--accent); opacity: 0.4;"></i>
+            <i style="background: var(--accent); opacity: 0.6;"></i>
+            <i style="background: var(--accent); opacity: 0.8;"></i>
+            <i style="background: var(--accent);"></i>
+          </div>
+          <span>1 → 400+</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>Top countries <span class="n">TOP 10</span></div>
+          <div class="actions"><span class="chip on">VIEWS</span><span class="chip">UNIQUES</span></div>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <div class="list" id="countries"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>New vs. returning · daily</div>
+        </div>
+        <div class="panel-body">
+          <svg id="nvr-chart-2" class="chart" viewBox="0 0 1000 240" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ==================================================
+     TAB · CONTENT
+     ================================================== -->
+<div class="tab-panel" data-panel="content">
+  <section class="section">
+    <div class="section-label">03 · Content &amp; Engagement</div>
+    <div class="section-head-h2">
+      <h2>What <em>they</em> read.</h2>
+      <div class="lede">Pages, referrers, and how deep readers scroll before they leave.</div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom: 20px;">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>Top pages</div>
+        </div>
+        <div class="panel-body" style="padding: 0;">
+          <div class="list" id="top-pages"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>Referrers</div>
+        </div>
+        <div class="panel-body" style="padding: 0;">
+          <div class="list" id="referrers"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>Scroll depth <span class="n">AVG ACROSS PAGES</span></div>
+        </div>
+        <div class="panel-body">
+          <div class="funnel" id="scroll-funnel"></div>
+        </div>
+        <div class="panel-foot"><span>COMPLETION · <b>42%</b></span><span>DROPOFF · <b>58%</b></span></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="t"><span class="dot"></span>Time on page <span class="n">SECONDS · MEDIAN</span></div>
+        </div>
+        <div class="panel-body">
+          <svg id="tot-chart" class="chart" viewBox="0 0 1000 240" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ==================================================
+     TAB · TECHNOLOGY
+     ================================================== -->
+<div class="tab-panel" data-panel="technology">
+  <section class="section">
+    <div class="section-label">04 · Technology</div>
+    <div class="section-head-h2">
+      <h2>How they <em>connect.</em></h2>
+      <div class="lede">Browsers, devices, and operating systems — useful for knowing what to test.</div>
+    </div>
+
+    <div class="grid-3">
+      <div class="panel">
+        <div class="panel-head"><div class="t"><span class="dot"></span>Browsers</div></div>
+        <div class="panel-body">
+          <div class="donut-wrap">
+            <div class="donut-ctr">
+              <svg class="donut" viewBox="0 0 100 100" id="donut-browser"></svg>
+              <div class="donut-ctr-inner"><div><div class="big">12.8K</div><div class="sm">VISITS</div></div></div>
+            </div>
+            <div class="donut-legend" id="legend-browser"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div class="t"><span class="dot"></span>Devices</div></div>
+        <div class="panel-body">
+          <div class="donut-wrap">
+            <div class="donut-ctr">
+              <svg class="donut" viewBox="0 0 100 100" id="donut-device"></svg>
+              <div class="donut-ctr-inner"><div><div class="big">3</div><div class="sm">TYPES</div></div></div>
+            </div>
+            <div class="donut-legend" id="legend-device"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div class="t"><span class="dot"></span>Operating systems</div></div>
+        <div class="panel-body">
+          <div class="donut-wrap">
+            <div class="donut-ctr">
+              <svg class="donut" viewBox="0 0 100 100" id="donut-os"></svg>
+              <div class="donut-ctr-inner"><div><div class="big">7</div><div class="sm">PLATFORMS</div></div></div>
+            </div>
+            <div class="donut-legend" id="legend-os"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ==================================================
+     TAB · PERFORMANCE
+     ================================================== -->
+<div class="tab-panel" data-panel="performance">
+  <section class="section">
+    <div class="section-label">05 · Performance &amp; Telemetry</div>
+    <div class="section-head-h2">
+      <h2>Fast, or <em>wait.</em></h2>
+      <div class="lede">Core Web Vitals from real sessions, and API endpoint response times under load.</div>
+    </div>
+
+    <div class="panel" style="margin-bottom: 20px;">
+      <div class="panel-head">
+        <div class="t"><span class="dot"></span>Core Web Vitals <span class="n">REAL USERS · 30D</span></div>
+        <div class="actions"><span class="chip on">P75</span><span class="chip">P50</span><span class="chip">P95</span></div>
+      </div>
+      <div class="vitals" id="vitals"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="t"><span class="dot"></span>API response times <span class="n">MS · 30D</span></div>
+        <div class="actions"><span class="chip on">P95</span><span class="chip">P50</span></div>
+      </div>
+      <div class="panel-body" style="padding: 0;">
+        <table class="tbl" id="api-tbl">
+          <thead>
+            <tr>
+              <th class="sorted">ENDPOINT <span class="arr">↓</span></th>
+              <th>METHOD</th>
+              <th class="num">P50</th>
+              <th class="num">P75</th>
+              <th class="num">P95</th>
+              <th class="num">ERRORS</th>
+              <th class="num">TOTAL</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ==================================================
+     TAB · SECURITY
+     ================================================== -->
+<div class="tab-panel" data-panel="security">
+  <section class="section">
+    <div class="section-label">06 · Security</div>
+    <div class="section-head-h2">
+      <h2>The <em>noise</em> outside.</h2>
+      <div class="lede">Bots, auth attempts, and the firewall's boring, steady work of saying no.</div>
+    </div>
+
+    <div class="kpis" style="margin-bottom: 20px;">
+      <div class="kpi"><div class="label">FIREWALL DENIED <span class="hint">▼</span></div><div class="val">4,128</div><div class="delta down"><b>−22%</b> vs. prev. 30d</div></div>
+      <div class="kpi"><div class="label">BOT TRAFFIC <span class="hint">▲</span></div><div class="val">14<span class="unit">%</span></div><div class="delta"><b>+3pp</b> vs. prev. 30d</div></div>
+      <div class="kpi"><div class="label">AUTH FAILURES</div><div class="val">37</div><div class="delta"><b>+4</b> vs. prev. 30d</div></div>
+      <div class="kpi"><div class="label">CLIENT ERRORS <span class="hint">▼</span></div><div class="val">19</div><div class="delta down"><b>−8</b> vs. prev. 30d</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div class="t"><span class="dot"></span>Bot vs. human · daily</div></div>
+        <div class="panel-body">
+          <svg id="bot-chart" class="chart" viewBox="0 0 1000 220" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="t"><span class="dot"></span>Auth attempts · daily</div></div>
+        <div class="panel-body">
+          <svg id="auth-chart" class="chart" viewBox="0 0 1000 220" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top: 20px;">
+      <div class="panel-head"><div class="t"><span class="dot"></span>Firewall events <span class="n">RECENT 50</span></div></div>
+      <div class="panel-body" style="padding: 0;">
+        <table class="tbl" id="fw-tbl">
+          <thead>
+            <tr><th>TIME</th><th>COUNTRY</th><th>IP</th><th>PATH</th><th>ACTION</th><th>REASON</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ==================================================
+     TAB · NEWSLETTER
+     ================================================== -->
+<div class="tab-panel" data-panel="newsletter">
+  <section class="section">
+    <div class="section-label">07 · Newsletter, Comments &amp; Guestbook</div>
+    <div class="section-head-h2">
+      <h2>Who's <em>around.</em></h2>
+      <div class="lede">Subscribers, conversion sources, and the community that talks back.</div>
+    </div>
+
+    <div class="kpis" style="margin-bottom: 20px;">
+      <div class="kpi"><div class="label">SUBSCRIBERS</div><div class="val">1,284</div><div class="delta"><b>+41</b> this month</div></div>
+      <div class="kpi"><div class="label">ACTIVE</div><div class="val">96<span class="unit">%</span></div><div class="delta"><b>+1pp</b> vs. prev</div></div>
+      <div class="kpi"><div class="label">COMMENTS</div><div class="val">218</div><div class="delta"><b>+22</b> this month</div></div>
+      <div class="kpi"><div class="label">GUESTBOOK</div><div class="val">74</div><div class="delta"><b>+6</b> pending</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div class="t"><span class="dot"></span>Subscriber growth · weekly</div></div>
+        <div class="panel-body">
+          <svg id="sub-chart" class="chart" viewBox="0 0 1000 240" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="t"><span class="dot"></span>Top converting pages</div></div>
+        <div class="panel-body" style="padding: 0;">
+          <div class="list" id="converting"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ==================================================
+     TAB · ACTIVITY
+     ================================================== -->
+<div class="tab-panel" data-panel="activity">
+  <section class="section">
+    <div class="section-label">08 · Recent Activity</div>
+    <div class="section-head-h2">
+      <h2>The <em>tape.</em></h2>
+      <div class="lede">Every page view, sortable, filterable, timestamped.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="t"><span class="dot"></span>Recent visits <span class="n">LAST 200</span></div>
+        <div class="actions">
+          <span class="chip on" data-act-filter="all">ALL</span>
+          <span class="chip" data-act-filter="hit">HITS</span>
+          <span class="chip" data-act-filter="api">API</span>
+          <span class="chip" data-act-filter="err">ERRORS</span>
+        </div>
+      </div>
+      <div class="panel-body" style="padding: 0;">
+        <table class="tbl" id="visits-tbl">
+          <thead>
+            <tr>
+              <th>TIME</th>
+              <th>PATH</th>
+              <th>COUNTRY</th>
+              <th>DEVICE</th>
+              <th>BROWSER</th>
+              <th>REFERRER</th>
+              <th class="num">DUR</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="panel-foot"><span>SHOWING · <b id="visit-count">0</b> / <b>200</b></span><span>UPDATED · <b id="visit-updated">—</b></span></div>
+    </div>
+  </section>
+</div>
+
+<!-- ===================== FOOTER ===================== -->
+<div class="foot-note">
+  <span>CRYPTOFLEX · ANALYTICS · <b>v4.2</b></span>
+  <span>DATA · POSTGRES + VERCEL + GMAIL</span>
+  <span>ACCESS · AUTHENTICATED · HTTPONLY</span>
+  <span>SYNC · <b id="foot-sync">—</b></span>
+</div>
+
+</main>
+
+<div class="tooltip" id="tip"></div>
+
+<script>
+/* ============================================================
+   DATA (synthesized but consistent)
+   ============================================================ */
+const RAND = (seed) => {
+  let s = seed;
+  return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+};
+const rand = RAND(42);
+const jitter = (base, pct = 0.15) => base * (1 - pct + rand() * pct * 2);
+
+/* ---- time series: daily views for last 30 days ---- */
+const today = new Date('2026-04-17T00:00:00Z');
+function makeSeries(days, base, amp, noiseAmt) {
+  const r = RAND(days * 7);
+  const arr = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - (days - 1 - i));
+    const trend = base + (i / days) * amp;
+    const weekly = Math.sin((i / 7) * Math.PI * 2) * (amp * 0.25);
+    const noise = (r() - 0.5) * noiseAmt;
+    arr.push({
+      date: d,
+      dateStr: d.toISOString().slice(5, 10),
+      value: Math.max(0, Math.round(trend + weekly + noise)),
+    });
+  }
+  return arr;
+}
+
+let currentRange = 30;
+function getSeriesForRange() {
+  const r = currentRange;
+  if (r === 1) return makeSeries(24, 40, 40, 30).map((d, i) => ({ ...d, dateStr: String(i).padStart(2, '0') + ':00' }));
+  if (r === 7) return makeSeries(7, 1200, 400, 260);
+  if (r === 30) return makeSeries(30, 1200, 800, 450);
+  if (r === 90) return makeSeries(90, 900, 1400, 500);
+  if (r === 365) return makeSeries(52, 7000, 8000, 2800).map((d, i) => ({ ...d, dateStr: 'W' + String(i + 1).padStart(2, '0') }));
+  return makeSeries(30, 1200, 800, 450);
+}
+
+const COUNTRIES_DATA = [
+  { code: 'US', name: 'United States',      flag: '🇺🇸', views: 14820, uniques: 4120 },
+  { code: 'GB', name: 'United Kingdom',     flag: '🇬🇧', views: 6410,  uniques: 1820 },
+  { code: 'DE', name: 'Germany',            flag: '🇩🇪', views: 4230,  uniques: 1210 },
+  { code: 'CA', name: 'Canada',             flag: '🇨🇦', views: 3470,  uniques: 980 },
+  { code: 'FR', name: 'France',             flag: '🇫🇷', views: 2890,  uniques: 790 },
+  { code: 'JP', name: 'Japan',              flag: '🇯🇵', views: 2410,  uniques: 650 },
+  { code: 'AU', name: 'Australia',          flag: '🇦🇺', views: 2180,  uniques: 620 },
+  { code: 'NL', name: 'Netherlands',        flag: '🇳🇱', views: 1790,  uniques: 510 },
+  { code: 'IN', name: 'India',              flag: '🇮🇳', views: 1640,  uniques: 470 },
+  { code: 'BR', name: 'Brazil',             flag: '🇧🇷', views: 1350,  uniques: 390 },
+  { code: 'SE', name: 'Sweden',             flag: '🇸🇪', views: 1120,  uniques: 320 },
+  { code: 'SG', name: 'Singapore',          flag: '🇸🇬', views: 980,   uniques: 280 },
+];
+
+const PAGES_DATA = [
+  { path: '/blog/building-an-ai-agent-scheduler', views: 8210, uniques: 5120, avgTime: 342 },
+  { path: '/portfolio/cann-cann', views: 5430, uniques: 3890, avgTime: 198 },
+  { path: '/', views: 4920, uniques: 4120, avgTime: 89 },
+  { path: '/blog/claude-code-workflows-2026', views: 3840, uniques: 2710, avgTime: 412 },
+  { path: '/blog/memory-layer-design-notes', views: 3210, uniques: 2340, avgTime: 298 },
+  { path: '/services', views: 2980, uniques: 2450, avgTime: 142 },
+  { path: '/about', views: 2410, uniques: 2030, avgTime: 96 },
+  { path: '/portfolio/third-conflict', views: 1920, uniques: 1480, avgTime: 172 },
+  { path: '/blog/the-cryptoflex-stack', views: 1680, uniques: 1290, avgTime: 218 },
+  { path: '/backlog', views: 1420, uniques: 1120, avgTime: 78 },
+  { path: '/blog/design-system-as-exoskeleton', views: 1280, uniques: 980, avgTime: 245 },
+  { path: '/guestbook', views: 890, uniques: 720, avgTime: 112 },
+];
+
+const REFERRERS_DATA = [
+  { name: '(direct)',           views: 14210, uniques: 4890 },
+  { name: 'news.ycombinator.com', views: 8940, uniques: 6210 },
+  { name: 'google.com',         views: 7820, uniques: 3120 },
+  { name: 'twitter.com',        views: 3410, uniques: 2180 },
+  { name: 'github.com',         views: 2790, uniques: 1640 },
+  { name: 'reddit.com',         views: 2180, uniques: 1420 },
+  { name: 'bsky.app',           views: 1410, uniques: 890 },
+  { name: 'lobste.rs',          views: 920,  uniques: 690 },
+  { name: 'duckduckgo.com',     views: 810,  uniques: 510 },
+  { name: 'linkedin.com',       views: 640,  uniques: 420 },
+];
+
+const BROWSER_DATA = [
+  { name: 'Chrome',  value: 58, color: 'var(--accent)' },
+  { name: 'Safari',  value: 21, color: 'var(--amber)' },
+  { name: 'Firefox', value: 11, color: 'var(--green)' },
+  { name: 'Edge',    value: 6,  color: 'var(--violet)' },
+  { name: 'Other',   value: 4,  color: 'var(--fg-3)' },
+];
+const DEVICE_DATA = [
+  { name: 'Desktop', value: 62, color: 'var(--accent)' },
+  { name: 'Mobile',  value: 31, color: 'var(--amber)' },
+  { name: 'Tablet',  value: 7,  color: 'var(--green)' },
+];
+const OS_DATA = [
+  { name: 'macOS',    value: 38, color: 'var(--accent)' },
+  { name: 'Windows',  value: 26, color: 'var(--amber)' },
+  { name: 'iOS',      value: 18, color: 'var(--green)' },
+  { name: 'Android',  value: 10, color: 'var(--violet)' },
+  { name: 'Linux',    value: 6,  color: 'oklch(0.70 0.15 230)' },
+  { name: 'Other',    value: 2,  color: 'var(--fg-3)' },
+];
+
+const VITALS = [
+  { key: 'LCP', label: 'LARGEST CONTENTFUL PAINT', val: 1.82, unit: 's', good: 78, warn: 16, poor: 6, budget: 2.5, status: 'good' },
+  { key: 'INP', label: 'INTERACTION TO NEXT PAINT', val: 142, unit: 'ms', good: 86, warn: 10, poor: 4, budget: 200, status: 'good' },
+  { key: 'CLS', label: 'CUMULATIVE LAYOUT SHIFT', val: 0.04, unit: '', good: 92, warn: 6, poor: 2, budget: 0.1, status: 'good' },
+  { key: 'FCP', label: 'FIRST CONTENTFUL PAINT', val: 0.98, unit: 's', good: 84, warn: 12, poor: 4, budget: 1.8, status: 'good' },
+  { key: 'TTFB', label: 'TIME TO FIRST BYTE', val: 218, unit: 'ms', good: 68, warn: 24, poor: 8, budget: 800, status: 'warn' },
+  { key: 'FID', label: 'FIRST INPUT DELAY', val: 12, unit: 'ms', good: 94, warn: 4, poor: 2, budget: 100, status: 'good' },
+  { key: 'SI', label: 'SPEED INDEX', val: 1.42, unit: 's', good: 82, warn: 14, poor: 4, budget: 3.4, status: 'good' },
+  { key: 'TBT', label: 'TOTAL BLOCKING TIME', val: 98, unit: 'ms', good: 76, warn: 18, poor: 6, budget: 200, status: 'warn' },
+];
+
+const API_DATA = [
+  { endpoint: '/api/subscribe',        method: 'POST', p50: 42,  p75: 68,  p95: 112, err: 2,  total: 412,  status: 'ok' },
+  { endpoint: '/api/comments',         method: 'POST', p50: 58,  p75: 94,  p95: 180, err: 0,  total: 218,  status: 'ok' },
+  { endpoint: '/api/track',            method: 'POST', p50: 28,  p75: 41,  p95: 72,  err: 4,  total: 8940, status: 'ok' },
+  { endpoint: '/api/search',           method: 'GET',  p50: 86,  p75: 128, p95: 218, err: 1,  total: 1240, status: 'ok' },
+  { endpoint: '/api/og',               method: 'GET',  p50: 112, p75: 168, p95: 342, err: 8,  total: 620,  status: 'warn' },
+  { endpoint: '/api/feed',             method: 'GET',  p50: 38,  p75: 62,  p95: 98,  err: 0,  total: 980,  status: 'ok' },
+  { endpoint: '/api/auth/login',       method: 'POST', p50: 142, p75: 198, p95: 312, err: 12, total: 89,   status: 'warn' },
+  { endpoint: '/api/sitemap',          method: 'GET',  p50: 22,  p75: 36,  p95: 58,  err: 0,  total: 240,  status: 'ok' },
+  { endpoint: '/api/vercel/firewall',  method: 'GET',  p50: 212, p75: 318, p95: 580, err: 3,  total: 180,  status: 'warn' },
+  { endpoint: '/api/analytics/live',   method: 'GET',  p50: 68,  p75: 98,  p95: 168, err: 0,  total: 2310, status: 'ok' },
+];
+
+/* Approx lat/lon for map dots */
+const CITIES = [
+  { name: 'New York',     lat: 40.71, lon: -74.01, v: 420 },
+  { name: 'San Francisco',lat: 37.77, lon: -122.42, v: 380 },
+  { name: 'Los Angeles',  lat: 34.05, lon: -118.24, v: 280 },
+  { name: 'Seattle',      lat: 47.61, lon: -122.33, v: 240 },
+  { name: 'Austin',       lat: 30.27, lon: -97.74, v: 210 },
+  { name: 'Chicago',      lat: 41.88, lon: -87.63, v: 180 },
+  { name: 'Toronto',      lat: 43.65, lon: -79.38, v: 190 },
+  { name: 'Vancouver',    lat: 49.28, lon: -123.12, v: 120 },
+  { name: 'Mexico City',  lat: 19.43, lon: -99.13, v: 90 },
+  { name: 'São Paulo',    lat: -23.55, lon: -46.63, v: 140 },
+  { name: 'Buenos Aires', lat: -34.61, lon: -58.38, v: 70 },
+  { name: 'London',       lat: 51.51, lon: -0.13, v: 410 },
+  { name: 'Paris',        lat: 48.86, lon: 2.35, v: 260 },
+  { name: 'Berlin',       lat: 52.52, lon: 13.40, v: 310 },
+  { name: 'Amsterdam',    lat: 52.37, lon: 4.89, v: 220 },
+  { name: 'Stockholm',    lat: 59.33, lon: 18.07, v: 160 },
+  { name: 'Madrid',       lat: 40.42, lon: -3.70, v: 140 },
+  { name: 'Rome',         lat: 41.90, lon: 12.50, v: 130 },
+  { name: 'Dublin',       lat: 53.35, lon: -6.26, v: 110 },
+  { name: 'Tel Aviv',     lat: 32.08, lon: 34.78, v: 140 },
+  { name: 'Dubai',        lat: 25.20, lon: 55.27, v: 120 },
+  { name: 'Mumbai',       lat: 19.08, lon: 72.88, v: 180 },
+  { name: 'Bangalore',    lat: 12.97, lon: 77.59, v: 210 },
+  { name: 'Singapore',    lat: 1.35,  lon: 103.82, v: 240 },
+  { name: 'Hong Kong',    lat: 22.32, lon: 114.17, v: 170 },
+  { name: 'Tokyo',        lat: 35.69, lon: 139.69, v: 320 },
+  { name: 'Seoul',        lat: 37.57, lon: 126.98, v: 180 },
+  { name: 'Sydney',       lat: -33.87, lon: 151.21, v: 230 },
+  { name: 'Melbourne',    lat: -37.81, lon: 144.96, v: 160 },
+  { name: 'Auckland',     lat: -36.85, lon: 174.76, v: 80 },
+  { name: 'Cape Town',    lat: -33.92, lon: 18.42, v: 90 },
+  { name: 'Lagos',        lat: 6.52,  lon: 3.37, v: 70 },
+  { name: 'Nairobi',      lat: -1.29, lon: 36.82, v: 60 },
+];
+
+/* Simplified continent outlines (SVG path paraphrase) */
+const WORLD_PATHS = [
+  // Very coarse continent blobs for ambiance; path d values
+  'M160,180 Q100,160 110,120 Q140,80 200,100 Q240,140 220,190 Q200,260 150,260 Q120,240 160,180 Z', // NA west
+  'M250,160 Q290,150 310,190 Q300,240 260,260 Q240,230 240,200 Q230,170 250,160 Z', // NA east
+  'M260,290 Q290,280 310,320 Q320,380 290,410 Q260,400 250,370 Q245,330 260,290 Z', // SA
+  'M440,120 Q500,90 540,130 Q560,170 540,200 Q500,215 470,200 Q440,180 440,120 Z', // Europe
+  'M540,220 Q580,210 620,240 Q600,310 540,340 Q500,310 490,270 Q510,230 540,220 Z', // Africa
+  'M580,140 Q680,120 760,150 Q800,190 780,240 Q700,250 640,230 Q590,200 580,140 Z', // Asia upper
+  'M780,200 Q820,210 840,260 Q830,290 790,300 Q760,280 780,200 Z', // SE Asia
+  'M820,340 Q870,330 890,360 Q880,395 830,400 Q800,380 820,340 Z', // Australia
+];
+
+/* ============================================================
+   RENDER: Sparklines
+   ============================================================ */
+function renderSpark(id, data, opts = {}) {
+  const svg = document.getElementById(id);
+  if (!svg) return;
+  const vals = data.map(d => typeof d === 'number' ? d : d.value);
+  const max = Math.max(...vals) || 1;
+  const min = Math.min(...vals);
+  const range = max - min || 1;
+  const w = 120, h = 32, pad = 2;
+  const pts = vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * (w - pad * 2) + pad;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return [x, y];
+  });
+  const linePath = 'M' + pts.map(p => p.join(',')).join(' L');
+  const areaPath = linePath + ` L${w - pad},${h - pad} L${pad},${h - pad} Z`;
+  const color = opts.color || 'var(--accent)';
+  svg.innerHTML = `
+    <path class="sarea" d="${areaPath}" fill="${opts.fillCol || 'var(--accent-dim)'}"/>
+    <path class="sline" d="${linePath}" stroke="${color}"/>
+  `;
+}
+
+/* ============================================================
+   RENDER: Main trend chart
+   ============================================================ */
+let chartMode = 'area';
+let currentMetric = 'views';
+const METRIC_MULT = { views: 1, uniques: 0.26, bounce: 0.01, duration: 0.006 };
+const METRIC_LABEL = {
+  views: 'Page views', uniques: 'Unique visitors',
+  bounce: 'Bounce rate (%)', duration: 'Avg. session (min)'
+};
+
+function renderMainChart() {
+  const svg = document.getElementById('main-chart');
+  if (!svg) return;
+  const raw = getSeriesForRange();
+  const mult = METRIC_MULT[currentMetric] || 1;
+  const data = raw.map(d => ({ ...d, value: d.value * mult }));
+  const W = 1000, H = 320;
+  const pad = { l: 50, r: 20, t: 20, b: 36 };
+  const innerW = W - pad.l - pad.r;
+  const innerH = H - pad.t - pad.b;
+  const max = Math.max(...data.map(d => d.value)) * 1.15;
+  const min = 0;
+  const xStep = innerW / (data.length - 1);
+
+  // Y ticks
+  const ticks = 5;
+  let gridLines = '';
+  let yLabels = '';
+  for (let i = 0; i <= ticks; i++) {
+    const y = pad.t + (innerH * i / ticks);
+    const v = Math.round(max - (max - min) * (i / ticks));
+    gridLines += `<line class="grid-l" x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}"/>`;
+    yLabels += `<text class="ax-tick" x="${pad.l - 8}" y="${y + 4}" text-anchor="end">${v.toLocaleString()}</text>`;
+  }
+
+  // X labels (every Nth)
+  const xEvery = Math.max(1, Math.floor(data.length / 8));
+  let xLabels = '';
+  data.forEach((d, i) => {
+    if (i % xEvery !== 0 && i !== data.length - 1) return;
+    const x = pad.l + i * xStep;
+    xLabels += `<text class="ax-tick" x="${x}" y="${H - pad.b + 16}" text-anchor="middle">${d.dateStr}</text>`;
+  });
+
+  const pts = data.map((d, i) => {
+    const x = pad.l + i * xStep;
+    const y = pad.t + innerH - ((d.value - min) / (max - min)) * innerH;
+    return [x, y];
+  });
+
+  let shape = '';
+  if (chartMode === 'bar') {
+    const bw = xStep * 0.7;
+    shape = data.map((d, i) => {
+      const x = pad.l + i * xStep - bw / 2;
+      const y = pad.t + innerH - ((d.value - min) / (max - min)) * innerH;
+      const h = (pad.t + innerH) - y;
+      return `<rect class="bar" x="${x}" y="${y}" width="${bw}" height="${h}" rx="1" data-i="${i}"/>`;
+    }).join('');
+  } else {
+    const lineD = 'M' + pts.map(p => p.join(',')).join(' L');
+    if (chartMode === 'area') {
+      const areaD = lineD + ` L${pts[pts.length - 1][0]},${pad.t + innerH} L${pts[0][0]},${pad.t + innerH} Z`;
+      shape = `<path class="area" d="${areaD}"/><path class="line" d="${lineD}"/>`;
+    } else {
+      shape = `<path class="line" d="${lineD}"/>`;
+    }
+    shape += pts.map((p, i) => `<circle class="pt" cx="${p[0]}" cy="${p[1]}" r="3"/>`).join('');
+  }
+  // Hit rects for tooltips
+  const hits = data.map((d, i) => {
+    const x = pad.l + i * xStep - xStep / 2;
+    return `<rect class="pt-hit" x="${x}" y="${pad.t}" width="${xStep}" height="${innerH}" data-i="${i}" data-v="${Math.round(d.value)}" data-d="${d.dateStr}"/>`;
+  }).join('');
+
+  svg.innerHTML = `
+    ${gridLines}
+    ${yLabels}
+    ${xLabels}
+    ${shape}
+    ${hits}
+    <line class="ax" x1="${pad.l}" x2="${W - pad.r}" y1="${pad.t + innerH}" y2="${pad.t + innerH}"/>
+  `;
+
+  // Peak info
+  const peak = data.reduce((a, b) => b.value > a.value ? b : a);
+  document.getElementById('trend-peak').textContent = `${peak.dateStr} · ${Math.round(peak.value).toLocaleString()}`;
+  document.getElementById('trend-metric-label').textContent = METRIC_LABEL[currentMetric];
+  document.getElementById('trend-series-label').textContent = METRIC_LABEL[currentMetric].toUpperCase();
+
+  // Tooltip binds
+  svg.querySelectorAll('.pt-hit').forEach(r => {
+    r.addEventListener('mousemove', e => showTip(e, `<div class="k">${r.dataset.d}</div><div>${METRIC_LABEL[currentMetric]} · <b>${Number(r.dataset.v).toLocaleString()}</b></div>`));
+    r.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* ============================================================
+   RENDER: NvR stacked area (2 datasets)
+   ============================================================ */
+function renderNvR(id) {
+  const svg = document.getElementById(id);
+  if (!svg) return;
+  const raw = getSeriesForRange();
+  const W = 1000, H = id === 'nvr-chart' ? 220 : 240;
+  const pad = { l: 40, r: 20, t: 20, b: 28 };
+  const innerW = W - pad.l - pad.r;
+  const innerH = H - pad.t - pad.b;
+  const newArr = raw.map((d, i) => Math.round(d.value * (0.55 + Math.sin(i * 0.5) * 0.1)));
+  const retArr = raw.map((d, i) => d.value - newArr[i]);
+  const stackMax = Math.max(...raw.map(d => d.value)) * 1.1;
+  const xStep = innerW / (raw.length - 1);
+
+  const newPts = newArr.map((v, i) => {
+    const x = pad.l + i * xStep;
+    const y = pad.t + innerH - (v / stackMax) * innerH;
+    return [x, y];
+  });
+  const retPts = retArr.map((v, i) => {
+    const x = pad.l + i * xStep;
+    const stacked = v + newArr[i];
+    const y = pad.t + innerH - (stacked / stackMax) * innerH;
+    return [x, y];
+  });
+
+  const newAreaD = 'M' + newPts.map(p => p.join(',')).join(' L') + ` L${newPts[newPts.length - 1][0]},${pad.t + innerH} L${newPts[0][0]},${pad.t + innerH} Z`;
+  const retAreaD = 'M' + retPts.map(p => p.join(',')).join(' L') + ' L' + newPts.slice().reverse().map(p => p.join(',')).join(' L') + ' Z';
+
+  // Gridlines
+  let grid = '';
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (innerH * i / 4);
+    grid += `<line class="grid-l" x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}"/>`;
+  }
+
+  svg.innerHTML = `
+    ${grid}
+    <path d="${retAreaD}" fill="oklch(0.55 0.010 245 / 0.3)" stroke="var(--fg-3)" stroke-width="1"/>
+    <path d="${newAreaD}" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.5"/>
+    <line class="ax" x1="${pad.l}" x2="${W - pad.r}" y1="${pad.t + innerH}" y2="${pad.t + innerH}"/>
+  `;
+
+  if (id === 'nvr-chart') {
+    document.getElementById('nvr-new').textContent = newArr.reduce((a, b) => a + b, 0).toLocaleString();
+    document.getElementById('nvr-ret').textContent = retArr.reduce((a, b) => a + b, 0).toLocaleString();
+  }
+}
+
+/* ============================================================
+   RENDER: Heatmap
+   ============================================================ */
+function renderHeatmap() {
+  const el = document.getElementById('heatmap');
+  if (!el) return;
+  const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  const r = RAND(101);
+  const maxV = 400;
+  let html = '';
+  // Axis row: hours
+  html += '<div class="hmap-row"><div class="hmap-head"></div>';
+  for (let h = 0; h < 24; h++) html += `<div class="hmap-axis" style="text-align:center;">${h % 3 === 0 ? h : ''}</div>`;
+  html += '</div>';
+  let hottest = { d: '', h: 0, v: 0 }, coolest = { d: '', h: 0, v: Infinity };
+  for (let d = 0; d < 7; d++) {
+    html += `<div class="hmap-row"><div class="hmap-head">${days[d]}</div>`;
+    for (let h = 0; h < 24; h++) {
+      // Model: more activity on weekdays 9–18 UTC
+      let base = 40;
+      if (h >= 9 && h <= 18) base = 200;
+      if (h >= 12 && h <= 16) base = 320;
+      if (d >= 5) base *= 0.55; // weekend dip
+      const v = Math.max(2, Math.round(base * (0.6 + r() * 0.8)));
+      const op = Math.max(0.08, v / maxV);
+      if (v > hottest.v) hottest = { d: days[d], h, v };
+      if (v < coolest.v) coolest = { d: days[d], h, v };
+      html += `<div class="cell" style="background: oklch(0.74 0.16 192 / ${op.toFixed(2)});" data-tip="${days[d]} ${String(h).padStart(2,'0')}:00 · ${v} views"></div>`;
+    }
+    html += '</div>';
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.cell').forEach(c => {
+    c.addEventListener('mousemove', e => showTip(e, c.dataset.tip));
+    c.addEventListener('mouseleave', hideTip);
+  });
+  document.getElementById('heat-hottest').textContent = `${hottest.d} ${String(hottest.h).padStart(2, '0')}:00 · ${hottest.v}`;
+  document.getElementById('heat-coolest').textContent = `${coolest.d} ${String(coolest.h).padStart(2, '0')}:00 · ${coolest.v}`;
+}
+
+/* ============================================================
+   RENDER: World map
+   ============================================================ */
+function renderWorldMap() {
+  const svg = document.getElementById('world-map');
+  if (!svg) return;
+  const W = 1000, H = 480;
+  // Equirectangular projection
+  const proj = (lat, lon) => {
+    const x = (lon + 180) / 360 * W;
+    const y = (90 - lat) / 180 * H;
+    return [x, y];
+  };
+  // Graticule
+  let graticule = '';
+  for (let lat = -60; lat <= 60; lat += 30) {
+    graticule += `<line class="graticule" x1="0" y1="${proj(lat, 0)[1]}" x2="${W}" y2="${proj(lat, 0)[1]}"/>`;
+  }
+  for (let lon = -150; lon <= 150; lon += 30) {
+    graticule += `<line class="graticule" x1="${proj(0, lon)[0]}" y1="0" x2="${proj(0, lon)[0]}" y2="${H}"/>`;
+  }
+  // Continents
+  const land = WORLD_PATHS.map(d => `<path class="land" d="${d}"/>`).join('');
+  // Dots
+  const maxV = Math.max(...CITIES.map(c => c.v));
+  const dots = CITIES.map(c => {
+    const [x, y] = proj(c.lat, c.lon);
+    const r = 2 + (c.v / maxV) * 8;
+    const op = 0.4 + (c.v / maxV) * 0.6;
+    return `
+      <g>
+        <circle class="dot-pulse" cx="${x}" cy="${y}" r="${r * 1.5}" style="animation-delay:${(c.v % 17) * 120}ms"/>
+        <circle class="dot" cx="${x}" cy="${y}" r="${r}" opacity="${op}" data-tip="${c.name} · ${c.v} visits" style="cursor:pointer"/>
+      </g>`;
+  }).join('');
+  svg.innerHTML = `<rect width="${W}" height="${H}" fill="transparent"/>${graticule}${land}${dots}`;
+  svg.querySelectorAll('.dot').forEach(d => {
+    d.addEventListener('mousemove', e => showTip(e, d.dataset.tip));
+    d.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* ============================================================
+   RENDER: Lists with bars
+   ============================================================ */
+function renderList(id, data, getLabel, getValue, opts = {}) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const max = Math.max(...data.map(getValue));
+  el.innerHTML = data.map((d, i) => {
+    const v = getValue(d);
+    const pct = (v / max) * 100;
+    const label = getLabel(d);
+    return `
+      <div class="row">
+        <span class="idx">${String(i + 1).padStart(2, '0')}</span>
+        <span class="name">${label}</span>
+        <span style="width: 120px;">
+          <span class="bar"><i style="width:${pct}%"></i></span>
+        </span>
+        <span class="val">${v.toLocaleString()}</span>
+      </div>`;
+  }).join('');
+}
+
+function renderCountries() {
+  const el = document.getElementById('countries');
+  if (!el) return;
+  const data = COUNTRIES_DATA.slice(0, 10);
+  const max = Math.max(...data.map(d => d.views));
+  el.innerHTML = data.map((d, i) => {
+    const pct = (d.views / max) * 100;
+    return `
+      <div class="row">
+        <span class="idx">${String(i + 1).padStart(2, '0')}</span>
+        <span class="name"><span class="flag">${d.flag}</span>${d.name} <span style="color:var(--fg-4); margin-left:6px">${d.code}</span></span>
+        <span style="width: 120px;">
+          <span class="bar"><i style="width:${pct}%"></i></span>
+        </span>
+        <span class="val">${d.views.toLocaleString()}</span>
+      </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   RENDER: Donuts
+   ============================================================ */
+function renderDonut(svgId, legendId, data) {
+  const svg = document.getElementById(svgId);
+  const lg = document.getElementById(legendId);
+  if (!svg || !lg) return;
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const cx = 50, cy = 50, rOuter = 40, rInner = 28;
+  let start = -Math.PI / 2;
+  let paths = '';
+  data.forEach((d, i) => {
+    const ang = (d.value / total) * Math.PI * 2;
+    const end = start + ang;
+    const largeArc = ang > Math.PI ? 1 : 0;
+    const x1 = cx + rOuter * Math.cos(start), y1 = cy + rOuter * Math.sin(start);
+    const x2 = cx + rOuter * Math.cos(end), y2 = cy + rOuter * Math.sin(end);
+    const xi1 = cx + rInner * Math.cos(end), yi1 = cy + rInner * Math.sin(end);
+    const xi2 = cx + rInner * Math.cos(start), yi2 = cy + rInner * Math.sin(start);
+    const path = `M ${x1} ${y1} A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2} ${y2} L ${xi1} ${yi1} A ${rInner} ${rInner} 0 ${largeArc} 0 ${xi2} ${yi2} Z`;
+    paths += `<path d="${path}" fill="${d.color}" opacity="0.92" data-tip="${d.name} · ${d.value}%"/>`;
+    start = end;
+  });
+  svg.innerHTML = paths;
+  svg.querySelectorAll('path').forEach(p => {
+    p.addEventListener('mousemove', e => showTip(e, p.dataset.tip));
+    p.addEventListener('mouseleave', hideTip);
+  });
+  lg.innerHTML = data.map(d => `
+    <div class="lrow">
+      <span class="sw" style="background:${d.color}"></span>
+      <span>${d.name}</span>
+      <span class="v">${d.value}%</span>
+      <span class="p">${Math.round(total * d.value / 100 * 128)}</span>
+    </div>`).join('');
+}
+
+/* ============================================================
+   RENDER: Web vitals
+   ============================================================ */
+function renderVitals() {
+  const el = document.getElementById('vitals');
+  if (!el) return;
+  el.innerHTML = VITALS.map(v => `
+    <div class="vital">
+      <div class="lbl">${v.label}</div>
+      <div class="val">${v.val}<span class="u">${v.unit}</span></div>
+      <div class="seg-bar">
+        <i class="good" style="width:${v.good}%"></i>
+        <i class="warn" style="width:${v.warn}%"></i>
+        <i class="poor" style="width:${v.poor}%"></i>
+      </div>
+      <div class="note"><b class="${v.status}">${v.status === 'good' ? '● GOOD' : v.status === 'warn' ? '● NEEDS WORK' : '● POOR'}</b> · ${v.good}% good · budget ${v.budget}${v.unit}</div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   RENDER: API table
+   ============================================================ */
+let apiSort = { key: 'total', dir: -1 };
+function renderApiTable() {
+  const tbody = document.querySelector('#api-tbl tbody');
+  if (!tbody) return;
+  const rows = [...API_DATA].sort((a, b) => (a[apiSort.key] > b[apiSort.key] ? 1 : -1) * apiSort.dir);
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><b>${r.endpoint}</b></td>
+      <td><span class="status-tag ${r.method === 'GET' ? 'info' : 'ok'}">${r.method}</span></td>
+      <td class="num">${r.p50}ms</td>
+      <td class="num">${r.p75}ms</td>
+      <td class="num">${r.p95}ms</td>
+      <td class="num" style="color:${r.err > 5 ? 'var(--red)' : 'var(--fg-2)'}">${r.err}</td>
+      <td class="num">${r.total.toLocaleString()}</td>
+      <td><span class="status-tag ${r.status === 'ok' ? 'ok' : r.status === 'warn' ? 'warn' : 'err'}">${r.status.toUpperCase()}</span></td>
+    </tr>
+  `).join('');
+}
+
+/* ============================================================
+   RENDER: Firewall events table
+   ============================================================ */
+function renderFwTable() {
+  const tbody = document.querySelector('#fw-tbl tbody');
+  if (!tbody) return;
+  const r = RAND(301);
+  const reasons = ['Rate limit', 'Bad bot UA', 'WAF:SQLI', 'WAF:XSS', 'Country block', 'IP block', 'Malformed'];
+  const actions = ['DENY', 'CHALLENGE', 'LOG'];
+  const paths = ['/api/auth/login', '/wp-admin', '/.env', '/api/track', '/xmlrpc.php', '/admin'];
+  const countries = ['RU', 'CN', 'IR', 'US', 'VN', 'BR', 'IN', 'UA'];
+  const rows = [];
+  for (let i = 0; i < 18; i++) {
+    const t = new Date(today); t.setUTCMinutes(t.getUTCMinutes() - Math.floor(r() * 1440));
+    rows.push({
+      time: t.toISOString().slice(11, 19),
+      country: countries[Math.floor(r() * countries.length)],
+      ip: `${Math.floor(r()*255)}.${Math.floor(r()*255)}.${Math.floor(r()*255)}.${Math.floor(r()*255)}`,
+      path: paths[Math.floor(r() * paths.length)],
+      action: actions[Math.floor(r() * actions.length)],
+      reason: reasons[Math.floor(r() * reasons.length)],
+    });
+  }
+  tbody.innerHTML = rows.map(x => `
+    <tr>
+      <td>${x.time}</td>
+      <td>${x.country}</td>
+      <td style="color:var(--fg-3)">${x.ip}</td>
+      <td><b>${x.path}</b></td>
+      <td><span class="status-tag ${x.action === 'DENY' ? 'err' : x.action === 'CHALLENGE' ? 'warn' : 'info'}">${x.action}</span></td>
+      <td>${x.reason}</td>
+    </tr>
+  `).join('');
+}
+
+/* ============================================================
+   RENDER: Recent visits table
+   ============================================================ */
+const VISITS = [];
+function seedVisits() {
+  const r = RAND(501);
+  const pages = PAGES_DATA.map(p => p.path);
+  const countries = ['US', 'GB', 'DE', 'CA', 'FR', 'JP', 'AU', 'NL', 'IN', 'BR'];
+  const devices = ['Desktop', 'Mobile', 'Tablet'];
+  const browsers = ['Chrome', 'Safari', 'Firefox', 'Edge'];
+  const refs = ['(direct)', 'news.ycombinator.com', 'google.com', 'twitter.com', 'github.com'];
+  for (let i = 0; i < 80; i++) {
+    const t = new Date(today); t.setUTCSeconds(t.getUTCSeconds() - Math.floor(r() * 3600));
+    VISITS.push({
+      time: t.toISOString().slice(11, 19),
+      ts: t.getTime(),
+      path: pages[Math.floor(r() * pages.length)],
+      country: countries[Math.floor(r() * countries.length)],
+      device: devices[Math.floor(r() * devices.length)],
+      browser: browsers[Math.floor(r() * browsers.length)],
+      ref: refs[Math.floor(r() * refs.length)],
+      dur: Math.floor(r() * 420) + 8,
+      status: r() > 0.97 ? 'err' : r() > 0.9 ? 'warn' : 'ok',
+      type: r() > 0.85 ? 'api' : 'hit',
+    });
+  }
+  VISITS.sort((a, b) => b.ts - a.ts);
+}
+let activityFilter = 'all';
+function renderVisits() {
+  const tbody = document.querySelector('#visits-tbl tbody');
+  if (!tbody) return;
+  let rows = VISITS;
+  if (activityFilter === 'hit') rows = rows.filter(v => v.type === 'hit');
+  if (activityFilter === 'api') rows = rows.filter(v => v.type === 'api');
+  if (activityFilter === 'err') rows = rows.filter(v => v.status === 'err');
+  tbody.innerHTML = rows.map(v => `
+    <tr>
+      <td>${v.time}</td>
+      <td><b>${v.path}</b></td>
+      <td>${v.country}</td>
+      <td>${v.device}</td>
+      <td>${v.browser}</td>
+      <td style="color:var(--fg-3)">${v.ref}</td>
+      <td class="num">${v.dur}s</td>
+      <td><span class="status-tag ${v.status}">${v.status === 'ok' ? '200 OK' : v.status === 'warn' ? '3xx' : '5xx'}</span></td>
+    </tr>
+  `).join('');
+  document.getElementById('visit-count').textContent = rows.length;
+  document.getElementById('visit-updated').textContent = new Date().toISOString().slice(11, 19) + 'Z';
+}
+
+/* ============================================================
+   RENDER: Content (top pages, referrers, scroll, time on page)
+   ============================================================ */
+function renderContent() {
+  // top pages
+  const el = document.getElementById('top-pages');
+  if (el) {
+    const max = Math.max(...PAGES_DATA.map(p => p.views));
+    el.innerHTML = PAGES_DATA.slice(0, 10).map((p, i) => `
+      <div class="row">
+        <span class="idx">${String(i + 1).padStart(2, '0')}</span>
+        <span class="name">${p.path}</span>
+        <span style="width: 120px;"><span class="bar"><i style="width:${p.views / max * 100}%"></i></span></span>
+        <span class="val">${p.views.toLocaleString()}</span>
+      </div>`).join('');
+  }
+  // referrers
+  const rel = document.getElementById('referrers');
+  if (rel) {
+    const max = Math.max(...REFERRERS_DATA.map(r => r.views));
+    rel.innerHTML = REFERRERS_DATA.map((r, i) => `
+      <div class="row">
+        <span class="idx">${String(i + 1).padStart(2, '0')}</span>
+        <span class="name">${r.name}</span>
+        <span style="width: 120px;"><span class="bar"><i style="width:${r.views / max * 100}%"></i></span></span>
+        <span class="val">${r.views.toLocaleString()}</span>
+      </div>`).join('');
+  }
+  // scroll funnel
+  const fn = document.getElementById('scroll-funnel');
+  if (fn) {
+    const depths = [
+      { label: '0%',   v: 100, c: 12840 },
+      { label: '25%',  v: 84,  c: 10786 },
+      { label: '50%',  v: 64,  c: 8218 },
+      { label: '75%',  v: 48,  c: 6163 },
+      { label: '100%', v: 42,  c: 5389 },
+    ];
+    fn.innerHTML = depths.map(d => `
+      <div class="fstep">
+        <div class="k">DEPTH ${d.label}</div>
+        <div class="bar"><i style="width:${d.v}%">${d.v}%</i></div>
+        <div class="v">${d.c.toLocaleString()}</div>
+      </div>`).join('');
+  }
+  // time on page: horizontal bar mini
+  const svg = document.getElementById('tot-chart');
+  if (svg) {
+    const data = PAGES_DATA.slice(0, 8).sort((a, b) => b.avgTime - a.avgTime);
+    const W = 1000, H = 240;
+    const pad = { l: 220, r: 60, t: 10, b: 10 };
+    const innerW = W - pad.l - pad.r;
+    const max = Math.max(...data.map(d => d.avgTime));
+    const barH = (H - pad.t - pad.b) / data.length - 6;
+    let html = '';
+    data.forEach((d, i) => {
+      const y = pad.t + i * ((H - pad.t - pad.b) / data.length) + 3;
+      const w = (d.avgTime / max) * innerW;
+      html += `<text class="ax-tick" x="${pad.l - 10}" y="${y + barH / 2 + 3}" text-anchor="end" fill="var(--fg-2)">${d.path.length > 30 ? '…' + d.path.slice(-28) : d.path}</text>`;
+      html += `<rect class="bar-2" x="${pad.l}" y="${y}" width="${innerW}" height="${barH}" rx="2"/>`;
+      html += `<rect class="bar" x="${pad.l}" y="${y}" width="${w}" height="${barH}" rx="2"/>`;
+      html += `<text class="ax-tick" x="${pad.l + w + 6}" y="${y + barH / 2 + 3}" fill="var(--fg)">${Math.floor(d.avgTime / 60)}:${String(d.avgTime % 60).padStart(2, '0')}</text>`;
+    });
+    svg.innerHTML = html;
+  }
+}
+
+/* ============================================================
+   RENDER: Bot/Auth/Subscriber charts
+   ============================================================ */
+function renderBotChart() {
+  const svg = document.getElementById('bot-chart');
+  if (!svg) return;
+  const raw = getSeriesForRange();
+  const W = 1000, H = 220;
+  const pad = { l: 40, r: 20, t: 20, b: 28 };
+  const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const xStep = innerW / (raw.length - 1);
+  const r = RAND(602);
+  const botArr = raw.map((d, i) => Math.round(d.value * (0.08 + r() * 0.06)));
+  const humanArr = raw.map((d, i) => d.value - botArr[i]);
+  const max = Math.max(...raw.map(d => d.value)) * 1.1;
+  const botPts = botArr.map((v, i) => [pad.l + i * xStep, pad.t + innerH - (v / max) * innerH]);
+  const humanPts = humanArr.map((v, i) => [pad.l + i * xStep, pad.t + innerH - (v / max) * innerH]);
+  const botD = 'M' + botPts.map(p => p.join(',')).join(' L');
+  const humanD = 'M' + humanPts.map(p => p.join(',')).join(' L');
+  svg.innerHTML = `
+    <path d="${humanD}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <path d="${botD}" fill="none" stroke="var(--red)" stroke-width="2" stroke-dasharray="4 3"/>
+    <line class="ax" x1="${pad.l}" x2="${W - pad.r}" y1="${pad.t + innerH}" y2="${pad.t + innerH}"/>
+  `;
+}
+function renderAuthChart() {
+  const svg = document.getElementById('auth-chart');
+  if (!svg) return;
+  const W = 1000, H = 220;
+  const pad = { l: 40, r: 20, t: 20, b: 28 };
+  const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const r = RAND(603);
+  const days = 30;
+  const barW = innerW / days * 0.7;
+  let html = '';
+  const max = 12;
+  for (let i = 0; i < days; i++) {
+    const x = pad.l + (i + 0.15) * (innerW / days);
+    const succ = Math.floor(r() * 3);
+    const fail = Math.floor(r() * 4) + (r() > 0.95 ? 8 : 0);
+    const yS = pad.t + innerH - (succ / max) * innerH;
+    const yF = pad.t + innerH - (fail / max) * innerH;
+    html += `<rect class="bar" x="${x}" y="${yS}" width="${barW / 2}" height="${pad.t + innerH - yS}" fill="var(--green)"/>`;
+    html += `<rect class="bar" x="${x + barW / 2}" y="${yF}" width="${barW / 2}" height="${pad.t + innerH - yF}" fill="var(--red)" opacity="${fail > 5 ? 1 : 0.7}"/>`;
+  }
+  html += `<line class="ax" x1="${pad.l}" x2="${W - pad.r}" y1="${pad.t + innerH}" y2="${pad.t + innerH}"/>`;
+  svg.innerHTML = html;
+}
+function renderSubChart() {
+  const svg = document.getElementById('sub-chart');
+  if (!svg) return;
+  const W = 1000, H = 240;
+  const pad = { l: 50, r: 30, t: 20, b: 28 };
+  const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const weeks = 20;
+  const r = RAND(604);
+  let cum = 800;
+  const data = [];
+  for (let i = 0; i < weeks; i++) {
+    const gain = Math.floor(r() * 25) + 10;
+    cum += gain;
+    data.push({ wk: i + 1, gain, cum });
+  }
+  const xStep = innerW / (weeks - 1);
+  const maxCum = Math.max(...data.map(d => d.cum)) * 1.05;
+  const maxGain = Math.max(...data.map(d => d.gain)) * 1.2;
+  const barW = innerW / weeks * 0.5;
+  let html = '';
+  data.forEach((d, i) => {
+    const bx = pad.l + i * xStep - barW / 2;
+    const by = pad.t + innerH - (d.gain / maxGain) * innerH * 0.5;
+    html += `<rect x="${bx}" y="${by}" width="${barW}" height="${pad.t + innerH - by}" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1"/>`;
+  });
+  const pts = data.map((d, i) => [pad.l + i * xStep, pad.t + innerH - (d.cum / maxCum) * innerH]);
+  html += `<path d="M${pts.map(p => p.join(',')).join(' L')}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  pts.forEach(p => html += `<circle class="pt" cx="${p[0]}" cy="${p[1]}" r="3"/>`);
+  html += `<line class="ax" x1="${pad.l}" x2="${W - pad.r}" y1="${pad.t + innerH}" y2="${pad.t + innerH}"/>`;
+  svg.innerHTML = html;
+}
+function renderConverting() {
+  const el = document.getElementById('converting');
+  if (!el) return;
+  const data = [
+    { path: '/blog/building-an-ai-agent-scheduler', count: 48 },
+    { path: '/',                                      count: 36 },
+    { path: '/services',                              count: 22 },
+    { path: '/blog/claude-code-workflows-2026',       count: 19 },
+    { path: '/about',                                 count: 14 },
+    { path: '/blog/memory-layer-design-notes',        count: 11 },
+    { path: '/portfolio/cann-cann',                   count: 9 },
+    { path: '/blog/the-cryptoflex-stack',             count: 6 },
+  ];
+  const max = Math.max(...data.map(d => d.count));
+  el.innerHTML = data.map((d, i) => `
+    <div class="row">
+      <span class="idx">${String(i + 1).padStart(2, '0')}</span>
+      <span class="name">${d.path}</span>
+      <span style="width:120px;"><span class="bar"><i style="width:${d.count / max * 100}%"></i></span></span>
+      <span class="val">${d.count}</span>
+    </div>`).join('');
+}
+
+/* ============================================================
+   TOOLTIP
+   ============================================================ */
+const tip = document.getElementById('tip');
+function showTip(e, html) {
+  tip.innerHTML = html;
+  tip.classList.add('show');
+  const pad = 12;
+  const x = e.clientX + pad;
+  const y = e.clientY + pad;
+  tip.style.left = Math.min(window.innerWidth - 200, x) + 'px';
+  tip.style.top = Math.min(window.innerHeight - 80, y) + 'px';
+}
+function hideTip() { tip.classList.remove('show'); }
+
+/* ============================================================
+   TABS
+   ============================================================ */
+document.querySelectorAll('#tabs .tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('#tabs .tab').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    const name = t.dataset.tab;
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('on', p.dataset.panel === name));
+    // Persist via localStorage
+    try { localStorage.setItem('cf_analytics_tab', name); } catch {}
+    window.scrollTo({ top: document.querySelector('.toolbar').offsetTop - 60, behavior: 'smooth' });
+  });
+});
+
+/* ============================================================
+   TAB SCROLL ARROWS
+   ============================================================ */
+(() => {
+  const wrap = document.getElementById('tabs');
+  const left = document.getElementById('tabs-left');
+  const right = document.getElementById('tabs-right');
+  if (!wrap || !left || !right) return;
+  function update() {
+    const maxScroll = wrap.scrollWidth - wrap.clientWidth;
+    left.disabled = wrap.scrollLeft <= 2;
+    right.disabled = wrap.scrollLeft >= maxScroll - 2;
+    const overflowing = wrap.scrollWidth > wrap.clientWidth + 2;
+    left.style.display = overflowing ? '' : 'none';
+    right.style.display = overflowing ? '' : 'none';
+  }
+  left.addEventListener('click', () => { wrap.scrollBy({ left: -220, behavior: 'smooth' }); });
+  right.addEventListener('click', () => { wrap.scrollBy({ left: 220, behavior: 'smooth' }); });
+  wrap.addEventListener('scroll', update);
+  window.addEventListener('resize', update);
+  // Auto-scroll the active tab into view when changed
+  const obs = new MutationObserver(() => {
+    const active = wrap.querySelector('.tab.on');
+    if (active) {
+      const r = active.getBoundingClientRect();
+      const w = wrap.getBoundingClientRect();
+      if (r.left < w.left + 20 || r.right > w.right - 20) {
+        active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+    setTimeout(update, 50);
+  });
+  obs.observe(wrap, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  setTimeout(update, 50);
+  update();
+})();
+
+/* ============================================================
+   RANGE SEG
+   ============================================================ */
+document.querySelectorAll('#range-seg button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#range-seg button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    const map = { '24h': 1, '7d': 7, '30d': 30, '90d': 90, '12m': 365 };
+    currentRange = map[b.dataset.range] || 30;
+    document.getElementById('meta-range').textContent = 'LAST ' + b.dataset.range.toUpperCase();
+    try { localStorage.setItem('cf_analytics_range', b.dataset.range); } catch {}
+    // Re-render affected
+    renderMainChart();
+    renderNvR('nvr-chart');
+    renderNvR('nvr-chart-2');
+    renderHeatmap();
+    renderBotChart();
+    renderSparks();
+  });
+});
+
+/* ============================================================
+   KPI CLICK -> re-target metric
+   ============================================================ */
+document.querySelectorAll('.kpi[data-metric]').forEach(k => {
+  k.addEventListener('click', () => {
+    document.querySelectorAll('.kpi[data-metric]').forEach(x => x.classList.remove('on'));
+    k.classList.add('on');
+    currentMetric = k.dataset.metric;
+    renderMainChart();
+  });
+});
+
+/* ============================================================
+   CHART MODE CHIPS
+   ============================================================ */
+document.querySelectorAll('[data-chart-mode]').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('[data-chart-mode]').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    chartMode = c.dataset.chartMode;
+    renderMainChart();
+  });
+});
+
+/* ============================================================
+   HEATMAP CHIPS
+   ============================================================ */
+document.querySelectorAll('[data-heatmap]').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('[data-heatmap]').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    renderHeatmap();
+  });
+});
+
+/* ============================================================
+   ACTIVITY FILTER
+   ============================================================ */
+document.querySelectorAll('[data-act-filter]').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('[data-act-filter]').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    activityFilter = c.dataset.actFilter;
+    renderVisits();
+  });
+});
+
+/* ============================================================
+   SEARCH — filters both lists and tables
+   ============================================================ */
+document.getElementById('global-search').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  document.querySelectorAll('.list .row, .tbl tbody tr').forEach(r => {
+    const t = r.textContent.toLowerCase();
+    r.style.display = !q || t.includes(q) ? '' : 'none';
+  });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    document.getElementById('global-search').focus();
+  }
+});
+
+/* ============================================================
+   LIVE FEED
+   ============================================================ */
+const feedEl = document.getElementById('feed');
+let feedPaused = false;
+let feedBuffer = 0, feedStart = Date.now(), feedCount = 0;
+const FEED_POOL = [
+  { tag: 'HIT', cl: 'hit', tpl: () => `<span class="gr">GET</span> <b>${pick(PAGES_DATA).path}</b> <span class="gr">· ${pick(['US','GB','DE','FR','JP','CA'])}</span>` },
+  { tag: 'HIT', cl: 'hit', tpl: () => `<span class="gr">GET</span> <b>${pick(PAGES_DATA).path}</b> <span class="gr">· from ${pick(REFERRERS_DATA).name}</span>` },
+  { tag: 'API', cl: 'api', tpl: () => `<span class="gr">POST</span> <b>${pick(['/api/track','/api/subscribe','/api/comments'])}</b> <span class="gr">· ${Math.floor(rand()*180)+20}ms</span>` },
+  { tag: 'SUB', cl: 'sub', tpl: () => `New subscriber · <b>${pick(['ada@','grace@','linus@','alan@','kathy@'])}${pick(['proton.me','hey.com','gmail.com'])}</b>` },
+  { tag: 'ERR', cl: 'err', tpl: () => `Client error · <b>${pick(['TypeError','RefError','NetError'])}</b> <span class="gr">at ${pick(PAGES_DATA).path}</span>` },
+  { tag: 'BOT', cl: 'err', tpl: () => `Firewall DENY · <b>${pick(['RU','CN','IR','VN'])}</b> <span class="gr">· ${pick(['WAF:SQLI','Bad bot','Rate limit'])}</span>` },
+  { tag: 'HIT', cl: 'hit', tpl: () => `<span class="gr">GET</span> <b>/blog/</b> <span class="gr">· session ${(Math.random()*1e8).toString(36).slice(0,6)}</span>` },
+];
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function pushFeed() {
+  if (feedPaused) { feedBuffer++; document.getElementById('feed-buffer').textContent = feedBuffer; return; }
+  const item = pick(FEED_POOL);
+  const t = new Date().toISOString().slice(11, 19);
+  const row = document.createElement('div');
+  row.className = 'frow';
+  const weight = Math.random() > 0.7 ? '' + (Math.floor(Math.random() * 180) + 20) + 'ms' : '';
+  row.innerHTML = `
+    <span class="t">${t}</span>
+    <span class="tag ${item.cl}">${item.tag}</span>
+    <span class="body">${item.tpl()}</span>
+    <span class="meta">${weight}</span>
+  `;
+  feedEl.insertBefore(row, feedEl.firstChild);
+  if (feedEl.children.length > 50) feedEl.lastChild.remove();
+  feedCount++;
+  const elapsed = (Date.now() - feedStart) / 1000;
+  document.getElementById('feed-rate').textContent = '~' + (feedCount / Math.max(elapsed, 1)).toFixed(1) + '/s';
+}
+document.getElementById('feed-pause').addEventListener('click', (e) => {
+  feedPaused = !feedPaused;
+  e.target.textContent = feedPaused ? 'RESUME' : 'PAUSE';
+  e.target.classList.toggle('on', feedPaused);
+  if (!feedPaused) { feedBuffer = 0; document.getElementById('feed-buffer').textContent = '0'; }
+});
+
+/* ============================================================
+   AUTO REFRESH
+   ============================================================ */
+let autoOn = true;
+document.getElementById('auto-refresh').addEventListener('click', () => {
+  autoOn = !autoOn;
+  document.getElementById('auto-label').textContent = autoOn ? 'ON' : 'OFF';
+});
+document.getElementById('refresh-btn').addEventListener('click', () => {
+  renderMainChart(); renderNvR('nvr-chart'); renderHeatmap();
+  document.getElementById('meta-gen').textContent = new Date().toISOString().slice(0, 19).replace('T', ' ') + 'Z';
+});
+
+/* ============================================================
+   CLOCK + LIVE COUNT
+   ============================================================ */
+function tickClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = ' ' + now.toISOString().slice(11, 19);
+  document.getElementById('foot-sync').textContent = now.toISOString().slice(11, 19) + 'Z';
+  // jitter live count a bit
+  const el = document.getElementById('live-count');
+  const cur = Number(el.textContent) || 12;
+  el.textContent = Math.max(3, Math.min(32, cur + (Math.random() > 0.5 ? 1 : -1)));
+}
+setInterval(tickClock, 1000); tickClock();
+
+/* ============================================================
+   COUNT UP animation for KPIs
+   ============================================================ */
+function countUp(el, to, ms = 900) {
+  const from = 0;
+  const start = performance.now();
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  function step(now) {
+    const p = Math.min(1, (now - start) / ms);
+    const v = Math.round(from + (to - from) * ease(p));
+    el.textContent = v.toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+document.querySelectorAll('.kpi .val[data-count]').forEach(el => {
+  countUp(el, Number(el.dataset.count));
+});
+
+/* ============================================================
+   SPARKLINES (per-KPI)
+   ============================================================ */
+function renderSparks() {
+  const raw = getSeriesForRange().map(d => d.value);
+  renderSpark('spark-views', raw);
+  renderSpark('spark-uniques', raw.map(v => v * 0.26));
+  renderSpark('spark-bounce', raw.map((v, i) => 42 - (i / raw.length) * 5 + Math.sin(i) * 3));
+  renderSpark('spark-duration', raw.map((v, i) => 140 + Math.sin(i * 0.5) * 30 + (i / raw.length) * 20));
+}
+
+/* ============================================================
+   SORTING (API + FW tables)
+   ============================================================ */
+document.querySelectorAll('#api-tbl th').forEach((th, i) => {
+  const keys = ['endpoint', 'method', 'p50', 'p75', 'p95', 'err', 'total', 'status'];
+  th.addEventListener('click', () => {
+    const key = keys[i];
+    if (apiSort.key === key) apiSort.dir *= -1; else { apiSort.key = key; apiSort.dir = 1; }
+    document.querySelectorAll('#api-tbl th').forEach(x => x.classList.remove('sorted'));
+    th.classList.add('sorted');
+    th.querySelector('.arr') && (th.querySelector('.arr').textContent = apiSort.dir === 1 ? '↑' : '↓');
+    renderApiTable();
+  });
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init() {
+  // Restore state
+  try {
+    const savedTab = localStorage.getItem('cf_analytics_tab');
+    if (savedTab) {
+      const t = document.querySelector(`#tabs .tab[data-tab="${savedTab}"]`);
+      if (t) t.click();
+    }
+    const savedRange = localStorage.getItem('cf_analytics_range');
+    if (savedRange) {
+      const b = document.querySelector(`#range-seg button[data-range="${savedRange}"]`);
+      if (b) b.click();
+    }
+  } catch {}
+
+  document.getElementById('meta-gen').textContent = new Date().toISOString().slice(0, 19).replace('T', ' ') + 'Z';
+  renderSparks();
+  renderMainChart();
+  renderNvR('nvr-chart');
+  renderNvR('nvr-chart-2');
+  renderHeatmap();
+  renderWorldMap();
+  renderCountries();
+  renderContent();
+  renderDonut('donut-browser', 'legend-browser', BROWSER_DATA);
+  renderDonut('donut-device', 'legend-device', DEVICE_DATA);
+  renderDonut('donut-os', 'legend-os', OS_DATA);
+  renderVitals();
+  renderApiTable();
+  renderBotChart();
+  renderAuthChart();
+  renderFwTable();
+  renderSubChart();
+  renderConverting();
+  seedVisits();
+  renderVisits();
+
+  // Live feed
+  for (let i = 0; i < 6; i++) pushFeed();
+  setInterval(() => autoOn && pushFeed(), 1400);
+
+  // Periodic refresh pulse (visual only — re-renders main chart softly)
+  setInterval(() => {
+    if (!autoOn) return;
+    const last = VISITS[0];
+    const newV = { ...last, time: new Date().toISOString().slice(11, 19), ts: Date.now() };
+    VISITS.unshift(newV); VISITS.pop();
+    if (document.querySelector('.tab.on').dataset.tab === 'activity') renderVisits();
+  }, 3200);
+}
+init();
+</script>
+</body>
+</html>

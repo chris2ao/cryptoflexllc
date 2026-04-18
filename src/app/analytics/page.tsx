@@ -72,24 +72,30 @@ import {
   fetchAttackStatus,
   fetchFirewallEvents,
 } from "@/lib/vercel-api";
-import { SectionHeader } from "./_components/section-header";
-import { StatCard } from "./_components/stat-card";
 import { DataTable } from "./_components/data-table";
 import { VisitorMapDynamic } from "./_components/visitor-map-dynamic";
 import { VercelFirewallCard } from "./_components/vercel-firewall-card";
 import { VercelAnalyticsCard } from "./_components/vercel-analytics-card";
-import { VercelSpeedInsightsCard } from "./_components/vercel-speed-insights-card";
 import { SubscriberPanel } from "./_components/subscriber-panel";
 import { CommentsPanel } from "./_components/comments-panel";
 import { GuestbookPanel } from "./_components/guestbook-panel";
 import { CampaignPanel } from "./_components/campaign-panel";
 import { SearchQueriesPanel } from "./_components/search-queries-panel";
 import { ClientErrorsPanel } from "./_components/client-errors-panel";
-import { TopConvertingPanel } from "./_components/top-converting-panel";
 import { RecentVisitsTable } from "./_components/recent-visits-table";
 import { GmailRunsPanel } from "./_components/gmail-runs-panel";
 import { SessionArchivePanel } from "./_components/session-archive-panel";
-import { PanelWrapper } from "./_components/panel-wrapper";
+import { AnalyticsShell, DEFAULT_TABS } from "./_components/analytics-shell";
+import { LiveClock } from "./_components/live-clock";
+import { LogoutButton } from "./_components/logout-button";
+import { KpiStrip } from "./_components/kpi-strip";
+import { LiveFeed } from "./_components/live-feed";
+import { TrendChartPanel, type TrendSeries } from "./_components/trend-chart-panel";
+import { AxPanel } from "./_components/ax-panel";
+import { AxRankedList } from "./_components/ax-ranked-list";
+import { AxDonut } from "./_components/ax-donut";
+import { WebVitalsGrid } from "./_components/web-vitals-grid";
+import { ApiResponseTable } from "./_components/api-response-table";
 
 // ---------------------------------------------------------------------------
 // Lazy-loaded Recharts chart components (eliminates 300KB+ eager bundle)
@@ -119,40 +125,8 @@ function SectionSkeleton() {
   );
 }
 
-const PageViewsChart = nextDynamic(
-  () => import("./_components/page-views-chart").then((m) => m.PageViewsChart),
-  { loading: () => <TallChartSkeleton /> }
-);
-
-const TopPagesChart = nextDynamic(
-  () => import("./_components/top-pages-chart").then((m) => m.TopPagesChart),
-  { loading: () => <ChartSkeleton /> }
-);
-
-const CountriesChart = nextDynamic(
-  () => import("./_components/countries-chart").then((m) => m.CountriesChart),
-  { loading: () => <ChartSkeleton /> }
-);
-
-const BrowserChart = nextDynamic(
-  () => import("./_components/browser-chart").then((m) => m.BrowserChart),
-  { loading: () => <ChartSkeleton /> }
-);
-
-const DeviceChart = nextDynamic(
-  () => import("./_components/device-chart").then((m) => m.DeviceChart),
-  { loading: () => <ChartSkeleton /> }
-);
-
-const OsChart = nextDynamic(
-  () => import("./_components/os-chart").then((m) => m.OsChart),
-  { loading: () => <ChartSkeleton /> }
-);
-
-const ReferrerChart = nextDynamic(
-  () => import("./_components/referrer-chart").then((m) => m.ReferrerChart),
-  { loading: () => <ChartSkeleton /> }
-);
+// Charts replaced by editorial primitives (AxRankedList, AxDonut, TrendChartPanel).
+// The underlying components are retained in _components/ for other usages.
 
 const PeakHoursHeatmap = nextDynamic(
   () => import("./_components/peak-hours-heatmap").then((m) => m.PeakHoursHeatmap),
@@ -352,42 +326,82 @@ async function OverviewSection({ days }: { days: number }) {
   const typedDailyViews = dailyViews as unknown as DailyViews[];
   const typedHeatmap = hourlyHeatmap as unknown as HourlyHeatmapRow[];
 
+  // Sparkline data from daily views (last N points each)
+  const viewsSpark = typedDailyViews.map((r) => r.views);
+  const uniquesSpark = typedDailyViews.map((r) => r.unique_visitors);
+
+  // Computed KPIs
+  const kpiItems = [
+    {
+      id: "views",
+      label: "Total Views",
+      value: stats.total_views ?? 0,
+      spark: viewsSpark,
+      hint: "▲",
+    },
+    {
+      id: "uniques",
+      label: "Unique Visitors",
+      value: stats.unique_visitors ?? 0,
+      spark: uniquesSpark,
+      hint: "▲",
+    },
+    {
+      id: "bounce",
+      label: "Bounce Rate",
+      value: bounceRate,
+      format: "percent" as const,
+      unit: "%",
+      hint: bounceRate > 60 ? "▼" : "—",
+    },
+    {
+      id: "new",
+      label: "New / Returning",
+      value: totalNew,
+      hint: `${totalReturning} returning`,
+    },
+  ];
+
   return (
-    <>
-      {/* KPI Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <StatCard
-          label="Total Page Views"
-          value={stats.total_views?.toLocaleString() || "0"}
-          tooltip="Total page loads recorded in the selected time period"
-        />
-        <StatCard
-          label="Unique Visitors"
-          value={stats.unique_visitors?.toLocaleString() || "0"}
-          tooltip="Distinct IP addresses that visited the site"
-        />
-        <StatCard
-          label="Bounce Rate"
-          value={`${bounceRate}%`}
-          tooltip="Percentage of visitors who viewed only a single page"
-        />
-        <StatCard
-          label="New vs Returning"
-          value={`${totalNew} / ${totalReturning}`}
-          tooltip="Count of first-time visitors vs those with prior visits"
+    <div className="ax-wrap ax-section">
+      <div className="ax-section-label">01 · Overview</div>
+      <div className="ax-section-head">
+        <h2>
+          The <em>big picture.</em>
+        </h2>
+        <p className="lede">
+          Top-of-funnel metrics, trend over the selected range, and a tail
+          of recent events.
+        </p>
+      </div>
+
+      <KpiStrip items={kpiItems} />
+
+      <div style={{ marginBottom: 20 }}>
+        <TrendChartPanel
+          series={{
+            views: typedDailyViews.map((r) => ({ date: r.date, value: r.views })),
+            uniques: typedDailyViews.map((r) => ({
+              date: r.date,
+              value: r.unique_visitors,
+            })),
+            new: typedNewVsReturning.map((r) => ({
+              date: r.date,
+              value: r.new_visitors,
+            })),
+            bounce: [],
+          } satisfies TrendSeries}
+          days={days}
         />
       </div>
 
-      {/* Page Views Over Time (full width) */}
-      <div className="mb-8">
-        <PageViewsChart data={typedDailyViews} />
+      <div className="ax-grid-12" style={{ marginBottom: 20 }}>
+        <AxPanel title="Peak hours" kicker="TRAFFIC BY DAY × HOUR">
+          <PeakHoursHeatmap data={typedHeatmap} />
+        </AxPanel>
+        <LiveFeed />
       </div>
-
-      {/* Peak Hours Heatmap (full width) */}
-      <div className="mb-10">
-        <PeakHoursHeatmap data={typedHeatmap} />
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -436,23 +450,40 @@ async function AudienceSection({ days }: { days: number }) {
   const typedCountries = topCountries as unknown as CountryRow[];
   const typedNewVsReturning = newVsReturning as unknown as NewVsReturningRow[];
 
+  const countryItems = typedCountries.slice(0, 10).map((c) => ({
+    label: c.country || "Unknown",
+    value: c.views,
+    sublabel: `${c.unique_visitors.toLocaleString()} visitors`,
+  }));
+
   return (
-    <>
-      <SectionHeader
-        title="Audience & Geography"
-        description="Where your visitors come from and how they discover your site"
-      />
-
-      {/* Visitor Map (full width) */}
-      <div className="mb-8">
-        <VisitorMapDynamic data={typedMapLocations} />
+    <div className="ax-wrap ax-section">
+      <div className="ax-section-label">02 · Audience</div>
+      <div className="ax-section-head">
+        <h2>
+          Who&apos;s <em>coming through.</em>
+        </h2>
+        <p className="lede">
+          Geographic distribution, new vs returning, and the long tail of
+          where visitors originate.
+        </p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8 mb-10">
-        <CountriesChart data={typedCountries} />
-        <NewVsReturningChart data={typedNewVsReturning} />
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Visitor map" kicker={`${typedMapLocations.length} CITIES`}>
+          <VisitorMapDynamic data={typedMapLocations} />
+        </AxPanel>
       </div>
-    </>
+
+      <div className="ax-grid-12" style={{ marginBottom: 20 }}>
+        <AxPanel title="Top countries" kicker={`TOP ${countryItems.length}`}>
+          <AxRankedList items={countryItems} />
+        </AxPanel>
+        <AxPanel title="New vs returning" kicker="DAILY">
+          <NewVsReturningChart data={typedNewVsReturning} />
+        </AxPanel>
+      </div>
+    </div>
   );
 }
 
@@ -536,25 +567,58 @@ async function ContentSection({ days }: { days: number }) {
   const typedCampaigns = campaignData as unknown as CampaignRow[];
   const typedSearchQueries = searchQueries as unknown as SearchQueryRow[];
 
+  const topPageItems = typedTopPages.slice(0, 10).map((p) => ({
+    label: p.page_path,
+    value: p.views,
+    sublabel: `${p.unique_views.toLocaleString()} uniques`,
+    href: p.page_path.startsWith("/") ? p.page_path : undefined,
+  }));
+  const referrerItems = typedReferrers.slice(0, 10).map((r) => ({
+    label: r.referrer_domain || "(direct)",
+    value: r.views,
+    sublabel: `${r.unique_visitors.toLocaleString()} visitors`,
+  }));
+
   return (
-    <>
-      <SectionHeader
-        title="Content & Engagement"
-        description="How visitors interact with your pages and content"
-      />
-
-      <div className="grid lg:grid-cols-2 gap-8 mb-8">
-        <TopPagesChart data={typedTopPages} />
-        <ReferrerChart data={typedReferrers} />
-        <ScrollDepthChart data={typedScrollDepth} />
-        <TimeOnPageChart data={typedTimeOnPage} />
+    <div className="ax-wrap ax-section">
+      <div className="ax-section-label">03 · Content</div>
+      <div className="ax-section-head">
+        <h2>
+          What they&apos;re <em>reading.</em>
+        </h2>
+        <p className="lede">
+          Top pages, where traffic came from, how deep readers scrolled, and
+          how long they stayed.
+        </p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8 mb-10">
-        <CampaignPanel campaigns={typedCampaigns} />
-        <SearchQueriesPanel queries={typedSearchQueries} />
+      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
+        <AxPanel title="Top pages" kicker={`TOP ${topPageItems.length}`}>
+          <AxRankedList items={topPageItems} />
+        </AxPanel>
+        <AxPanel title="Referrers" kicker={`TOP ${referrerItems.length}`}>
+          <AxRankedList items={referrerItems} />
+        </AxPanel>
       </div>
-    </>
+
+      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
+        <AxPanel title="Scroll depth" kicker="HOW FAR THEY GET">
+          <ScrollDepthChart data={typedScrollDepth} />
+        </AxPanel>
+        <AxPanel title="Time on page" kicker="MEDIAN DWELL">
+          <TimeOnPageChart data={typedTimeOnPage} />
+        </AxPanel>
+      </div>
+
+      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
+        <AxPanel title="Campaigns" kicker="UTM TRAFFIC">
+          <CampaignPanel campaigns={typedCampaigns} />
+        </AxPanel>
+        <AxPanel title="Site search" kicker="QUERIES">
+          <SearchQueriesPanel queries={typedSearchQueries} />
+        </AxPanel>
+      </div>
+    </div>
   );
 }
 
@@ -586,19 +650,62 @@ async function TechnologySection({ days }: { days: number }) {
   const typedDevices = devices as unknown as DeviceRow[];
   const typedOs = osStats as unknown as OsRow[];
 
-  return (
-    <>
-      <SectionHeader
-        title="Technology"
-        description="Browsers, devices, and operating systems used by visitors"
-      />
+  const browserItems = typedBrowsers.slice(0, 6).map((b) => ({
+    label: b.browser || "Unknown",
+    value: b.count,
+  }));
+  const deviceItems = typedDevices.map((d) => ({
+    label: d.device_type || "Unknown",
+    value: d.count,
+  }));
+  const osItems = typedOs.slice(0, 6).map((o) => ({
+    label: o.os || "Unknown",
+    value: o.count,
+  }));
 
-      <div className="grid lg:grid-cols-3 gap-8 mb-10">
-        <BrowserChart data={typedBrowsers} />
-        <DeviceChart data={typedDevices} />
-        <OsChart data={typedOs} />
+  const totalBrowsers = browserItems.reduce((s, i) => s + i.value, 0);
+  const totalDevices = deviceItems.reduce((s, i) => s + i.value, 0);
+  const totalOs = osItems.reduce((s, i) => s + i.value, 0);
+
+  return (
+    <div className="ax-wrap ax-section">
+      <div className="ax-section-label">04 · Technology</div>
+      <div className="ax-section-head">
+        <h2>
+          How they <em>connect.</em>
+        </h2>
+        <p className="lede">
+          Browser, device, and OS breakdown of visitors.
+        </p>
       </div>
-    </>
+
+      <div className="ax-grid-3">
+        <AxPanel title="Browsers" kicker={`${totalBrowsers.toLocaleString()} HITS`}>
+          <AxDonut
+            items={browserItems}
+            centerLabel={String(browserItems.length)}
+            centerCaption="Browsers"
+            ariaLabel="Browser breakdown"
+          />
+        </AxPanel>
+        <AxPanel title="Devices" kicker={`${totalDevices.toLocaleString()} HITS`}>
+          <AxDonut
+            items={deviceItems}
+            centerLabel={String(deviceItems.length)}
+            centerCaption="Devices"
+            ariaLabel="Device type breakdown"
+          />
+        </AxPanel>
+        <AxPanel title="Operating systems" kicker={`${totalOs.toLocaleString()} HITS`}>
+          <AxDonut
+            items={osItems}
+            centerLabel={String(osItems.length)}
+            centerCaption="OS"
+            ariaLabel="Operating system breakdown"
+          />
+        </AxPanel>
+      </div>
+    </div>
   );
 }
 
@@ -682,35 +789,57 @@ async function TelemetrySection({ days }: { days: number }) {
   `;
   const stats = summaryRow[0] || { total_views: 0, unique_visitors: 0 };
 
+  const totalRequests = typedApiEndpoints.reduce(
+    (s, r) => s + r.total_count,
+    0
+  );
+  const totalErrors = typedApiEndpoints.reduce(
+    (s, r) => s + r.error_count,
+    0
+  );
+
   return (
-    <>
-      <SectionHeader
-        title="Server Telemetry"
-        description="API response times, error rates, and server-side performance"
-      />
-
-      <div className="mb-10">
-        <ApiResponseChart
-          endpoints={typedApiEndpoints}
-          daily={typedApiDaily}
-        />
+    <div className="ax-wrap ax-section">
+      <div className="ax-section-label">05 · Performance</div>
+      <div className="ax-section-head">
+        <h2>
+          Under the <em>hood.</em>
+        </h2>
+        <p className="lede">
+          Core Web Vitals from real visitor sessions, and API latency across
+          server routes.
+        </p>
       </div>
 
-      <SectionHeader
-        title="Performance"
-        description="Core Web Vitals and speed metrics from real visitor sessions"
-      />
-
-      <div className="grid lg:grid-cols-2 gap-8 mb-10">
-        <VercelAnalyticsCard
-          totalViews={stats.total_views || 0}
-          uniqueVisitors={stats.unique_visitors || 0}
-          topPage={typedTopPages[0]?.page_path || null}
-          topCountry={typedCountries[0]?.country || null}
-        />
-        <VercelSpeedInsightsCard data={typedWebVitals} />
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Core Web Vitals" kicker="P75 WITH GOOGLE BUDGETS">
+          <WebVitalsGrid data={typedWebVitals} />
+        </AxPanel>
       </div>
-    </>
+
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel
+          title="API response times"
+          kicker={`${totalRequests.toLocaleString()} REQUESTS · ${totalErrors} ERRORS`}
+        >
+          <ApiResponseTable endpoints={typedApiEndpoints} />
+        </AxPanel>
+      </div>
+
+      <div className="ax-grid-2">
+        <AxPanel title="Daily API latency" kicker="TREND">
+          <ApiResponseChart endpoints={typedApiEndpoints} daily={typedApiDaily} />
+        </AxPanel>
+        <AxPanel title="Vercel summary" kicker="PROXY SNAPSHOT">
+          <VercelAnalyticsCard
+            totalViews={stats.total_views || 0}
+            uniqueVisitors={stats.unique_visitors || 0}
+            topPage={typedTopPages[0]?.page_path || null}
+            topCountry={typedCountries[0]?.country || null}
+          />
+        </AxPanel>
+      </div>
+    </div>
   );
 }
 
@@ -798,52 +927,86 @@ async function SecuritySection({ days }: { days: number }) {
     else console.error("Vercel firewall events error:", fwEvents.reason);
   }
 
+  const totalBot = typedBotTrend.reduce((s, r) => s + (r.bot_count ?? 0), 0);
+  const totalAuthFail = typedAuthAttempts.reduce(
+    (s, r) => s + (r.fail_count ?? 0),
+    0
+  );
+  const firewallDenied = vercelAttackStatus?.anomalies?.length ?? 0;
+
+  const secKpis = [
+    {
+      id: "firewall",
+      label: "Firewall Denied",
+      value: firewallDenied,
+      hint: "▼",
+    },
+    { id: "bot", label: "Bot Traffic", value: totalBot, hint: "▲" },
+    {
+      id: "auth",
+      label: "Auth Failures",
+      value: totalAuthFail,
+      hint: "▼",
+    },
+    {
+      id: "client-err",
+      label: "Client Errors",
+      value: errorTotal,
+      hint: "▼",
+    },
+  ];
+
   return (
-    <>
-      <SectionHeader
-        title="Security"
-        description="Firewall events, bot traffic, and authentication monitoring"
-      />
-
-      <div className="grid lg:grid-cols-2 gap-8 mb-8">
-        <BotTrendChart data={typedBotTrend} />
-        <AuthAttemptsChart data={typedAuthAttempts} />
+    <div className="ax-wrap ax-section">
+      <div className="ax-section-label">06 · Security</div>
+      <div className="ax-section-head">
+        <h2>
+          Firewall, <em>bots, auth.</em>
+        </h2>
+        <p className="lede">
+          Edge denials, bot vs human traffic, authentication attempts, and
+          client-side errors.
+        </p>
       </div>
 
-      {isVercelApiConfigured() ? (
-        <div className="mb-10">
-          <VercelFirewallCard
-            config={vercelFirewallConfig}
-            attackStatus={vercelAttackStatus}
-            events={vercelFirewallEvents}
+      <KpiStrip items={secKpis} />
+
+      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
+        <AxPanel title="Bot vs human" kicker="TRAFFIC MIX">
+          <BotTrendChart data={typedBotTrend} />
+        </AxPanel>
+        <AxPanel title="Auth attempts" kicker="SUCCESS / FAIL">
+          <AuthAttemptsChart data={typedAuthAttempts} />
+        </AxPanel>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Firewall" kicker={isVercelApiConfigured() ? "VERCEL EDGE" : "NOT CONFIGURED"}>
+          {isVercelApiConfigured() ? (
+            <VercelFirewallCard
+              config={vercelFirewallConfig}
+              attackStatus={vercelAttackStatus}
+              events={vercelFirewallEvents}
+            />
+          ) : (
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--fg-3)" }}>
+              Set <code>VERCEL_API_TOKEN</code> and <code>VERCEL_PROJECT_ID</code> to
+              display live firewall data.
+            </p>
+          )}
+        </AxPanel>
+      </div>
+
+      <div>
+        <AxPanel title="Client errors" kicker={`${errorTotal} IN RANGE`}>
+          <ClientErrorsPanel
+            trend={typedErrorTrend}
+            recent={typedErrorRecent}
+            totalCount={errorTotal}
           />
-        </div>
-      ) : (
-        <div className="rounded-lg border border-border bg-card p-6 mb-10">
-          <h2 className="text-lg font-semibold mb-2">Vercel Firewall</h2>
-          <p className="text-sm text-muted-foreground">
-            Set{" "}
-            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-              VERCEL_API_TOKEN
-            </code>{" "}
-            and{" "}
-            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-              VERCEL_PROJECT_ID
-            </code>{" "}
-            environment variables to display live firewall configuration, attack
-            status, and event data from the Vercel API.
-          </p>
-        </div>
-      )}
-
-      <div className="mb-10">
-        <ClientErrorsPanel
-          trend={typedErrorTrend}
-          recent={typedErrorRecent}
-          totalCount={errorTotal}
-        />
+        </AxPanel>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -915,35 +1078,76 @@ async function NewsletterSection({ days: _days }: { days: number }) {
   const typedComments = commentList as unknown as CommentRow[];
   const typedGuestbook = guestbookList as unknown as GuestbookRow[];
 
+  const convertingItems = typedConverting.slice(0, 10).map((c) => ({
+    label: c.source_page,
+    value: c.subscriber_count,
+    href: c.source_page.startsWith("/") ? c.source_page : undefined,
+  }));
+
+  const newsletterKpis = [
+    { id: "total", label: "Subscribers", value: subStats.total, hint: "▲" },
+    { id: "active", label: "Active", value: subStats.active, hint: "—" },
+    {
+      id: "comments",
+      label: "Comments",
+      value: typedComments.length,
+      hint: "—",
+    },
+    {
+      id: "guestbook",
+      label: "Guestbook",
+      value: typedGuestbook.length,
+      hint: "—",
+    },
+  ];
+
   return (
-    <>
-      <SectionHeader
-        title="Newsletter, Comments & Guestbook"
-        description="Subscriber management, comment moderation, guestbook approvals"
-      />
-
-      <div className="grid lg:grid-cols-2 gap-8 mb-8">
-        <SubscriberGrowthChart data={typedSubGrowth} />
-        <TopConvertingPanel data={typedConverting} />
+    <div className="ax-wrap ax-section">
+      <div className="ax-section-label">07 · Newsletter</div>
+      <div className="ax-section-head">
+        <h2>
+          Subscribers &amp; <em>community.</em>
+        </h2>
+        <p className="lede">
+          Newsletter growth, converting pages, plus the live moderation queues
+          for comments and guestbook entries.
+        </p>
       </div>
 
-      <div className="mb-8">
-        <SubscriberPanel
-          totalCount={subStats.total}
-          activeCount={subStats.active}
-          inactiveCount={subStats.inactive}
-          subscribers={typedSubscribers}
-        />
+      <KpiStrip items={newsletterKpis} />
+
+      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
+        <AxPanel title="Subscriber growth" kicker="WEEKLY">
+          <SubscriberGrowthChart data={typedSubGrowth} />
+        </AxPanel>
+        <AxPanel title="Top converting pages" kicker={`TOP ${convertingItems.length}`}>
+          <AxRankedList items={convertingItems} />
+        </AxPanel>
       </div>
 
-      <div className="mb-8">
-        <CommentsPanel comments={typedComments} />
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel
+          title="Subscribers"
+          kicker={`${subStats.active} ACTIVE · ${subStats.inactive} INACTIVE`}
+        >
+          <SubscriberPanel
+            totalCount={subStats.total}
+            activeCount={subStats.active}
+            inactiveCount={subStats.inactive}
+            subscribers={typedSubscribers}
+          />
+        </AxPanel>
       </div>
 
-      <div className="mb-10">
-        <GuestbookPanel entries={typedGuestbook} />
+      <div className="ax-grid-2">
+        <AxPanel title="Blog comments" kicker={`${typedComments.length} TOTAL`}>
+          <CommentsPanel comments={typedComments} />
+        </AxPanel>
+        <AxPanel title="Guestbook" kicker={`${typedGuestbook.length} ENTRIES`}>
+          <GuestbookPanel entries={typedGuestbook} />
+        </AxPanel>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -979,58 +1183,46 @@ function ClaudeAutomationSection() {
       kept: r.primary_kept,
     }));
 
+  const automationKpis = [
+    { id: "runs", label: "Gmail Runs", value: totalRuns, hint: "▲" },
+    { id: "processed", label: "Processed", value: totalProcessed, hint: "▲" },
+    { id: "trashed", label: "Trashed", value: totalTrashed, hint: "▲" },
+    { id: "errors", label: "Errors", value: totalErrors, hint: "▼" },
+  ];
+
   return (
-    <>
-      <SectionHeader
-        title="Claude Automation"
-        description="Gmail assistant runs and local session archive from the Claude Code install."
-      />
-
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-        <StatCard
-          label="Runs"
-          value={String(totalRuns)}
-          tooltip="Total Gmail assistant runs recorded"
-        />
-        <StatCard
-          label="Processed"
-          value={totalProcessed.toLocaleString()}
-          tooltip="Total emails processed across all runs"
-        />
-        <StatCard
-          label="Trashed"
-          value={totalTrashed.toLocaleString()}
-          tooltip="Total emails trashed (promotions + newsletters) across all runs"
-        />
-        <StatCard
-          label="Avg Duration"
-          value={`${avgDuration}s`}
-          tooltip="Average run duration in seconds"
-        />
-        <StatCard
-          label="Errors"
-          value={String(totalErrors)}
-          tooltip="Total error entries across all runs"
-        />
+    <div className="ax-wrap ax-section">
+      <div className="ax-section-label">09 · Automation</div>
+      <div className="ax-section-head">
+        <h2>
+          Agents at <em>work.</em>
+        </h2>
+        <p className="lede">
+          Gmail assistant runs, session archive, and other automation
+          telemetry from the local Claude Code install. Avg duration {avgDuration}s.
+        </p>
       </div>
 
-      <div className="mb-8">
-        <PanelWrapper
-          title="Emails Processed per Run"
-          tooltip="Trend of emails processed, trashed, and kept across the last 30 runs."
-        >
+      <KpiStrip items={automationKpis} />
+
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Emails processed per run" kicker="LAST 30 RUNS">
           <GmailMetricsChart data={chartData} />
-        </PanelWrapper>
+        </AxPanel>
       </div>
 
-      <div className="mb-8">
-        <GmailRunsPanel runs={gmailRuns.slice(0, 25)} />
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Gmail runs" kicker={`${Math.min(25, totalRuns)} MOST RECENT`}>
+          <GmailRunsPanel runs={gmailRuns.slice(0, 25)} />
+        </AxPanel>
       </div>
 
-      <div className="mb-10">
-        <SessionArchivePanel sessions={sessions.slice(0, 25)} />
+      <div>
+        <AxPanel title="Session archive" kicker="LOCAL CLAUDE CODE SESSIONS">
+          <SessionArchivePanel sessions={sessions.slice(0, 25)} />
+        </AxPanel>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1092,68 +1284,88 @@ async function ActivitySection({ days }: { days: number }) {
   const typedRecent = recent as unknown as RecentVisit[];
 
   return (
-    <>
-      <SectionHeader
-        title="Recent Activity"
-        description="Real-time visit log and detailed data tables"
-      />
-
-      <RecentVisitsTable data={typedRecent} />
-
-      <div className="grid lg:grid-cols-2 gap-8 mt-8 mb-10">
-        <DataTable
-          title="Top Pages"
-          headers={["Page", "Views", "Unique"]}
-          rows={topPages.map((r: Record<string, unknown>) => [
-            String(r.page_path),
-            String(r.views),
-            String(r.unique_views),
-          ])}
-        />
-        <DataTable
-          title="Countries"
-          headers={["Country", "Views", "Unique"]}
-          rows={topCountries.map((r: Record<string, unknown>) => [
-            String(r.country),
-            String(r.views),
-            String(r.unique_visitors),
-          ])}
-        />
-        <DataTable
-          title="Browsers"
-          headers={["Browser", "Count"]}
-          rows={browsers.map((r: Record<string, unknown>) => [
-            String(r.browser),
-            String(r.count),
-          ])}
-        />
-        <DataTable
-          title="Devices"
-          headers={["Device Type", "Count"]}
-          rows={devices.map((r: Record<string, unknown>) => [
-            String(r.device_type),
-            String(r.count),
-          ])}
-        />
-        <DataTable
-          title="Operating Systems"
-          headers={["OS", "Count"]}
-          rows={osStats.map((r: Record<string, unknown>) => [
-            String(r.os),
-            String(r.count),
-          ])}
-        />
-        <DataTable
-          title="Referrers"
-          headers={["Domain", "Views", "Unique"]}
-          rows={referrers.map((r: Record<string, unknown>) => [
-            String(r.referrer_domain),
-            String(r.views),
-            String(r.unique_visitors),
-          ])}
-        />
+    <div className="ax-wrap ax-section">
+      <div className="ax-section-label">08 · Activity</div>
+      <div className="ax-section-head">
+        <h2>
+          Recent <em>visits.</em>
+        </h2>
+        <p className="lede">
+          Live visit log with filter chips, plus top pages / countries /
+          browsers / devices / OS / referrers.
+        </p>
       </div>
-    </>
+
+      <div style={{ marginBottom: 20 }}>
+        <RecentVisitsTable data={typedRecent} />
+      </div>
+
+      <div className="ax-grid-2">
+        <AxPanel title="Top pages" kicker="BY VIEWS">
+          <DataTable
+            title=""
+            headers={["Page", "Views", "Unique"]}
+            rows={topPages.map((r: Record<string, unknown>) => [
+              String(r.page_path),
+              String(r.views),
+              String(r.unique_views),
+            ])}
+          />
+        </AxPanel>
+        <AxPanel title="Countries" kicker="BY VIEWS">
+          <DataTable
+            title=""
+            headers={["Country", "Views", "Unique"]}
+            rows={topCountries.map((r: Record<string, unknown>) => [
+              String(r.country),
+              String(r.views),
+              String(r.unique_visitors),
+            ])}
+          />
+        </AxPanel>
+        <AxPanel title="Browsers" kicker="BY COUNT">
+          <DataTable
+            title=""
+            headers={["Browser", "Count"]}
+            rows={browsers.map((r: Record<string, unknown>) => [
+              String(r.browser),
+              String(r.count),
+            ])}
+          />
+        </AxPanel>
+        <AxPanel title="Devices" kicker="BY COUNT">
+          <DataTable
+            title=""
+            headers={["Device Type", "Count"]}
+            rows={devices.map((r: Record<string, unknown>) => [
+              String(r.device_type),
+              String(r.count),
+            ])}
+          />
+        </AxPanel>
+        <AxPanel title="Operating systems" kicker="BY COUNT">
+          <DataTable
+            title=""
+            headers={["OS", "Count"]}
+            rows={osStats.map((r: Record<string, unknown>) => [
+              String(r.os),
+              String(r.count),
+            ])}
+          />
+        </AxPanel>
+        <AxPanel title="Referrers" kicker="BY VIEWS">
+          <DataTable
+            title=""
+            headers={["Domain", "Views", "Unique"]}
+            rows={referrers.map((r: Record<string, unknown>) => [
+              String(r.referrer_domain),
+              String(r.views),
+              String(r.unique_visitors),
+            ])}
+          />
+        </AxPanel>
+      </div>
+    </div>
   );
 }
 
@@ -1189,107 +1401,158 @@ export default async function AnalyticsPage({
   const parsedDays = params.days ? parseInt(params.days, 10) : 30;
   const days = Math.max(1, Math.min(365, isNaN(parsedDays) ? 30 : parsedDays));
 
+  // Best-effort count of distinct visitors in the last 5 minutes for the live pill.
+  let activeSessions = 0;
+  try {
+    const sql = getDb();
+    const rows = (await sql`
+      SELECT COUNT(DISTINCT ip_address)::int AS active
+      FROM page_views
+      WHERE visited_at > NOW() - INTERVAL '5 minutes'
+    `) as Array<{ active: number }>;
+    activeSessions = rows[0]?.active ?? 0;
+  } catch {
+    activeSessions = 0;
+  }
+
+  const renderStart = Date.now();
+  const generatedAt = new Date();
+  const generatedStr =
+    generatedAt.toISOString().slice(0, 19).replace("T", " ") + "Z";
+  const queryTimeMs = Date.now() - renderStart;
+  const issueNum = String(
+    Math.floor(
+      (generatedAt.getTime() - new Date("2024-01-01").getTime()) /
+        (7 * 24 * 60 * 60 * 1000)
+    )
+  ).padStart(3, "0");
+
   return (
-    <section className="py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        {/* ═══════════════════════════════════════════
-            HEADER + TIME FILTER
-            ═══════════════════════════════════════════ */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
+    <section className="ax-page">
+      <div className="ax-wrap ax-header">
+        <div className="ax-header-inner">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold">Analytics</h1>
-            <p className="mt-2 text-muted-foreground">
-              Last {days} days of visitor data
+            <div className="ax-crumbs" aria-label="Breadcrumb">
+              <span>HOME</span>
+              <span className="sep">›</span>
+              <span>ANALYTICS</span>
+              <span className="sep">›</span>
+              <b>OVERVIEW</b>
+            </div>
+            <h1 className="ax-title">
+              Signal, <em>not</em> <span className="accent">slop.</span>
+            </h1>
+            <p className="ax-sub">
+              Real telemetry from a real site. Clickable KPIs retarget the
+              trend chart, tabs keep navigation instant, and the live feed
+              tails the last few minutes of traffic.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/backlog"
-              className="px-3 py-1.5 text-sm rounded-md bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Backlog
-            </Link>
-            <div className="flex gap-2">
-              {[7, 14, 30, 90].map((d) => (
-                <a
-                  key={d}
-                  href={`/analytics?days=${d}`}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                    days === d
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {d}d
-                </a>
-              ))}
+          <div className="ax-controls">
+            <span className="live-pill">
+              <span className="dot" aria-hidden="true" />
+              <span>
+                {activeSessions.toLocaleString()}{" "}
+                {activeSessions === 1 ? "session" : "sessions"} ·{" "}
+                <LiveClock />
+              </span>
+            </span>
+            <div className="ax-btn-group">
+              <Link
+                href={`/analytics?days=${days}`}
+                className="btn-editorial btn-editorial--sm"
+                prefetch={false}
+              >
+                Refresh
+              </Link>
+              <Link
+                href="/backlog"
+                className="btn-editorial btn-editorial--sm"
+                prefetch={false}
+              >
+                Backlog
+              </Link>
+              <LogoutButton />
             </div>
           </div>
         </div>
-
-        {/* ═══════════════════════════════════════════
-            SECTION 1: OVERVIEW (above fold, streams first)
-            ═══════════════════════════════════════════ */}
-        <Suspense fallback={<OverviewSkeleton />}>
-          <OverviewSection days={days} />
-        </Suspense>
-
-        {/* ═══════════════════════════════════════════
-            SECTION 2: AUDIENCE & GEOGRAPHY
-            ═══════════════════════════════════════════ */}
-        <Suspense fallback={<AudienceSkeleton />}>
-          <AudienceSection days={days} />
-        </Suspense>
-
-        {/* ═══════════════════════════════════════════
-            SECTION 3: CONTENT & ENGAGEMENT
-            ═══════════════════════════════════════════ */}
-        <Suspense fallback={<ContentSkeleton />}>
-          <ContentSection days={days} />
-        </Suspense>
-
-        {/* ═══════════════════════════════════════════
-            SECTION 4: TECHNOLOGY
-            ═══════════════════════════════════════════ */}
-        <Suspense fallback={<TechSkeleton />}>
-          <TechnologySection days={days} />
-        </Suspense>
-
-        {/* ═══════════════════════════════════════════
-            SECTIONS 5+6: TELEMETRY + PERFORMANCE
-            ═══════════════════════════════════════════ */}
-        <Suspense fallback={<TelemetrySkeleton />}>
-          <TelemetrySection days={days} />
-        </Suspense>
-
-        {/* ═══════════════════════════════════════════
-            SECTION 7: SECURITY
-            ═══════════════════════════════════════════ */}
-        <Suspense fallback={<SecuritySkeleton />}>
-          <SecuritySection days={days} />
-        </Suspense>
-
-        {/* ═══════════════════════════════════════════
-            SECTION 8: NEWSLETTER & COMMENTS
-            ═══════════════════════════════════════════ */}
-        <Suspense fallback={<NewsletterSkeleton />}>
-          <NewsletterSection days={days} />
-        </Suspense>
-
-        {/* ═══════════════════════════════════════════
-            SECTION 9: CLAUDE AUTOMATION
-            ═══════════════════════════════════════════ */}
-        <Suspense fallback={<SectionSkeleton />}>
-          <ClaudeAutomationSection />
-        </Suspense>
-
-        {/* ═══════════════════════════════════════════
-            SECTION 10: RECENT ACTIVITY
-            ═══════════════════════════════════════════ */}
-        <Suspense fallback={<ActivitySkeleton />}>
-          <ActivitySection days={days} />
-        </Suspense>
+        <div className="ax-meta-row">
+          <span>
+            ISSUE <b>#{issueNum}</b>
+          </span>
+          <span>
+            RANGE <b>LAST {days}D</b>
+          </span>
+          <span>
+            GENERATED <b>{generatedStr}</b>
+          </span>
+          <span>
+            QUERY <b>{queryTimeMs}MS</b>
+          </span>
+          <span>
+            CACHE <b>NO-STORE</b>
+          </span>
+          <span className="ac">
+            SOURCE <b>NEON / POSTGRES</b>
+          </span>
+        </div>
       </div>
+
+      <AnalyticsShell currentDays={days} tabs={DEFAULT_TABS}>
+        <div data-panel="overview" id="ax-panel-overview" role="tabpanel" aria-labelledby="ax-tab-overview" tabIndex={0} className="ax-panel">
+          <Suspense fallback={<OverviewSkeleton />}>
+            <OverviewSection days={days} />
+          </Suspense>
+        </div>
+
+        <div data-panel="audience" id="ax-panel-audience" role="tabpanel" aria-labelledby="ax-tab-audience" tabIndex={0} className="ax-panel">
+          <Suspense fallback={<AudienceSkeleton />}>
+            <AudienceSection days={days} />
+          </Suspense>
+        </div>
+
+        <div data-panel="content" id="ax-panel-content" role="tabpanel" aria-labelledby="ax-tab-content" tabIndex={0} className="ax-panel">
+          <Suspense fallback={<ContentSkeleton />}>
+            <ContentSection days={days} />
+          </Suspense>
+        </div>
+
+        <div data-panel="technology" id="ax-panel-technology" role="tabpanel" aria-labelledby="ax-tab-technology" tabIndex={0} className="ax-panel">
+          <Suspense fallback={<TechSkeleton />}>
+            <TechnologySection days={days} />
+          </Suspense>
+        </div>
+
+        <div data-panel="performance" id="ax-panel-performance" role="tabpanel" aria-labelledby="ax-tab-performance" tabIndex={0} className="ax-panel">
+          <Suspense fallback={<TelemetrySkeleton />}>
+            <TelemetrySection days={days} />
+          </Suspense>
+        </div>
+
+        <div data-panel="security" id="ax-panel-security" role="tabpanel" aria-labelledby="ax-tab-security" tabIndex={0} className="ax-panel">
+          <Suspense fallback={<SecuritySkeleton />}>
+            <SecuritySection days={days} />
+          </Suspense>
+        </div>
+
+        <div data-panel="newsletter" id="ax-panel-newsletter" role="tabpanel" aria-labelledby="ax-tab-newsletter" tabIndex={0} className="ax-panel">
+          <Suspense fallback={<NewsletterSkeleton />}>
+            <NewsletterSection days={days} />
+          </Suspense>
+        </div>
+
+        <div data-panel="activity" id="ax-panel-activity" role="tabpanel" aria-labelledby="ax-tab-activity" tabIndex={0} className="ax-panel">
+          <Suspense fallback={<ActivitySkeleton />}>
+            <ActivitySection days={days} />
+          </Suspense>
+        </div>
+
+        <div data-panel="automation" id="ax-panel-automation" role="tabpanel" aria-labelledby="ax-tab-automation" tabIndex={0} className="ax-panel">
+          <Suspense fallback={<SectionSkeleton />}>
+            <ClaudeAutomationSection />
+          </Suspense>
+        </div>
+      </AnalyticsShell>
     </section>
   );
 }
