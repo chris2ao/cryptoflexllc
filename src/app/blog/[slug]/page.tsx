@@ -228,7 +228,7 @@ export default async function BlogPostPage({ params }: Props) {
           {/* Post header — editorial */}
           <header className="ed-post-header">
             <div className="ed-overline">
-              § 01 / The Journal · {kicker}
+              § 01 / The Blog · {kicker}
             </div>
             <div className="ed-post-tag-row">
               {post.tags.map((tag) => (

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -14,11 +15,18 @@ import { ThemeToggle } from "@/components/theme-toggle";
 type NavLink = { href: string; label: string };
 
 const links: NavLink[] = [
-  { href: "/blog", label: "Journal" },
+  { href: "/blog", label: "Blog" },
   { href: "/portfolio", label: "Work" },
   { href: "/about", label: "About" },
   { href: "/services", label: "Services" },
   { href: "/#subscribe", label: "Subscribe" },
+];
+
+const secondaryLinks: NavLink[] = [
+  { href: "/skills", label: "§ Skills" },
+  { href: "/resources", label: "§ Resources" },
+  { href: "/guestbook", label: "§ Guestbook" },
+  { href: "/contact", label: "§ Contact" },
 ];
 
 const mobileLinks: NavLink[] = [
@@ -40,10 +48,20 @@ export function Nav() {
   const [open, setOpen] = useState(false);
 
   return (
+    <>
     <header className="masthead">
       <div className="masthead-inner">
         <Link href="/" className="masthead-brand" aria-label="CryptoFlex — home">
-          <span className="masthead-brand-mark" aria-hidden="true">CF</span>
+          <span className="masthead-brand-mark" aria-hidden="true">
+            <Image
+              src="/CFLogo.png"
+              alt=""
+              width={28}
+              height={28}
+              priority
+              className="masthead-brand-img"
+            />
+          </span>
           <span>CryptoFlex</span>
           <span className="masthead-brand-kicker">{"// chris johnson"}</span>
         </Link>
@@ -96,7 +114,15 @@ export function Nav() {
             <SheetContent side="right" className="w-72 bg-background/95 backdrop-blur-md">
               <SheetTitle className="mb-6">
                 <div className="flex items-center gap-2 font-heading">
-                  <span className="masthead-brand-mark">CF</span>
+                  <span className="masthead-brand-mark">
+                    <Image
+                      src="/CFLogo.png"
+                      alt=""
+                      width={28}
+                      height={28}
+                      className="masthead-brand-img"
+                    />
+                  </span>
                   <span>CryptoFlex</span>
                 </div>
               </SheetTitle>
@@ -125,5 +151,21 @@ export function Nav() {
         </div>
       </div>
     </header>
+
+    <nav className="ed-subnav" aria-label="Secondary">
+      <div className="ed-subnav-inner">
+        {secondaryLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="ed-subnav-link"
+            aria-current={isActive(pathname, link.href) ? "page" : undefined}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+    </nav>
+    </>
   );
 }

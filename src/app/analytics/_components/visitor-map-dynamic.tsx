@@ -1,11 +1,10 @@
 import type { MapLocation } from "@/lib/analytics-types";
-import { VisitorMapSvg } from "./visitor-map-svg";
+import { VisitorMapWorld } from "./visitor-map-world";
 
 /**
- * Visitor map wrapper. Previously mounted a Leaflet map via `next/dynamic` with
- * ssr:false; the editorial redesign replaces that with a lightweight SVG
- * equirectangular projection that renders server-side too.
+ * Visitor map wrapper. Renders a real equirectangular world map with animated
+ * arc traces from Tampa, FL to each visitor location.
  */
 export function VisitorMapDynamic({ data }: { data: MapLocation[] }) {
-  return <VisitorMapSvg data={data} />;
+  return <VisitorMapWorld data={data} />;
 }

@@ -25,10 +25,10 @@ export function JournalSection({ posts, totalCount }: Props) {
 
   return (
     <section id="posts" className="ed-section reveal">
-      <div className="ed-section-label">§ 01 / The Journal</div>
+      <div className="ed-section-label">§ 01 / The Blog</div>
       <div className="ed-wrap">
         <div className="ed-section-head reveal">
-          <div className="ed-overline">The Journal</div>
+          <div className="ed-overline">The Blog</div>
           <h2>
             From the workshop<em>.</em>
           </h2>

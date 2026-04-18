@@ -42,7 +42,7 @@ export function HeroIdentity() {
             </p>
             <div className="ed-hero-cta-row reveal">
               <Link href="/blog" className="btn-editorial btn-editorial--primary">
-                Read the journal →
+                Read the blog →
               </Link>
               <Link href="/about" className="btn-editorial">
                 About Chris

@@ -78,7 +78,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   return (
     <>
       <EditorialPageHeader
-        sectionLabel="§ 01 / The Journal"
+        sectionLabel="§ 01 / The Blog"
         overline="Archive"
         title={<>From the <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>workshop.</em></>}
         lede="Field notes on cybersecurity, AI-assisted development, infrastructure, and the craft of shipping things that actually work."

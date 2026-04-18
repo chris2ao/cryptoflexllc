@@ -22,7 +22,7 @@ describe("Footer", () => {
 
   it("has navigation links", () => {
     render(<Footer />);
-    expect(screen.getByRole("link", { name: "Journal" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Blog" })).toHaveAttribute(
       "href",
       "/blog"
     );

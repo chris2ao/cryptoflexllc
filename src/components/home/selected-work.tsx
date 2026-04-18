@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 type Project = {
@@ -5,6 +6,9 @@ type Project = {
   description: string;
   tech: string[];
   link?: string;
+  image?: string;
+  imageAlt?: string;
+  imageFit?: "contain" | "cover";
 };
 
 const projects: Project[] = [
@@ -14,6 +18,9 @@ const projects: Project[] = [
       "Full-stack production site: Next.js 15, React 19, TypeScript. Custom analytics, newsletter, comments, MDX engine. Built end-to-end with Claude Code.",
     tech: ["Next.js", "TypeScript", "Neon", "MDX"],
     link: "/portfolio",
+    image: "/CFLogo.png",
+    imageAlt: "CryptoFlex shield logo",
+    imageFit: "contain",
   },
   {
     title: "Third Conflict",
@@ -42,6 +49,9 @@ const projects: Project[] = [
       "Seven-agent orchestration system on a headless Mac Mini. Telegram bots per agent, pixel-art Mission Control dashboard, Ollama embeddings, watchdogs.",
     tech: ["OpenClaw", "Ollama", "Telegram"],
     link: "/portfolio",
+    image: "/images/blog/mission-control-soc-hero.png",
+    imageAlt: "OpenClaw Mission Control pixel-art SOC dashboard",
+    imageFit: "cover",
   },
   {
     title: "Mining Rig",
@@ -83,7 +93,30 @@ export function SelectedWork() {
                 <h3>{project.title}</h3>
                 <p>{project.description}</p>
                 {isFeatured && (
-                  <div className="shot">SHOT / {project.title.toLowerCase()}</div>
+                  project.image ? (
+                    <div className={`ed-work-shot ${project.imageFit === "contain" ? "ed-work-shot--contain" : "ed-work-shot--cover"}`}>
+                      <Image
+                        src={project.image}
+                        alt={project.imageAlt ?? project.title}
+                        fill
+                        sizes="(max-width: 900px) 100vw, 50vw"
+                        className={project.imageFit === "contain" ? "object-contain" : "object-cover"}
+                      />
+                    </div>
+                  ) : (
+                    <div className="shot">SHOT / {project.title.toLowerCase()}</div>
+                  )
+                )}
+                {!isFeatured && project.image && (
+                  <div className={`ed-work-shot ed-work-shot--small ${project.imageFit === "contain" ? "ed-work-shot--contain" : "ed-work-shot--cover"}`}>
+                    <Image
+                      src={project.image}
+                      alt={project.imageAlt ?? project.title}
+                      fill
+                      sizes="(max-width: 900px) 100vw, 33vw"
+                      className={project.imageFit === "contain" ? "object-contain" : "object-cover"}
+                    />
+                  </div>
                 )}
                 {project.tech.length > 0 && (
                   <div className="ed-work-meta">

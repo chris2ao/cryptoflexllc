@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Github, Linkedin, Rss } from "lucide-react";
 
@@ -7,14 +8,22 @@ export function Footer() {
       <div className="editorial-footer-inner">
         <div className="flex items-center gap-3">
           <Link href="/" className="masthead-brand" aria-label="CryptoFlex — home">
-            <span className="masthead-brand-mark" aria-hidden="true">CF</span>
+            <span className="masthead-brand-mark" aria-hidden="true">
+              <Image
+                src="/CFLogo.png"
+                alt=""
+                width={28}
+                height={28}
+                className="masthead-brand-img"
+              />
+            </span>
             <span>CryptoFlex</span>
             <span className="masthead-brand-kicker">{"// chris johnson"}</span>
           </Link>
         </div>
 
         <div className="editorial-footer-links">
-          <Link href="/blog">Journal</Link>
+          <Link href="/blog">Blog</Link>
           <Link href="/portfolio">Work</Link>
           <Link href="/about">About</Link>
           <Link href="/services">Services</Link>

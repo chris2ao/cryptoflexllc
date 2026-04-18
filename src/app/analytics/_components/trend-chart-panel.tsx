@@ -20,9 +20,15 @@ import {
 } from "@/components/ui/chart";
 
 export type TrendPoint = { date: string; value: number };
+export type ViewsBreakdownPoint = {
+  date: string;
+  total: number;
+  new: number;
+  returning: number;
+};
 
 export type TrendSeries = {
-  views: TrendPoint[];
+  views: ViewsBreakdownPoint[];
   uniques: TrendPoint[];
   bounce: TrendPoint[];
   new: TrendPoint[];
@@ -37,6 +43,12 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   bounce: "Bounce Rate",
   new: "New Visitors",
 };
+
+const VIEWS_SERIES = [
+  { key: "total", label: "Total Views", color: "var(--primary)" },
+  { key: "new", label: "New Visitors", color: "var(--ax-green)" },
+  { key: "returning", label: "Returning", color: "var(--ax-amber)" },
+] as const;
 
 function formatDate(value: string) {
   const d = new Date(value + "T00:00:00");
@@ -72,18 +84,24 @@ export function TrendChartPanel({ series, days }: Props) {
     return () => observer.disconnect();
   }, []);
 
+  const isMulti = metric === "views";
   const data = series[metric] ?? [];
   const label = METRIC_LABELS[metric];
 
-  const chartConfig = useMemo<ChartConfig>(
-    () => ({
+  const chartConfig = useMemo<ChartConfig>(() => {
+    if (isMulti) {
+      return VIEWS_SERIES.reduce((acc, s) => {
+        acc[s.key] = { label: s.label, color: s.color };
+        return acc;
+      }, {} as ChartConfig);
+    }
+    return {
       value: {
         label,
         color: "var(--primary)",
       },
-    }),
-    [label]
-  );
+    };
+  }, [label, isMulti]);
 
   const isEmpty = !data || data.length === 0;
 
@@ -127,10 +145,19 @@ export function TrendChartPanel({ series, days }: Props) {
             {mode === "area" ? (
               <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                  </linearGradient>
+                  {isMulti ? (
+                    VIEWS_SERIES.map((s) => (
+                      <linearGradient key={s.key} id={`trendFill-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={s.color} stopOpacity={0.35} />
+                        <stop offset="95%" stopColor={s.color} stopOpacity={0} />
+                      </linearGradient>
+                    ))
+                  ) : (
+                    <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+                    </linearGradient>
+                  )}
                 </defs>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis
@@ -147,13 +174,27 @@ export function TrendChartPanel({ series, days }: Props) {
                   allowDecimals={false}
                 />
                 <ChartTooltip content={<ChartTooltipContent labelFormatter={formatDate} />} />
-                <Area
-                  dataKey="value"
-                  type="monotone"
-                  fill="url(#trendFill)"
-                  stroke="var(--primary)"
-                  strokeWidth={2}
-                />
+                {isMulti ? (
+                  VIEWS_SERIES.map((s) => (
+                    <Area
+                      key={s.key}
+                      dataKey={s.key}
+                      name={s.label}
+                      type="monotone"
+                      fill={`url(#trendFill-${s.key})`}
+                      stroke={s.color}
+                      strokeWidth={2}
+                    />
+                  ))
+                ) : (
+                  <Area
+                    dataKey="value"
+                    type="monotone"
+                    fill="url(#trendFill)"
+                    stroke="var(--primary)"
+                    strokeWidth={2}
+                  />
+                )}
               </AreaChart>
             ) : mode === "line" ? (
               <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -172,13 +213,27 @@ export function TrendChartPanel({ series, days }: Props) {
                   allowDecimals={false}
                 />
                 <ChartTooltip content={<ChartTooltipContent labelFormatter={formatDate} />} />
-                <Line
-                  dataKey="value"
-                  type="monotone"
-                  stroke="var(--primary)"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "var(--background)", stroke: "var(--primary)" }}
-                />
+                {isMulti ? (
+                  VIEWS_SERIES.map((s) => (
+                    <Line
+                      key={s.key}
+                      dataKey={s.key}
+                      name={s.label}
+                      type="monotone"
+                      stroke={s.color}
+                      strokeWidth={2}
+                      dot={{ r: 3, fill: "var(--background)", stroke: s.color }}
+                    />
+                  ))
+                ) : (
+                  <Line
+                    dataKey="value"
+                    type="monotone"
+                    stroke="var(--primary)"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: "var(--background)", stroke: "var(--primary)" }}
+                  />
+                )}
               </LineChart>
             ) : (
               <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -197,12 +252,34 @@ export function TrendChartPanel({ series, days }: Props) {
                   allowDecimals={false}
                 />
                 <ChartTooltip content={<ChartTooltipContent labelFormatter={formatDate} />} />
-                <Bar dataKey="value" fill="var(--primary)" radius={[2, 2, 0, 0]} />
+                {isMulti ? (
+                  VIEWS_SERIES.map((s) => (
+                    <Bar
+                      key={s.key}
+                      dataKey={s.key}
+                      name={s.label}
+                      fill={s.color}
+                      radius={[2, 2, 0, 0]}
+                    />
+                  ))
+                ) : (
+                  <Bar dataKey="value" fill="var(--primary)" radius={[2, 2, 0, 0]} />
+                )}
               </BarChart>
             )}
           </ChartContainer>
         )}
       </div>
+      {isMulti && !isEmpty && (
+        <div className="ax-chart-legend" role="list" aria-label="Chart legend">
+          {VIEWS_SERIES.map((s) => (
+            <span key={s.key} className="ax-chart-legend-item" role="listitem">
+              <span className="ax-chart-legend-dot" style={{ background: s.color }} aria-hidden="true" />
+              {s.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

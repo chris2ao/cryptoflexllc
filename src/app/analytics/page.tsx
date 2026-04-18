@@ -380,7 +380,15 @@ async function OverviewSection({ days }: { days: number }) {
       <div style={{ marginBottom: 20 }}>
         <TrendChartPanel
           series={{
-            views: typedDailyViews.map((r) => ({ date: r.date, value: r.views })),
+            views: typedDailyViews.map((r) => {
+              const nvr = typedNewVsReturning.find((n) => n.date === r.date);
+              return {
+                date: r.date,
+                total: r.views,
+                new: nvr?.new_visitors ?? 0,
+                returning: nvr?.returning_visitors ?? 0,
+              };
+            }),
             uniques: typedDailyViews.map((r) => ({
               date: r.date,
               value: r.unique_visitors,

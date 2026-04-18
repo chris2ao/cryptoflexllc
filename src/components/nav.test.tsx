@@ -44,7 +44,7 @@ describe("Nav", () => {
 
   it("renders primary navigation links", () => {
     render(<Nav />);
-    expect(screen.getAllByText("Journal").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Blog").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Work").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("About").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Services").length).toBeGreaterThanOrEqual(1);
@@ -70,7 +70,7 @@ describe("Nav", () => {
 
     render(<Nav />);
 
-    const journalLinks = screen.getAllByText("Journal");
+    const journalLinks = screen.getAllByText("Blog");
     const hasAriaCurrent = journalLinks.some((link: HTMLElement) => {
       const anchor = link.closest("a");
       return anchor?.getAttribute("aria-current") === "page";
