@@ -25,6 +25,7 @@ export function CategoryFilter({ categories, activeCategory }: CategoryFilterPro
             key={category}
             href={href}
             scroll={false}
+            rel={category === "All" ? undefined : "nofollow"}
             aria-current={isActive ? "page" : undefined}
             className={`
               inline-flex items-center rounded-md px-3 py-1 text-sm font-heading font-medium

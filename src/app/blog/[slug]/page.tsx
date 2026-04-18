@@ -243,7 +243,7 @@ export default async function BlogPostPage({ params }: Props) {
             </div>
             <div className="ed-post-tag-row">
               {post.tags.map((tag) => (
-                <Link key={tag} href={`/blog?tag=${encodeURIComponent(tag)}`}>
+                <Link key={tag} href={`/blog?tag=${encodeURIComponent(tag)}`} rel="nofollow">
                   <span className="ed-tag">{tag}</span>
                 </Link>
               ))}

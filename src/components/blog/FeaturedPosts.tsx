@@ -39,7 +39,7 @@ function FeaturedCard({ post }: { post: FeaturedPost }) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between mb-3">
           {primaryTag && (
-            <Link href={`/blog?tag=${encodeURIComponent(primaryTag)}`}>
+            <Link href={`/blog?tag=${encodeURIComponent(primaryTag)}`} rel="nofollow">
               <Badge
                 variant="secondary"
                 className="text-xs hover:bg-primary/20 transition-colors"
