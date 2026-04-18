@@ -79,4 +79,9 @@ export {
   UniFiMCPToolSurfaceDiagram,
   ProbeDecisionFlowDiagram,
 } from "./diagrams-unifi-mcp";
+export {
+  DesignToCodePipelineDiagram,
+  RedesignAgentTeamDiagram,
+  EditorialPropagationDiagram,
+} from "./diagrams-redesign";
 export { ImageLightbox } from "./image-lightbox";
