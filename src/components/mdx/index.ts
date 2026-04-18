@@ -79,6 +79,7 @@ export {
   UniFiMCPToolSurfaceDiagram,
   ProbeDecisionFlowDiagram,
 } from "./diagrams-unifi-mcp";
+export { HomenetDocumentTeamDiagram } from "./diagrams-homenet-document";
 export {
   DesignToCodePipelineDiagram,
   RedesignAgentTeamDiagram,
