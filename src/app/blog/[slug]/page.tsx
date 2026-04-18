@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
-import { Badge } from "@/components/ui/badge";
 import {
   CodeBlock,
   Warning,
@@ -63,6 +63,9 @@ import {
   UniFiMCPArchitectureDiagram,
   UniFiMCPToolSurfaceDiagram,
   ProbeDecisionFlowDiagram,
+  DesignToCodePipelineDiagram,
+  RedesignAgentTeamDiagram,
+  EditorialPropagationDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 import {
@@ -85,7 +88,6 @@ import { PostReadTracker } from "@/components/post-read-tracker";
 import { NewsletterPopup } from "@/components/newsletter/NewsletterPopup";
 import { NewsletterSentinel } from "@/components/newsletter/NewsletterSentinel";
 import { AuthorCard } from "@/components/blog/AuthorCard";
-import { PostMeta } from "@/components/blog/PostMeta";
 import { BASE_URL } from "@/lib/constants";
 
 interface Props {
@@ -142,7 +144,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (post.tags.length > 0) {
     ogParams.set("tags", post.tags.slice(0, 3).join(","));
   }
-  const ogUrl = `/api/og?${ogParams.toString()}`;
+  const generatedOgUrl = `/api/og?${ogParams.toString()}`;
+  const primaryImage = post.coverImage
+    ? {
+        url: post.coverImage,
+        alt: post.coverImageAlt ?? post.title,
+      }
+    : {
+        url: generatedOgUrl,
+        width: 1200,
+        height: 630,
+        alt: post.title,
+      };
 
   return {
     title: post.title,
@@ -161,20 +174,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: post.updatedAt || post.date,
       authors: post.author ? [post.author] : undefined,
       tags: post.tags,
-      images: [
-        {
-          url: ogUrl,
-          width: 1200,
-          height: 630,
-          alt: post.title,
-        },
-      ],
+      images: [primaryImage],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.description,
-      images: [ogUrl],
+      images: [primaryImage.url],
     },
   };
 }
@@ -189,11 +195,18 @@ export default async function BlogPostPage({ params }: Props) {
   const relatedPosts = getRelatedPosts(slug, post.tags);
   const seriesPosts = post.series ? getSeriesPosts(post.series) : [];
 
+  const dateFormatted = new Date(post.date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const kicker = post.series ?? post.tags[0] ?? "Field notes";
+
   return (
     <>
       <ReadingProgress />
       <PostReadTracker slug={slug} />
-      <article className="py-16 sm:py-20">
+      <article className="ed-post">
         <ArticleJsonLd
           title={post.title}
           description={post.description}
@@ -211,34 +224,55 @@ export default async function BlogPostPage({ params }: Props) {
             { name: post.title, url: postUrl },
           ]}
         />
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:max-w-5xl">
-          {/* Post header */}
-          <header className="mb-10 lg:max-w-3xl">
-            <div className="flex flex-wrap gap-2 mb-4">
+        <div className="ed-post-inner">
+          {/* Post header — editorial */}
+          <header className="ed-post-header">
+            <div className="ed-overline">
+              § 01 / The Journal · {kicker}
+            </div>
+            <div className="ed-post-tag-row">
               {post.tags.map((tag) => (
                 <Link key={tag} href={`/blog?tag=${encodeURIComponent(tag)}`}>
-                  <Badge variant="secondary" className="hover:bg-primary/20 transition-colors">
-                    {tag}
-                  </Badge>
+                  <span className="ed-tag">{tag}</span>
                 </Link>
               ))}
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-              {post.title}
-            </h1>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <PostMeta
-                date={post.date}
-                author={post.author}
-                readingTime={post.readingTime}
-              />
+            <h1>{post.title}</h1>
+            {post.description && (
+              <p className="ed-post-header-description">{post.description}</p>
+            )}
+            <div className="ed-post-header-meta">
+              <span>
+                <b>{post.author || "Chris Johnson"}</b>
+              </span>
+              <span className="sep">·</span>
+              <time dateTime={post.date}>
+                <b>{dateFormatted}</b>
+              </time>
+              <span className="sep">·</span>
+              <span>
+                <b>{post.readingTime}</b>
+              </span>
               <BlogPostThumbsUp slug={slug} />
             </div>
           </header>
 
+          {/* Cover image hero */}
+          {post.coverImage && (
+            <div className="ed-post-cover">
+              <Image
+                src={post.coverImage}
+                alt={post.coverImageAlt ?? post.title}
+                fill
+                sizes="(max-width: 1080px) 100vw, 1080px"
+                priority
+              />
+            </div>
+          )}
+
           {/* Series Navigation */}
           {post.series && seriesPosts.length > 1 && (
-            <div className="lg:max-w-3xl">
+            <div className="max-w-[720px] mx-auto mb-10">
               <BlogSeriesNav
                 seriesName={post.series}
                 posts={seriesPosts}
@@ -248,10 +282,10 @@ export default async function BlogPostPage({ params }: Props) {
           )}
 
           {/* Two-column layout: article + sidebar TOC on desktop */}
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-8">
-            <div>
+          <div className="ed-post-layout">
+            <div className="ed-post-prose">
               {/* Inline TOC for mobile/tablet */}
-              <div className="lg:hidden">
+              <div className="lg:hidden mb-6">
                 <BlogToc headings={headings} />
               </div>
 
@@ -331,6 +365,9 @@ export default async function BlogPostPage({ params }: Props) {
                     UniFiMCPArchitectureDiagram,
                     UniFiMCPToolSurfaceDiagram,
                     ProbeDecisionFlowDiagram,
+                    DesignToCodePipelineDiagram,
+                    RedesignAgentTeamDiagram,
+                    EditorialPropagationDiagram,
                     img: ImageLightbox,
                   }}
                 />
@@ -339,28 +376,35 @@ export default async function BlogPostPage({ params }: Props) {
               {/* Newsletter sentinel: fires popup when user reaches ~70% of article */}
               <NewsletterSentinel />
 
-              {/* Share + Subscribe */}
-              <div className="mt-12 flex flex-col gap-8">
-                <div className="border-t border-border pt-6">
+              {/* Share + Subscribe + Author + Related + Comments */}
+              <div className="ed-post-footer">
+                <div>
+                  <div className="ed-post-footer-head">Share this</div>
                   <SocialShare url={postUrl} title={post.title} />
                 </div>
                 <SubscribeForm />
+                <div>
+                  <div className="ed-post-footer-head">About the author</div>
+                  <AuthorCard />
+                </div>
               </div>
-
-              {/* Author profile card */}
-              <AuthorCard />
-
-              {/* Related Posts */}
-              <RelatedPosts posts={relatedPosts} />
-
-              {/* Comments section (subscriber-only) */}
-              <BlogComments slug={slug} />
             </div>
 
             {/* Sidebar TOC for desktop */}
-            <aside className="hidden lg:block">
+            <aside className="ed-post-aside">
               <BlogToc headings={headings} variant="sidebar" />
             </aside>
+          </div>
+
+          {/* Related Posts — full-width below the article+TOC layout */}
+          <div className="ed-post-related mt-16">
+            <div className="ed-post-footer-head">Related posts</div>
+            <RelatedPosts posts={relatedPosts} />
+          </div>
+
+          {/* Comments section (subscriber-only) */}
+          <div className="ed-post-comments mt-16">
+            <BlogComments slug={slug} />
           </div>
         </div>
       </article>

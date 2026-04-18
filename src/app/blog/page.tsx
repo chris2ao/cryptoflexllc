@@ -4,6 +4,7 @@ import { BlogList } from "@/components/blog-list";
 import { SubscribeForm } from "@/components/subscribe-form";
 import { CategoryFilter } from "@/components/blog/CategoryFilter";
 import { FeaturedPosts } from "@/components/blog/FeaturedPosts";
+import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { getAllPosts, getAllTags } from "@/lib/blog";
 import { BASE_URL } from "@/lib/constants";
 
@@ -75,15 +76,15 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     .slice(0, 3);
 
   return (
-    <section className="py-16 sm:py-20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="bracket-frame mb-12">
-          <h1 className="font-heading text-4xl sm:text-5xl font-bold tracking-tight">Blog</h1>
-          <p className="mt-4 text-lg font-body text-muted-foreground leading-relaxed">
-            Thoughts on tech projects, cybersecurity, infrastructure, and
-            things I&apos;m learning.
-          </p>
-        </div>
+    <>
+      <EditorialPageHeader
+        sectionLabel="§ 01 / The Journal"
+        overline="Archive"
+        title={<>From the <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>workshop.</em></>}
+        lede="Field notes on cybersecurity, AI-assisted development, infrastructure, and the craft of shipping things that actually work."
+      />
+      <section className="py-8 sm:py-12">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
 
         {/* Featured posts (only shown when no category filter active) */}
         {activeCategory === null && (
@@ -113,6 +114,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
           </>
         )}
       </div>
-    </section>
+      </section>
+    </>
   );
 }

@@ -66,6 +66,9 @@ import {
   UniFiMCPArchitectureDiagram,
   UniFiMCPToolSurfaceDiagram,
   ProbeDecisionFlowDiagram,
+  DesignToCodePipelineDiagram,
+  RedesignAgentTeamDiagram,
+  EditorialPropagationDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -215,6 +218,9 @@ export default async function BacklogPostPage({ params }: Props) {
               UniFiMCPArchitectureDiagram,
               UniFiMCPToolSurfaceDiagram,
               ProbeDecisionFlowDiagram,
+              DesignToCodePipelineDiagram,
+              RedesignAgentTeamDiagram,
+              EditorialPropagationDiagram,
               img: ImageLightbox,
             }}
           />

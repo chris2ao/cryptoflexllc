@@ -5,6 +5,7 @@ import { getAnalyticsCookieName, verifyAuthToken } from "@/lib/analytics-auth";
 import { getBacklogPosts } from "@/lib/blog";
 import { isGitHubApiConfigured } from "@/lib/github-api";
 import { BacklogList } from "@/components/backlog-list";
+import { EditorialPageHeader } from "@/components/editorial-page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -33,32 +34,24 @@ export default async function BacklogPage() {
   const postSummaries = posts.map(({ content: _, ...rest }) => rest);
 
   return (
-    <section className="py-16 sm:py-20">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-heading font-bold">Blog Backlog</h1>
-            <p className="mt-2 font-body text-muted-foreground">
-              {posts.length} draft{posts.length !== 1 ? "s" : ""} waiting to
-              publish
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link
-              href="/analytics"
-              className="inline-flex items-center justify-center rounded-md bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
-            >
-              Analytics
-            </Link>
-            <Link
-              href="/blog"
-              className="inline-flex items-center justify-center rounded-md bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
-            >
-              Blog
-            </Link>
-          </div>
+    <>
+      <EditorialPageHeader
+        sectionLabel="§ 00 / Drafts Backlog"
+        overline="Draft queue"
+        title={<>In the <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>pipeline.</em></>}
+        lede={`${posts.length} draft${posts.length !== 1 ? "s" : ""} waiting to publish.`}
+      >
+        <div className="flex gap-3">
+          <Link href="/analytics" className="btn-editorial btn-editorial--sm">
+            Analytics
+          </Link>
+          <Link href="/blog" className="btn-editorial btn-editorial--sm">
+            Blog
+          </Link>
         </div>
+      </EditorialPageHeader>
+      <section className="py-8 sm:py-12">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
 
         {/* Warning if no GITHUB_TOKEN */}
         {!githubConfigured && (
@@ -83,6 +76,7 @@ export default async function BacklogPage() {
           <BacklogList posts={postSummaries} allTags={allTags} />
         )}
       </div>
-    </section>
+      </section>
+    </>
   );
 }
