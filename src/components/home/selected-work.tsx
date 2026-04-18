@@ -13,14 +13,14 @@ type Project = {
 
 const projects: Project[] = [
   {
-    title: "CryptoFlex LLC",
+    title: "Persistent Memory for Claude Code",
     description:
-      "Full-stack production site: Next.js 15, React 19, TypeScript. Custom analytics, newsletter, comments, MDX engine. Built end-to-end with Claude Code.",
-    tech: ["Next.js", "TypeScript", "Neon", "MDX"],
-    link: "/portfolio",
-    image: "/CFLogo.png",
-    imageAlt: "CryptoFlex shield logo",
-    imageFit: "contain",
+      "Two-tier memory architecture: a global rule file plus a vector-database MCP server with 30-day temporal decay. Context survives every session with zero manual effort.",
+    tech: ["Claude Code", "MCP", "Vector DB"],
+    link: "/blog/persistent-memory-for-claude-code",
+    image: "/images/blog/persistent-memory-two-tier-architecture.png",
+    imageAlt: "Two-tier persistent memory architecture for Claude Code",
+    imageFit: "cover",
   },
   {
     title: "Third Conflict",
@@ -30,11 +30,11 @@ const projects: Project[] = [
     link: "https://third-conflict.vercel.app",
   },
   {
-    title: "Cann Cann",
+    title: "Custom UniFi MCP",
     description:
-      "Recreation of a 1990 Windows 3.1 artillery game. Three-layer engine/store/render architecture with procedural terrain, physics AI, four biomes.",
-    tech: ["TypeScript", "Canvas", "Physics"],
-    link: "https://cann-cann.vercel.app",
+      "103 tools, 208 unit tests, 12 hours across three days. A lazy-loading UniFi MCP server packaged as a Claude Code plugin that installs with two slash commands.",
+    tech: ["Python", "FastMCP", "UniFi"],
+    link: "/blog/building-a-custom-unifi-mcp-103-tools-across-three-days",
   },
   {
     title: "Claude Code Config",
@@ -54,11 +54,11 @@ const projects: Project[] = [
     imageFit: "cover",
   },
   {
-    title: "Mining Rig",
+    title: "5-Layer Memory System vs. The World",
     description:
-      "Multi-GPU mining operation built from scratch. Hardware selection, thermal management, power distribution, Linux sysadmin deep-dive.",
-    tech: ["Linux", "Hardware", "Ops"],
-    link: "/portfolio",
+      "22 sources, 3 parallel research agents, 18 search queries. Benchmarked my 5-layer memory architecture against community norms and shipped three improvements the same day.",
+    tech: ["Deep Research", "MCP", "Memory"],
+    link: "/blog/my-5-layer-memory-system-vs-the-world-what-deep-research-revealed",
   },
 ];
 
@@ -71,8 +71,8 @@ export function SelectedWork() {
           <div className="ed-overline">Portfolio</div>
           <h2>Things I&apos;ve shipped.</h2>
           <p className="lede">
-            Six representative builds — full-stack sites, retro game rebuilds,
-            agent systems, and infrastructure. More on the portfolio page.
+            Six representative builds — memory architecture, MCP servers,
+            retro game rebuilds, and agent systems. More on the portfolio page.
           </p>
         </div>
 
