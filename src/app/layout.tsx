@@ -9,6 +9,7 @@ import { WebVitalsReporter } from "@/components/web-vitals-reporter";
 import { ErrorReporter } from "@/components/error-reporter";
 import { WebsiteJsonLd, PersonJsonLd } from "@/components/json-ld";
 import { CommandPalette } from "@/components/search/CommandPalette";
+import { NewsletterPopup } from "@/components/newsletter/NewsletterPopup";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -160,6 +161,7 @@ export default function RootLayout({
           <Footer />
           <BackToTop />
           <CommandPalette posts={posts} />
+          <NewsletterPopup />
         </ThemeProvider>
       </body>
       <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID!} />

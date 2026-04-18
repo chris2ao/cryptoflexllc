@@ -85,8 +85,6 @@ import { SocialShare } from "@/components/social-share";
 import { RelatedPosts } from "@/components/related-posts";
 import { BlogSeriesNav } from "@/components/blog-series-nav";
 import { PostReadTracker } from "@/components/post-read-tracker";
-import { NewsletterPopup } from "@/components/newsletter/NewsletterPopup";
-import { NewsletterSentinel } from "@/components/newsletter/NewsletterSentinel";
 import { AuthorCard } from "@/components/blog/AuthorCard";
 import { BASE_URL } from "@/lib/constants";
 
@@ -382,9 +380,6 @@ export default async function BlogPostPage({ params }: Props) {
                 />
               </div>
 
-              {/* Newsletter sentinel: fires popup when user reaches ~70% of article */}
-              <NewsletterSentinel />
-
               {/* Share + Subscribe + Author + Related + Comments */}
               <div className="ed-post-footer">
                 <div>
@@ -417,7 +412,6 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
         </div>
       </article>
-      <NewsletterPopup />
     </>
   );
 }
