@@ -85,3 +85,4 @@ export {
   EditorialPropagationDiagram,
 } from "./diagrams-redesign";
 export { ImageLightbox } from "./image-lightbox";
+export { CoverImageLightbox } from "./cover-image-lightbox";

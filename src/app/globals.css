@@ -2292,14 +2292,25 @@
 }
 
 .ed-post-cover {
+  display: block;
+  width: 100%;
   max-width: 1080px;
   margin: 0 auto 48px;
+  padding: 0;
   position: relative;
   aspect-ratio: 16/9;
   border: 1px solid var(--border);
   border-radius: 4px;
   overflow: hidden;
   background: var(--surface-2);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  transition: border-color 200ms var(--ease-hover);
+}
+
+button.ed-post-cover:hover {
+  border-color: var(--accent-line);
 }
 
 .ed-post-cover img {

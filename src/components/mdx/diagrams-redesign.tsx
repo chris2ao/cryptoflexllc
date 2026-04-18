@@ -367,36 +367,36 @@ export function RedesignAgentTeamDiagram({ caption }: DiagramProps) {
         <line
           x1="340"
           y1="225"
-          x2="200"
+          x2="150"
           y2="300"
           className="stroke-muted-foreground/70"
           strokeWidth="1.5"
           markerEnd="url(#rdTeamArrow)"
         />
         <rect
-          x="60"
+          x="30"
           y="310"
-          width="260"
+          width="240"
           height="110"
           rx="10"
           className="fill-cyan-500/10 stroke-cyan-500"
           strokeWidth="1.5"
         />
         <text
-          x="190"
+          x="150"
           y="338"
           textAnchor="middle"
           className="fill-cyan-400 text-[13px] font-semibold"
         >
           UX / UI QA agent
         </text>
-        <text x="80" y="362" className="fill-foreground text-[11px]">
+        <text x="50" y="362" className="fill-foreground text-[11px]">
           • landmark + heading audit
         </text>
-        <text x="80" y="382" className="fill-foreground text-[11px]">
+        <text x="50" y="382" className="fill-foreground text-[11px]">
           • reduced-motion gating
         </text>
-        <text x="80" y="402" className="fill-foreground text-[11px]">
+        <text x="50" y="402" className="fill-foreground text-[11px]">
           • WCAG contrast + labels
         </text>
 
@@ -411,9 +411,9 @@ export function RedesignAgentTeamDiagram({ caption }: DiagramProps) {
           markerEnd="url(#rdTeamArrow)"
         />
         <rect
-          x="280"
+          x="290"
           y="310"
-          width="260"
+          width="240"
           height="110"
           rx="10"
           className="fill-red-500/10 stroke-red-500/80"
@@ -427,13 +427,13 @@ export function RedesignAgentTeamDiagram({ caption }: DiagramProps) {
         >
           Application security agent
         </text>
-        <text x="300" y="362" className="fill-foreground text-[11px]">
+        <text x="310" y="362" className="fill-foreground text-[11px]">
           • form submit state gating
         </text>
-        <text x="300" y="382" className="fill-foreground text-[11px]">
+        <text x="310" y="382" className="fill-foreground text-[11px]">
           • no secrets in client code
         </text>
-        <text x="300" y="402" className="fill-foreground text-[11px]">
+        <text x="310" y="402" className="fill-foreground text-[11px]">
           • CSP + rate-limit checks
         </text>
 
@@ -441,36 +441,36 @@ export function RedesignAgentTeamDiagram({ caption }: DiagramProps) {
         <line
           x1="480"
           y1="225"
-          x2="620"
+          x2="670"
           y2="300"
           className="stroke-muted-foreground/70"
           strokeWidth="1.5"
           markerEnd="url(#rdTeamArrow)"
         />
         <rect
-          x="500"
+          x="550"
           y="310"
-          width="260"
+          width="240"
           height="110"
           rx="10"
           className="fill-green-500/10 stroke-green-500"
           strokeWidth="1.5"
         />
         <text
-          x="630"
+          x="670"
           y="338"
           textAnchor="middle"
           className="fill-green-400 text-[13px] font-semibold"
         >
           Researcher agent
         </text>
-        <text x="520" y="362" className="fill-foreground text-[11px]">
+        <text x="570" y="362" className="fill-foreground text-[11px]">
           • OKLCH color precedent
         </text>
-        <text x="520" y="382" className="fill-foreground text-[11px]">
+        <text x="570" y="382" className="fill-foreground text-[11px]">
           • IntersectionObserver best
         </text>
-        <text x="520" y="402" className="fill-foreground text-[11px]">
+        <text x="570" y="402" className="fill-foreground text-[11px]">
           • marquee CSS patterns
         </text>
 

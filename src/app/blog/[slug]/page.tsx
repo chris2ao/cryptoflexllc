@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
@@ -67,6 +66,7 @@ import {
   RedesignAgentTeamDiagram,
   EditorialPropagationDiagram,
   ImageLightbox,
+  CoverImageLightbox,
 } from "@/components/mdx";
 import {
   getAllPosts,
@@ -257,17 +257,13 @@ export default async function BlogPostPage({ params }: Props) {
             </div>
           </header>
 
-          {/* Cover image hero */}
+          {/* Cover image hero (click to zoom) */}
           {post.coverImage && (
-            <div className="ed-post-cover">
-              <Image
-                src={post.coverImage}
-                alt={post.coverImageAlt ?? post.title}
-                fill
-                sizes="(max-width: 1080px) 100vw, 1080px"
-                priority
-              />
-            </div>
+            <CoverImageLightbox
+              src={post.coverImage}
+              alt={post.coverImageAlt ?? post.title}
+              priority
+            />
           )}
 
           {/* Series Navigation */}
