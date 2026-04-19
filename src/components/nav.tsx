@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-type NavLink = { href: string; label: string };
+type NavLink = { href: string; label: string; mobileOnly?: boolean };
 
 const links: NavLink[] = [
   { href: "/blog", label: "Blog" },
@@ -23,6 +23,7 @@ const links: NavLink[] = [
 ];
 
 const secondaryLinks: NavLink[] = [
+  { href: "/blog", label: "§ Blog", mobileOnly: true },
   { href: "/skills", label: "§ Skills" },
   { href: "/resources", label: "§ Resources" },
   { href: "/guestbook", label: "§ Guestbook" },
@@ -92,7 +93,7 @@ export function Nav() {
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
-              className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-md text-fg-2 hover:text-fg"
+              className="md:hidden inline-flex h-9 items-center gap-1.5 rounded-md border border-border/60 px-2.5 text-fg-2 hover:text-fg hover:border-border"
               aria-label="Open menu"
             >
               <svg
@@ -109,6 +110,7 @@ export function Nav() {
                   d="M4 6h16M4 12h16M4 18h16"
                 />
               </svg>
+              <span className="font-heading text-sm">Menu</span>
             </SheetTrigger>
             <SheetContent side="right" className="w-72 bg-background/95 backdrop-blur-md">
               <SheetTitle className="mb-6">
@@ -157,6 +159,7 @@ export function Nav() {
             key={link.href}
             href={link.href}
             className="ed-subnav-link"
+            data-mobile-only={link.mobileOnly ? "true" : undefined}
             aria-current={isActive(pathname, link.href) ? "page" : undefined}
           >
             {link.label}

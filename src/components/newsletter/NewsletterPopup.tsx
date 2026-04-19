@@ -143,8 +143,6 @@ export function NewsletterPopup() {
         "fixed z-50 m-0 max-h-none max-w-none overflow-visible border-none bg-transparent p-0",
         "bottom-0 left-0 right-0 top-auto w-full",
         "sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-auto sm:-translate-x-1/2 sm:-translate-y-1/2",
-        "motion-safe:translate-y-full motion-safe:data-[open]:translate-y-0",
-        "motion-safe:transition-transform motion-safe:duration-[250ms] motion-safe:ease-out",
         "[&::backdrop]:bg-black/50",
       ].join(" ")}
       style={{ position: "fixed" }}
