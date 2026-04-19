@@ -156,7 +156,7 @@ export function NewsletterPopup() {
       <div
         className={[
           "relative w-full rounded-none sm:rounded-lg",
-          "bg-card border border-primary/20",
+          "bg-card text-foreground border border-primary/20",
           "shadow-teal-glow",
           "p-6 sm:p-8",
           "sm:w-[440px] sm:max-w-[calc(100vw-2rem)]",
