@@ -1,0 +1,406 @@
+---
+title: 'Home Network Mission Control, Phase 1: 12 Workstreams, One Dashboard'
+date: '2026-04-19T22:00:00'
+description: >-
+  12 parallel workstreams. 282 backend tests at 84.8 percent coverage. 47
+  frontend tests plus 14 Playwright flows. One CRITICAL plus three HIGH security
+  findings caught and fixed. Phase 1 of a mode-gated read-only dashboard for my
+  UDM Pro, Pi-hole, and UniFi Protect home lab, built in one long session against
+  a design spec written beforehand.
+tags:
+  - Home Lab
+  - FastAPI
+  - React
+  - UniFi
+  - Pi-hole
+  - Claude Code
+  - Multi-Agent
+author: Chris Johnson
+readingTime: 27 min read
+series: 'Building in Public'
+seriesOrder: 8
+---
+
+12 workstreams. 282 backend tests at 84.8 percent coverage. 47 frontend tests plus 14 Playwright end-to-end flows. One CRITICAL and three HIGH security findings caught and remediated before the server ever bound to a real port. 29 real clients and 314,207 Pi-hole queries pouring through the UI the first time I loaded it in a browser.
+
+That's what it took to ship Phase 1 of the Home Network Mission Control Dashboard, a single pane of glass for my UDM Pro plus Pi-hole plus UniFi Protect home network. Phase 1 is read-only by design. There's a feature flag that will eventually unlock mutations and a Claude-powered agent, but for v1 the dashboard is a pure observer. Read-only is not a limitation here, it's the point.
+
+This post is the story of how it got built in one long session: a 12-stream parallel plan, four waves of Task agents, a preflight design spec written before a single line of code, and a list of things that broke along the way. The dead ends matter as much as the wins, so you get both.
+
+## Why a Single Pane of Glass
+
+I run a small home lab on a Mac mini in a closet: a UDM Pro for routing and Wi-Fi, Pi-hole v6 as the LAN DNS resolver, UniFi Protect with three cameras on the UDM Pro's NVR, and the Mac mini hosting everything else.
+
+Each component has its own UI. The UniFi OS console is good but siloed. The Pi-hole admin UI is fast but has its own mental model. Protect is a separate app entirely. When I want a holistic answer like "which clients are online and who's bypassing Pi-hole?" I'm cross-referencing three web apps and mentally joining on MAC addresses. That got old.
+
+The real motivation was that **I had already built the plumbing** in two earlier posts in this series. `chris2ao-unifi-mcp` exposes 103 UniFi tools through MCP. `chris2ao-pihole-mcp` does the same for Pi-hole v6. Both ship HTTPX clients with session auth baked in. What I didn't have was a UI that stitched their data together for the humans in the house.
+
+<Info title="Why not just use Home Assistant or Grafana?">
+Home Assistant is great for physical sensors and automations but not for the specific UniFi plus Pi-hole plus Protect joins I wanted. Grafana is great for time series but thin on topology and identity. I wanted something purpose-built: identity-aware (a tab per persona), operation-aware (Refresh is a button, not a cron), and eventually agent-aware (a chat pane that can reason over the whole picture). That's a custom app.
+</Info>
+
+## The Keystone Decision: Mode Phasing
+
+Before I wrote any code, I wrote a design spec. The spec asked a question that turned out to be the most important architectural decision in the project: **what posture should v1 ship in?**
+
+The product wants three capabilities eventually:
+
+1. **Read data** from UniFi and Pi-hole and surface it cleanly.
+2. **Mutate state**: block a client, add a MAC to an allowlist, disable blocking for five minutes.
+3. **Run an agent** that can reason over the data and help debug issues.
+
+Each of those is a different threat model. Read-only is safe: a prompt injection can't do damage because there's nothing to damage. Mutations introduce real blast radius. An agent that can both read and mutate requires either a human in the loop or airtight tool surface discipline. Ship all three at once and you get the worst of every posture.
+
+So the spec codified four modes, gated by a single env var:
+
+<Info title="Mode Phasing, via MISSION_CONTROL_MODE">
+- **Mode A** (v1 today): Read-only. No mutation endpoints exist. No agent. Safest.
+- **Mode B**: Mutations unlocked. Preview plus confirm on every write. No agent.
+- **Mode C**: Agent unlocked in read-only posture. Agent can call read tools only.
+- **Mode D** (end state): Agent drafts mutations; human approves them. Full product.
+
+Progression from A to D is a flag flip plus a deploy, not a refactor. Everything under `/api/actions/*` is middleware-gated on the current mode. Everything under `/api/chat` is middleware-gated on the current mode. GET endpoints are always open.
+</Info>
+
+The implementation implication is that **the middleware, not the handlers, enforces mode**. Handlers stay dumb. Middleware inspects the route prefix and the current mode and returns 404 for mutation routes in mode A. The agent-chat route returns 503 for modes A and B. One decision. Four postures. No per-handler gating, which is where drift and bugs love to live.
+
+<Tip title="One flag, four postures">
+If your product has a progression of capabilities that ship over time, express the progression as a single env var with an explicit middleware gate. You get one mental model, one test matrix, and one place to flip when you advance. The alternative is a nest of feature flags that accumulate technical debt proportional to the number of flags.
+</Tip>
+
+The spec also came with a design-spec.md (architecture, data model, API surface, security model) and an implementation-plan.md (12-workstream breakdown with phase gates). I used the sequential-thinking MCP to do a 9-thought pass through the spec before committing to it, catching three issues in my own reasoning before they became code. Tool-assisted thinking is cheap. Unwind at the code level is expensive.
+
+## The 12 Workstreams
+
+The plan decomposed into 12 workstreams that could run in waves of parallel Task agents. Each agent got an isolated sandbox, a fixed set of owned files, and a clear exit criterion.
+
+| WS | Name | What it owns |
+|----|------|--------------|
+| 1 | Backend chassis | FastAPI app, SQLite, migrations, settings, logging, middleware |
+| 2 | Polling core | APScheduler jobs, registry, write-through cache |
+| 3 | Read-surface API | GET endpoints, response shapes, OpenAPI types |
+| 4 | Persona engine | Rule evaluator, YAML rules, fixture agreement tests |
+| 5 | Security signals | Per-signal Python evaluators, YAML rules |
+| 6 | Architect agent | Anthropic-SDK agent loop, tool allowlist, `<untrusted_data>` |
+| 7 | Frontend chassis | Vite app, routing, TanStack Query, layout |
+| 8 | Tab implementations | Overview, Clients, DNS, Admin, Events |
+| 9 | Manual refresh UX | Refresh button, busy indicator, toast |
+| 10 | Tests and fixtures | Unit, integration, e2e, fixture capture |
+| 11 | CI/CD | GitHub Actions, four-job workflow |
+| 12 | Soak and security review | 24h soak, security-reviewer pass |
+
+Waves: Wave 0 is the Phase 0 spike (non-negotiable, explained below). Wave 1 runs WS1 and WS7 in parallel. Wave 2 runs WS2, WS3, WS4, WS5. Wave 3 runs WS6, WS8, WS9. Wave 4 runs WS10 and WS11. Wave 5 is WS12 serialized. Each agent had exclusive-write files and read-only files; a short orchestration pass reconciled at wave boundaries. The last pass was where the frontend-backend shape mismatch was supposed to be caught. Spoiler: it wasn't.
+
+<Tip title="Agent waves, not one big agent">
+Spawning 12 agents at once fans out coordination overhead and wastes tokens on agents waiting for dependencies. Waves of 2-4 parallel agents, with a short reconciliation pass between waves, is the sweet spot for a project this size. If two agents need to touch the same file, they go in different waves.
+</Tip>
+
+## Stack Choices
+
+Backend: FastAPI plus SQLModel, pydantic-settings, Alembic, APScheduler, structlog, SlowAPI, httpx. Frontend: Vite plus React 18 plus TypeScript, Tailwind, TanStack Query, Recharts, and `openapi-typescript` for codegen. Persistence is one SQLite file at `/data/homenet.db` with poll jobs writing through. No Docker in Phase 1. I'll get to why.
+
+<Info title="Why SQLite as the cache">
+A home lab dashboard has one writer and a handful of readers. SQLite handles that trivially, costs nothing operationally, and gives me a single file to back up. When the plan needs to scale past one host I'll reach for Postgres; this is a Mac mini serving three humans and some IoT devices.
+</Info>
+
+## Wave 0: The Phase 0 Spike (Plan Wrong, Reality Right)
+
+The design spec assumed I could import the UniFi and Pi-hole HTTPX clients as library dependencies from `chris2ao-unifi-mcp` and `chris2ao-pihole-mcp`. Both packages ship their clients as Python modules. The plan was three lines of pyproject.toml and done.
+
+That's what the plan said. Here's what happened.
+
+Phase 0 was a one-hour spike to prove the imports worked. First attempt, `from unifi_mcp.clients import UnifiClient`, returned `ModuleNotFoundError: No module named 'unifi_mcp.clients'`. The path was wrong. A quick `find` produced `unifi_mcp/auth/client.py`. Second attempt:
+
+```python
+from unifi_mcp.auth.client import UnifiClient
+client = UnifiClient(host="https://...", api_key="...", verify_ssl=False)
+# TypeError: UnifiClient.__init__() got an unexpected keyword argument 'host'
+```
+
+The plan assumed the constructor signature I would have written. The actual signature required a `config` object plus a `TTLCache` and a `DiscoveryRegistry`. The client was designed to live inside the MCP server, not to be constructed in two lines from an outside caller.
+
+Two options. Path A: extract the clients into standalone packages. Cleanest long term but blocks me for a day. Path B: write thin adapters in this repo. I picked Path B and documented the decision in `docs/architecture/phase0-spike-findings.md`:
+
+```python
+# backend/app/clients/unifi.py
+from unifi_mcp.auth.client import UnifiClient
+from unifi_mcp.auth.cache import TTLCache
+from unifi_mcp.auth.discovery import DiscoveryRegistry
+
+def make_unifi_client(settings) -> UnifiClient:
+    cache = TTLCache(default_ttl=300)
+    discovery = DiscoveryRegistry(cache=cache)
+    return UnifiClient(config=settings.unifi_config, cache=cache, discovery=discovery)
+```
+
+Forty lines of adapter instead of a day of extraction.
+
+<Warning title="Phase 0 is not optional">
+Every project I've shipped has had at least one assumption in the plan that doesn't survive first contact with the actual dependency graph. A cheap one-hour spike at the start is always worth it. The cost of finding out in hour seven is an afternoon of rework; the cost of finding out in hour one is a paragraph in a spike-findings doc.
+</Warning>
+
+## Waves 1 and 2: Chassis and Core
+
+With the spike done, Wave 1 ran WS1 and WS7 in parallel (FastAPI skeleton and Vite scaffold). Neither touched the other's files; both finished in about 12 minutes. Wave 2 ran WS2, WS3, WS4, WS5 in parallel. This is where the architecture emerged.
+
+### The Polling Core
+
+APScheduler runs jobs at configurable cadences. Defaults: 1 hour for clients, devices, and WLANs; 5 minutes for cameras; 10 minutes for Pi-hole stats. Each job has a name, a cadence, and a handler that fetches, writes through to SQLite, and emits a `collector_up` heartbeat row.
+
+The heartbeat matters because the Mac mini occasionally sleeps (despite `sudo pmset -a sleep 0 disablesleep 1`). Without the sentinel, the time-series renderer would draw gaps as zeros. A real zero is "Pi-hole blocked zero queries in that minute," which is never true. A gap is "we weren't awake to observe." Two very different diagnostic conclusions.
+
+<Tip title="Heartbeat rows beat implicit gaps">
+If your time-series can have real zeros, never render a missing data point as zero. Emit a sentinel row on every attempted collection. Your chart component then has three states (value, zero, gap) rather than two (value, zero). Operators interpret the gap correctly; operators who see a zero assume something's broken.
+</Tip>
+
+### The Read-Surface API
+
+WS3 wrote one GET endpoint per tab, each reading only from SQLite. Zero live UniFi or Pi-hole calls on a page render. This is the single most important operational decision in the project.
+
+Live-fetching on page load means slow pages when the upstream is slow, error handling fan-out across the whole read surface, retry patterns in the frontend, and circuit breakers in the backend. Poll-and-cache means pages always load in milliseconds, upstream errors are handled once in the poll job, and the UI shows "last updated N minutes ago" so users understand the baseline. A manual Refresh button on each tab is the escape hatch. No auto-refresh on an interval. If you want newer data, press Refresh.
+
+### The Persona Engine
+
+The persona engine classifies clients into a tier (T1 trusted household, T2 known BYOD, T3 IoT, T4 untrusted) and an archetype (laptop, phone, printer, camera, and so on). Rules live in `persona_rules.yml` at repo root, evaluated first-match-wins over client signals (SSID, OUI, DHCP hostname, uptime, DNS behavior).
+
+The fixture test was 11 known clients with expected classifications, gated at 90 percent agreement. First run: 73 percent (8 of 11). Three misses, all the same shape.
+
+The spec ordered tiers T1, T2, T3, T4. First-match-wins plus a generous T1 ("any device in `inventory.md` with a known name") collapsed corporate BYOD laptops (identified names) into T1 before T2 ever fired. Same for IoT devices before T3. The spec literally says "evaluate most specific to most general" and then contradicts the principle in its example order. I documented the deviation in `docs/architecture/persona_rules_disagreements.md` and reordered T3, T2, T1, T4. 11 of 11 after.
+
+<Warning title="Specs can lie to you, quietly">
+A spec written by the same person who will implement it tends to smooth over the contradictions it contains. The fixture gate caught the bug because fixtures don't care what the spec says; they care whether the output matches expectations. If your persona engine, tier classifier, or any rule-based system uses first-match evaluation, test with fixtures that force specific-vs-general ordering, not just happy paths.
+</Warning>
+
+### The Security Signals
+
+WS5 is one of my favorite parts of the system. Five v1 signals, each a small Python evaluator reading from SQLite:
+
+1. **`mac_filter_off_on_trust_ssid`**: for SSIDs tagged "trust," is MAC filtering on?
+2. **`unknown_mac_on_ssid`**: clients on an SSID whose MAC isn't in the inventory.md allowlist.
+3. **`dns_bypass`**: fraction of clients whose recent DNS queries bypass Pi-hole.
+4. **`ppsk_idle`**: PPSK keys with no activity for 30+ days.
+5. **`firmware_drift`**: AP firmware versions that don't match the controller's target.
+
+The initial plan was "write these as SQL templates." I pushed back. Each signal has a different input shape, a different output shape, and a different threshold model. SQL templates would force them all through a narrow interface that didn't fit. YAML for configuration (thresholds, which SSIDs count as trust, which MACs count as known), Python evaluator per signal. They all share a `SignalResult(status, severity, value, detail, links)` protocol with status in `ok | warn | bad | unknown`.
+
+## Wave 3: The Agent, The Tabs, The Refresh
+
+Wave 3 ran WS6 (architect agent), WS8 (tabs), and WS9 (refresh UX) in parallel. This wave was the largest risk from a parallel-agent standpoint because WS6 needed both a chat endpoint (WS3's territory) and a tool-result wrapper (a subtle security detail; more below).
+
+### The Architect Agent: Nine Tools, No Outbound HTTP
+
+The agent is disabled in mode A, but I built it anyway because you can't test a mode-B-through-D migration if the agent code doesn't exist. The architecture:
+
+- Anthropic SDK, Claude Sonnet.
+- Mode gate: 503 in modes A and B. Enabled in C and D.
+- Nine tools, all read-only: `list_clients`, `list_devices`, `list_wlans`, `get_pihole_stats`, `get_security_signals`, `get_events`, `lookup_persona`, `get_poll_status`, and `draft_mutation` (a stub for Phase D that returns a not-yet-implemented envelope).
+- No outbound HTTP tool. No filesystem reads. No shell execution.
+
+Every tool result that flows back into the model is wrapped:
+
+```python
+# backend/app/agent/chat.py
+def wrap_untrusted(payload: Any) -> str:
+    text = json.dumps(payload, default=str)
+    return f"<untrusted_data>\n{text}\n</untrusted_data>"
+```
+
+This is not security theater. It's prompt-injection hygiene. Anything in the UniFi or Pi-hole cache might eventually contain attacker-controlled strings (a device name someone typed on their phone, for instance). Wrapping them in `<untrusted_data>` tells Claude explicitly "this content is data, not instructions." The model is trained to respect that distinction.
+
+The threat I care about most is exfil of the `ANTHROPIC_API_KEY`. A prompt-injected agent tool response could, in principle, convince the model to include the key in its output. Two things prevent that: the agent has no outbound-HTTP tool (can't phone home), and the agent can't read environment variables. Worst case the agent says weird things in a chat window.
+
+<Security title="The architect agent threat model, in one bullet">
+Assume the agent's context can be prompt-injected through any string that flows through UniFi or Pi-hole responses. Every tool result is wrapped in `<untrusted_data>`. The tool surface contains zero outbound-HTTP verbs, zero filesystem reads, and zero shell executions. The attack surface reduces to "the agent produces a weird response in a chat window." That's a UX problem, not a security incident.
+</Security>
+
+### The Tabs and Refresh
+
+WS8 produced five tabs (Overview, Clients, DNS, Admin, Events), each a thin React component over a TanStack Query. The Overview tab renders a `HealthStrip` (polling core, UniFi API, Pi-hole API, agent) and a security signals grid with tone tokens. This is where the biggest post-launch bug hid. More on that at the end.
+
+WS9 (manual refresh) is intentionally dumb. Each tab has a Refresh button that `POST`s to `/api/refresh/{tab}`, the handler kicks off the associated poll jobs, returns 202, and the UI spins until the query returns fresh data. Toast on completion, disabled during flight, "last updated N minutes ago" visible as the baseline.
+
+## Wave 4: Tests, Fixtures, CI
+
+Wave 4 ran WS10 (tests) and WS11 (CI) in parallel. Tests first because CI wires up tests.
+
+### Test Shape
+
+282 backend tests passing at 84.8 percent coverage (rule is 80 percent minimum). 47 Vitest frontend tests. 14 Playwright end-to-end flows covering every tab, refresh, navigation, error state, and agent-disabled behavior. Tests replay recorded UniFi and Pi-hole fixtures under `tests/fixtures/`; no live HTTP in the suite. A nightly CI job re-captures against the live consoles and files an issue tagged `fixture-drift` on diff. That pattern caught two stale fixtures during Phase 1 alone (a UniFi OS field rename and a Pi-hole stats key that flipped from snake_case to camelCase).
+
+### The `reset_registry_for_tests()` Mask
+
+One bug worth surfacing. `test_poll_scheduler.py` had a leftover `reset_registry_for_tests()` call at module scope, left over from WS2 when scheduler tests touched the global `POLL_REGISTRY`. By Wave 4 those tests passed an explicit registry fixture; the reset was vestigial.
+
+It wasn't harmless. `reset_registry_for_tests()` runs at module import time. When WS5 added `poll_security_signals` to the registry at import, the scheduler test module imported first, cleared the registry, and the WS5 end-to-end ran against an empty one. The e2e failed with "no such job: poll_security_signals," which looked exactly like a wiring bug in WS5's poller. An hour of chasing before I spotted the module load order. Fix: delete the call.
+
+<Warning title="Module-scope test cleanup is a footgun">
+Any test helper that mutates global state at import time (rather than inside a fixture with proper scope) will run once per module load and silently affect every test in the process. Prefer `@pytest.fixture(scope="function")` or `scope="module"` with explicit setup-teardown. If you see a bare function call at module scope named anything like `reset_*_for_tests`, treat it as a bug until proven otherwise.
+</Warning>
+
+### CI
+
+GitHub Actions, four jobs: backend (pytest with coverage, fail under 80 percent), frontend (vitest plus type-check plus lint), e2e (Playwright against a fixture-backed stack), and a nightly cron that hits the live consoles and diffs fixtures. Total PR CI under six minutes.
+
+## Wave 5: Security Review (And the CRITICAL)
+
+Wave 5 was the security-reviewer agent across the whole repo. Findings: 1 CRITICAL, 3 HIGH, 4 MEDIUM, 3 LOW.
+
+The CRITICAL was the humbling one. SlowAPI was installed and configured as middleware. Every route was supposed to be rate-limited. Zero routes had actual `@limiter.limit` decorators on them. The chat SSE endpoint and the refresh endpoint were both fully unthrottled. A single user could have DoS'd the Mac mini from a single browser tab. Fix: three dozen decorators, grouped by endpoint family:
+
+```python
+@router.post("/refresh/{tab}")
+@limiter.limit("12/minute")  # 5-second minimum between manual refreshes
+async def refresh_tab(tab: str, request: Request): ...
+
+@router.post("/chat")
+@limiter.limit("6/minute")  # chat bursts should be human-paced
+async def chat_stream(request: Request): ...
+```
+
+<Security title="Middleware is not enforcement">
+Installing a rate-limit middleware is not the same as rate-limiting routes. SlowAPI requires per-route decorators. An empty or missing decorator is an unthrottled route. Grep your codebase for `@limiter.limit` and cross-reference the count against the number of non-GET routes you care about. The difference is your exposure.
+</Security>
+
+The three HIGHs:
+
+**CSRF bypass on first request.** Middleware only enforced when the cookie was present, to avoid breaking the first-request flow. That's backwards. The first POST without cookies should be rejected; the client needs a GET first to receive cookies. I inverted the guard: unsafe methods (POST, PUT, PATCH, DELETE) with missing cookies return 403.
+
+**Missing `<untrusted_data>` wrapping.** Spec section 12.3 says every tool result flowing back to the agent must be wrapped. The chat handler wasn't wrapping them. One-line fix in `agent/chat.py`.
+
+**Weak default credentials in docker-compose.yml.** Not applicable once I switched to launchd, but I fixed the compose file anyway.
+
+Three of the mediums were "CORS allows all methods" family; I documented them as intentional for Phase 1 (single-operator localhost) and added Phase 2 checklist items to tighten. The lows were informational.
+
+<Tip title="Run security review BEFORE the first launch, not after">
+I ran the security review after all code was written but before the server bound to the real Pi-hole and UniFi. That's the right order. If the CRITICAL had landed after I was already running in production, I'd be rolling credentials and checking access logs. Running the review before first real traffic costs nothing but time and catches the mistakes you genuinely didn't see.
+</Tip>
+
+## The Docker Pivot (And Why launchd Won)
+
+The plan said "docker-compose on the Mac mini." I wrote the compose file. I wrote the Dockerfile for the backend. I tried to build.
+
+```text
+COPY ../../chris2ao-unifi-mcp /app/_deps/unifi-mcp
+ERROR: failed to solve: failed to compute cache key:
+failed to calculate checksum of ref ... "/chris2ao-unifi-mcp": not found
+```
+
+Docker build contexts cannot reach outside the directory you hand to `docker build`. My `pyproject.toml` had `[tool.uv.sources]` entries pointing to `../../chris2ao-unifi-mcp` and `../../chris2ao-pihole-mcp`. Fine for an editable install, impossible in a Docker build. Options: git submodules (bloats the repo), build the deps as wheels first (two extra steps), publish to a private PyPI (overkill), or skip Docker.
+
+The Mac mini is a single-user always-on machine. Docker there buys me almost nothing and adds filesystem overhead, networking indirection, and a real tax when the container can't reach the UDM Pro because of a Docker networking quirk. What I actually wanted was "start on login, keep running, restart on crash." That's launchd.
+
+Two plists under `~/Library/LaunchAgents/` (backend and frontend), both `RunAtLoad=true` and `KeepAlive={"SuccessfulExit": false}`. `launchctl bootstrap` to load, `bootout` to unload, logs to `~/Library/Logs/chris2ao-homenet-*.log`. Thirty lines of XML per plist and two startup scripts. Restart on crash works. Survives reboots. No Docker networking to debug.
+
+<Tip title="Match infrastructure to scale, not to fashion">
+Docker is the right default for services running on someone else's hardware. For a single Mac mini serving three people, launchd is simpler, faster, and easier to debug. Use the heavy tool when it earns its weight. A `LaunchAgent` plist is 30 lines of XML; a docker-compose setup on macOS is an orchestration hobby.
+</Tip>
+
+### The Relative-Path Bite
+
+launchd gave me one regression. My `DATABASE_URL` in `.env` was:
+
+```text
+DATABASE_URL=sqlite+aiosqlite:///./data/homenet.db
+```
+
+Under a manual dev run (`uv run uvicorn app.main:app --reload` from the repo root), the relative path `./data/homenet.db` resolves against the repo root. Under launchd, the cwd is not the repo root; it's whatever working directory the plist says. The result was a fresh empty SQLite file created at the wrong path, no poll data visible in the UI, and me staring at an Overview tab with zero clients for about 15 minutes.
+
+Fix: an absolute-path override at the top of `scripts/start-backend.sh`:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export DATABASE_URL="sqlite+aiosqlite:///${PWD}/data/homenet.db"
+exec uv run uvicorn app.main:app --host 172.16.27.187 --port 3000
+```
+
+Belt and suspenders. `cd` into the repo, then explicitly export the absolute path. Either one alone is fragile; both make the script launchd-proof.
+
+## The Credentials Pull Script (Two Bugs, One Morning)
+
+I keep home lab credentials in `~/.claude/secrets/secrets.env`. To bootstrap the dashboard's `.env`, I wrote `scripts/pull-creds-from-claude-secrets.sh` to grab the UniFi and Pi-hole values and write them into the dashboard config. It had two bugs.
+
+**Bug 1: `export ` prefix not handled.** My secrets file uses `export KEY=value` syntax (so it's sourceable). My parser split on `=` and got a key of `export UNIFI_API_KEY` instead of `UNIFI_API_KEY`. The generated `.env` had lines pydantic-settings happily ignored.
+
+**Bug 2: key name mismatch.** The secrets file uses `PIHOLE_URL` (legacy). The dashboard expects `PIHOLE_HOST`. The pull script copied the key verbatim. pydantic-settings looked for `PIHOLE_HOST`, found nothing, defaulted to empty string, and the Pi-hole client authenticated against `""` and got 401 "password incorrect."
+
+That 401 was confusing because the password was right. Five minutes of staring at the error before I spot-checked the `.env` and saw `PIHOLE_HOST=` as a blank line. Fix:
+
+```bash
+line="${line#export }"        # strip 'export ' prefix
+if [[ "$key" == "PIHOLE_URL" ]]; then
+    key="PIHOLE_HOST"          # map to the dashboard's name
+fi
+```
+
+Integration tests ran against fixtures, not against a generated `.env` from a live secrets file, so they missed both bugs. Noted for the Phase 2 checklist: a full "start from checkout and get to running" e2e.
+
+<Warning title="Keys drift silently">
+When two systems reference the same semantic value with different keys (`PIHOLE_URL` vs `PIHOLE_HOST`), any bootstrap script that copies between them has to normalize. A copy of the wrong key doesn't error; it silently produces an empty value, and the downstream system fails with a message about the value, not about the key. Audit bootstrap scripts for key translation any time the naming conventions diverge.
+</Warning>
+
+## And Then, In the Browser
+
+Everything built. All tests green. Backend up, frontend up, polling jobs running, cache populated. I opened the browser at `http://172.16.27.187:3000/` and clicked on Overview.
+
+The page crashed: `TypeError: (n ?? []).map is not a function at HealthStrip (HealthStrip.tsx:17)`. The component was calling `.map()` on something that wasn't an array.
+
+Pulling the response from `/api/overview` showed an object keyed by check name mapping to boolean/number/null, not an array:
+
+```json
+{"checks": {"poll_core": true, "unifi_api": true, "pihole_api": true, "agent": false}}
+```
+
+The frontend type was `{name, status, detail}[]`. An array of objects. The backend had always returned a dict. The frontend had always typed an array. TypeScript didn't catch the mismatch because `checks` was optional, so it was happy to `.map()` a possibly-undefined value (the `?? []` fallback was there precisely for that case).
+
+Root cause: WS7 and WS8 were parallel. WS7 generated the initial frontend types from a stale OpenAPI snapshot. WS8 then wrote tabs against those types. WS3's actual backend shape was a dict. The reconciliation pass at the end of Wave 3 didn't catch it because the shape was compatible at the schema level (`additionalProperties` is valid) but not semantically.
+
+The fix was to accept the backend shape and retype the frontend as `Record<string, boolean | number | null>`, then rewrite `HealthStrip` to `Object.entries(checks ?? {}).map(...)` with a `tone()` helper that classifies each value: boolean true or timestamps below threshold render `ok`, false or old timestamps render `bad`, in-between timestamps render `warn`, and null renders `unknown`. For check names ending in `_age_seconds` the tone uses numeric thresholds; for boolean names it's straight true-is-ok. Slightly ugly but avoided a backend migration on release day.
+
+<Warning title="Parallel agents + optional types = silent shape drift">
+TypeScript's `?` operator helps you express optional fields, but it also silently allows you to call array methods on something the backend never returned as an array. The `?? []` fallback kicks the error to runtime. A full codegen pipeline from live OpenAPI (not a cached snapshot) would have caught this at type-check. Running `openapi-typescript` on every build is the fix; I've added that step to the frontend's pre-build script for Phase 2.
+</Warning>
+
+## What Mode A Actually Does, On Real Data
+
+First load against my actual hardware: 29 UniFi clients, 6 devices, 5 WLANs, 6 networks (correctly joined to `inventory.md` names for the 27 clients that have them); 314,207 Pi-hole queries today, 79,963 ads blocked, 3 upstream forwarders, top 25 permitted and top 25 blocked domains; 3 Protect cameras healthy.
+
+The piece I'm genuinely pleased about: the security signals grid surfaced real findings on first render.
+
+`dns_bypass` lit up **red** at 72 percent coverage. Roughly 8 of 29 clients are not routing DNS through Pi-hole. Expected culprits: smart TVs and IoT devices that hardcode DNS regardless of DHCP options. Known issue, worth surfacing, and now I can track whether it trends better as I enforce DHCP option 6 at the UDM.
+
+`mac_filter_off_on_trust_ssid` lit up **red** with value 2.0. Two SSIDs tagged "trust" with MAC filtering disabled. Checked the UDM UI and confirmed the drift. That's the exact kind of thing I wanted the dashboard to catch, and it's the reason WS5 existed at all.
+
+The other three signals came up green. I added a Phase 2 checklist item to cross-check them, because a green that should be red is the worst possible outcome for a security tool.
+
+<Info title="Agent chat disabled, on purpose">
+I don't have an Anthropic API key on the Mac mini yet. The backend returns 503 for `/api/chat` with `{"detail": "agent feature disabled"}`. The chat pane in the UI shows a polite banner ("Agent is disabled. Set ANTHROPIC_API_KEY and flip mode to C or D to enable.") and no input box. When the key lands, mode flips from A to C (agent-read-only) and the banner goes away. No refactor, no deploy-day scramble.
+</Info>
+
+## What Didn't Ship (And Why That's the Point)
+
+Phase 1 is mode A only. Explicitly no mutations (block-client, add-MAC-to-allowlist, disable-Pi-hole all live behind the mode B gate), no agent (chat pane is a placeholder, `/api/chat` returns 503), no polish pass (utilitarian Recharts), no write-back to `inventory.md`, no multi-user auth. Each of those is a feature, not a regression. Read-only is the posture; the others are future postures. Polish comes when capabilities are stable.
+
+The checklist to advance from A to B lives in the implementation plan's "Phase exit criteria" section: 14 days of soak, zero polling errors in that window, security signals accurate on real data, security review on the mutation endpoints, and confirmation UX implemented. I'll return to this post when B flips.
+
+## Patterns Worth Carrying Forward
+
+- **Mode-phasing as a single env var, enforced in middleware.** Four postures, one flag, one test matrix.
+- **Adapter-over-extract when packages aren't cleanly importable.** Forty lines buys a day.
+- **Poll-and-cache with heartbeat rows.** UI never live-calls. Manual refresh is a button, not a cron.
+- **Persona rules tested by fixtures.** Ordering bugs don't survive first-match-wins fixtures.
+- **Security signals as Python per-signal.** Don't force different shapes through a narrow interface.
+- **Every tool result wrapped in `<untrusted_data>`.** No exceptions.
+- **Infrastructure that matches scale.** launchd for one Mac mini beats Docker for one Mac mini.
+- **Phase 0 spikes are non-negotiable.** One hour up front or seven hours to unwind.
+
+## What's Next
+
+Phase 2 is the mutation unlock (A to B): preview-then-confirm on every write endpoint (same pattern as `chris2ao-unifi-mcp`'s Tier 2/3 tools), stricter rate limiting on mutations, an `audit_log` SQLite table capturing operator plus preview diff plus outcome, confirm-modal UI, and a security review on the new surface.
+
+Phase 3 is A to C: agent unlocked in read-only posture. The infrastructure is in place (allowlist, `<untrusted_data>`, mode gate); the work is chat UI polish, streaming, and conversation persistence. Phase 4 is C to D: agent drafts mutations, human approves them. That's the most interesting phase from a product standpoint and the one with the most review work.
+
+In the meantime: 29 clients, 314,207 daily queries, two real security findings on day one, and a single env var between me and a fully agentic home network dashboard. I'll come back when the infographic lands and Phase 2 ships.
+
+Go read your own Pi-hole stats. You'll be surprised what you find.
