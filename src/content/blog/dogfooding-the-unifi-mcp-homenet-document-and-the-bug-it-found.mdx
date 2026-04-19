@@ -81,7 +81,7 @@ The security engineer scored 8 findings with Severity, Usability Impact, and Net
 Total wall time was on the order of an hour, most of it spent in the research agent's three deep-research threads. The mechanical work (snapshot, draft, redact, upload) was minutes.
 
 <Info title="Why redact for NotebookLM but not for the repo?">
-NotebookLM is Google-hosted. My private repo (where the unredacted HomeNetwork/ docs live) sits behind the pre-commit secret scanner I deployed across all my chris2ao repos after the April 18 PSK leak remediation. Different threat models, different hygiene. The redaction script is the right tool for moving content from the private side to the cloud side; the secret scanner is the right tool for keeping the private side from accidentally going public.
+NotebookLM is Google-hosted. My private repo (where the unredacted HomeNetwork/ docs live) sits behind the pre-commit secret scanner I deployed across all my GitHub repos after the April 18 PSK leak remediation. Different threat models, different hygiene. The redaction script is the right tool for moving content from the private side to the cloud side; the secret scanner is the right tool for keeping the private side from accidentally going public.
 </Info>
 
 ## The Bug It Surfaced
