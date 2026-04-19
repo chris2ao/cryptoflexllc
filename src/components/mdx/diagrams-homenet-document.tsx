@@ -449,7 +449,7 @@ export function HomenetDocumentTeamDiagram({ caption }: DiagramProps) {
           textAnchor="end"
           className="fill-muted-foreground/70 text-[10px]"
         >
-          20 redacted sources to "Johnson Home Network"
+          20 redacted sources to &ldquo;Johnson Home Network&rdquo;
         </text>
 
         {/* Arrow into Phase 5 */}

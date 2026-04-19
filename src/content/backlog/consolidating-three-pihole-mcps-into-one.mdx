@@ -203,7 +203,7 @@ The auth model is the part of this that was worth getting right. Pi-hole 6 (Feb 
 3. If a call returns 401, the session is gone. Re-auth and retry.
 4. On shutdown, `DELETE /api/auth` releases the session slot server-side.
 
-<Info title="What is an "app password"?">
+<Info title="What is an app password?">
 Pi-hole v6 distinguishes the human web-admin password from application passwords. The web UI has a dedicated "Application password" generator (Settings -> Web Interface). Clicking Generate returns a one-time string that becomes your API credential. The benefit is that you can rotate the API password without affecting your web login, and vice versa. This is also the only password you should ever put in a config file. The human password should stay human-only.
 </Info>
 
