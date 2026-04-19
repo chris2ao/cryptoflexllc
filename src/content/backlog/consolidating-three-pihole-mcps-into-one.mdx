@@ -36,6 +36,8 @@ The short version: I did not build from zero, and I did not just install someone
 This is the fourth post in the [Under the Hood](/blog/series/under-the-hood) series. Earlier entries covered the [Homunculus Evolution Layer](/blog/homunculus-evolution-layer-when-your-ai-learns-to-upgrade-itself), the [5-Agent Design Team](/blog/building-a-5-agent-design-team-the-ui-ux-skill-system), and [dogfooding the UniFi MCP](/blog/dogfooding-the-unifi-mcp-homenet-document-and-the-bug-it-found). This one is about consolidating three upstream Pi-hole MCPs into a single opinionated server that matches an existing stack.
 </Info>
 
+![Visual summary of the pihole-mcp build: 5 MCPs surveyed, 3 consolidated, 28 tools across 6 modules, public GitHub release with CI and branch protection](/blog/pihole-mcp/infographic.png)
+
 ## The Setup
 
 A quick glossary so the rest of this post makes sense.
@@ -95,6 +97,8 @@ The second query scanned GitHub, npm, PyPI, and Docker Hub for Pi-hole MCP serve
 | [sebszczec/pihole-mcp](https://github.com/sebszczec/pihole-mcp) | Python | 4 | app password, v6 | Stale (Jan 2026) |
 
 Only one was actively maintained in 2026. The combined tool surface across all five still left 10 meaningful gaps: adlist CRUD, group management, client-to-group policy, DHCP, regex filter CRUD, Teleporter backup, per-VLAN analytics, CNAME CRUD (only sbarbett had this), webhook subscriptions, top-level config.
+
+![Validating assumptions with pre-build AI research: two parallel investigations confirming no DPI degradation and mapping the 5 existing Pi-hole MCP servers](/blog/pihole-mcp/slides/slide-03.png)
 
 ## The Decision: Consolidate, Don't Adopt and Don't Extend
 
@@ -188,6 +192,8 @@ get_query_log(length=200, client_ip="192.168.1.50", domain="*.doubleclick.net")
 
 And the response arrives as the raw Pi-hole JSON, ready for the model to summarize into prose.
 
+![System architecture: 28 tools across 6 core modules (stats, queries, blocking, domains, local_dns, maintenance) wired to a single FastMCP server.py](/blog/pihole-mcp/slides/slide-06.png)
+
 ## The Pi-hole v6 Session Auth Pattern
 
 The auth model is the part of this that was worth getting right. Pi-hole 6 (Feb 2025 and later) moved from basic auth to a session-based scheme. Every client has to do this:
@@ -242,6 +248,8 @@ Three things matter here:
 <Tip title="The session-auth pattern is reusable">
 Any auth-gated REST API that uses short-lived session tokens benefits from the same three patterns: pre-expiry refresh buffer, bounded 401 retry, best-effort release on shutdown. I used this shape first for the UniFi MCP (with cookies instead of headers). I used it again for Pi-hole. The next REST-auth integration will get the same treatment. Extract the pattern into a reusable client base class when you hit the third one.
 </Tip>
+
+![Resilient session auth pattern: Init, Active State, 60-second pre-expiry buffer, bounded 401 retry, best-effort DELETE on shutdown](/blog/pihole-mcp/slides/slide-07.png)
 
 ## The Local DNS Read-Modify-Write Quirk
 
@@ -343,6 +351,8 @@ I also retrofitted the same polish onto the existing [chris2ao/unifi-mcp](https:
 <Tip title="Ship the hygiene once, apply it everywhere">
 When you get one public repo's hygiene right (CI, templates, protection, badges, contributing guide), back-port it to every other public repo you own. The marginal cost is minutes. The benefit is that every visitor sees consistent quality across your profile. Sloppy hygiene on one public repo undermines the quality signals on your best one.
 </Tip>
+
+![Open-source polish standard: MIT license, Python 3.12+ CI matrix, passing tests, MCP compatibility, Pi-hole v6 badges, plus CONTRIBUTING, CODE_OF_CONDUCT, issue templates, and branch protection](/blog/pihole-mcp/slides/slide-10.png)
 
 ## Skills versus MCP: The Decision Framework
 

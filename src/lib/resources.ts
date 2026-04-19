@@ -12,6 +12,28 @@ export interface Resource {
 
 const resources: Resource[] = [
   {
+    slug: "pihole-mcp-infographic",
+    title: "Consolidating Three Pi-hole MCPs into One: Infographic",
+    description:
+      "A visual overview of building chris2ao/pihole-mcp: surveying five existing Pi-hole MCPs with /deep-research, consolidating three upstream repos into a single Python FastMCP server, 28 tools across six modules, the Pi-hole v6 session auth pattern with pre-expiry refresh and bounded 401 retry, and the open-source polish standard retrofitted to both public repos.",
+    type: "document",
+    tags: ["Claude Code", "MCP", "Pi-hole", "Home Lab", "Open Source", "Infographic"],
+    date: "2026-04-18",
+    downloadPath: "/blog/pihole-mcp/infographic.png",
+    downloadLabel: "Download Infographic",
+  },
+  {
+    slug: "pihole-mcp-slides",
+    title: "Consolidating Three Pi-hole MCPs into One: Slide Deck",
+    description:
+      "A slide deck narrating the chris2ao/pihole-mcp build: the deep-research phase, the fragmented upstream ecosystem, the consolidate-don't-extend decision, 28-tool modular architecture, the resilient Pi-hole v6 session auth pattern, the local DNS read-modify-write quirk, hermetic test design, the open-source polish standard, and the MCP vs. skill decision framework.",
+    type: "document",
+    tags: ["Claude Code", "MCP", "Pi-hole", "Home Lab", "Open Source", "Slides"],
+    date: "2026-04-18",
+    downloadPath: "/resources/pihole-mcp-slides.pdf",
+    downloadLabel: "Download Slide Deck",
+  },
+  {
     slug: "unifi-mcp-infographic",
     title: "Custom UniFi MCP for Claude Code: Infographic",
     description:
