@@ -1,5 +1,33 @@
 [
   {
+    "timestamp": "2026-04-19T20:14:34Z",
+    "account": "chris2ao@gmail.com",
+    "duration_seconds": 483,
+    "sync_mode": "full",
+    "emails_processed": 13,
+    "promotions_trashed": 7,
+    "promotions_rescued": 0,
+    "social_trashed": 0,
+    "social_rescued": 0,
+    "newsletters_trashed": 1,
+    "newsletters_rescued": 0,
+    "primary_kept": 1,
+    "primary_archived": 2,
+    "primary_trashed": 2,
+    "primary_flagged": 0,
+    "urgent_count": 0,
+    "vip_overrides": 0,
+    "security_threats_detected": 0,
+    "drafts_generated": 0,
+    "pending_replies": 0,
+    "attention_email_sent": false,
+    "errors": [
+      "Delta sync history.list API rejected messageAdded historyTypes format; fell back to full search"
+    ],
+    "circuit_breaker_triggered": false,
+    "vip_set_size": 15
+  },
+  {
     "timestamp": "2026-04-19T15:24:28Z",
     "account": "chris2ao@gmail.com",
     "duration_seconds": 1220,
