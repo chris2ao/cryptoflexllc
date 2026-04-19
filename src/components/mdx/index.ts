@@ -81,6 +81,10 @@ export {
 } from "./diagrams-unifi-mcp";
 export { HomenetDocumentTeamDiagram } from "./diagrams-homenet-document";
 export {
+  PiholeResearchToShipDiagram,
+  PiholeSessionAuthDiagram,
+} from "./diagrams-pihole-mcp";
+export {
   DesignToCodePipelineDiagram,
   RedesignAgentTeamDiagram,
   EditorialPropagationDiagram,
