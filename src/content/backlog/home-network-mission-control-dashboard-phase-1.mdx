@@ -2,11 +2,13 @@
 title: 'Home Network Mission Control, Phase 1: 12 Workstreams, One Dashboard'
 date: '2026-04-19T22:00:00'
 description: >-
-  12 parallel workstreams. 282 backend tests at 84.8 percent coverage. 47
-  frontend tests plus 14 Playwright flows. One CRITICAL plus three HIGH security
-  findings caught and fixed. Phase 1 of a mode-gated read-only dashboard for my
-  UDM Pro, Pi-hole, and UniFi Protect home lab, built in one long session against
-  a design spec written beforehand.
+  12 parallel workstreams, then four enrichment waves on top. 497 backend tests
+  at 82.9 percent coverage. 132 frontend tests. One CRITICAL plus three HIGH
+  security findings caught and fixed in the first review; one HIGH and three
+  MEDIUM caught by an architect-agent review in the second. A read-only dashboard
+  for my UDM Pro, Pi-hole, and UniFi Protect home lab, built in one long session
+  against a design spec written beforehand, then dog-fooded and refined into
+  what Phase 1 Mode A actually looks like in production.
 tags:
   - Home Lab
   - FastAPI
@@ -15,17 +17,19 @@ tags:
   - Pi-hole
   - Claude Code
   - Multi-Agent
+  - Radix UI
+  - SQLite
 author: Chris Johnson
-readingTime: 27 min read
+readingTime: 34 min read
 series: 'Building in Public'
 seriesOrder: 8
 ---
 
-12 workstreams. 282 backend tests at 84.8 percent coverage. 47 frontend tests plus 14 Playwright end-to-end flows. One CRITICAL and three HIGH security findings caught and remediated before the server ever bound to a real port. 29 real clients and 314,207 Pi-hole queries pouring through the UI the first time I loaded it in a browser.
+12 workstreams, then four enrichment waves on top. 497 backend tests at 82.9 percent coverage. 132 frontend tests. One CRITICAL and three HIGH security findings caught and remediated before the server ever bound to a real port, plus one HIGH and four MEDIUM caught by an architect-agent review in the second pass. 29 real clients and 319,105 Pi-hole queries pouring through the UI once it was all connected up.
 
-That's what it took to ship Phase 1 of the Home Network Mission Control Dashboard, a single pane of glass for my UDM Pro plus Pi-hole plus UniFi Protect home network. Phase 1 is read-only by design. There's a feature flag that will eventually unlock mutations and a Claude-powered agent, but for v1 the dashboard is a pure observer. Read-only is not a limitation here, it's the point.
+That's what it took to ship Phase 1 Mode A of the Home Network Mission Control Dashboard, a single pane of glass for my UDM Pro plus Pi-hole plus UniFi Protect home network. Phase 1 is read-only by design. There's a feature flag that will eventually unlock mutations and a Claude-powered agent, but for v1 the dashboard is a pure observer. Read-only is not a limitation here, it's the point.
 
-This post is the story of how it got built in one long session: a 12-stream parallel plan, four waves of Task agents, a preflight design spec written before a single line of code, and a list of things that broke along the way. The dead ends matter as much as the wins, so you get both.
+This post is the story of how it got built: a 12-stream parallel plan, four waves of Task agents, a preflight design spec written before a single line of code, then a dog-fooding feedback loop that turned up real gaps and produced four enrichment waves (HealthStrip + tooltips, client drawer + per-client DNS, Security tab depth + DNS search, ops + polish) that shipped the actual usable version of the tool. The dead ends matter as much as the wins, so you get both.
 
 ## Why a Single Pane of Glass
 
@@ -225,7 +229,7 @@ Wave 4 ran WS10 (tests) and WS11 (CI) in parallel. Tests first because CI wires 
 
 ### Test Shape
 
-282 backend tests passing at 84.8 percent coverage (rule is 80 percent minimum). 47 Vitest frontend tests. 14 Playwright end-to-end flows covering every tab, refresh, navigation, error state, and agent-disabled behavior. Tests replay recorded UniFi and Pi-hole fixtures under `tests/fixtures/`; no live HTTP in the suite. A nightly CI job re-captures against the live consoles and files an issue tagged `fixture-drift` on diff. That pattern caught two stale fixtures during Phase 1 alone (a UniFi OS field rename and a Pi-hole stats key that flipped from snake_case to camelCase).
+At the end of the initial 12-workstream build: 282 backend tests passing at 84.8 percent coverage. By the end of the four enrichment waves (covered later in this post): 497 backend tests at 82.9 percent and 132 frontend tests. The coverage threshold stayed at 80 percent throughout; the rate just dropped slightly because enrichment added more surface than test cases. 14 Playwright end-to-end flows covered every tab, refresh, navigation, error state, and agent-disabled behavior in the initial build; enrichment added unit tests rather than more e2e (the existing Playwright flows still pass). Tests replay recorded UniFi and Pi-hole fixtures under `tests/fixtures/`; no live HTTP in the suite. A nightly CI job re-captures against the live consoles and files an issue tagged `fixture-drift` on diff. That pattern caught two stale fixtures during the initial build alone (a UniFi OS field rename and a Pi-hole stats key that flipped from snake_case to camelCase).
 
 ### The `reset_registry_for_tests()` Mask
 
@@ -362,17 +366,130 @@ The fix was to accept the backend shape and retype the frontend as `Record<strin
 TypeScript's `?` operator helps you express optional fields, but it also silently allows you to call array methods on something the backend never returned as an array. The `?? []` fallback kicks the error to runtime. A full codegen pipeline from live OpenAPI (not a cached snapshot) would have caught this at type-check. Running `openapi-typescript` on every build is the fix; I've added that step to the frontend's pre-build script for Phase 2.
 </Warning>
 
+## Second Pass: The Four Enrichment Waves
+
+At this point the initial 12-workstream build was running. Tabs rendered. Polling was firing. 282 tests were green. I opened the dashboard in a browser for the first real click-around and immediately hit the gap every "finished" project hits: what shipped was structurally complete but informationally thin.
+
+The Overview cards showed "Clients: 12" as plain black text that didn't do anything when I clicked it. The HealthStrip rendered six chips, five of them grey because the backend returned `null` for every non-DB check ("populated by later workstreams" was a comment I'd left in `routers/system.py:62` and then forgotten). Clicking a client opened a drawer that said "No per-client DNS data yet." The Security tab showed five signal names and traffic-light dots with no explanation of what any of them meant. The DNS tab had two Refresh buttons at different positions and no way to search queries. Every interactive element used native HTML `title=` attributes for tooltips, which render with no theming, no delay, and no keyboard focus behavior.
+
+All of that was captured in my own feedback on the first walk-through, and it turned into a new plan: four enrichment waves, each decomposed across four specialist agents (Captain doing sysadmin + design, plus Security, Network, and Researcher specialists) running in parallel with consensus before merge. Same multi-agent pattern as the initial build, but now the specialists had personas and explicit non-overlap scopes.
+
+### Wave 1: Plumbing + Quick Wins
+
+The foundation. Captain shipped three things: a Radix Tooltip wrapper at `frontend/src/components/Tooltip.tsx`, design tokens in `tailwind.config.ts` (severity colors, 8-color chart palette, 560 px drawer width), and a real `GET /api/system/health` endpoint backed by a new `collector_health` SQLite table. Security shipped the real prize: `/api/security/{name}` now serves `description`, `remediation.{action, context}`, and `blast_radius` fields that had been parsed from `security_rules.yml` the entire time but never actually returned. Turns out the fields existed in the YAML from day one; the response schema just never included them. Network built a `poll_collector_health` job at 5-minute cadence that probes UDM, Pi-hole, and Anthropic reachability. Researcher made the Overview cards clickable with `<Link>` routing and gave the two Refresh buttons distinguishing icons (double-arrow circular for global, single sync-arrow for tab-scoped) plus explicit labels.
+
+<Tip title="Tooltips are a design system primitive, not a CSS class">
+Native HTML `title=` attributes get you a tooltip that has no delay, no theming, no keyboard activation, and no ability to hold rich content. Radix UI's `@radix-ui/react-tooltip` is ~8 KB, is WAI-ARIA 1.2 compliant, opens on keyboard focus, closes on Escape, and styles through Tailwind utilities on the Content element. Set it up once at the app root as a `TooltipProvider`, wrap your primitive in a helper, and reach for it every time you'd otherwise use `title=`. The cost is one install and twenty lines of wrapper code; the benefit is consistency across every hover surface.
+</Tip>
+
+### Wave 2: Client Enrichment
+
+This wave was where the dashboard went from showing identity to showing behavior. The client drawer went from four fields to twelve panes: identity, persona + explanation, connection, intelligence summary, DPI categories, top DNS domains, activity cadence, traffic volume, plus stubs for firewall hits and recent events (landed in Wave 3). The "intelligence summary" is a deterministic template, not an LLM call. Inputs are persona tier + archetype, top three DNS domains from Pi-hole, activity hours from query timestamps, and optional DPI top apps when available. Output is one paragraph per client: "*Melinda-iphone is classified as Household Trusted (tier 2). In the last 24 hours its top DNS domains were apple.com, icloud.com, googleapis.com. It queried DNS in 14 distinct hours today.*"
+
+The template is 30 lines of Python. The LLM variant is reserved for Phase C when the agent is unlocked; the `summary_source: 'template'` field in the response is already a discriminator so an A/B comparison is trivial later.
+
+Two new poll jobs landed this wave. `poll_dpi_active` (30-minute cadence) calls `get_dpi_by_app(mac)` for every client seen in the last 30 minutes. `poll_client_dns` (15-minute cadence) pulls each identified client's Pi-hole query log and writes rows to a new `client_dns_queries` table. The DNS log is the load-bearing one; DPI was expected to augment it. That expectation turned out to be wrong in a way worth writing down.
+
+<Warning title="The DPI-unavailable trap: a subnet that isn't a subnet">
+The design spec included a line that read "UniFi DPI is unreliable on Network 10.x." I internalized that as "DPI is flaky on 10.0.0.0/8 subnets," wrote a router that flagged empty DPI responses as `dpi_unavailable_on_10x` only when `client.ip.startswith("10.")`, and shipped a drawer banner saying "UniFi deep packet inspection is unreliable on 10.x subnets."
+
+My actual LAN is on 172.16.0.0/16. The first browser click on a heavy-traffic client showed empty DPI with no banner, because the `10.x` check didn't fire. Testing against the live UDM with `mcp__unifi__get_dpi_by_app` on a 1.3 GB iPhone returned `[]`. Testing `list_traffic_flows` returned a structured error: `PRODUCT_UNAVAILABLE: "Per-flow traffic data is not exposed via the API-key Integration API on this Network firmware."`
+
+The spec had meant "UniFi Network *application version* 10.x", which is the firmware series the UDM is running. The UniFi UI shows per-application bytes because it authenticates with a session cookie against endpoints that the API-key integration does not expose. This is a property of the API surface, not of the client's IP subnet. The fix was renaming the `empty_reason` flag from `dpi_unavailable_on_10x` to `dpi_unavailable_api_gated`, firing it on every empty DPI response regardless of subnet, and rewriting the banner to explain the real cause ("UniFi keeps per-application deep-packet-inspection data behind its session-auth UI") with a pointer to the DNS-derived substitute below.
+
+Two lessons. First, ambiguity in a spec becomes code. "Network 10.x" parsed two different ways by two different readers of the spec (the author and the implementer happened to be the same person), and the code ended up asserting the wrong one. Second, `get_dpi_by_app` returning `[]` is a design outcome, not a bug. Any feature that depends on it needs an explicit fallback plan, which in my case became DNS-derived per-client top domains plus a 20-entry hardcoded domain-to-category map.
+</Warning>
+
+### Wave 3: Security + DNS Depth
+
+This wave added the second half of the Security tab (firewall rules, alarms, events, three new signals) and the full DNS tab redesign (search, volume timeline, app-by-device, cursor-paginated query log with a PII toggle).
+
+The Security tab went from "five signal rows with traffic lights" to a full analyst surface. Signal modals now show description, remediation (imperative action bullets + context sentence), blast radius ("All devices that know the PSK can associate with the SSID, even unapproved ones"), and a status history chart. Below the grid, a new FirewallRulesTable pulls from `poll_firewall` (6-hour cadence) with human-readable source/destination columns; raw CIDR and GUID live in a tooltip on hover to avoid disclosing network topology at a glance. An AlarmsEventsFeed pulls from `poll_recent_events` (15-minute cadence) with tabbed alarms + events and cursor pagination.
+
+Three new signals shipped:
+
+- `blocked_traffic_spike`: amber at >50 WAN-denied events in an hour, red at >200.
+- `dns_query_spike_per_client`: amber at >500 queries per client per hour, red at >2000.
+- `alarm_unacked_age`: amber if any alarm is unacked >24h, red at >72h.
+
+This wave also included a merge gate the plan specifically called out: the architect-agent review. Before the wave could merge, the Security Engineer fed the final Security tab spec, signal list, rule YAML, and remediation copy to the architect agent and asked for a SOC-analyst review. The agent produced one HIGH finding (the `firewall_groups` `members` JSON exposes internal IPs), four MEDIUM findings (SQLite `LIKE` is case-sensitive for blocked-traffic detection; the DNS spike signal has an unidentified-client gap; modal raw-omission UX needs refinement; `event_id` collision has an edge case in the upsert), and four LOW findings (copy clarity, tab reset, two missing SOC signals I'd deferred). The HIGH was accepted under the existing single-operator localhost threat model and documented as such. The MEDIUM and LOW went to a backlog list. Since my Anthropic API key isn't configured on the Mac mini yet, the review actually ran as a Security Engineer self-review under a documented "agent unavailable" header, which is fine as long as the review got done.
+
+The DNS tab redesign was a larger lift than anything else in enrichment. Three new endpoints: `/api/dns/query-log` (cursor-paginated with domain / client / status / time filters and a `pii_mode` flag), `/api/dns/volume` (1-hour-bucketed 24-hour timeline with allowed / blocked / cached series, zero-filled for continuous x-axis), and `/api/dns/app-by-device` (top 10 clients by category, prefers DPI and falls back to a domain-to-category map when DPI is empty, which is always-so-far).
+
+The PII toggle is one of my favorite details in this wave. Default off. When off, the query log replaces `client_ip` with a stable `unid-<last4_of_mac_hash>` label for unidentified clients and hashes the domain for them. Identified clients (the 11 MACs that have a `client_personas` row) keep their hostnames and full domains. When I'm screen-sharing or demoing, I can flip it off and not expose that my wife's phone hits `icloud.com` 42 times per hour. The toggle state persists to `localStorage` per-browser; a `console.info("pii_mode_changed", {to: next})` line serves as a lightweight audit log until a proper `/api/audit-events` endpoint lands in Phase B.
+
+<Info title="The PII toggle is about posture, not paranoia">
+I run this dashboard on my own network, alone. In principle there's no one to hide anything from. But a dashboard I built at home is eventually a dashboard I want to demo to the home lab subreddit or screen-share for a blog post, and "remember to blur everyone's hostnames" is not a workflow I trust myself with. Default-off PII, one-click enable, per-session localStorage persistence: the implementation is thirty lines, and the value is that I never have to think about it again.
+</Info>
+
+### Wave 4: Ops + Polish
+
+The final enrichment wave moved the SQLite database off the Mac mini's internal SSD onto the external drive mounted at `/Volumes/MacExternal/homenet-dashboard/homenet.db`. Motivation: `client_dns_queries` alone is projected at ~160 MB over 30 days of retention for 11 identified clients, and stacking `dpi_snapshots`, `recent_events`, and the inventory history on top puts the DB in the 200-400 MB range. Pushing it off the boot SSD keeps the Mac mini's internal storage tidy.
+
+The migration script is ten steps, idempotent, and safe to re-run. Unload the backend, `sqlite3 .backup` to the target with mode 0600, archive the internal copy to `backups/homenet.pre-migration.<stamp>.db`, update the `DATABASE_URL` in `.env` (manual step because the file-guard hook blocks programmatic `.env` edits by design), reload the backend, smoke-check `/api/health`. A new `scripts/start-backend.sh` preamble refuses to boot if the external mount point is absent, which avoids the silent "SQLAlchemy creates a fresh empty DB on the internal disk" failure mode I've hit before on other projects. A third LaunchAgent at 03:15 daily runs `scripts/backup-db.sh` to write a gzipped SQL dump to the *internal* disk, so a lost external drive doesn't take the backups with it. The backup retains the last 14 daily dumps.
+
+Retention purging landed this wave too: `poll_purge` runs daily, deletes `dpi_snapshots` older than 7 days, `client_dns_queries` older than 30 days, and `recent_events` older than 30 days. FK integrity preserved (the purge only deletes cache rows, never the `poll_run` rows they reference). A `test_db_file_perms.py` asserts 0600 on the DB file and 0700 on the parent directory, which is a fast early-warning tripwire if something ever rewrites the file with the wrong mode.
+
+<Warning title="LaunchAgent ThrottleInterval is not optional with a mount guard">
+The initial backend plist had `ThrottleInterval=10`, which is fine when the service is stable. With the new mount guard, if the external drive is unmounted the script exits non-zero *fast*, and `KeepAlive.Crashed=true` retries it immediately, and the cycle produces a tight loop of a hundred failed launches per minute until someone intervenes. Raising `ThrottleInterval` to 60 seconds gives the drive time to remount (or the operator time to notice) before the next retry. The plist at `deploy/com.chris2ao.homenet-dashboard-backend.plist` is now 60 seconds; the earlier value was a bug, not a feature.
+</Warning>
+
+The final Polish pass addressed the two things left over from earlier waves: a `FirmwareDriftChip` on Overview that pulls from the `firmware_drift` signal, a `PersonaBadge` tooltip explaining the tier range, and a full `title=` to `<Tooltip>` upgrade pass across every component authored in the initial build. The MAC-filter signal's `remediation.context` got a rewrite to explicitly flag the spoofing caveat: "MAC filtering is a secondary control. It limits which devices can associate even when they know the PSK, but any attacker with a wireless adapter can change their MAC to a known-allowed value. Treat this as configuration hygiene, not a security boundary." Shipping a security signal without naming its limitation is how operators get complacent.
+
+### The Probe Bug Hidden in the Probe
+
+One fix that came out of dog-fooding the new HealthStrip: `probe_pihole` was wrong.
+
+The probe was supposed to distinguish four states: `ok`, `auth_expired`, `unreachable`, and `unknown`. What it actually did was hit `/api/stats/summary` with a raw unauthenticated `httpx.AsyncClient` and classify any 401 response as `auth_expired`. But Pi-hole v6 requires authentication on basically every endpoint, so the probe was *always* returning 401, and the HealthStrip always flagged `pihole=auth_expired` regardless of whether the password was correct. It was the equivalent of a smoke detector that beeps whenever the kitchen light is on.
+
+The fix was to rewrite the probe to build a short-lived `PiholeClient`, issue an authenticated `/stats/summary` call, and close the session in a `finally` block. That actually exercises the password. Three new classifications came out of the rewrite:
+
+- `ok`: authenticated and got populated data.
+- `auth_expired`: 401 or 403 on an authenticated call (password is wrong).
+- `seats_exhausted`: HTTP 429 `api_seats_exceeded` (Pi-hole v6's `webserver.api.max_sessions` is full; raising it is the fix).
+- `unreachable`: network error, timeout, or 5xx.
+- `unknown`: host not configured.
+
+The `seats_exhausted` state matters because it actually surfaced during testing. Pi-hole v6 limits concurrent API sessions per user; every backend poll, every admin browser tab, and every MCP call from my Claude Code session opens a session that persists until either `DELETE /auth` or the idle timeout (usually 300 seconds). The default `max_sessions` is 10. A few minutes of testing was enough to saturate it. The fix on the Pi-hole side was to raise the limit to 50 (one SSH + `sudo pihole-FTL --config webserver.api.max_sessions 50` + restart). The fix in the dashboard was making the state surface as a distinct chip color and tooltip so future-me knows what to do without re-debugging it.
+
+<Warning title="Unauthenticated probes lie about auth">
+If you're writing a reachability probe for an API that requires authentication, the probe has to authenticate. An unauthenticated probe to an auth-required endpoint returns 401 by design. Classifying 401 as "auth expired" is only correct if you've already proven auth works once; on a first probe, it's indistinguishable from "the endpoint requires auth and the probe didn't supply it". Always probe with real credentials, and *close the session in a finally block* so you don't leak sessions across probe invocations.
+</Warning>
+
+### Multi-Agent Pattern, Second Time Around
+
+The initial 12-workstream build used a wave-based pattern with up to four parallel Task agents per wave. The enrichment waves kept the wave pattern but added explicit personas: a Captain who owned sysadmin + graphic-designer scope (DB migration, LaunchAgent plists, Tailwind tokens, Tooltip primitive, chart-type selections), a Security Engineer who owned signal schemas + remediation copy + security gates, a Network Engineer who owned poll jobs + per-client enrichment + the DNS tab, and a Researcher who owned pattern validation (Grafana, Pi-hole v6 admin, Radix) + the chart primitives.
+
+Three differences from the initial build's multi-agent setup worked particularly well:
+
+1. **The Captain orchestrated, not just implemented.** Each wave started with the Captain writing a dispatcher brief for each specialist listing their scope, their non-overlap constraints, and their deliverable checklist. Specialists implemented in parallel. Captain ran the consensus check (lint, tests, typecheck, security gates) before merge. That's a cleaner pattern than "all four agents working in a free-for-all and hoping the reconciliation pass catches conflicts."
+
+2. **Non-overlap was enforced by directory, not by file.** Each specialist had an explicit list of directories they could write to. Cross-scope changes (for example, a new type in `frontend/src/api/types.ts`) went through the Captain. That mostly worked; the one exception was when the Network Engineer needed to add a query key to `frontend/src/api/query-keys.ts` at the same time the Security Engineer did. The reconciliation was a git merge, not a conflict, because the two agents added separate lines. Alphabetical order saved me.
+
+3. **The architect-agent review gate was part of the plan, not an afterthought.** The Wave 3 plan explicitly said "Security Engineer feeds the final Security tab spec to the architect agent for review; findings land in a doc before merge." Even though the review ran as a self-review (no API key), having the gate in the plan meant the finding *was* documented, the accept-or-reject reasoning was written down, and future me can audit the call. Planned reviews that actually happen beat ad-hoc reviews that get skipped.
+
+<Tip title="Persona-based agent teams beat role-neutral agent fan-outs">
+When four parallel agents all identify as "general-purpose," they tend to converge on the same suggestions. When you give them personas (Security, Network, Researcher, Captain) and distinct scopes, they naturally bring different lenses and produce genuinely different proposals that need reconciliation. The Captain role is the key: someone has to orchestrate, resolve conflicts, and run the consensus check. Without that role, parallel agents produce parallel recommendations that never converge into a single plan.
+</Tip>
+
 ## What Mode A Actually Does, On Real Data
 
-First load against my actual hardware: 29 UniFi clients, 6 devices, 5 WLANs, 6 networks (correctly joined to `inventory.md` names for the 27 clients that have them); 314,207 Pi-hole queries today, 79,963 ads blocked, 3 upstream forwarders, top 25 permitted and top 25 blocked domains; 3 Protect cameras healthy.
+Final state of Phase 1 Mode A, serving live from my Mac mini:
 
-The piece I'm genuinely pleased about: the security signals grid surfaced real findings on first render.
+- **4 LaunchAgents**: backend, frontend, backup (all under `deploy/` in the repo). Backend and frontend have `RunAtLoad=true` with `KeepAlive.Crashed=true` and a 60 second throttle; backup runs daily at 03:15.
+- **Dashboard**: 29 UniFi clients, 6 devices, 5 WLANs, 6 networks correctly joined to `inventory.md` names for the 27 clients that have them.
+- **Pi-hole**: 319,105 queries visible on the live DB via `mcp__pihole__get_stats`, with per-client breakdowns now populated in `client_dns_queries` (about 240 MB projected at 30 day retention).
+- **HealthStrip**: four chips (UDM, Pi-hole, Collector, DB) all green after the session-seat fix, backed by a `collector_health` table the 5-minute poll updates.
+- **SQLite**: 1.8 MB and growing on `/Volumes/MacExternal/homenet-dashboard/homenet.db`, backup cron verified working.
+- **Protect**: 3 cameras healthy, heartbeat on a 5-minute cadence.
 
-`dns_bypass` lit up **red** at 72 percent coverage. Roughly 8 of 29 clients are not routing DNS through Pi-hole. Expected culprits: smart TVs and IoT devices that hardcode DNS regardless of DHCP options. Known issue, worth surfacing, and now I can track whether it trends better as I enforce DHCP option 6 at the UDM.
+The piece I'm genuinely pleased about: the security signals grid surfaced real findings on first render, and the enriched modals explain what to do about them.
 
-`mac_filter_off_on_trust_ssid` lit up **red** with value 2.0. Two SSIDs tagged "trust" with MAC filtering disabled. Checked the UDM UI and confirmed the drift. That's the exact kind of thing I wanted the dashboard to catch, and it's the reason WS5 existed at all.
+`dns_bypass` lit up **red** at 72 percent coverage. Roughly 8 of 29 clients are not routing DNS through Pi-hole. Clicking the signal now opens a modal that explains the signal ("Clients may be using external DNS servers rather than the Pi-hole deployed on the LAN, bypassing block lists and local name resolution") with a remediation action block ("Enable DHCP option 6 at the UDM pointing to the Pi-hole IP", "For hardcoded-DNS devices, consider a DNAT rule at the gateway to redirect port 53 traffic to Pi-hole"), a context sentence, and the blast radius ("Clients bypassing Pi-hole can reach malware C2 domains, tracker networks, and ad domains that Pi-hole would otherwise block"). Expected culprits are smart TVs and IoT devices that hardcode DNS. Known issue, worth surfacing, and now I can track whether it trends better as I enforce DHCP option 6 at the UDM.
 
-The other three signals came up green. I added a Phase 2 checklist item to cross-check them, because a green that should be red is the worst possible outcome for a security tool.
+`mac_filter_off_on_trust_ssid` lit up **red** with value 2.0. Two SSIDs tagged "trust" with MAC filtering disabled. The signal modal now includes the spoofing caveat in the context field, so future-me doesn't over-weight the finding: MAC filtering is configuration hygiene, not a security boundary.
+
+The three new Wave 3 signals (`blocked_traffic_spike`, `dns_query_spike_per_client`, `alarm_unacked_age`) came up green on first render, which matches the expected baseline on a quiet home network. The other two initial signals (`ppsk_idle`, `firmware_drift`) also came up green. I'm less confident those greens are right because they depend on poll data that hasn't fully warmed up yet, so the Phase 2 checklist has a specific item to cross-check them against `inventory.md` and the UDM UI. A green that should be red is the worst possible outcome for a security tool.
 
 <Info title="Agent chat disabled, on purpose">
 I don't have an Anthropic API key on the Mac mini yet. The backend returns 503 for `/api/chat` with `{"detail": "agent feature disabled"}`. The chat pane in the UI shows a polite banner ("Agent is disabled. Set ANTHROPIC_API_KEY and flip mode to C or D to enable.") and no input box. When the key lands, mode flips from A to C (agent-read-only) and the banner goes away. No refactor, no deploy-day scramble.
@@ -380,7 +497,9 @@ I don't have an Anthropic API key on the Mac mini yet. The backend returns 503 f
 
 ## What Didn't Ship (And Why That's the Point)
 
-Phase 1 is mode A only. Explicitly no mutations (block-client, add-MAC-to-allowlist, disable-Pi-hole all live behind the mode B gate), no agent (chat pane is a placeholder, `/api/chat` returns 503), no polish pass (utilitarian Recharts), no write-back to `inventory.md`, no multi-user auth. Each of those is a feature, not a regression. Read-only is the posture; the others are future postures. Polish comes when capabilities are stable.
+Phase 1 is Mode A only. Explicitly no mutations (block-client, add-MAC-to-allowlist, disable-Pi-hole all live behind the mode B gate), no live agent (chat pane mounts and the streaming plumbing is ready, but `/api/chat` returns 503 until `ANTHROPIC_API_KEY` is set), no write-back to `inventory.md`, and no multi-user auth. Each of those is a feature, not a regression. Read-only is the posture; the others are future postures. Polish came during the enrichment waves, and the dashboard is now in its "finished Phase 1 Mode A" state rather than the "functional Phase 1 Mode A" state it was in when the initial build wrapped.
+
+One UniFi capability stayed out of reach this phase and is worth calling out: per-application DPI parity with the UniFi Network UI. The UI shows Netflix 38 GB, Disney+ 38 GB, Instagram 10 GB, and so on by client, because the UI authenticates with a session cookie against endpoints that the API-key integration doesn't expose. The dashboard's DNS-derived app-by-device chart is a good-enough substitute at the coarse-category level (streaming, search, downloading) but not per-application. A follow-up plan at `docs/plans/2026-04-20-unifi-session-auth-plan.md` scopes the dual-auth work that would close the gap: adding session-cookie authentication alongside the API-key path in `chris2ao-unifi-mcp`, optional `UNIFI_USERNAME` + `UNIFI_PASSWORD` config in the dashboard, and a Phase 0 spike to confirm the session endpoints expose DPI on this firmware. Three to four days focused. Not scheduled yet; it lands before Phase 1.2 (Wi-Fi/RF tab) or alongside Phase B (mutations) depending on which I pick up first.
 
 The checklist to advance from A to B lives in the implementation plan's "Phase exit criteria" section: 14 days of soak, zero polling errors in that window, security signals accurate on real data, security review on the mutation endpoints, and confirmation UX implemented. I'll return to this post when B flips.
 
@@ -394,13 +513,19 @@ The checklist to advance from A to B lives in the implementation plan's "Phase e
 - **Every tool result wrapped in `<untrusted_data>`.** No exceptions.
 - **Infrastructure that matches scale.** launchd for one Mac mini beats Docker for one Mac mini.
 - **Phase 0 spikes are non-negotiable.** One hour up front or seven hours to unwind.
+- **Dog-food your own output.** The enrichment waves happened because the first thing I did after declaring Phase 1 "done" was click around in a browser and see every gap. A second pass with real browser clicks beats any amount of unit test coverage for finding UX gaps.
+- **Specialist personas, not role-neutral agents.** A Captain + Security + Network + Researcher team produced genuinely different perspectives; four general-purpose agents tend to converge.
+- **Probe your auth endpoints with real auth.** An unauthenticated probe to an auth-required endpoint always returns 401. That's not a state, that's a tautology.
+- **Ambiguity in a spec becomes code.** "Network 10.x" meant firmware version; I read it as IP subnet; I shipped the wrong gating logic. Treat every unclear reference in a spec as a bug until it's pinned down.
 
 ## What's Next
 
-Phase 2 is the mutation unlock (A to B): preview-then-confirm on every write endpoint (same pattern as `chris2ao-unifi-mcp`'s Tier 2/3 tools), stricter rate limiting on mutations, an `audit_log` SQLite table capturing operator plus preview diff plus outcome, confirm-modal UI, and a security review on the new surface.
+Phase 1.1 is a Wi-Fi + RF tab. Signal strength heatmap by AP, channel usage, client distribution per band. Benefits from the UniFi session-auth follow-up because traffic-flow data per client feeds the RF picture, so the session-auth plan should land first.
+
+Phase 2 is the mutation unlock (A to B): preview-then-confirm on every write endpoint (same pattern as `chris2ao-unifi-mcp`'s Tier 2/3 tools), stricter rate limiting on mutations, an `audit_log` SQLite table capturing operator plus preview diff plus outcome, confirm-modal UI, and a security review on the new surface. The CSRF-token plumbing that the session-auth follow-up adds is a pre-req here.
 
 Phase 3 is A to C: agent unlocked in read-only posture. The infrastructure is in place (allowlist, `<untrusted_data>`, mode gate); the work is chat UI polish, streaming, and conversation persistence. Phase 4 is C to D: agent drafts mutations, human approves them. That's the most interesting phase from a product standpoint and the one with the most review work.
 
-In the meantime: 29 clients, 314,207 daily queries, two real security findings on day one, and a single env var between me and a fully agentic home network dashboard. I'll come back when the infographic lands and Phase 2 ships.
+In the meantime: 29 clients, 319,105 daily queries, four LaunchAgents, a SQLite DB on an external drive with nightly backups, two real security findings on day one that are still red today, eight security signals with full remediation and blast-radius copy, and a single env var between me and a fully agentic home network dashboard. Phase 1 Mode A is done. I'll come back when Phase 1.1 or Phase B ships, whichever comes first.
 
 Go read your own Pi-hole stats. You'll be surprised what you find.
