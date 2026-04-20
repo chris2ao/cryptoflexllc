@@ -1,5 +1,32 @@
 [
   {
+    "timestamp": "2026-04-20T00:22:06Z",
+    "account": "chris2ao@gmail.com",
+    "duration_seconds": 450,
+    "sync_mode": "full_fallback",
+    "emails_processed": 3,
+    "promotions_trashed": 1,
+    "promotions_rescued": 0,
+    "social_trashed": 0,
+    "social_rescued": 0,
+    "newsletters_trashed": 1,
+    "newsletters_rescued": 0,
+    "primary_kept": 1,
+    "primary_archived": 0,
+    "primary_trashed": 0,
+    "primary_flagged": 0,
+    "urgent_count": 0,
+    "vip_overrides": 0,
+    "security_threats_detected": 0,
+    "drafts_generated": 0,
+    "pending_replies": 1,
+    "attention_email_sent": true,
+    "errors": [
+      "history.list 400 invalid historyTypes; fell back to full search"
+    ],
+    "circuit_breaker_triggered": false
+  },
+  {
     "timestamp": "2026-04-19T20:14:34Z",
     "account": "chris2ao@gmail.com",
     "duration_seconds": 483,
