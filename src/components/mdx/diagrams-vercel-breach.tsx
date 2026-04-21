@@ -754,35 +754,54 @@ export function AIResponseLoopDiagram({ caption }: DiagramProps) {
           psql old URL (fails), smoke-test prod
         </text>
 
-        {/* Loop back arrow */}
+        {/* Loop back arrow: route around the diagram perimeter so it does not
+            cross any other box. Down from Verify, left along the bottom at
+            y=480, up the left margin at x=20, across the top at y=45, then
+            down into the top edge of the Describe box with an arrowhead. */}
         <line
           x1="680"
           y1="415"
           x2="680"
-          y2="460"
+          y2="480"
           className="stroke-emerald-500/80"
           strokeWidth="1.5"
         />
         <line
           x1="680"
-          y1="460"
+          y1="480"
+          x2="20"
+          y2="480"
+          className="stroke-emerald-500/80"
+          strokeWidth="1.5"
+        />
+        <line
+          x1="20"
+          y1="480"
+          x2="20"
+          y2="45"
+          className="stroke-emerald-500/80"
+          strokeWidth="1.5"
+        />
+        <line
+          x1="20"
+          y1="45"
           x2="160"
-          y2="460"
+          y2="45"
           className="stroke-emerald-500/80"
           strokeWidth="1.5"
         />
         <line
           x1="160"
-          y1="460"
+          y1="45"
           x2="160"
-          y2="135"
+          y2="55"
           className="stroke-emerald-500/80"
           strokeWidth="1.5"
           markerEnd="url(#vbrArrowEmerald)"
         />
         <text
-          x="420"
-          y="452"
+          x="350"
+          y="473"
           textAnchor="middle"
           className="fill-emerald-400 text-[10px]"
         >
