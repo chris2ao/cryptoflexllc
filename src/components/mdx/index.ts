@@ -89,5 +89,10 @@ export {
   RedesignAgentTeamDiagram,
   EditorialPropagationDiagram,
 } from "./diagrams-redesign";
+export {
+  SupplyChainAttackDiagram,
+  AIResponseLoopDiagram,
+  RotationLadderDiagram,
+} from "./diagrams-vercel-breach";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";

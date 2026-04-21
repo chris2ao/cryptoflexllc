@@ -68,6 +68,9 @@ import {
   DesignToCodePipelineDiagram,
   RedesignAgentTeamDiagram,
   EditorialPropagationDiagram,
+  SupplyChainAttackDiagram,
+  AIResponseLoopDiagram,
+  RotationLadderDiagram,
   ImageLightbox,
   CoverImageLightbox,
 } from "@/components/mdx";
@@ -381,6 +384,9 @@ export default async function BlogPostPage({ params }: Props) {
                     DesignToCodePipelineDiagram,
                     RedesignAgentTeamDiagram,
                     EditorialPropagationDiagram,
+                    SupplyChainAttackDiagram,
+                    AIResponseLoopDiagram,
+                    RotationLadderDiagram,
                     img: ImageLightbox,
                   }}
                 />

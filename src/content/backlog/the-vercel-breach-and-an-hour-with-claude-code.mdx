@@ -1,0 +1,280 @@
+---
+title: "The Vercel Breach and an Hour With Claude Code: AI for Defenders"
+date: '2026-04-21T08:00:00'
+author: "Chris Johnson"
+readingTime: "20 min read"
+description: "A fourth-party supply-chain breach put nine of my production credentials in an attacker's hands. Twenty minutes after reading the disclosure I was rotating keys, and sixty minutes later I had a full audit and a hardened account. Here is how Claude Code turned a day of incident response into an hour, and why the chain that got here should change how you pick vendors."
+tags: ["Security", "Incident Response", "Vercel", "Supply Chain", "Claude Code", "SOC 2"]
+series: 'Security Engineering'
+seriesOrder: 4
+---
+
+import {
+  SupplyChainAttackDiagram,
+  AIResponseLoopDiagram,
+  RotationLadderDiagram,
+} from '@/components/mdx';
+
+I host cryptoflexllc.com and a game dev project on Vercel. On April 19, 2026, I read [Juliet.sh's writeup](https://juliet.sh/blog/vercel-april-2026-incident-what-customers-should-do) of the Vercel breach over morning coffee. Twenty minutes later I was logged into my Vercel dashboard looking at nine environment variables with a "Need To Rotate" badge on each of them. Sixty minutes after that, they were all rotated, the platform was hardened, and I had forensic proof nothing had been used against me.
+
+This is the story of how Claude Code made that possible, why the breach chain that got here should worry anyone running production on a third-party platform, and why a SOC 2 badge is a claim, not a proof.
+
+<Info title="Series Context">
+This is the fourth post in the [Security Engineering](/blog/series/security-engineering) series. The first three covered [auditing my own code](/blog/security-hardening-analytics-dashboard), [picking a free WAF](/blog/the-cobbler-s-server-finally-gets-shoes), and [a 4-agent pentesting sprint](/blog/will-llm-agents-replace-pentesters). Those were proactive security posts. This one is reactive: something went wrong upstream, and I had to respond.
+</Info>
+
+## The Hook Metric
+
+Nine credentials. One hour. Zero unauthorized access detected.
+
+That is the short version. The longer version starts several degrees of separation away from my laptop, and ends with a plan file I want everyone reading this to be able to mirror.
+
+## What a Fourth-Party Breach Actually Means
+
+Before we get to Claude Code, I need to explain the supply chain. Not because the breach is novel (it is not), but because the language around these events is terrible and business readers keep getting confused by it.
+
+<Info title="What is a fourth-party breach?">
+You are first party. Your direct vendors (the ones you pay) are second party. Their vendors (the ones you never signed a contract with) are third party. And their vendors are fourth party. Each layer is one more organization that can be compromised without you even knowing they are in the chain.
+</Info>
+
+The attacker who got to my Vercel env vars never touched my laptop. They were five organizations removed from me. Here is the chain as best as it has been reconstructed from public reporting:
+
+1. A Context.ai employee's **personal** device picked up Lumma Stealer, a commodity infostealer, allegedly via a disguised Roblox auto-farm script. This is the kind of malware that sells on Telegram for $250 a month. No nation-state, no zero-day, just a family member clicking the wrong link.
+2. The infostealer harvested the employee's saved credentials and browser session cookies, including their Context.ai Google Workspace login.
+3. From that foothold, an attacker moved to a Vercel employee's Workspace. The bridge was consumer OAuth: the Vercel employee had individually signed up for Context.ai's consumer product using their enterprise Google account and granted "Allow All" permissions. That token was replayed.
+4. With a valid Vercel-employee session, the attacker enumerated non-sensitive environment variable values across a subset of customer projects between March 2026 and April 19, 2026.
+5. I was one of the customers in that subset.
+
+<SupplyChainAttackDiagram />
+
+That is what supply chain exposure looks like in 2026. The attacker never touched my Mac. They were five degrees of separation away, and still my production keys were readable.
+
+<Warning title="The Sensitive flag was the only thing that would have saved me">
+Vercel offers a "Sensitive" flag on every environment variable. When it is on, the value is encrypted at rest and not enumerable through the internal tooling the attacker got to. When it is off, the value is stored in a form that internal tooling can read. None of my nine compromised variables had the Sensitive flag set. The flag is architecturally enforced, not policy-enforced. It was the only thing standing between "breach" and "not breach" for me, and I did not know that until the disclosure came out.
+</Warning>
+
+## The Screenshot I Did Not Want To See
+
+Here is what greeted me when I opened my Vercel Environment Variables page after reading the Juliet.sh writeup.
+
+![Vercel environment variables page showing nine secrets flagged as Need To Rotate: VERCEL_API_TOKEN, DATABASE_URL, GITHUB_TOKEN, ANTHROPIC_API_KEY, RESEND_API_KEY, GMAIL_APP_PASSWORD, and three HMAC secrets](/blog/vercel-breach-incident-response/vercel-cred-rotation.png)
+
+Nine of my thirteen environment variables, each flagged by Vercel as "Need To Rotate". The other four were not flagged because they are public identifiers (team ID, GA ID, project ID) or an email address. Vercel's own UI was telling me exactly what to do. The question was how fast I could do it, and how confident I could be that nothing had already been used.
+
+## Scoping the Blast Radius
+
+Before touching anything, I opened Claude Code with a single prompt: "Here is the breach disclosure. Read my cryptoflexllc repo and my Vercel account. Tell me what I have exposed and what I need to do."
+
+What happened next is the first place the AI force multiplier showed up. Claude Code did this in parallel, in a single turn, without me micromanaging the order:
+
+- Grepped `src/` for every process.env reference, building a complete list of environment variables the code actually uses.
+- Cross-referenced that list against `vercel env ls` output to find variables that were provisioned but no longer referenced (there were none).
+- For each credential, opened the relevant file and inferred the minimum scope it needs. For `GITHUB_TOKEN`, it looked at `src/lib/github-api.ts` and determined the only operation is file CRUD on a specific repo: "Contents: Read and write" on a fine-grained PAT, not the classic `repo` scope.
+- Checked `~/.claude/secrets/secrets.env` for any shadow copies of the exposed keys. Result: none. That file held UniFi, Obsidian, Exa, Firecrawl, and Ollama keys, all unrelated.
+- Grepped `.env*` files across the cryptoflexllc project directory. None on disk.
+- Ran `git log -p --all` against every branch for any pattern matching the exposed variables. Zero matches. The repo has always been clean.
+
+<Tip title="The local exposure audit is the step most people skip">
+The "rotate everything Vercel flagged" response is obvious. The less obvious part is whether any of those credentials have shadow copies somewhere else. An old backup, a `.env.local` you forgot about, a personal config repo, a teammate's laptop. If a stolen key is in both places and you only rotate one, the attacker still has the working copy. Claude Code grepping my entire config directory for the exact variable names took about three seconds. Doing it by hand and being sure I got all of them would have taken me the better part of an hour and I still would not have trusted the result.
+</Tip>
+
+Within ten minutes I had a structured scope document. Nine credentials to rotate, local exposure confirmed zero, one coordination concern flagged: the `ANTHROPIC_API_KEY` might also be in use by my Home Network Mission Control Dashboard project, and if so I would need to update that project's `.env` after rotating on Vercel.
+
+## The Plan File Pattern
+
+Before executing anything, Claude Code wrote a plan file at `docs/plans/2026-04-20-cryptoflexllc-credential-rotation-plan.md`. This is a pattern I use for every non-trivial operation now, and it is the single thing I would recommend any reader adopt.
+
+The file is in a private config repo, so I cannot link to it, but the structure is trivial to mirror. Here is the skeleton:
+
+```markdown
+# <project> Credential Rotation Plan
+
+Trigger: <link to disclosure>
+Date opened: <date>
+Owner: <name>
+
+## 1. Scope and Compromise Assessment
+- Table of credentials with issuer and blast radius
+- What is NOT at risk (public identifiers, etc.)
+- Local exposure audit results
+
+## 2. Prerequisite: CLI auth or access
+
+## 3. Rotation Checklist
+- One section per credential
+- Each section has the exact commands, in order
+- Revoke old at issuer, create new, update platform, verify
+
+## 4. Platform Hardening (non-rotation)
+- 2FA, deployment protection, OAuth audits
+
+## 5. Post-rotation Monitoring (7-day window)
+- Table of where to watch for auth failures on the old credential
+
+## 6. Completion criteria
+- Checkbox list: all done when every box is ticked
+```
+
+<Info title="Why a plan file and not just a chat transcript?">
+The plan file gives me three things the chat cannot. First, checkboxes survive context compactions. If my Claude Code session runs out of context mid-rotation, I can start fresh and the new session reads the plan and picks up exactly where the old one left off. Second, it is reviewable. I can ask a peer to read it before I execute anything destructive. Third, it becomes the forensic record. Six months from now, if a regulator or auditor asks what I did, I have the plan and the commits.
+</Info>
+
+## The AI-Assisted Response Loop
+
+This is the part the user reading this actually cares about: what does "AI for defenders" look like in practice? Not marketing. Not demos. The actual loop, as it ran.
+
+<AIResponseLoopDiagram />
+
+Five stages, and the one that does the heavy lifting is stage three: parallel execution. Traditional incident response is serial. Read the docs for the first service, rotate the key, verify, move on to the next. Claude Code does not do that. It fires off the read calls in parallel, waits for all of them, then coordinates the write calls with appropriate dependencies (e.g., revoke at issuer before update on Vercel).
+
+Here is one practical example. The rotation plan called for me to review the last ~60 days of Vercel activity to make sure nothing unusual had happened during the breach window. I did not want to click through the activity log by hand. I gave Claude Code a freshly rotated `VERCEL_API_TOKEN` (so I was reading Vercel state with a clean key) and asked it to pull the forensic evidence.
+
+In a single turn, in parallel:
+
+```bash
+# All four of these ran in parallel as one Claude Code message
+curl -sS -H "Authorization: Bearer $NEW_VERCEL_API_TOKEN" \
+  "https://api.vercel.com/v6/deployments?teamId=$TEAM_ID&limit=100"
+
+curl -sS -H "Authorization: Bearer $NEW_VERCEL_API_TOKEN" \
+  "https://api.vercel.com/v3/events?teamId=$TEAM_ID&limit=12&since=1738368000000"
+
+curl -sS -H "Authorization: Bearer $NEW_VERCEL_API_TOKEN" \
+  "https://api.vercel.com/v5/user/tokens"
+
+curl -sS -H "Authorization: Bearer $NEW_VERCEL_API_TOKEN" \
+  "https://api.vercel.com/v1/teams/$TEAM_ID/members"
+```
+
+100 deployments, 12 team events, the complete token creation history, and the team membership list. All pulled, parsed, and summarized in under a minute. The review result: every deployment author was me, every event timestamp matched a commit I had made, and there was exactly one "Chrome on Windows" session active during the incident window. That was me too: my work machine is Windows, my personal machine is the Mac I am writing this post on. Dual-machine workflow.
+
+<Security title="Programmatic verification beats UI inspection">
+I have reviewed activity logs manually dozens of times. It is tedious, I get impatient, and I miss things. Having Claude Code pull the raw API responses, diff them against expected patterns (my own commits, my own IPs, my own user agents), and surface only the anomalies means the review is both faster and more thorough than I would do by hand. This is the defender multiplier in a nutshell: not that the AI does anything I could not do, but that it removes every "wait, what is the filter syntax for this dashboard again" moment and keeps the whole checklist alive in working memory across a long session.
+</Security>
+
+## Rotation Order by Blast Radius
+
+Nine credentials. They are not equal. Rotating them in the wrong order can let an attacker with a stale but still-working key interfere with the rotation of the others. The rule: rotate the credential with the largest downstream blast radius first.
+
+<RotationLadderDiagram />
+
+The top of the ladder is `VERCEL_API_TOKEN`. If an attacker still has it while I am rotating the others, they can modify the env vars I just updated. So it goes first. The HMAC secrets are at the bottom because they only sign cookies locally; they cannot be used to rotate anything else.
+
+This ordering fell out of a two-minute conversation with Claude Code: "What order should I rotate these in, and why?" The answer was correct, and the explanation was good enough that I could sanity-check it and push back on one item I disagreed with. (I bumped `DATABASE_URL` to position 2 instead of 3 because Neon downtime during a password reset is the most disruptive thing in the chain for real users, so I wanted to get it done early rather than leave it for the back half of the window.)
+
+## The HMAC Secrets Trick
+
+Six of the rotations were UI-gated. Open the issuer's dashboard, click buttons, copy a new value. But three of them were pure signing keys generated by me, for me, used by my own code:
+
+```bash
+for name in ANALYTICS_SECRET SUBSCRIBER_SECRET CRON_SECRET; do
+  printf "%s=%s\n" "$name" "$(openssl rand -hex 32)"
+done
+```
+
+Claude Code ran that one-liner, printed the three new values, and then piped them into `vercel env add ... --sensitive`. Three fully scriptable rotations in under thirty seconds, each with the Sensitive flag turned on this time.
+
+<Warning title="Side effects of HMAC rotation">
+Rotating `ANALYTICS_SECRET` logged me out of my own analytics dashboard (expected, re-auth with the new secret and continue). Rotating `SUBSCRIBER_SECRET` invalidated every outstanding unsubscribe link in newsletters I had previously sent. That is a user-facing impact. I accepted it because subscribers can always re-request a link, and leaving forgeable tokens alive after a breach is worse than asking a handful of people to click again. `CRON_SECRET` had no visible impact: Vercel re-signs cron invocations automatically after the next deploy.
+</Warning>
+
+## The Platform Hardening Pass
+
+Rotating secrets closes the door on the stolen values. It does not close the door on the attacker coming back through another path. So after the nine rotations, I spent another fifteen minutes on platform hardening:
+
+1. Enabled 2FA on my Vercel account. If you are still running with password-plus-GitHub-SSO in 2026, stop that today.
+2. Verified Deployment Protection was set to Standard. It was; no change needed.
+3. Audited Deployment Protection bypass tokens. Zero existed. Good.
+4. Revoked the Context.ai OAuth grant in my Google Workspace, which was the actual root-cause trust relationship that started this whole cascade upstream.
+5. Audited every other third-party OAuth grant in my Workspace. Revoked a handful of apps I had signed into once years ago and forgotten about.
+6. Pushed my Workspace third-party app policy from default-allow to "only trusted apps" (explicit allowlist). This means any future OAuth grant has to be approved by me before it takes effect.
+
+Every state change was verified programmatically. After enabling 2FA, Claude Code hit the Vercel API to confirm my account reported MFA enabled. After rotating `DATABASE_URL`, it ran `psql "<old-connection-string>"` and confirmed it now fails with an authentication error. Trust, but verify. Better: do not trust the UI, verify the API.
+
+## The Delve Caveat
+
+Now the part I have to be careful about.
+
+After the Juliet.sh writeup dropped, the commentary thread drifted toward a sharper question: how did Context.ai, the middle of this chain, get a SOC 2 badge while their OAuth hygiene was apparently this loose? That is when Gergely Orosz's tweet started making the rounds.
+
+![Tweet by Gergely Orosz verifying Context.ai was allegedly audited by Delve for SOC 2, with Armin Ronacher quote tweeting sardonically; the screenshot shows trust.context.ai previously redirecting to Delve's own platform](/blog/vercel-breach-incident-response/twitter-delve.png)
+
+Gergely Orosz (@GergelyOrosz) verified Context.ai was allegedly audited by Delve for SOC 2. The screenshot shows trust.context.ai previously redirecting to Delve's own platform. Armin Ronacher (@mitsuhiko) quote tweeted sardonically. The trust pages and compliance dashboards pointing at Delve started disappearing shortly after.
+
+<Info title="Who is Delve?">
+Delve is a compliance-automation platform that rose quickly in the 2025-2026 YC ecosystem. They pitch a "compliance as a service" model where a startup can sign up, connect their cloud and HR systems, and produce a SOC 2 report without hiring a traditional audit firm.
+</Info>
+
+Here is where I have to stay factual and attribute carefully. Delve has been the subject of public scrutiny since March 2026. Key public allegations, attributed to the sources that raised them:
+
+- [The DeepDelver Substack](https://deepdelver.substack.com) alleged systemic problems with Delve's SOC 2 audits, including pre-populated conclusions and a claim of 99.8% identical report content across 455 of the companies analyzed.
+- [gr3p's analysis](https://gr3p.com) of 533 leaked Delve customer reports is the source of the "99.8% identical content" figure being cited in news coverage.
+- Captain Compliance, HackerNews, and CyberScoop all [covered the Delve controversy](https://captaincompliance.com) through late March and April 2026.
+- Delve allegedly used U.S. virtual mailbox addresses while running operations from India, a claim Delve has disputed.
+- Y Combinator reportedly asked Delve to leave its program on April 3, 2026.
+
+Delve's own position, from [their response post](https://delve.co/blog/response-to-misleading-claims), is that they do not conduct audits. They provide a platform. Accredited third-party firms perform the audits, and Delve is the tooling vendor. That is an important distinction and I want to make sure I am not characterizing their conduct as settled fact.
+
+<Warning title="Always use allegedly when characterizing Delve's conduct">
+None of the claims against Delve are legally settled. Some are credibly sourced and backed by leaked documents, others are still in dispute. When I reference Delve's practices in this post I use "allegedly" because that is what the reporting supports, and because this is a personal blog, not a court filing.
+</Warning>
+
+The takeaway is not "SOC 2 is broken". The takeaway is that a compliance badge is a **claim**, not a proof. Consuming that claim without asking "who audited this, how, and how rigorously" is exactly where supply chain risk hides. When I pick a vendor in 2026, I now ask not just "are they SOC 2 compliant" but "whose audit firm, and do that firm's reports look identical across 500 other customers".
+
+That question would not have saved me from this specific incident. But it is the class of question that separates vendors who take security seriously from vendors who bought a badge.
+
+## Actionable Caution: What You Should Do Today
+
+If you host anything on Vercel, read this section and act on it. I have tried to make it scannable enough to execute on a phone.
+
+<Security title="The 2026-04 hardening checklist for every Vercel customer">
+1. Open your Vercel Environment Variables page right now. Any unflagged variable is breach-scope rotation-eligible until proven otherwise. Rotate first, ask questions later.
+2. Flag every future env var as **Sensitive**. The flag is architecturally enforced (encrypted at rest, not enumerable through the compromised channel).
+3. Enable 2FA. If you are still using just password + GitHub SSO in 2026, stop that today.
+4. Set Deployment Protection to at least **Standard**.
+5. Delete all Deployment Protection bypass tokens you are not actively using.
+6. If you use Google Workspace, audit every third-party OAuth grant at [admin.google.com](https://admin.google.com) (Security to API controls to Manage Third-Party App Access). Revoke anything you do not recognize.
+7. Switch your Workspace third-party app policy from default-allow to "only trusted apps" (explicit allowlist mode). This is a one-time setting with large payoff.
+8. Monitor upstream services for 7 days post-rotation. If anyone attempts to auth with your revoked credentials, the stolen value was real. Services to watch for my stack: Neon, Anthropic, Resend, GitHub, Gmail, Vercel.
+</Security>
+
+<Tip title="The 7-day monitoring window is not optional">
+Rotation kills the stolen credential's usefulness going forward. It does not tell you whether the attacker already used it. The only way to know is to watch each issuer's auth log for attempts to use the now-invalid value. Any attempt means a human (or script) has the stolen value and is trying it. Zero attempts across 7 days is the closest you will get to "confirmed not-used". I set calendar reminders for day 1, day 3, and day 7 after rotation, and I still have two more to run as of this writing.
+</Tip>
+
+## The Hour in Numbers
+
+The actual numbers from my session:
+
+- **9** environment variables rotated, each verified as Sensitive afterward.
+- **100** deployments pulled and reviewed via `/v6/deployments`.
+- **12** team events pulled via `/v3/events` and read for anomalies.
+- **1** old Vercel API token revoked (the one that could have been used against me).
+- **6** Google Workspace third-party OAuth apps revoked in the hardening pass.
+- **0** unauthorized access events found in 100 deployments or 12 events.
+- **0** shadow copies of the nine credentials found in local config.
+- **~60** minutes wall time from "reading the breach disclosure" to "hardened and documented".
+- **~6 to 8** hours, optimistically, if I had done the same work without Claude Code.
+
+The delta is not magical. Every step I just described I could have done manually. None of them are individually complex. But the aggregate work would have taken me a full day under normal circumstances, and longer under the emotional load of "you might have been breached, hurry up". With Claude Code orchestrating the session, the checklist stayed alive in working memory even while I was context-switching into external dashboards to click buttons, and every verification step happened as soon as the preceding action completed.
+
+## Why This Is What "AI For Defenders" Actually Looks Like
+
+I have spent a year writing this blog about AI agents. I have written about agents that write code, agents that audit code, and agents that run security sprints. This post is different. This was not a planned exercise. This was me, rattled, with a production system I care about, responding to someone else's breach disclosure.
+
+And here is the honest version of what helped:
+
+1. **Parallel tool calls.** Not sequential. Not "do one thing at a time". Claude Code fires off the grep, the API pull, and the config read in the same turn and tells me when all three finish. That is the force multiplier.
+2. **The plan file.** Not the chat. A durable checklist that survives context compaction and can be reviewed by a peer.
+3. **Programmatic verification.** Every UI-gated action was followed by an API-level confirmation. The UI lies. The API does not.
+4. **Persistent working memory across a long session.** I never had to stop and ask "which ones did I rotate already". Claude Code kept the board.
+
+This is not an autonomous agent neutralizing threats in real time. That is marketing. What it is, is a patient co-pilot that turns a day of recovery work into an hour and makes sure you do not miss a step while you are still rattled from reading the breach disclosure.
+
+## What Is Next
+
+Next in the Security Engineering series I will cover the 7-day monitoring window. What the upstream service logs showed, whether anyone tried the stolen keys, and what I learned from watching each issuer for attacks on known-dead credentials. If nothing shows up, that will be a short post. If something does, it will not.
+
+In the meantime, the plan file I described above is the single most reusable artifact from this incident. It lives in a private config repo, so I cannot link it, but the structure is in the section above and takes about fifteen minutes to adapt to any stack. Write it once. Use it every time something upstream goes wrong. You will thank yourself.
+
+Stay safe out there. And flag your env vars Sensitive.

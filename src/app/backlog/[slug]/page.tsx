@@ -77,6 +77,9 @@ import {
   DesignToCodePipelineDiagram,
   RedesignAgentTeamDiagram,
   EditorialPropagationDiagram,
+  SupplyChainAttackDiagram,
+  AIResponseLoopDiagram,
+  RotationLadderDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -232,6 +235,9 @@ export default async function BacklogPostPage({ params }: Props) {
               DesignToCodePipelineDiagram,
               RedesignAgentTeamDiagram,
               EditorialPropagationDiagram,
+              SupplyChainAttackDiagram,
+              AIResponseLoopDiagram,
+              RotationLadderDiagram,
               img: ImageLightbox,
             }}
           />
