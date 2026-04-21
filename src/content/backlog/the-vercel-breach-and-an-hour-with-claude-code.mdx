@@ -4,7 +4,7 @@ date: '2026-04-21T08:00:00'
 author: "Chris Johnson"
 readingTime: "20 min read"
 description: "A fourth-party supply-chain breach prompted Vercel to flag nine of my production credentials for rotation out of an abundance of caution. Twenty minutes after reading the disclosure I was rotating keys, and sixty minutes later I had a full audit and a hardened account. Here is how Claude Code turned a day of incident response into an hour, and why the chain that got here should change how you pick vendors."
-tags: ["Security", "Incident Response", "Vercel", "Supply Chain", "Claude Code", "SOC 2"]
+tags: ["Security", "Incident Response", "Vercel", "Supply Chain", "Claude Code"]
 series: 'Security Engineering'
 seriesOrder: 4
 ---
@@ -17,7 +17,7 @@ import {
 
 I host cryptoflexllc.com and a game dev project on Vercel. On April 19, 2026, I read [Juliet.sh's writeup](https://juliet.sh/blog/vercel-april-2026-incident-what-customers-should-do) of the Vercel breach over morning coffee. A precautionary notification from Vercel followed, and when I opened my dashboard the console had flagged nine environment variables with a "Need To Rotate" badge on each of them. Sixty minutes later, they were all rotated, the platform was hardened, and I had as much forensic confidence as a customer-side audit can give you that nothing had been used against me.
 
-This is the story of how Claude Code made that possible, why the breach chain that got here should worry anyone running production on a vendor platform, and why a SOC 2 badge is a claim, not a proof.
+This is the story of how Claude Code made that possible, and why the breach chain that got here should worry anyone running production on a vendor platform.
 
 <Info title="Series Context">
 This is the fourth post in the [Security Engineering](/blog/series/security-engineering) series. The first three covered [auditing my own code](/blog/security-hardening-analytics-dashboard), [picking a free WAF](/blog/the-cobbler-s-server-finally-gets-shoes), and [a 4-agent pentesting sprint](/blog/will-llm-agents-replace-pentesters). Those were proactive security posts. This one is reactive: something went wrong upstream, and I had to respond.
@@ -208,38 +208,6 @@ Rotating secrets closes the door on the stolen values. It does not close the doo
 6. Pushed my Workspace third-party app policy from default-allow to "only trusted apps" (explicit allowlist). This means any future OAuth grant has to be approved by me before it takes effect.
 
 Every state change was verified programmatically. After enabling 2FA, Claude Code hit the Vercel API to confirm my account reported MFA enabled. After rotating `DATABASE_URL`, it ran `psql "<old-connection-string>"` and confirmed the old password is no longer valid. Password rotation alone does not rule out a rogue role the attacker could have created with valid creds, so Claude Code also listed Neon roles and confirmed none existed beyond the ones I had provisioned. Trust, but verify. Better: do not trust the UI, verify the API.
-
-## The Delve Caveat
-
-Now the part I have to be careful about.
-
-After the Juliet.sh writeup dropped, the commentary thread drifted toward a sharper question: how did Context.ai, the middle of this chain, get a SOC 2 badge while their OAuth hygiene was apparently this loose? That is when Gergely Orosz's tweet started making the rounds.
-
-![Tweet by Gergely Orosz verifying Context.ai was allegedly audited by Delve for SOC 2, with Armin Ronacher quote tweeting sardonically; the screenshot shows trust.context.ai previously redirecting to Delve's own platform](/blog/vercel-breach-incident-response/twitter-delve.png)
-
-Gergely Orosz (@GergelyOrosz) verified Context.ai was allegedly audited by Delve for SOC 2. The screenshot shows trust.context.ai previously redirecting to Delve's own platform. Armin Ronacher (@mitsuhiko) quote tweeted sardonically. The trust pages and compliance dashboards pointing at Delve started disappearing shortly after.
-
-<Info title="Who is Delve?">
-Delve is a compliance-automation platform that rose quickly in the 2025-2026 YC ecosystem. They pitch a "compliance as a service" model where a startup can sign up, connect their cloud and HR systems, and produce a SOC 2 report without hiring a traditional audit firm.
-</Info>
-
-Here is where I have to stay factual and attribute carefully. Delve has been the subject of public scrutiny since March 2026. Key public allegations, attributed to the sources that raised them:
-
-- [The DeepDelver Substack](https://deepdelver.substack.com) alleged systemic problems with Delve's SOC 2 audits, including pre-populated conclusions and a claim of 99.8% identical report content across 455 of the companies analyzed.
-- [gr3p's analysis](https://gr3p.com) of 533 leaked Delve customer reports is the source of the "99.8% identical content" figure being cited in news coverage.
-- Captain Compliance, HackerNews, and CyberScoop all [covered the Delve controversy](https://captaincompliance.com) through late March and April 2026.
-- Delve allegedly used U.S. virtual mailbox addresses while running operations from India, a claim Delve has disputed.
-- Y Combinator reportedly asked Delve to leave its program on April 3, 2026.
-
-Delve's own position, from [their response post](https://delve.co/blog/response-to-misleading-claims), is that they do not conduct audits. They provide a platform. Accredited third-party firms perform the audits, and Delve is the tooling vendor. That is an important distinction and I want to make sure I am not characterizing their conduct as settled fact.
-
-<Warning title="Always use allegedly when characterizing Delve's conduct">
-None of the claims against Delve are legally settled. Some are credibly sourced and backed by leaked documents, others are still in dispute. When I reference Delve's practices in this post I use "allegedly" because that is what the reporting supports, and because this is a personal blog, not a court filing.
-</Warning>
-
-The takeaway is not "SOC 2 is broken". The takeaway is that a compliance badge is a **claim**, not a proof. Consuming that claim without asking "who audited this, how, and how rigorously" is exactly where supply chain risk hides. When I pick a vendor in 2026, I now ask not just "are they SOC 2 compliant" but "whose audit firm, and do that firm's reports look identical across 500 other customers".
-
-That question would not have saved me from this specific incident. But it is the class of question that separates vendors who take security seriously from vendors who bought a badge.
 
 ## Actionable Caution: What You Should Do Today
 
