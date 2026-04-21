@@ -12,6 +12,28 @@ export interface Resource {
 
 const resources: Resource[] = [
   {
+    slug: "vercel-breach-incident-response-infographic",
+    title: "The Vercel Breach and an Hour With Claude Code: Infographic",
+    description:
+      "A visual overview of the April 2026 Vercel breach response: the fourth-party supply chain from a Lumma Stealer infection on a Context.ai employee device through OAuth pivot into Vercel's internal tooling, the rotation ladder across nine exposed credentials, programmatic forensic verification against 100 deployments and 12 team events, and the hardening pass that locked the account down.",
+    type: "document",
+    tags: ["Security", "Incident Response", "Vercel", "Supply Chain", "Claude Code", "Infographic"],
+    date: "2026-04-21",
+    downloadPath: "/blog/vercel-breach-incident-response/infographic.png",
+    downloadLabel: "Download Infographic",
+  },
+  {
+    slug: "vercel-breach-incident-response-slides",
+    title: "The Vercel Breach and an Hour With Claude Code: Slide Deck",
+    description:
+      "A slide deck walking through the 60-minute AI-assisted incident response: the anatomy of a fourth-party breach, the plan-file pattern for durable recovery checklists, the rotation ladder matrix sorting nine credentials by blast radius, programmatic truth (the UI lies, the API does not), the actionable hardening architecture across Vercel and Google Workspace, and why a SOC 2 badge is a claim rather than a proof.",
+    type: "document",
+    tags: ["Security", "Incident Response", "Vercel", "Supply Chain", "Claude Code", "Slides"],
+    date: "2026-04-21",
+    downloadPath: "/resources/vercel-breach-slides.pdf",
+    downloadLabel: "Download Slide Deck",
+  },
+  {
     slug: "pihole-mcp-infographic",
     title: "Consolidating Three Pi-hole MCPs into One: Infographic",
     description:

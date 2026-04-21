@@ -49,6 +49,8 @@ The attacker who got to my Vercel env vars never touched my laptop. They were fi
 
 That is what supply chain exposure looks like in 2026. The attacker never touched my Mac. They were five degrees of separation away, and still my production keys were readable.
 
+![Slide: Five Degrees of Separation. A four-stage chain showing Context.ai Employee Personal Device (Lumma Stealer infection via disguised Roblox script, $250/mo commodity malware) to Context.ai Google Workspace (browser session cookie stolen) to Vercel Employee (consumer OAuth replayed with Allow All permissions via Context.ai) to Vercel Customer Environment Variables (attacker enumerates unprotected keys via internal tooling). Status note: the attacker never touched the local environment. Production keys were readable entirely through fourth-party supply chain vulnerabilities.](/blog/vercel-breach-incident-response/slides/slide-02.png)
+
 <Warning title="The Sensitive flag was the only thing that would have saved me">
 Vercel offers a "Sensitive" flag on every environment variable. When it is on, the value is encrypted at rest and not enumerable through the internal tooling the attacker got to. When it is off, the value is stored in a form that internal tooling can read. None of my nine compromised variables had the Sensitive flag set. The flag is architecturally enforced, not policy-enforced. It was the only thing standing between "breach" and "not breach" for me, and I did not know that until the disclosure came out.
 </Warning>
@@ -152,6 +154,8 @@ curl -sS -H "Authorization: Bearer $NEW_VERCEL_API_TOKEN" \
 I have reviewed activity logs manually dozens of times. It is tedious, I get impatient, and I miss things. Having Claude Code pull the raw API responses, diff them against expected patterns (my own commits, my own IPs, my own user agents), and surface only the anomalies means the review is both faster and more thorough than I would do by hand. This is the defender multiplier in a nutshell: not that the AI does anything I could not do, but that it removes every "wait, what is the filter syntax for this dashboard again" moment and keeps the whole checklist alive in working memory across a long session.
 </Security>
 
+![Infographic: The 60-Minute Remediation, AI-Assisted Recovery from the Vercel Breach. Four panels. Anatomy of a 4th-Party Breach shows the five-stage chain from Lumma Stealer infection to Vercel customer environment variable exposure. AI vs Manual Remediation claims an 800 percent increase in recovery speed (one hour with Claude Code versus six to eight hours manual). Rotation Ladder and Forensic Proof shows the priority order VERCEL_API_TOKEN then Database URLs then HMAC Secrets, with programmatic verification against 100 deployments and 12 team events yielding zero unauthorized access events. Hardening and Lessons Learned lists the Sensitive flag enablement, 2FA mandate, Deployment Protection at Standard, and the 7-day post-rotation monitoring window.](/blog/vercel-breach-incident-response/infographic.png)
+
 ## Rotation Order by Blast Radius
 
 Nine credentials. They are not equal. Rotating them in the wrong order can let an attacker with a stale but still-working key interfere with the rotation of the others. The rule: rotate the credential with the largest downstream blast radius first.
@@ -161,6 +165,8 @@ Nine credentials. They are not equal. Rotating them in the wrong order can let a
 The top of the ladder is `VERCEL_API_TOKEN`. If an attacker still has it while I am rotating the others, they can modify the env vars I just updated. So it goes first. The HMAC secrets are at the bottom because they only sign cookies locally; they cannot be used to rotate anything else.
 
 This ordering fell out of a two-minute conversation with Claude Code: "What order should I rotate these in, and why?" The answer was correct, and the explanation was good enough that I could sanity-check it and push back on one item I disagreed with. (I bumped `DATABASE_URL` to position 2 instead of 3 because Neon downtime during a password reset is the most disruptive thing in the chain for real users, so I wanted to get it done early rather than leave it for the back half of the window.)
+
+![Slide: The Rotation Ladder Matrix. A seven-row table pairing each credential with its blast radius risk and execution order. VERCEL_API_TOKEN is flagged CRITICAL because it can modify other variables if compromised during rotation, execution order 1. DATABASE_URL is HIGH due to Neon password reset dictating highest downtime disruption, order 2. GITHUB_TOKEN is HIGH for source code read/write access, order 3. ANTHROPIC_API_KEY is MEDIUM for AI service billing exposure, order 4. RESEND_API_KEY is MEDIUM for outbound email spoofing, order 5. GMAIL_APP_PASSWORD is MEDIUM for direct inbox access, order 6. The three HMAC secrets (Analytics, Subscriber, Cron) are LOW because they are local cookie signing only and scriptable, orders 7 through 9. Footer: keys are not equal. Rotating lower-tier secrets first allows an attacker to use a still-active high-tier key to intercept the rotation process.](/blog/vercel-breach-incident-response/slides/slide-05.png)
 
 ## The HMAC Secrets Trick
 
@@ -226,6 +232,8 @@ That question would not have saved me from this specific incident. But it is the
 ## Actionable Caution: What You Should Do Today
 
 If you host anything on Vercel, read this section and act on it. I have tried to make it scannable enough to execute on a phone.
+
+![Slide: Actionable Hardening Architecture. Two columns. Vercel Pass covers rotating all unflagged environment variables immediately, enforcing the Sensitive flag on for all current and future variables, requiring 2FA globally across the account, and upgrading Deployment Protection to Standard while deleting unused bypass tokens. Workspace Pass covers auditing third-party OAuth grants under Security then API Controls, revoking unrecognized applications such as Context.ai, and restricting Workspace third-party app policy from default-allow to Explicit Allowlist Mode. Footer: monitor upstream services (Neon, Anthropic, Resend, GitHub) for 7 days post-rotation to confirm zero anomalous auth attempts.](/blog/vercel-breach-incident-response/slides/slide-12.png)
 
 <Security title="The 2026-04 hardening checklist for every Vercel customer">
 1. Open your Vercel Environment Variables page right now. Any unflagged variable is breach-scope rotation-eligible until proven otherwise. Rotate first, ask questions later.
