@@ -252,7 +252,7 @@ The delta is not magical. Every step I just described I could have done manually
 
 ## What "AI For Defenders" Actually Looks Like
 
-I have spent a year writing this blog about AI agents. I have written about agents that write code, agents that audit code, and agents that run security sprints. This post is different. This was not a planned exercise. This was me, rattled, with a production system I care about, responding to someone else's breach disclosure.
+I have been writing this blog about AI agents since February of this year. I have written about agents that write code, agents that audit code, and agents that run security sprints. This post is different. This was not a planned exercise. This was me, rattled, with a production system I care about, responding to someone else's breach disclosure.
 
 And here is the honest version of what helped:
 
@@ -265,7 +265,7 @@ This is not an autonomous agent neutralizing threats in real time. That is marke
 
 ## What Is Next
 
-Next in the Security Engineering series I will cover the 7-day monitoring window. What the upstream service logs showed, whether anyone tried the stolen keys, and what I learned from watching each issuer for attacks on known-dead credentials. If nothing shows up, that will be a short post. If something does, it will not.
+I am going to keep monitoring the upstream service logs across the 7-day window and beyond: Neon, Anthropic, Resend, GitHub, Gmail, and Vercel. If anything tries the revoked credentials, or if Vercel's post-mortem surfaces new detail worth writing about, I will come back with a follow-up. If nothing shows up, the silence is itself the outcome, and I will let the monitoring just be monitoring.
 
 In the meantime, the plan file I described above is the single most reusable artifact from this incident. It lives in a private config repo, so I cannot link it, but the structure is in the section above and takes about fifteen minutes to adapt to any stack. Write it once. Use it every time something upstream goes wrong. You will thank yourself.
 
