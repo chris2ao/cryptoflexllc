@@ -94,5 +94,6 @@ export {
   AIResponseLoopDiagram,
   RotationLadderDiagram,
 } from "./diagrams-vercel-breach";
+export { WazuhHomelabIngestDiagram } from "./diagrams-homelab-wazuh";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";

@@ -80,6 +80,7 @@ import {
   SupplyChainAttackDiagram,
   AIResponseLoopDiagram,
   RotationLadderDiagram,
+  WazuhHomelabIngestDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -238,6 +239,7 @@ export default async function BacklogPostPage({ params }: Props) {
               SupplyChainAttackDiagram,
               AIResponseLoopDiagram,
               RotationLadderDiagram,
+              WazuhHomelabIngestDiagram,
               img: ImageLightbox,
             }}
           />

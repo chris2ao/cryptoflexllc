@@ -71,6 +71,7 @@ import {
   SupplyChainAttackDiagram,
   AIResponseLoopDiagram,
   RotationLadderDiagram,
+  WazuhHomelabIngestDiagram,
   ImageLightbox,
   CoverImageLightbox,
 } from "@/components/mdx";
@@ -387,6 +388,7 @@ export default async function BlogPostPage({ params }: Props) {
                     SupplyChainAttackDiagram,
                     AIResponseLoopDiagram,
                     RotationLadderDiagram,
+                    WazuhHomelabIngestDiagram,
                     img: ImageLightbox,
                   }}
                 />
