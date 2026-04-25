@@ -95,5 +95,6 @@ export {
   RotationLadderDiagram,
 } from "./diagrams-vercel-breach";
 export { WazuhHomelabIngestDiagram } from "./diagrams-homelab-wazuh";
+export { WazuhWavesDependencyDiagram } from "./diagrams-homelab-wazuh-waves";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
