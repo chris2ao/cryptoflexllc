@@ -73,6 +73,8 @@ import {
   RotationLadderDiagram,
   WazuhHomelabIngestDiagram,
   WazuhWavesDependencyDiagram,
+  WazuhBugCascadeDiagram,
+  WazuhFinalArchitectureDiagram,
   ImageLightbox,
   CoverImageLightbox,
 } from "@/components/mdx";
@@ -391,6 +393,8 @@ export default async function BlogPostPage({ params }: Props) {
                     RotationLadderDiagram,
                     WazuhHomelabIngestDiagram,
                     WazuhWavesDependencyDiagram,
+                    WazuhBugCascadeDiagram,
+                    WazuhFinalArchitectureDiagram,
                     img: ImageLightbox,
                   }}
                 />

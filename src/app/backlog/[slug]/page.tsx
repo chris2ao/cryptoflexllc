@@ -82,6 +82,8 @@ import {
   RotationLadderDiagram,
   WazuhHomelabIngestDiagram,
   WazuhWavesDependencyDiagram,
+  WazuhBugCascadeDiagram,
+  WazuhFinalArchitectureDiagram,
   ImageLightbox,
 } from "@/components/mdx";
 
@@ -242,6 +244,8 @@ export default async function BacklogPostPage({ params }: Props) {
               RotationLadderDiagram,
               WazuhHomelabIngestDiagram,
               WazuhWavesDependencyDiagram,
+              WazuhBugCascadeDiagram,
+              WazuhFinalArchitectureDiagram,
               img: ImageLightbox,
             }}
           />
