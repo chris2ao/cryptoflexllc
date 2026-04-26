@@ -244,23 +244,23 @@ The dashboard's CI matrix has four jobs: backend tests, frontend tests, E2E (Pla
 </Info>
 
 <MermaidDiagram chart={`flowchart LR
-  subgraph "Phase 2 ends"
-    A[Persona team produces<br/>18 findings, 5 same-session fixes]
+  subgraph phase2["Phase 2 ends"]
+    A["Persona team produces<br/>18 findings, 5 same-session fixes"]
   end
-  subgraph Plan Doc
+  subgraph plandoc["Plan Doc"]
     B["docs/plans/<br/>2026-04-26-cyber-<br/>redesign-followups.md<br/>20 deferred items,<br/>2 phased feature designs,<br/>slice menu A-F"]
   end
-  subgraph Codex Session
+  subgraph codex["Codex Session"]
     C["Reads doc, picks Slice E"]
     D["Ships Phase 1.1, 1.2, 1.3<br/>37 files +1675 -118<br/>521 backend, 141 Vitest"]
-    E["Hits weekly $20 plan limit<br/>writes session-wrap-up.md<br/>opens PR #5 (CI red)"]
+    E["Hits weekly plan limit<br/>writes session-wrap-up.md<br/>opens PR 5 (CI red)"]
   end
-  subgraph Claude Code Session
+  subgraph claude["Claude Code Session"]
     F["Reads doc + wrap-up + diff"]
     G["Fixes ruff format,<br/>closes PII gap on<br/>domain endpoint"]
-    H["PR #5 green, merged<br/>522 backend, 141 Vitest, 15 PW"]
+    H["PR 5 green, merged<br/>522 backend, 141 Vitest, 15 PW"]
     I["Same session, fresh branch<br/>sweeps 11 deferred items"]
-    J["PR #6 green, merged<br/>523 backend, 141 Vitest, 15 PW"]
+    J["PR 6 green, merged<br/>523 backend, 141 Vitest, 15 PW"]
   end
   K["Plan doc updated:<br/>items 1-7, 13-15, 17 marked DONE<br/>items 8, 20 stay gated"]
   A --> B
@@ -274,7 +274,7 @@ The dashboard's CI matrix has four jobs: backend tests, frontend tests, E2E (Pla
   H --> I
   I --> J
   J --> K
-  K -.update.-> B
+  K -. update .-> B
 `} />
 
 The plan doc is the node every other arrow touches. That's not aesthetic. It's the actual data flow.
