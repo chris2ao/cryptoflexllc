@@ -2,12 +2,13 @@
 title: 'Home Network Mission Control, Phase 2: Cyberpunk Skin, 18 Findings, Two Future Tabs'
 date: '2026-04-26T22:00:00'
 description: >-
-  One persona-team session ported a cyberpunk redesign onto Phase 1, surfaced 18
-  actionable findings across four reviewer dispatches, fixed every one in the
-  same session, and produced fully phased plans for two future features (DNS
-  click-throughs and a Threat Intelligence tab) on the way out. 519 backend
-  tests, 135 Vitest, 15 Playwright, all green at merge. The through-line is the
-  team pattern, not the skin.
+  Part 2 of the home network dashboard build with Claude Code. One persona-team
+  session ported a cyberpunk redesign onto Phase 1, surfaced 18 actionable
+  findings across four reviewer dispatches, fixed every one in the same session,
+  and produced fully phased plans for two future features (DNS click-throughs
+  and a Threat Intelligence tab) on the way out. 519 backend tests, 135 Vitest,
+  15 Playwright, all green at merge. The through-line is the reviewer-only
+  persona team, not the skin.
 tags:
   - Home Lab
   - FastAPI
@@ -22,23 +23,44 @@ author: Chris Johnson
 readingTime: 22 min read
 series: 'Building in Public'
 seriesOrder: 9
+coverImage: /blog/homenet-dashboard-phase-2/infographic.png
+coverImageAlt: 'Visual summary of Home Network Mission Control Phase 2: cyberpunk re-skin via theme attribute, four parallel reviewer personas, 18 findings, five same-session fixes, two future-feature designs.'
 ---
 
 18 actionable findings across 4 reviewer dispatches. 5 in-session fixes the persona team caught before merge. 2 fully-scoped future features, plans written end-to-end the same afternoon. 519 backend tests passing, 135 Vitest, 15 Playwright, all four CI jobs green. One PR, merged the same day, same persona-team pattern Phase 1 used in its enrichment waves.
 
-That's Phase 2 of the Home Network Mission Control Dashboard. If you've read [Phase 1](/blog/home-network-mission-control-dashboard-phase-1), you already know the system: Mac mini in a closet, UDM Pro, Pi-hole v6, UniFi Protect, a single pane of glass that's read-only by design with a feature-flagged path to mutations and an agent. Phase 2 isn't new capability. It's a cyberpunk re-skin of the Overview tab plus a session-team pattern that surfaced more real bugs in two hours than my own dog-fooding caught in three days.
+That's Phase 2 of the Home Network Mission Control Dashboard, the second post in this thread on using Claude Code to build a real home network mission control. If you've read [Phase 1](/blog/home-network-mission-control-dashboard-phase-1), you already know the system: Mac mini in a closet, UDM Pro, Pi-hole v6, UniFi Protect, a single pane of glass that's read-only by design with a feature-flagged path to mutations and an agent. Phase 2 isn't new capability. It's a cyberpunk re-skin of the Overview tab plus a session-team pattern that surfaced more real bugs in two hours than my own dog-fooding caught in three days.
+
+<Info title="Series Context">
+This is part 2 of an ongoing thread inside [Building in Public](/blog/series/building-in-public) about using Claude Code to build a home network mission control dashboard. The prior posts that this one builds on directly:
+
+- [**Phase 1**](/blog/home-network-mission-control-dashboard-phase-1): the chassis, the mode-phasing, the four enrichment waves, the eight security signals, and the launchd setup this re-skin layers on top of.
+- [**An Editorial Redesign, Handed Off From claude.ai/design to Claude Code**](/blog/editorial-redesign-with-claude-ai-design): the design-handoff pipeline that produced the cyberpunk reference prototype consumed in this post.
+- [**Building a 5-Agent Design Team**](/blog/building-a-5-agent-design-team-the-ui-ux-skill-system): the captain-and-specialists pattern this Phase tightens into a reviewer-only persona team.
+- [**Building a Custom UniFi MCP**](/blog/building-a-custom-unifi-mcp-103-tools-across-three-days) and [**Consolidating Three Pi-hole MCPs**](/blog/consolidating-three-pihole-mcps-into-one): the MCPs every backend route ultimately reaches through.
+
+Read those if you want the full backstory. Phase 2 stands on its own as "what changes when reviewers stop writing code and start producing findings only."
+</Info>
+
+![Visual summary of Home Network Mission Control Phase 2: theme-as-attribute layering, four parallel reviewer personas, five critical semantic fixes, two future-feature slices, and the testing status at merge.](/blog/homenet-dashboard-phase-2/infographic.png)
 
 This post is about three threads that braided together in one session: the redesign that shipped, the fixes the persona reviewers caught, and the forward plans for two features that're now ready to execute. The through-line that makes them one story is the team pattern itself.
 
 ## What Actually Shipped: A Cyber Skin That's Additive, Not Replacing
 
-The handoff was an HTML/JSX/CSS reference prototype at `design_handoff_mission_control/`: cyberpunk palette, scanline-style borders, animated count-ups on stat cards, a left rail with numbered nav entries. Nice to look at, easy to over-implement. The trap with a re-skin is to rip out the existing tokens and start over, which would've meant a week of regression testing on every component Phase 1 already shipped.
+The handoff was an HTML/JSX/CSS reference prototype at `design_handoff_mission_control/`: cyberpunk palette, scanline-style borders, animated count-ups on stat cards, a left rail with numbered nav entries. Same shape as the [editorial redesign handoff](/blog/editorial-redesign-with-claude-ai-design): a designed prototype dropped on disk, the implementation team's job is to absorb it without disturbing what's already in production. Nice to look at, easy to over-implement. The trap with a re-skin is to rip out the existing tokens and start over, which would've meant a week of regression testing on every component Phase 1 already shipped.
 
 So I didn't. Cyber tokens layer behind `[data-theme="cyber"]` in `frontend/src/styles/tokens.css`, with a separate `cyber-base.css` for the cyber-only animation primitives. The OKLCH tokens Phase 1 shipped under stay intact. Both render in the same app. Flip the `data-theme` attribute on `<html>` and the same component subtree paints with either palette. There's no parallel stylesheet, no conditional bundle, no theme provider plumbing.
 
 <Tip title="Theme-as-attribute, not theme-as-rewrite">
 If you're porting a redesign onto a working app, gate the new tokens behind a `[data-theme="..."]` selector in the same CSS file as the originals, not a parallel stylesheet you load conditionally. The CSS cascade does the right thing for free, the bundler doesn't care, and you can A/B between palettes by toggling one attribute. The cost is one wrapper selector. The benefit is no regression risk on the components you didn't touch.
 </Tip>
+
+<img
+  src="/blog/homenet-dashboard-phase-2/slides/slide-04.png"
+  alt="Slide showing the theme-as-attribute layering: Phase 1's OKLCH tokens, the cyber visual tokens behind [data-theme=cyber], and the additive redesign keeping locked-but-visible navigation tabs."
+  loading="lazy"
+/>
 
 The new components live under `frontend/src/components/cyber/`: `SideNav`, `TopBar`, `StatCard`, `ThreatVectorPanel`, `WanProbePanel`, `NoisyEndpointsPanel`, `PageHeader`. The shell got replaced. The Overview tab got rebuilt. Every other tab still uses Phase 1's components, lifted onto the cyber tokens by the theme attribute alone.
 
@@ -52,13 +74,19 @@ The animated stat cards are gated under `prefers-reduced-motion: reduce` via `cy
 
 ## The Persona Team, Second Time Around
 
-Phase 1's enrichment waves used a Captain plus three specialists pattern. Phase 2 kept the pattern and tightened it. One orchestrator (me, in the Senior Web/DB engineer chair). Three parallel reviewers running as background agents: Network engineer, Security engineer, UX/UI designer. A fourth reviewer (Senior Threat Intel Analyst) joined for the Feature 2 design pass.
+[Phase 1's enrichment waves](/blog/home-network-mission-control-dashboard-phase-1) used a Captain plus three specialists pattern, the same shape as the [`/ui-ux` 5-agent design team](/blog/building-a-5-agent-design-team-the-ui-ux-skill-system) and the [`/homenet-document` writer pipeline](/blog/dogfooding-the-unifi-mcp-homenet-document-and-the-bug-it-found). Phase 2 kept the pattern and tightened it in a way that turned out to matter more than the cyberpunk palette. One orchestrator (me, in the Senior Web/DB engineer chair). Three parallel reviewers running as background agents: Network engineer, Security engineer, UX/UI designer. A fourth reviewer (Senior Threat Intel Analyst) joined for the Feature 2 design pass.
 
 The reviewers don't write code. They produce findings. The orchestrator integrates the findings before the next wave. That's the load-bearing distinction. When four agents all *implement* in parallel, you spend the next hour merging conflicts. When three agents *review* in parallel and one orchestrator integrates, you spend ten minutes reading findings and the rest of the hour fixing what they found.
 
 <Tip title="The reviewer-only constraint is the load-bearing part">
 Parallel agents that all edit code converge on conflicts and fan-out coordination overhead. Parallel agents that produce findings only converge on a shared review surface, which the orchestrator integrates serially. The win is bigger than it sounds: every reviewer reads the full diff with no lock contention, and the orchestrator gets three parallel critiques of one piece of work in the time it takes to read three short reports.
 </Tip>
+
+<img
+  src="/blog/homenet-dashboard-phase-2/slides/slide-03.png"
+  alt="Diagram contrasting standard parallel editing (four agents A through D producing a merge conflict bottleneck) with read-only parallel findings (three reviewer agents producing findings while the orchestrator integrates serially)."
+  loading="lazy"
+/>
 
 Four dispatches happened in the cyber port. Each dispatch was a numbered review checklist, file paths the reviewer needed to read, and an output template (verdicts table, blocking findings, recommended fixes, defer-to-v2). Total findings across the four dispatches: 18. Five of them were blocking enough to fix in the same session before merge. The rest landed in `docs/plans/2026-04-26-cyber-redesign-followups.md` for the next slice to pick up.
 
@@ -80,6 +108,12 @@ That's the right call and I should've known it. The whole point of a severity co
 When a categorization step can't classify an input, the safe default is to escalate, not to suppress. A green sentinel for "couldn't classify" is the same shape of bug as a `null` field rendered as an empty string. Both quietly remove information from the operator's view. Default unknowns to whatever color says "look at me," not whatever color says "ignore me."
 </Warning>
 
+<img
+  src="/blog/homenet-dashboard-phase-2/slides/slide-06.png"
+  alt="Slide showing the severity-unknown bug and fix: the original code defaulted unknown severity to a 'safe' green badge, the Network Engineer's finding pushed it to amber so unclassified events still land in triage."
+  loading="lazy"
+/>
+
 ### Threat Counts Are About Posture, Not Volume
 
 The Security engineer caught a bigger one. The cyberpunk handoff's `ThreatVectorPanel` showed three counts: green, amber, red. My first port wired those counts to `RecentEvent` event volume from the security poller. Number of events in the last 24 hours, bucketed by severity. It looks fine in a screenshot.
@@ -95,6 +129,12 @@ The fix was a one-router rewrite (`backend/src/homenet_dashboard/routers/overvie
 <Info title="Events answer 'what happened'; signals answer 'where am I'">
 A security dashboard's top-level posture indicator should reflect current state, not a rolling event count. Events are inputs to signals; signals are the synthesized state. Wire your hero counters to whichever primitive answers the question the panel is *labeled* with. If the panel is "Threat Vector," the question is "what's my current threat posture," and that's a signal-eval count. Use events on the page that's literally titled "Recent Events."
 </Info>
+
+<img
+  src="/blog/homenet-dashboard-phase-2/slides/slide-07.png"
+  alt="Slide contrasting recent events (a noisy scatter of yesterday's incidents) with security signal evals (three gauge dials showing the latest status of the eight persistent signals). The hero counter belongs on the right."
+  loading="lazy"
+/>
 
 ### Explicit Breakpoints Beat Auto-Fit
 
@@ -146,6 +186,12 @@ That's a real cost. The fix was to hide the subsection entirely when `MISSION_CO
 A subsection that is permanently empty in your current mode is not a placeholder; it's a habit-forming reveal that you will pay for later. Either populate it with current-mode-relevant content or hide it entirely until the mode flip. There is no third option that doesn't compromise the surface when it finally has data to show.
 </Info>
 
+<img
+  src="/blog/homenet-dashboard-phase-2/slides/slide-09.png"
+  alt="Slide showing the empty-state habit-formation flow: in mode A the RECENT MUTATIONS subsection renders empty every day, the operator learns to skip it, and when mode B ships with real content the operator keeps skipping it. Hide instead of empty."
+  loading="lazy"
+/>
+
 ## Five Findings, One Pattern
 
 Look at the five findings together. Severity unknown defaulting to green. Counts wired to events instead of signals. Auto-fit grids approximating a spec. Animated tickers passing through tests as zero. An empty subsection training the wrong habit.
@@ -153,6 +199,12 @@ Look at the five findings together. Severity unknown defaulting to green. Counts
 None of them are bugs in the way Phase 1's enrichment caught bugs. Phase 1 caught wrong API responses, wrong subnet detection, wrong DNS poller logic. Phase 2 caught wrong *meanings* for things that worked correctly. Each finding was a mismatch between what a primitive *did* and what a panel *labeled* it as. The reviewers caught them because each reviewer brought a different lens: the Network engineer reads "an event arrived" as "uncertain risk," the Security engineer reads "Threat Vector" as "current posture," and the UX/UI designer reads `auto-fit` as "design-spec-violating."
 
 A general-purpose agent reading the same diff would've caught maybe one of the five. A persona-typed reviewer dispatched against the diff with explicit non-overlap scope caught all five and twelve more.
+
+<img
+  src="/blog/homenet-dashboard-phase-2/slides/slide-05.png"
+  alt="Domain lens matrix: a four-row table mapping each persona reviewer (Network Engineer, Security Engineer, UX/UI Designer, Threat Intel Analyst) to the lens they read the diff through and the specific bug each one caught."
+  loading="lazy"
+/>
 
 ## Two Features Designed in the Same Session
 
@@ -174,6 +226,12 @@ The skill is the interesting part. It's the first time the dashboard's data flow
 <Tip title="LLM-generated content with a local override boundary">
 When you want LLM output to influence a UI but you can't grant the model write access to your data sources, write the output to a local override table the UI prefers when present. The model never touches the upstream. The dashboard's `compose` step reads the override first, falls back to deterministic templates if missing or stale. You get the qualitative win without expanding the threat surface, and you can A/B template-vs-agent because the `summary_source` field is already a discriminator.
 </Tip>
+
+<img
+  src="/blog/homenet-dashboard-phase-2/slides/slide-11.png"
+  alt="Feature 1 architecture diagram: the Claude Code skill issues read-only queries against UniFi MCP and Pi-hole MCP, generates a per-client profile, and writes only to a local client_profile_overrides table. A 'zero outbound writes boundary' separates the LLM from the upstream data sources."
+  loading="lazy"
+/>
 
 ### Feature 2: A Threat Intelligence Tab
 
@@ -204,6 +262,12 @@ H6 and H4 are the highest-confidence, lowest-noise signals. H3 and H5 ship behin
 <Warning title="Tune the noisy heuristics before defaulting them on">
 Heuristic H3 (high-entropy subdomain) and H5 (per-client query burst) are valuable signals on a real attacker but generate false positives on legitimate traffic patterns: CDN-issued random subdomains, OS update bursts, mDNS chatter. Default-on means an operator wakes up to ten amber rows in their first week and learns to dismiss them. Default-off-with-tune-mode means the operator gets to set thresholds against their own baseline before the signal influences the score. The cost is a feature flag. The benefit is the signal is trusted when it does fire.
 </Warning>
+
+<img
+  src="/blog/homenet-dashboard-phase-2/slides/slide-12.png"
+  alt="Feature 2 funnel: 45,000 daily DNS queries enriched against URLhaus, Hagezi, RDAP, and IPinfo, then filtered through six classical heuristics ranked by false-positive risk to yield 5 to 20 highly confident anomalies. H6 feed-match scores +9. The noisier H3 and H5 ship behind a tune_mode=true flag."
+  loading="lazy"
+/>
 
 The five-phase implementation lives in the deep doc: data foundation (Phase 2.1), anomaly engine (2.2), UI tab (2.3), on-demand enrichment skill (2.4), tuning and retention (2.5). The exit gate at Phase 2.2 is "fewer than 20 false positives per day on the operator's real historical 7-day window." That's the kind of gate you can write down because the dataset already exists in `client_dns_queries`. You can't tune a heuristic against synthetic data; you'd just be tuning the synthesis.
 
@@ -244,12 +308,23 @@ The persona team is now part of the project's pattern library. The two future-fe
 - **Empty subsections train the wrong habits.** Hide mode-gated subsections in the modes where they're empty; let the operator meet them populated for the first time.
 - **Tune noisy heuristics before defaulting them on.** Lower-confidence detection rules ship behind a `tune_mode` flag until they're baselined against the operator's own data.
 
-## What's Next
+## What's Next: The Roadmap From Here
 
-The next slice is up to whichever Sunday afternoon I've got free. Slice E is Feature 1 (DNS click-throughs and the per-client detail page). Slice F is Feature 2 (the Threat Intelligence tab). Both have phased plans, persona team assignments, and exit criteria written down. Either's one prompt of "execute Slice E Phase 1.1 using the persona-team pattern" away from running.
+The next slice is up to whichever Sunday afternoon I've got free. Both Phase 2-designed features and the originally-roadmapped phases from [Phase 1](/blog/home-network-mission-control-dashboard-phase-1) are still on the board:
 
-Phase 1.1 (the Wi-Fi/RF tab) and Phase B (mutations unlock) are still on the roadmap from the Phase 1 post. The cyber port didn't move them. It did make the layout placeholder for them more honest: NETWORK and WI-FI/RF are now visible-but-locked tabs in the SideNav, so when those slices ship, the user's eye already knows where they go.
+| Phase | What ships | Status |
+|------|------------|--------|
+| **Slice E** | Feature 1: DNS click-throughs, per-client detail page, per-domain drawer, `homenet-client-profile` skill | Phased plan written; one prompt away from running |
+| **Slice F** | Feature 2: Threat Intelligence tab, free-feeds-only enrichment (URLhaus + Hagezi + RDAP + IPinfo), six classical heuristics | Phased plan written; H6 and H4 default-on, H3 and H5 behind `tune_mode` for the first two weeks |
+| **Phase 1.1** | Wi-Fi + RF tab: signal-strength heatmap, channel usage, client distribution per band | Needs the UniFi session-auth follow-up first; placeholder visible-but-locked in the cyber SideNav |
+| **Phase B** (A → B) | Mutation unlock: preview-then-confirm, audit log, confirm-modal UI, security review on the new write surface | RECENT MUTATIONS subsection unhides on flip; same preview/confirm pattern as `chris2ao-unifi-mcp`'s Tier 2/3 tools |
+| **Phase C** (B → C) | Agent unlocked in read-only posture: chat UI polish, streaming, conversation persistence | All Phase 1 plumbing already in place |
+| **Phase D** (C → D) | Agent drafts mutations, human approves them | The end state of the four-mode flag |
+
+The cyber port didn't move them. It did make the layout placeholder for them more honest: NETWORK and WI-FI/RF are now visible-but-locked tabs in the SideNav, so when those slices ship, the user's eye already knows where they go.
 
 Phase 2 didn't make the dashboard *do* anything new. It made the dashboard *say* what it does more truthfully, and it produced two future-feature plans as a downstream effect of the same review pattern. Both of those are wins I want to keep on the board, because both are exactly the kind of thing that doesn't show up in a changelog and would've been invisible to a single-agent review.
+
+If you've followed this thread from the [UniFi MCP](/blog/building-a-custom-unifi-mcp-103-tools-across-three-days), [Pi-hole MCP](/blog/consolidating-three-pihole-mcps-into-one), and [`/homenet-document`](/blog/dogfooding-the-unifi-mcp-homenet-document-and-the-bug-it-found) posts through to [Phase 1](/blog/home-network-mission-control-dashboard-phase-1) and now this one, the pattern is hard to miss: every post in the series has been Claude Code stacking one more reusable primitive on top of the last, and the dashboard is the place those primitives finally meet a user. Phase 2 is the post where the primitives review *each other*. The next post is the one where they start drafting writes for me to approve.
 
 Go run a persona team against your own next PR. Make the reviewers read-only. Make the orchestrator integrate. You'll find more in two hours than you'd find in two days of dog-fooding alone. I'm convinced of it now in a way I wasn't on Sunday morning.

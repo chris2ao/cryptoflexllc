@@ -62,3 +62,6 @@ nul
 
 # Homunculus observer logs
 activity_log.txt
+notebooklm-artifacts/
+content-assets/
+content-assets/notebooklm/
