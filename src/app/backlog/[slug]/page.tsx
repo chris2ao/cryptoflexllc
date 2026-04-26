@@ -85,6 +85,7 @@ import {
   WazuhBugCascadeDiagram,
   WazuhFinalArchitectureDiagram,
   ImageLightbox,
+  MermaidDiagram,
 } from "@/components/mdx";
 
 export const dynamic = "force-dynamic";
@@ -246,6 +247,7 @@ export default async function BacklogPostPage({ params }: Props) {
               WazuhWavesDependencyDiagram,
               WazuhBugCascadeDiagram,
               WazuhFinalArchitectureDiagram,
+              MermaidDiagram,
               img: ImageLightbox,
             }}
           />

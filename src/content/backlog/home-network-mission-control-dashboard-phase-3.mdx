@@ -1,0 +1,378 @@
+---
+title: 'Home Network Mission Control, Phase 3: A Plan Doc Is the Cheapest Handoff Between AIs'
+date: '2026-04-26T23:00:00'
+description: >-
+  Part 3 of the home network dashboard build. 11 deferred items closed in one
+  session. Two PRs merged the same day. OpenAI Codex shipped Feature 1 phases
+  1.1-1.3 from a re-runnable plan doc, then hit its weekly $20 ChatGPT Plus
+  rate limit. Claude Code picked up where Codex left off, fixed CI, closed a
+  PII consistency gap on the new domain endpoint, and merged PR #5. The same
+  Claude session then swept 11 more deferred items from the same plan doc into
+  PR #6. 523 backend tests, 141 Vitest, 15 Playwright at the end. The
+  through-line is the plan doc, not the agent that read it.
+tags:
+  - Home Lab
+  - FastAPI
+  - React
+  - Claude Code
+  - OpenAI Codex
+  - Multi-Agent
+  - Persona Teams
+  - Continuous Integration
+  - SQLite
+author: Chris Johnson
+readingTime: 20 min read
+series: 'Building in Public'
+seriesOrder: 10
+coverImage: /blog/homenet-dashboard-phase-3/infographic.png
+coverImageAlt: 'Visual summary of Home Network Mission Control Phase 3: a re-runnable plan doc as the contract between OpenAI Codex and Claude Code, two PRs merged same-day, eleven deferred items closed, three integration layers (software, tool, process).'
+---
+
+11 deferred items closed in one Sunday afternoon. Two PRs merged the same day. OpenAI Codex shipped Feature 1 phases 1.1 through 1.3 from a re-runnable plan doc, then tapped its weekly rate limit on the $20 ChatGPT Plus tier with Phase 1.4 still on the board. Claude Code picked up the same plan doc cold, fixed a `ruff format` CI red, closed a PII consistency gap on the new domain endpoint, and merged PR #5. Same Claude session, fresh branch, swept the 11 oldest deferred items from the same doc into PR #6. 523 backend pytest, 141 Vitest, 15 Playwright green at the end.
+
+That's Phase 3 of the Home Network Mission Control Dashboard, the third post in this thread on building a real home network mission control with Claude Code. If you've followed [Phase 1](/blog/home-network-mission-control-dashboard-phase-1) and [Phase 2](/blog/home-network-mission-control-dashboard-phase-2), the chassis is familiar: Mac mini in a closet, UDM Pro, Pi-hole v6, UniFi Protect, a single pane of glass that's read-only by design with a feature-flagged path to mutations and an agent. Phase 3 isn't new capability. It's the part where two different agentic CLIs took turns on the same artifact, and the artifact was a plan document, not a person's memory.
+
+<Info title="Series Context">
+This is part 3 of an ongoing thread inside [Building in Public](/blog/series/building-in-public) about using Claude Code (and now OpenAI Codex) to build a home network mission control dashboard. Direct prerequisites:
+
+- [**Phase 1**](/blog/home-network-mission-control-dashboard-phase-1): the chassis, the 12 workstreams, the four enrichment waves, mode-A read-only design, 497 backend tests at the end.
+- [**Phase 2**](/blog/home-network-mission-control-dashboard-phase-2): the cyberpunk re-skin, the four-persona reviewer team, 18 findings, 5 same-session fixes, plus end-of-session phased designs for "Feature 1: DNS click-throughs" and "Feature 2: Threat Intel tab." Phase 3 executes Feature 1 and works the deferred queue.
+- [**Building a Custom UniFi MCP**](/blog/building-a-custom-unifi-mcp-103-tools-across-three-days) and [**Consolidating Three Pi-hole MCPs**](/blog/consolidating-three-pihole-mcps-into-one): the MCPs every read endpoint here ultimately calls.
+
+The artifact this post is really about is the plan doc Phase 2 left behind: a self-contained, re-runnable execution brief with 20 deferred items, a slice menu A through F, persona-team execution model, and full phased designs for two features. It lives in the dashboard's private repo at `docs/plans/2026-04-26-cyber-redesign-followups.md`. Phase 3 is what happens when two different agentic CLIs read it cold and ship.
+</Info>
+
+This post is the story of three integration layers that all have to work for a home network dashboard to actually feel like one tool: software (a flat query log row becomes the entry point to a per-client and per-domain investigation), AI tooling (Codex and Claude take turns on the same plan, and neither one needs me as a relay), and process (the deferred queue from Phase 2 gets swept the same afternoon Phase 3's Feature 1 lands). The numbers are the receipts. The plan doc is the load-bearing piece.
+
+## What "Re-Runnable Plan Doc" Actually Means
+
+At the end of Phase 2, after the persona team had landed five fixes and produced two phased designs, I wrote one document. Not a PR description, not a changelog, not a session log. A plan. The header says "self-contained" and means it: a fresh Claude Code or OpenAI Codex session can be pointed at the file, pick a slice from a menu A through F, and execute end-to-end without a single other prompt from me. That's the bar.
+
+Here's what the doc has, the five sections that matter:
+
+1. **A deferred-items list grouped by reviewer.** UX/UI, Network engineer, Security engineer, plus a "nice to have" bucket. Each item names a file path, a symbol, and a one-paragraph spec of what "done" looks like. 20 items at the start of Phase 3.
+2. **A persona-team execution model.** Reviewer dispatch prompt template, exact subagent call shape (`Agent({ run_in_background: true, subagent_type: "general-purpose", model: "sonnet" })`), wave shape, and the hard rules carried forward from Phase 1 and 2.
+3. **A slice menu A through F.** Six pre-scoped chunks, ordered by dependency. Pick one slice per session. The recommendation is A then B then C then D then E then F. Slice E is Feature 1. Slice F is Feature 2.
+4. **Two phased feature designs in the same file.** Feature 1 (DNS click-throughs, four phases). Feature 2 (Threat Intel tab, five phases). Each phase has files-to-change, response shapes, test names, and exit gates.
+5. **A verification checklist.** `pytest -q`, `vitest run`, `playwright test`, an OpenAPI export plus codegen step when schemas change, and a parity-screenshot step.
+
+The header line on the doc is the load-bearing one:
+
+```text
+## How to invoke this plan in a new session
+
+Paste this into a new Claude session, or just say `Read
+docs/plans/2026-04-26-cyber-redesign-followups.md and execute it
+using the persona-team pattern described inside.`
+
+The plan is structured so a fresh session can:
+1. Read the deferred-items list, pick a slice, or run the whole thing.
+2. Spin up the persona reviewer team in parallel.
+3. Iterate Wave-by-Wave with reviewer dispatch and integration in
+   one session.
+```
+
+That's the contract. One sentence into a new session and the next several hours of work are scoped, sequenced, and self-verifying.
+
+<Tip title="The doc is the API between sessions">
+If you build with two or more agentic CLIs, the artifact that hands off between them is not your memory. It's the plan doc. Treat it like an API: it has a stable shape, named fields (the slice menu, the deferred-items list, the verification checklist), and one entry point (the "how to invoke" line). When a new session reads it cold, the doc is what stops you from re-explaining the project for thirty minutes before anything ships.
+</Tip>
+
+Here's a representative deferred-item bullet, the one that ended up landing in Wave 1 of the polish PR:
+
+```markdown
+13. **Centralize `_naive_utc_now()`**: every inline
+   `datetime.now(UTC).replace(tzinfo=None)` in src is now routed
+   through `homenet_dashboard.utils.time.naive_utc_now`. Private
+   `_now()` / `_utcnow()` helpers in models/operational.py,
+   models/timeseries.py, poll/decorator.py,
+   poll/jobs/{collector_health,purge}.py have been removed. 14
+   files updated.
+```
+
+A successor session reads that bullet, knows exactly which files to touch, and can verify when "done" matches the prose. The reasoning lives elsewhere in the doc (a memory of two prior naive-UTC-vs-local-time bugs from Phase 1 enrichment), but the bullet itself is operational. No interpretation required.
+
+## The Codex Detour
+
+I loaded the plan into OpenAI Codex (CLI on the $20 ChatGPT Plus plan, since I was curious how the Codex CLI compares to Claude Code on a real codebase) and asked it to run Feature 1 phases 1.1 through 1.4 from Slice E.
+
+Codex shipped real work. In one session it produced PR #5 with 37 files changed, +1675 -118. Here's what the diff covers:
+
+- **Phase 1.1.** Query Log timestamp formatting: `HH:mm:ss.SSS America/New_York` via a new `formatEstTimestamp()` in `frontend/src/lib/formatters.ts`. New Client IP column, rendered only when at least one row has a non-null `client_ip`. Click handlers and `data-testid` attributes on `cell-client`, `cell-domain`, `cell-ip`. Domain cells open a drawer; IP cells filter the log; client cells navigate to a new full detail page.
+- **Phase 1.2.** A complete `/clients/:mac` detail page replacing the old "list page with a query param" pattern. Header, network-history panel (a brand-new `client_network_history` table plus Alembic migration `0005_feature1_dns_detail.py`), traffic totals at 24h / 7d / 30d, top domains, and an intelligence summary panel with the future-agent override hook (`generated_at` placeholder) wired in. The "Refresh profile" button visible but disabled because Phase 1.4 was scoped to a Claude Code skill that the dashboard repo can't ship yet.
+- **Phase 1.3.** A per-domain detail drawer slid in from the right when a domain cell is clicked. New endpoint `GET /api/dns/domain/{domain}` with eTLD+1 normalization via `tldextract` (added to `pyproject.toml`, suffix list bundled, no runtime fetch). Returns metadata (first seen, category, blocked status), volume totals at 1h / 24h / 7d, and ranked client touchpoints with query counts and blocked percentages.
+- **521 pytest passing, 141 Vitest, 15 Playwright** locally on Codex's machine after the focused checks. The wrap-up file Codex wrote on its way out lists every focused check it ran.
+
+Then Codex hit the rate limit on the $20 ChatGPT Plus plan. The single-feature scope (one slice plus one feature) was apparently enough to drain the weekly quota. Phase 1.4 (the adhoc client-profile-refresh agent) was deferred. The PR was opened as a draft, marked ready, and CI was the next thing to look at.
+
+CI was red, and that's where the second agent came in.
+
+<Info title="What Codex left behind">
+At the end of the Codex session, the wrap-up file was a structured handoff: scope completed, deferred work, file-by-file change list, and a "Recommended Claude Code scope" section for Phase 1.4 with security notes. It's the kind of artifact you write when you know a different agent is going to pick up the work.
+</Info>
+
+Here's the relevant excerpt from `docs/plans/2026-04-26-feature1-session-wrap-up.md`:
+
+```markdown
+# Feature 1 Session Wrap-up: DNS Query Log Detail Surfaces
+
+**Date:** 2026-04-26
+**Branch:** `codex/feature1-dns-detail-surfaces`
+**Scope completed:** Feature 1 phases 1.1, 1.2, and 1.3 from
+  `docs/plans/2026-04-26-cyber-redesign-followups.md`
+**Explicitly deferred:** Feature 1.4 adhoc client-profile-refresh
+  agent, to be handed off to Claude Code
+
+## Feature 1.4 Handoff for Claude Code
+
+Feature 1.4 was intentionally deferred. Claude Code should
+implement it using the existing plan in
+`docs/plans/2026-04-26-cyber-redesign-followups.md`.
+
+Recommended Claude Code scope:
+1. Create `~/.claude/skills/homenet-client-profile.md`.
+2. Add `client_profile_overrides` table with fields...
+[continues with eight numbered deliverables and four security
+ notes]
+```
+
+Codex understood it was tapping out. The wrap-up file is what survived the rate limit. That file plus the original plan doc was the input to the next agent.
+
+## The Handoff: What Claude Found in 60 Seconds
+
+A new Claude Code session, same branch, started by reading three things in parallel: the original plan doc, Codex's wrap-up file, and the actual diff Codex shipped. Two issues surfaced inside the first minute. Here's what they were.
+
+### Issue 1: ruff format --check Was Red
+
+The backend CI job ran `ruff format --check` and found five files that hadn't been formatted: `utils/__init__.py`, the new `utils/domain.py`, the new `utils/time.py`, `routers/dns.py`, and `poll/jobs/inventory.py`. Codex had written them, run `ruff check` (which passes lints) but not `ruff format` (which enforces line breaks and quote style). The fix was `cd backend && uv run ruff format` and a commit. Five seconds of work, three hours of CI red.
+
+I'm not going to make this a thing. CI catches what humans miss; that's the whole point of CI. The interesting question is what makes a non-formatting issue surface, and there's one of those too.
+
+### Issue 2: PII Consistency Gap on the New Domain Endpoint
+
+This one was real.
+
+Codex's new `GET /api/dns/domain/{domain}` returned a list of `DomainClientTouchpoint` objects, each carrying a `client_mac`. The query log endpoint sitting two functions away in the same router does the right thing: when `pii_mode=off`, unidentified clients have their MAC redacted to null. The new domain endpoint didn't. Identified clients (those with a row in `clients` and a hostname or note) and unidentified clients (transient, never-named devices) both came back with full MAC addresses on every response, regardless of mode.
+
+That's the kind of bug a single-agent review almost never catches because the endpoint *works*. The data flows. The drawer renders. There's no test failure, because the test fixtures all use identified clients, and identified clients reveal their MAC under both PII modes anyway. The bug only exists because the *sibling endpoint* doesn't do it that way.
+
+The fix mirrors the sibling. Add `pii_mode` to the endpoint signature. Make `DomainClientTouchpoint.client_mac` `Optional[str]`. Redact unidentified MACs when `pii_mode=off`. Regenerate the OpenAPI schema. Run `npm run codegen` to refresh the frontend types. Find the React callsite (`<tr key={client.client_mac}>`) that just broke when `client_mac` went null, fall back to a synthetic key, and add a regression test.
+
+```python
+# backend/src/homenet_dashboard/routers/dns.py
+# BEFORE (Codex)
+@router.get("/dns/domain/{domain}")
+async def dns_domain_detail(
+    domain: str,
+    db: Session = Depends(get_db),
+) -> DomainDetailResponse:
+    touchpoints = []
+    for client in clients_for_domain:
+        touchpoints.append(
+            DomainClientTouchpoint(
+                client_mac=client.mac,
+                hostname=client.hostname,
+                queries=count,
+                blocked_pct=blocked_pct,
+            )
+        )
+    return DomainDetailResponse(touchpoints=touchpoints, ...)
+
+
+# AFTER (Claude)
+@router.get("/dns/domain/{domain}")
+async def dns_domain_detail(
+    domain: str,
+    pii_mode: PiiMode = PiiMode.OFF,
+    db: Session = Depends(get_db),
+) -> DomainDetailResponse:
+    touchpoints = []
+    for client in clients_for_domain:
+        identified = bool(client.hostname or client.note)
+        mac_value = (
+            client.mac
+            if (identified or pii_mode is PiiMode.ON)
+            else None
+        )
+        touchpoints.append(
+            DomainClientTouchpoint(
+                client_mac=mac_value,
+                hostname=client.hostname,
+                queries=count,
+                blocked_pct=blocked_pct,
+            )
+        )
+    return DomainDetailResponse(touchpoints=touchpoints, ...)
+```
+
+The regression test is `test_domain_detail_redacts_unidentified_mac_when_pii_off`. It creates two clients in the test fixture (one identified, one unidentified) and asserts the unidentified one's `client_mac` comes back null when the mode is off and the identified one comes back with its real MAC unconditionally.
+
+<Warning title="Sibling endpoints are the canonical reference, not the spec">
+When a new endpoint adds the same kind of data a sibling endpoint already handles (PII redaction, pagination, time-window filtering), check the sibling first. Codex's `dns_domain_detail` was correct against the spec it was given. The spec didn't say "and apply the same PII gate the query-log endpoint applies." The sibling did. A persona reviewer with the explicit lens of "did this change preserve the project's existing PII gate?" would have caught this. A single-agent review reading just the diff probably wouldn't.
+</Warning>
+
+PR #5 went green after those two fixes. Backend (3.12) pass at 1m49s. Frontend (Node 20) pass at 1m28s. E2E pass at 1m11s. The fixture-drift job correctly skipped (it only runs on `workflow_dispatch` and `schedule` triggers, not on PR pushes; same matrix Phase 1 readers know). 522 backend pytest at merge, 141 Vitest, 15 Playwright. PR merged.
+
+<Info title="Why fixture-drift skips on PR pushes">
+The dashboard's CI matrix has four jobs: backend tests, frontend tests, E2E (Playwright), and fixture-drift. The fixture-drift job replays one-time recorded UniFi and Pi-hole responses and asserts against them; if the live API ever changes shape, that job is the canary. It runs on a schedule and on manual dispatch but not on PRs, so a "skipping" status on PR CI is correct. Phase 1 set this up so PRs don't get blocked on someone else's API changing.
+</Info>
+
+<MermaidDiagram chart={`flowchart LR
+  subgraph "Phase 2 ends"
+    A[Persona team produces<br/>18 findings, 5 same-session fixes]
+  end
+  subgraph Plan Doc
+    B["docs/plans/<br/>2026-04-26-cyber-<br/>redesign-followups.md<br/>20 deferred items,<br/>2 phased feature designs,<br/>slice menu A-F"]
+  end
+  subgraph Codex Session
+    C["Reads doc, picks Slice E"]
+    D["Ships Phase 1.1, 1.2, 1.3<br/>37 files +1675 -118<br/>521 backend, 141 Vitest"]
+    E["Hits weekly $20 plan limit<br/>writes session-wrap-up.md<br/>opens PR #5 (CI red)"]
+  end
+  subgraph Claude Code Session
+    F["Reads doc + wrap-up + diff"]
+    G["Fixes ruff format,<br/>closes PII gap on<br/>domain endpoint"]
+    H["PR #5 green, merged<br/>522 backend, 141 Vitest, 15 PW"]
+    I["Same session, fresh branch<br/>sweeps 11 deferred items"]
+    J["PR #6 green, merged<br/>523 backend, 141 Vitest, 15 PW"]
+  end
+  K["Plan doc updated:<br/>items 1-7, 13-15, 17 marked DONE<br/>items 8, 20 stay gated"]
+  A --> B
+  B --> C
+  C --> D
+  D --> E
+  E --> F
+  B --> F
+  F --> G
+  G --> H
+  H --> I
+  I --> J
+  J --> K
+  K -.update.-> B
+`} />
+
+The plan doc is the node every other arrow touches. That's not aesthetic. It's the actual data flow.
+
+## The Polish Queue: 11 Items, Two Waves, One PR
+
+Same Claude session, same Sunday afternoon, fresh branch `feat/cyber-followups-polish`. The plan doc's deferred-items list was the input. Two waves shipped 11 items.
+
+### Wave 1: Backend Hardening (items 13, 14, 15)
+
+**Item 13: Centralize `naive_utc_now()`.** The history matters here. Phase 1 enrichment shipped a TZ bug where a naive UTC `datetime.now()` was passed through `.timestamp()` and silently read as local time, which on Eastern in April is four hours off. The Pi-hole window query missed every match for a four-hour band. Empty DNS chart. The fix was to centralize one helper and route every datetime call through it. Codex's session adopted the helper for new code paths but didn't migrate the existing 12 call sites. Wave 1 closed that loop. 14 backend files updated to import `naive_utc_now` from `utils/time.py`. Private `_now()` / `_utcnow()` helpers in `models/operational.py`, `models/timeseries.py`, `poll/decorator.py`, `poll/jobs/{collector_health,purge}.py` deleted. The fix is mechanical. The reasoning is "I've already paid for this bug once, never again."
+
+**Item 14: Multi-target WAN probe filter.** The WAN probe series endpoint accepts a `target` URL but didn't filter the response to that target when multiple probe configs were present. The chart silently mixed two destinations into one trend line. That's a real bug. Added `?target=` to the query, returned only matching rows, and added a regression test `test_wan_probe_series_filters_to_target` that creates two targets and asserts the response carries only the requested one.
+
+**Item 15: Surface `window_hours` to the WAN response label.** The backend already returned `window_hours` in the response payload. The frontend hadn't been reading it. The `WanProbePanel` now renders `RTT TREND · {N}H` from the response value, defaulting to 24. One frontend prop and a re-read of the response.
+
+<Tip title="The naive-UTC trap pays off twice">
+Two of the items in this wave (13 and 14) trace back to silent off-by-bug-classes from Phase 1. Centralizing one helper and writing one regression test won't prevent every TZ bug, but they make the next one cost ten minutes instead of an afternoon. The cost of the centralization is one import line per file. The cost of the regression test is one fixture and three assertions. Both are cheap insurance against a class of bug I have already paid for.
+</Tip>
+
+### Wave 2: Frontend Polish (items 1, 2, 3, 4, 7, 17)
+
+**Item 1: `useTicker` reverse-tick on refresh.** When a refresh lowered a stat-card target, the displayed value briefly snapped to the previous (higher) target before the rAF animation ran. The first frame of the new effect was using stale state. Fix: `setValue(0)` synchronously inside the effect before scheduling the first rAF frame, so the visible value never displays a value higher than the new target.
+
+**Item 2: WAN status dot is a circle, spec uses a diamond.** The cyberpunk handoff drew the connection-status indicator as an 8x8 diamond. The first port shipped it as a `border-radius: 4` circle because that's what landed first and looked close. It's not the spec. Fix: `transform: rotate(45deg)` on an 8x8 square, plus `data-testid="wan-status-dot"` for future visual checks.
+
+**Item 3: `ago()` and `fmtNum()` consolidation.** Phase 2 noted these helpers existed in three places (`TopBar.tsx`, `ThreatVectorPanel.tsx`, `OverviewPage.tsx`) with subtly different output formats. Codex extracted the canonical versions to `frontend/src/lib/formatters.ts` for the new Feature 1 surfaces but didn't migrate the existing duplicates. Wave 2 finished it. New `agoBrief()` helper preserves the no-suffix HUD format ("12m" vs "12m ago") so the cyber TopBar still reads as a HUD and the body content still reads as prose.
+
+**Item 4: `ThreatVectorPanel` `CountBox` background tint.** Each count box was rendering against a uniform `--bg-3` token. The handoff had a 6% rgba tint per color. Fix: `rgba(0,255,136,0.06)` for green, `rgba(255,170,0,0.06)` for amber, `rgba(255,46,75,0.06)` for red. The change is small and the visual cue is bigger than it looks: severity is now telegraphed even at the panel's container level, before the eye reads the number.
+
+**Item 7: Background lattice.** The handoff specified a `body.cyber-theme::before` with corner crosshatch + 40px grid + two radial accent gradients. Cyber base CSS now has the rule. It adds depth without adding any DOM nodes. Animation's gated behind `prefers-reduced-motion`.
+
+**Item 17: Threat-count click-through.** The biggest of the polish items. Each `CountBox` in the `ThreatVectorPanel` is now wrapped in `<Link to="/security?status={color}">`. The Security page reads `?status=` from the URL and filters its signal-eval list accordingly, with a banner row plus a "clear" affordance. The Overview page becomes an entry point to the Security page, the same way Feature 1 made the DNS Query Log an entry point to per-client and per-domain investigation. Same pattern, different layer.
+
+Plus two items that came back as "already done":
+
+- **Item 5 (panel header casing).** All three panels were already using the same `font-rajdhani uppercase letterSpacing: 3 fontSize: 13`. The source strings differ ("WAN Probe" vs "Threat Vector") but `text-transform: uppercase` makes the rendered output uniform. Verified, no change. It's already correct in the rendered DOM.
+- **Item 6 (`AgentChatPane` data-testid).** The component already destructures and applies `data-testid` to its `<aside>` root. Verified, no change. It's already wired.
+
+And two items that stay gated, deliberately, until their preconditions land:
+
+- **Item 8 (Orbitron decorative font).** Listed in the handoff but only useful once a decorative headline using it ships. Loading the font without a use site is bytes for nothing, so it's gated on a site landing.
+- **Item 20 (`design_handoff_mission_control/` archival).** Defer until Clients, Security, and DNS tabs are ported. Decision is whether to keep the reference HTML/JSX prototype at the repo root (current source of truth) or move it to `docs/design/cyber-handoff/` with a README pointer. Until two more tabs ship, the answer changes the diffs of those tabs and it's too early to call.
+
+PR #6 went green. Backend (3.12) pass. Frontend (Node 20) pass. E2E pass. Fixture-drift skipped (correct, schedule-only). 523 backend pytest at merge, 141 Vitest, 15 Playwright. Merged.
+
+<img
+  src="/blog/homenet-dashboard-phase-3/infographic.png"
+  alt="Visual summary of Home Network Mission Control Phase 3: a re-runnable plan doc as the contract between OpenAI Codex and Claude Code, two PRs merged same-day, eleven deferred items closed, three integration layers (software, tool, process)."
+  loading="lazy"
+/>
+
+## Three Integration Layers, One Phase
+
+The meta-thread of this phase is integration. Three distinct kinds, all in one Sunday.
+
+<MermaidDiagram chart={`flowchart TB
+  subgraph software["Software Integration"]
+    SA["Flat 5-col Query Log"] --> SB["Query Log row<br/>= entry point"]
+    SB --> SC["/clients/:mac<br/>full investigation"]
+    SB --> SD["/api/dns/domain/{etld1}<br/>per-domain drawer"]
+    SB --> SE["?ip filter<br/>same log, scoped"]
+  end
+  subgraph tool["AI-Tool Integration"]
+    TA["Plan doc (read-only)"] --> TB["Codex CLI<br/>$20 ChatGPT Plus"]
+    TA --> TC["Claude Code"]
+    TB --> TD["PR #5 (CI red)"]
+    TC --> TE["PR #5 (CI green)<br/>+ PR #6"]
+  end
+  subgraph process["Process Integration"]
+    PA["Phase 2: 18 findings,<br/>20 deferred items"] --> PB["Phase 3: same session<br/>ships Feature 1.1-1.3<br/>and 11 deferred items"]
+    PB --> PC["Plan doc updated:<br/>queue stays current"]
+  end
+`} />
+
+**Software integration.** The DNS Query Log was a flat five-column table at the start of Phase 3. By the end of PR #5 it's the entry point to a per-client investigation page (`/clients/:mac`), a per-domain drawer (`?domain=...`), and an IP filter scoped to the same log surface. The frontend stitches UniFi inventory, Pi-hole DNS query history, and persona-generated intelligence summaries into one investigation flow. Click a noisy row, get a full client profile. Click a domain in that profile, get a per-domain drawer with ranked clients. The dashboard finally feels like one tool instead of three windows. That's the operator-facing piece, and it's downstream of the plan doc's Feature 1 design.
+
+**AI-tool integration.** The same plan doc fed two different agentic CLIs across two sessions and one branch handoff. Codex's $20 weekly cap was a non-event for the project because the contract was the doc, not the operator's memory. The doc covered: what to build (phased), in what order (slice menu), what tests to run (verification checklist), what file paths to touch (per-item bullets), what response shapes were expected (the schema bullets in the Feature 1 design), and what was deferred (the wrap-up file Codex left on its way out). A successor session loaded all of that cold and finished the work. I relayed nothing.
+
+**Process integration.** Deferred items don't decay if you sweep them. Eleven items got stale during Phase 2; closing them in the same session that landed Phase 3's Feature 1 is what kept the loop closed. The follow-up doc was the same artifact in both roles: an entry point for new work AND a swept queue. The deferred-items list at the start of Phase 3 had 20 items. By the end of PR #6 it had 9, and most of those were either done-but-verified-no-change or explicit "wait for v2" gates. The queue compounds when you let it. It gets paid down when you reload the same doc.
+
+<Tip title="The doc is the API; the deferred queue is the work item">
+A re-runnable plan doc gives you two things at once. It's the entry point for whatever slice you're shipping today, and it's the swept queue of what didn't fit last time. Sweep both in the same session and the queue stays current. Skip the sweep and the queue compounds: items go stale, file paths drift, the next session has to re-investigate before it can execute. The cost is fifteen minutes at the end of a session to update the doc with what's done, what's deferred, and what's gated. The benefit is the next session reads it cold and ships.
+</Tip>
+
+## The Numbers At Merge
+
+For the record, here's where the world stood at the end of the afternoon:
+
+- **PR #5 (Codex + Claude finish).** 522 backend pytest, 141 Vitest, 15 Playwright. Backend (3.12) pass 1m49s. Frontend (Node 20) pass 1m28s. E2E pass 1m11s. Fixture-drift skipping (correct, schedule-only). Merge sha `4866807`. Two CI fixes: the `ruff format` red plus the PII gap on the domain endpoint. The latter is the real fix; the former is a five-second mechanical pass.
+- **PR #6 (polish queue).** 523 backend pytest, 141 Vitest, 15 Playwright. All four CI jobs in the same posture. 11 deferred items closed in two waves. Merge sha `eab3812`.
+- **Backend Python files updated to `naive_utc_now()`.** 14. The five `_now()` and `_utcnow()` private helpers in `models/operational.py`, `models/timeseries.py`, `poll/decorator.py`, `poll/jobs/collector_health.py`, and `poll/jobs/purge.py` are deleted. Every `datetime.now(UTC).replace(tzinfo=None)` call in `src/` is now one import.
+- **Plan doc state.** Items 1, 2, 3, 4, 6, 7, 13, 14, 15, 17 marked DONE. Items 5 and 6 marked VERIFIED (no change needed). Items 8 and 20 marked DEFERRED with explicit gates. Items 9 through 12, 16, 18, and 19 stay v2 / mode-B work, named explicitly so a future session doesn't redo the analysis.
+
+The mode-phase trajectory hasn't moved. Everything in this phase was Mode-A-compliant, GET-only. No mutation endpoints introduced. No agent surface changes. The `MISSION_CONTROL_MODE` env flag stays at A. The `RECENT MUTATIONS` subsection stays hidden until B ships, the same way Phase 2 wired it. That's by design.
+
+## Patterns Worth Carrying Forward (Phase 3 Edition)
+
+- **A re-runnable plan doc is the cheapest handoff between AIs.** One sentence ("read the plan doc and execute the persona-team pattern in it") starts a new session that can ship the next slice without further input.
+- **Sibling endpoints are the canonical reference.** When a new endpoint adds a kind of data a sibling already handles (PII gates, pagination, time-window filtering), match the sibling, not the spec. Specs leave the cross-endpoint consistency rules implicit.
+- **Format-on-save is a pre-CI, not a post-CI, problem.** A `ruff format` run before opening a PR is one alias in your shell. Five seconds of habit beat three hours of CI red.
+- **Centralize TZ helpers once you have paid for the bug.** A naive UTC `.timestamp()` reads as local time and silently shifts your window by N hours. Two prior bugs of this shape make `naive_utc_now()` non-negotiable.
+- **The deferred queue is the same artifact in two roles.** It's the swept queue from last session and the entry point for next session. Sweep it in the same session you read it.
+- **Quota events are not code-quality events.** Codex hit a weekly cap mid-feature. The work it shipped was real and mostly correct. The handoff was clean because the plan doc made it possible. Don't conflate "the agent stopped" with "the agent was wrong."
+- **Click-throughs are a layer of integration, not a feature.** Wrapping a count box in a `<Link>` to a filtered view turns one panel into an entry point for another. The operator's eye stops cross-referencing tabs and starts pivoting through them.
+
+## What's Next: The Roadmap From Here
+
+The next slice is whichever Sunday I've got. The board:
+
+| Phase | What ships | Status |
+|------|------------|--------|
+| **Feature 1.4** | Adhoc client-profile-refresh skill: `~/.claude/skills/homenet-client-profile.md` queries UniFi MCP + Pi-hole MCP read-only, composes a 5-8-sentence profile, writes a row to `client_profile_overrides`. The "Refresh profile" button on `/clients/:mac` invokes it. | Plan doc has the eight-step scope; security notes already named (no outbound HTTP, untrusted-data wrapping, MCP read-only, only write path is the local SQLite override table). One session away. |
+| **Feature 2** | Threat Intel tab. Five phases: data foundation, anomaly engine, UI tab, on-demand enrichment skill, tuning and retention. Free feeds only (URLhaus, Hagezi, RDAP, IPinfo). Six classical heuristics ranked by false-positive risk. | Plan doc has the phased design and the H6/H4-default-on, H3/H5-tune-mode breakdown. Depends partly on Feature 1.3's domain detail surface, which now exists. |
+| **Slice D** | Clients tab port to cyber tokens. Apply the persona-team Wave structure. New `ClientTable.tsx`, `ClientDrawer.tsx` under `frontend/src/components/cyber/`. | In the slice menu. Persona team ready. |
+| **Phase 1.1 (UniFi)** | Wi-Fi + RF tab. Needs the UniFi session-auth follow-up first. | Visible-but-locked in the cyber SideNav. |
+| **Phase B** (A → B) | Mutation unlock: preview-then-confirm, audit log, confirm-modal UI, security review on the new write surface. | `RECENT MUTATIONS` subsection unhides on flip. PII gate on `session_id` (deferred item #18) lands as part of B. |
+| **Phase C** (B → C) | Agent unlocked in read-only posture: chat UI polish, streaming, conversation persistence. | All Phase 1 plumbing already in place. |
+| **Phase D** (C → D) | Agent drafts mutations, human approves them. The end state of the four-mode flag. | The end state of the four-mode flag. |
+
+Feature 1.4 is the next slice I'd run in a Claude Code session, because it's the first place the dashboard's data flow includes an LLM-generated artifact, and the design's been waiting since Phase 2 for the upstream surfaces (per-client page, per-domain drawer) to land. The plan doc's "Recommended Claude Code scope" section in the Feature 1 wrap-up file is already the prompt. It's one paste away.
+
+Phase 3 didn't make the dashboard *do* anything radically new. It made the dashboard's investigation surface (DNS Query Log -> Client -> Domain -> back) actually feel integrated, and it taught me that the cheapest contract between two agentic CLIs is a plan doc that's stable enough to read cold. Two PRs merged in one Sunday, eleven deferred items closed, the queue stayed current. That's the pattern I'm carrying forward.
+
+If you've followed this thread from the [UniFi MCP](/blog/building-a-custom-unifi-mcp-103-tools-across-three-days), [Pi-hole MCP](/blog/consolidating-three-pihole-mcps-into-one), and [`/homenet-document`](/blog/dogfooding-the-unifi-mcp-homenet-document-and-the-bug-it-found) posts through to [Phase 1](/blog/home-network-mission-control-dashboard-phase-1) and [Phase 2](/blog/home-network-mission-control-dashboard-phase-2), the through-line is that every post in the series has been Claude Code (and now Codex) stacking one more reusable primitive on top of the last. Phase 3's primitive is the plan doc itself: the contract that lets two different agents take turns on one branch without anyone losing their place.
+
+Write the plan doc that reads the same way at hour zero and hour twelve. Put a "how to invoke this in a new session" line at the top. Sweep the deferred queue in the same session you read it. The next session'll ship before you get to the bottom of your coffee.
