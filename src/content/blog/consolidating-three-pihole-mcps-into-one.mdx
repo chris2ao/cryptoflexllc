@@ -1,6 +1,6 @@
 ---
 title: 'Consolidating Three Pi-hole MCPs into One: chris2ao/pihole-mcp'
-date: '2026-04-18T22:00:00'
+date: '2026-04-26'
 author: Chris Johnson
 readingTime: 15 min read
 description: >-
@@ -63,7 +63,7 @@ What was missing: Claude Code had no read path into Pi-hole. If I wanted to chec
 The first move was not to build. It was to use `/deep-research` to answer two questions in parallel.
 
 <Tip title="When /deep-research is the right first move">
-Before a non-trivial build or architectural decision, spend one research round. Tool landscape scans and "does this integration break that one" questions are textbook use cases. The cost is minutes. The benefit is that you are not building against outdated assumptions. I have had three separate cases now where deep research changed a build decision in a way that saved days.
+Before a non-trivial build or architectural decision, spend one research round. Tool landscape scans and "does this integration break that one" questions are textbook use cases. The cost is minutes. The benefit is that you are not building against outdated assumptions. I have had three separate cases now where deep research changed a build decision in a way that saved days. More on what `/deep-research` actually does in [From WebSearch to Deep Research](/blog/from-websearch-to-deep-research-adding-exa-and-firecrawl-to-claude-code).
 </Tip>
 
 ### Question A: Does Pi-hole as LAN DNS Degrade UniFi DPI?
