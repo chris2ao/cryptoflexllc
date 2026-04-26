@@ -54,7 +54,7 @@ The existing state of my home lab, before this work:
 
 - **Pi-hole** runs as the LAN DNS resolver behind the UDM Pro, handling every client DNS query and providing per-hostname blocking that the UDM itself does not.
 - **UniFi DPI** classifies traffic for me at the gateway using TLS SNI inspection, not DNS responses.
-- **chris2ao-unifi-mcp** exposes 103 UniFi tools to Claude Code via FastMCP + httpx + Pydantic v2.
+- **chris2ao/unifi-mcp** exposes 103 UniFi tools to Claude Code via FastMCP + httpx + Pydantic v2.
 
 What was missing: Claude Code had no read path into Pi-hole. If I wanted to check "which devices are generating the most blocked queries right now?" I had to `curl` the Pi-hole v6 API by hand. That got annoying fast.
 
