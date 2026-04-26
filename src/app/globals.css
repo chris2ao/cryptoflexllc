@@ -860,6 +860,36 @@
   color: var(--fg-3);
 }
 
+.masthead-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.masthead-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid var(--border-2);
+  color: var(--fg-2);
+  background: transparent;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background 160ms ease;
+}
+
+.masthead-icon-btn:hover,
+.masthead-icon-btn:focus-visible {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--accent-dim);
+  outline: none;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { Github, Linkedin, Rss } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -89,6 +90,33 @@ export function Nav() {
           >
             Subscribe
           </Link>
+          <div className="masthead-social hidden sm:inline-flex" aria-label="Social">
+            <a
+              href="https://github.com/chris2ao"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="masthead-icon-btn"
+              aria-label="GitHub"
+            >
+              <Github className="h-4 w-4" aria-hidden="true" />
+            </a>
+            <a
+              href="https://www.linkedin.com/in/chris-johnson-secops/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="masthead-icon-btn"
+              aria-label="LinkedIn"
+            >
+              <Linkedin className="h-4 w-4" aria-hidden="true" />
+            </a>
+            <a
+              href="/feed.xml"
+              className="masthead-icon-btn"
+              aria-label="RSS feed"
+            >
+              <Rss className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
           <ThemeToggle />
 
           <Sheet open={open} onOpenChange={setOpen}>
