@@ -12,6 +12,28 @@ export interface Resource {
 
 const resources: Resource[] = [
   {
+    slug: "closing-the-dns-bypass-finding-infographic",
+    title: "Closing a dns_bypass Finding: Infographic",
+    description:
+      "Diagnostic deep-dive on the dns_bypass security signal: the 0.667 red card on the home network mission control dashboard, validation against Pi-hole's top-25 client list (17 of 26 covered), the two-root-cause split (public-fallback DHCP option 6 on Default vs full network isolation on VLANs 2 and 3), the deliberate resilience-vs-coverage tradeoff, and the ZBF policy chain at indices 10000 ALLOW, 10001 BLOCK, and 30000 Isolated Networks. Plus the Traffic Rules pivot story and the v0.4.0 release summary.",
+    type: "document",
+    tags: ["Security", "UniFi", "DNS", "Pi-hole", "ZBF", "MCP", "Infographic"],
+    date: "2026-04-28",
+    downloadPath: "/blog/dns-bypass/zbf-policy-chain.png",
+    downloadLabel: "Download Infographic",
+  },
+  {
+    slug: "closing-the-dns-bypass-finding-slides",
+    title: "Closing a dns_bypass Finding: Slide Deck",
+    description:
+      "Twelve-slide narrative on resolving a dns_bypass finding from the home network mission control dashboard: validating the 0.667 metric, the resilience-vs-coverage design tradeoff on the Default subnet, the four-phase ZBF remediation (snapshot, ALLOW at 10000, DHCP rewire, BLOCK at 10001), the failed Traffic Rules attempt, the pivot to ZBF firewall-policies, and the public chris2ao/unifi-mcp v0.4.0 release with six new traffic_rules tools, an empty-body DELETE fix, and five schema discoveries.",
+    type: "document",
+    tags: ["Security", "UniFi", "DNS", "Pi-hole", "ZBF", "MCP", "Slides"],
+    date: "2026-04-28",
+    downloadPath: "/resources/closing-the-dns-bypass-finding-slides.pdf",
+    downloadLabel: "Download Slide Deck",
+  },
+  {
     slug: "vercel-breach-incident-response-infographic",
     title: "The Vercel Breach and an Hour With Claude Code: Infographic",
     description:

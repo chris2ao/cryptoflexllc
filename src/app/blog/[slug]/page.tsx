@@ -75,6 +75,8 @@ import {
   WazuhWavesDependencyDiagram,
   WazuhBugCascadeDiagram,
   WazuhFinalArchitectureDiagram,
+  ZBFPolicyChainDiagram,
+  TrafficRulesAssumptionsDiagram,
   ImageLightbox,
   CoverImageLightbox,
 } from "@/components/mdx";
@@ -395,6 +397,8 @@ export default async function BlogPostPage({ params }: Props) {
                     WazuhWavesDependencyDiagram,
                     WazuhBugCascadeDiagram,
                     WazuhFinalArchitectureDiagram,
+                    ZBFPolicyChainDiagram,
+                    TrafficRulesAssumptionsDiagram,
                     img: ImageLightbox,
                   }}
                 />

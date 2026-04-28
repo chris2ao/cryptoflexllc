@@ -84,6 +84,8 @@ import {
   WazuhWavesDependencyDiagram,
   WazuhBugCascadeDiagram,
   WazuhFinalArchitectureDiagram,
+  ZBFPolicyChainDiagram,
+  TrafficRulesAssumptionsDiagram,
   ImageLightbox,
   MermaidDiagram,
 } from "@/components/mdx";
@@ -247,6 +249,8 @@ export default async function BacklogPostPage({ params }: Props) {
               WazuhWavesDependencyDiagram,
               WazuhBugCascadeDiagram,
               WazuhFinalArchitectureDiagram,
+              ZBFPolicyChainDiagram,
+              TrafficRulesAssumptionsDiagram,
               MermaidDiagram,
               img: ImageLightbox,
             }}

@@ -100,5 +100,9 @@ export {
   WazuhBugCascadeDiagram,
   WazuhFinalArchitectureDiagram,
 } from "./diagrams-homelab-wazuh-deploy";
+export {
+  ZBFPolicyChainDiagram,
+  TrafficRulesAssumptionsDiagram,
+} from "./diagrams-dns-bypass";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
