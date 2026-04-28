@@ -26,7 +26,7 @@ author: Chris Johnson
 readingTime: 22 min read
 series: 'Home Network Mission Control'
 seriesOrder: 4
-coverImage: /images/blog/homenet-mission-control-v2-threat-intel-hero.png
+coverImage: /blog/home-network-mission-control-dashboard-phase-4/infographic.png
 coverImageAlt: 'Visual summary of Home Network Mission Control V2: the THREAT INTEL tab as the marquee feature, six in-house heuristics, two free feeds, 161 anomalies surfaced on first real-data run, and the five post-merge bugs that only production caught.'
 ---
 
@@ -35,6 +35,8 @@ coverImageAlt: 'Visual summary of Home Network Mission Control V2: the THREAT IN
 That's the build report. The interesting part of this post is what came after the build. A post-merge audit caught five bugs that all four CI jobs (backend, frontend, E2E, fixture-drift) had let through. Two of them were silent zeros: the kind where the test asserts the right column, the test passes, the feature works against the fixture, and production has been running on empty data the whole time. The audit started because the live `/threat-intel` page returned "Not Found" twenty seconds after I clicked the merge button on the marquee PR. By the time the audit finished, I'd shipped three more PRs.
 
 This post is V2 of the dashboard, but it's really about the gap between "tests pass" and "production works." The gap has a shape, and the shape is dictated by what the tests do and don't see. Five bugs, five different shapes. The marquee feature is downstream of that lesson, not upstream of it.
+
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-01.png" alt="Home Network Mission Control V2 overview: 161 anomalies from 45,000 daily DNS queries, Threat Intel tab marquee, 7 PRs on one Sunday, 603 backend tests at merge." />
 
 <Info title="Series Context">
 This is part 4 of the [Home Network Mission Control](/blog/series/home-network-mission-control) series. Direct prerequisites:
@@ -77,6 +79,8 @@ My six heuristics live in `backend/src/homenet_dashboard/poll/jobs/threat_intel_
 | **H5** | Single-client query burst | 0 | Tune-mode; design-promoted: 4 |
 | **H6** | Feed match while answered allowed | 9 | Critical; in feed AND not blocked |
 
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-04.png" alt="The six heuristics (H1-H6) with weights, tune-mode for H3 and H5 at weight zero, and the H1+H6 score collapse rule." />
+
 Three details about that table aren't obvious. They're the difference between "scoring works" and "scoring is operationally honest."
 
 **Tune-mode shipping.** H3 and H5 ship at weight zero. The dispatcher still evaluates them; the hits still land in `threat_intel_anomalies`; the rule pills still render in the UI with a tilde glyph indicating tune-mode-on. Their weights are zero so they can't push an anomaly above the noise floor until I promote them. Two weeks of real-data observation will tell me whether H3's entropy threshold (3.5 bits/char on the leftmost label, length > 12) and H5's burst multiplier (5x the per-client 7-day daily average inside any 1h bucket) survive the false-positive review. If they do, the YAML config flips them to 5 and 4. If they don't, the thresholds get re-tuned and the weights stay at zero. Shipping a heuristic means writing it AND deciding when it's allowed to score.
@@ -117,6 +121,8 @@ I ran the dispatch pattern from [Phase 2](/blog/home-network-mission-control-das
 - Rule pill ordering (the specific-before-broad order described above).
 - Tooltip copy on the score chip (originally read "8 = high"; now reads "8 = critical, 6+ = high, 3+ = elevated, 1+ = informational").
 - RDAP and ASN fall-through behavior (a 404 on RDAP was raising; now it records `rdap_unavailable: true` and the IPinfo branch still runs if the FQDN resolves).
+
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-08.png" alt="Persona team dispatch: 8 blocking findings caught pre-merge across Threat Intel, Security, Network, and UX reviewers. All fixed before the marquee PR landed." />
 
 None of those are interesting on their own. They're interesting in aggregate because the persona team is what catches them; they're also interesting because all eight got fixed before any of the five "tests pass, production fails" bugs went live. The reviewers caught the wave-level mistakes. They didn't catch the merge-ordering, migration-shape, or v6-wire-format mistakes. Those came after. The post-merge audit is what found them, and that's the whole point of the next section.
 
@@ -205,6 +211,8 @@ Plus two regression tests: one with a v6-shaped fixture (top-level `type`, no `r
 
 The trap shape: **a fixture that's wrong in the same way the production system is right.** The fixture shape was frozen at v5; the production system upgraded to v6; the test was asserting against the fixture, so the test passed. If I'd refreshed the fixture against live v6 once, the test would have broken on the first run.
 
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-11.png" alt="Bug 3: Pi-hole v6 silent zero on H4. Fixture frozen at v5 wire format; production ran v6. 34,600 rows with empty reply_type; H4 always scored zero." />
+
 <Tip title="Fixtures freeze the bug with the wire format">
 Recorded fixtures are the right call for unit tests that need a stable, fast input. They're a liability when the upstream system changes shape. The dashboard's fixture-drift CI job is supposed to catch this kind of thing; it runs on a schedule, not on PRs, and it asserts that the recorded fixture still matches the live API's *shape*. The Pi-hole v5-to-v6 upgrade happened during a window when the fixture-drift job hadn't run, and the recorded fixture stayed at v5 long enough for the production poller to silently skew. My mitigation is a quarterly fixture re-record AND a poller test that targets a live MCP endpoint with `--ci-only` semantics. Both are in the followups doc now.
 </Tip>
@@ -277,6 +285,8 @@ For the record, here's where I ended the day:
 - **Daily DNS query volume**: ~45,000 on my LAN. Steady-state.
 - **New SQLite tables**: 3. New Alembic migration: 1 (`0007_threat_intel.py`, idempotent against my emergency `create_all()` bootstrap).
 - **Mode posture**: still A. The POST `/api/threat-intel/enrich` endpoint is gated by `MISSION_CONTROL_MODE=A`; the Run-now button is hidden in mode A. Everything ships as read-only. My agent surface is unchanged.
+
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-12.png" alt="Why all five bugs share one shape: the test was correct, the surrounding system was the bug. Five different failure modes, same root cause." />
 
 ## Patterns Worth Carrying Forward (V2 Edition)
 
