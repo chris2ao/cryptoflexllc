@@ -1,0 +1,320 @@
+---
+title: 'Home Network Mission Control V2: A Threat Intel Tab and Five Bugs Only Real Data Caught'
+date: '2026-04-27T05:00:00'
+description: >-
+  Part 4 of the home network dashboard build. V2 ships a Threat Intelligence
+  tab with 6 in-house heuristics, two free public feeds (URLhaus + Hagezi),
+  and an on-demand RDAP/IPinfo enrichment skill. 161 anomalies surfaced from
+  45,000 daily DNS queries on the dispatcher's first real-data run. Seven PRs,
+  603 backend tests, 163 Vitest, 20 Playwright at merge. The marquee story is
+  not the feature, it is the post-merge audit: five bugs that all four CI
+  jobs missed, all five caught only after the dashboard hit production. The
+  gap between "tests pass" and "production works" has a shape and a price,
+  and this post itemizes both.
+tags:
+  - Home Lab
+  - FastAPI
+  - React
+  - Pi-hole
+  - Threat Intelligence
+  - Claude Code
+  - Multi-Agent
+  - Persona Teams
+  - SQLite
+  - Alembic
+author: Chris Johnson
+readingTime: 22 min read
+series: 'Home Network Mission Control'
+seriesOrder: 4
+coverImage: /blog/home-network-mission-control-dashboard-phase-4/infographic.png
+coverImageAlt: 'Visual summary of Home Network Mission Control V2: the THREAT INTEL tab as the marquee feature, six in-house heuristics, two free feeds, 161 anomalies surfaced on first real-data run, and the five post-merge bugs that only production caught.'
+---
+
+161 anomalies surfaced on the dispatcher's first real-data run. 45,000 daily DNS queries on my home LAN. Two free public feeds (URLhaus at 6h cadence, Hagezi at 24h) wired up. Six in-house heuristics, two of them shipping at weight zero on purpose. Three new SQLite tables, one Alembic migration, one Claude Code skill for on-demand RDAP and IPinfo enrichment. Seven PRs across one Sunday afternoon. 603 backend tests, 163 Vitest, 20 Playwright at the end. That's V2 of the Home Network Mission Control Dashboard, the [Threat Intel tab](/blog/home-network-mission-control-dashboard-phase-3) I scoped at the end of Phase 3 and now actually exists.
+
+That's the build report. The interesting part of this post is what came after the build. A post-merge audit caught five bugs that all four CI jobs (backend, frontend, E2E, fixture-drift) had let through. Two of them were silent zeros: the kind where the test asserts the right column, the test passes, the feature works against the fixture, and production has been running on empty data the whole time. The audit started because the live `/threat-intel` page returned "Not Found" twenty seconds after I clicked the merge button on the marquee PR. By the time the audit finished, I'd shipped three more PRs.
+
+This post is V2 of the dashboard, but it's really about the gap between "tests pass" and "production works." The gap has a shape, and the shape is dictated by what the tests do and don't see. Five bugs, five different shapes. The marquee feature is downstream of that lesson, not upstream of it.
+
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-01.png" alt="Home Network Mission Control V2 overview: 161 anomalies from 45,000 daily DNS queries, Threat Intel tab marquee, 7 PRs on one Sunday, 603 backend tests at merge." />
+
+<Info title="Series Context">
+This is part 4 of the [Home Network Mission Control](/blog/series/home-network-mission-control) series. Direct prerequisites:
+
+- [**Phase 1**](/blog/home-network-mission-control-dashboard-phase-1): the chassis, 12 workstreams, four enrichment waves, mode-A read-only design, 497 backend tests at the end.
+- [**Phase 2**](/blog/home-network-mission-control-dashboard-phase-2): the cyberpunk re-skin, the four-persona reviewer team, 18 findings, 5 same-session fixes, plus end-of-session phased designs for two new features.
+- [**Phase 3**](/blog/home-network-mission-control-dashboard-phase-3): Feature 1 (DNS click-throughs) shipped via a re-runnable plan doc that two different agentic CLIs took turns on. 11 deferred items closed in the same session.
+
+V2 here lands Feature 2 (the Threat Intel tab) plus the Phase 1.4 follow-ups I'd left in the queue, and then watches the audit produce the second-most-useful artifact of the day: a list of bugs no test could see.
+</Info>
+
+![Visual summary of V2 of the Home Network Mission Control Dashboard: the Threat Intel tab marquee, the 6 heuristics into the dispatcher, the H1+H6 collapse rule, the 7 PRs ordered chronologically with the orphaned PR #10 marked, and the five-bug post-merge audit findings.](/images/blog/homenet-mission-control-v2-threat-intel-hero.png)
+
+## What V2 Actually Ships
+
+I changed three things at the dashboard level. Two were small, one was the marquee.
+
+The small ones cleared the Phase 1.4 follow-up queue. The Refresh-profile popover used to sit in "Watching for refresh..." for the full five-minute window when I opened it on a row that was already fresh. The synchronous initializer for `useState` now snapshots the baseline at mount time and renders an alternate "Profile is current, refreshed Xs ago" state when the cache is fresh-agent. The other one retired the old `ClientDrawer` entirely. First-click on a row in `/clients` now navigates straight to `/clients/<mac>`, which is where Phase 1.2's per-client page lives. Phase 1.2 was supposed to retire that dual-surface; V2 actually did it. PR #7. Two follow-up items closed.
+
+The marquee was Feature 2. The Threat Intel tab I'd scoped at the end of Phase 3. Three SQLite tables, two free public feeds, six heuristics, seven UI cards, one POST endpoint, and one Claude Code skill for on-demand enrichment.
+
+<img
+  src="/images/blog/homenet-mission-control-v2-anomaly-feed.png"
+  alt="The AnomalyFeed card on the live Threat Intel tab: cursor-paginated list of anomalies, score badges color-coded by severity, rule pills rendered specific-before-broad with feed_hit always first, score collapse and tune-mode tagged with a tilde glyph."
+  loading="lazy"
+/>
+
+My data foundation is three new tables under `backend/src/homenet_dashboard/models/threat_intel.py`. `threat_intel_domain_cache` holds enrichment results keyed by `(etld1, feed_name)` with TTLs (6h for URLhaus, 24h for Hagezi, 7d for RDAP, 24h for IPinfo). `threat_intel_anomalies` holds computed anomaly records (heuristic hits, scores, first/last seen, dismissed flag, enrichment JSON). `threat_intel_feed_meta` holds per-feed last-fetch timestamp and row count for the health display.
+
+The two scheduled feeds I picked are URLhaus (CC0-licensed, hourly-fresh malicious-URL list, ~2,000 distinct eTLD+1s after dedup) and the Hagezi DNS Blocklist Pro (MIT-licensed, ~163,000 entries with false-positive pruning curated for home use). Both download on APScheduler cadences, both validate content length and MIME type before write, both run with retry-and-jitter so the cohort doesn't collide with my existing Pi-hole and UniFi pollers.
+
+My six heuristics live in `backend/src/homenet_dashboard/poll/jobs/threat_intel_heuristics.py`. The dispatcher runs them every 15 minutes against the rolling DNS query log:
+
+| Rule | Signal | Default weight | Notes |
+|------|--------|---------------:|-------|
+| **H1** | Newly observed domain (NOD) | 6 (or 8 with feed) | Hot 4h window vs 30d baseline |
+| **H2** | Beaconing (regular intervals) | 7 | CV < 0.15, n >= 8 hits |
+| **H3** | High-entropy subdomain (DGA) | 0 | Tune-mode; design-promoted: 5 |
+| **H4** | TXT/NULL DNS tunnel | 8 | Per (client, FQDN) >= 5 |
+| **H5** | Single-client query burst | 0 | Tune-mode; design-promoted: 4 |
+| **H6** | Feed match while answered allowed | 9 | Critical; in feed AND not blocked |
+
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-04.png" alt="The six heuristics (H1-H6) with weights, tune-mode for H3 and H5 at weight zero, and the H1+H6 score collapse rule." />
+
+Three details about that table aren't obvious. They're the difference between "scoring works" and "scoring is operationally honest."
+
+**Tune-mode shipping.** H3 and H5 ship at weight zero. The dispatcher still evaluates them; the hits still land in `threat_intel_anomalies`; the rule pills still render in the UI with a tilde glyph indicating tune-mode-on. Their weights are zero so they can't push an anomaly above the noise floor until I promote them. Two weeks of real-data observation will tell me whether H3's entropy threshold (3.5 bits/char on the leftmost label, length > 12) and H5's burst multiplier (5x the per-client 7-day daily average inside any 1h bucket) survive the false-positive review. If they do, the YAML config flips them to 5 and 4. If they don't, the thresholds get re-tuned and the weights stay at zero. Shipping a heuristic means writing it AND deciding when it's allowed to score.
+
+**The H1+H6 collapse.** A domain that's newly observed AND in a feed AND answered allowed scores 8, not 6 + 9 = 15. The collapse rule lives in the score aggregation step, not the rule evaluation step. The reason is operator intuition: a known-bad newly-observed domain is the same kind of signal as a known-bad recurring domain, just with extra recency. Scoring it as fifteen would push it past every other category-of-bad onto the top of the feed even though it isn't categorically worse. The aggregation function in `threat_intel_repository.upsert_anomaly()` checks both rules-fired sets and applies the collapsed weight when the H1+H6 pair is present.
+
+**Specific-before-broad rule rendering.** When multiple rules fire on the same (etld1, client_mac), the frontend renders rule pills in the order `[H6, H1, H4, H2, H3, H5]`. The first pill is the most operationally specific signal: feed hits beat newness, tunneling beats beaconing, beaconing beats DGA-fingerprint guesses. Without the explicit order, React's natural set-iteration would have rendered alphabetically (`beacon, burst, dga, feed_hit, nod, tunnel`) and I'd have been triaging on the wrong signal. This is the same "specific-before-broad" rule from the persona-tier mapping in Phase 1; it carries forward.
+
+<Tip title="Order matters, even for chips">
+The frontend renders the first rule pill prominently. If your aggregator fires multiple rules on the same anomaly, the order they ship to the UI is a UX decision, not an alphabetization decision. Default sort orders are the silent way bad triage gets shipped. Pick the order, write it down, render it.
+</Tip>
+
+The seven UI cards are a `SummaryBar` (anomaly count chip, feed-hits chip, feed last-updated chip), an `AnomalyFeed` (cursor-paginated, score-coded), a `FeedHitsBar` (horizontal bar chart of feeds-hit-while-allowed, with a Pi-hole "consider blocking these" CTA), a `NodTable` with a 4/12/24/48h window selector, a `BeaconingTable` sorted by coefficient-of-variation ascending, a `DgaTable` for the entropy candidates, and an `EnrichmentFooter` with a Run-now button that's hidden in mode A (the POST endpoint is mode-B-gated; the button stub ships now and lights up when B flips).
+
+The on-demand enrichment lives at `~/.claude/skills/homenet-threat-enrich/SKILL.md` as a Claude Code skill. The pattern follows the Phase 1.4 client-profile skill: I invoke it via `claude /homenet-threat-enrich`, the skill reads the top N anomalies missing enrichment from local SQLite, calls RDAP for registration date and registrar, calls IPinfo for ASN, and writes results back to `threat_intel_anomalies.enrichment_json` and `threat_intel_domain_cache`. 1 req/sec rate limit between domains, 7-day TTL on RDAP, 24-hour TTL on IPinfo. Read-only against external feeds. Local-only writes. The `POST /api/threat-intel/enrich` endpoint runs the same service for the Run-now button when mode B unlocks.
+
+<Info title="Why a skill, not a poller">
+RDAP has no formal rate limit but is shared infrastructure; IPinfo's free tier is 50,000 requests/month. A poller cadence doesn't guarantee a clean window for external HTTP. A skill is me pulling the trigger explicitly: deliberate, rate-limited, idempotent on (etld1, feed_name). The same pattern works for the Phase 1.4 client-profile skill. The dashboard's job is to display data; the skill's job is to fetch external context on demand. They share a SQLite cache; they don't share a cadence.
+</Info>
+
+The numbers from the dispatcher's first real-data run, captured live: 45,000 daily DNS queries on my LAN, 161 anomalies surfaced (134 feed-hits, 57 NOD, 59 DGA candidates, 0 H4 tunnel hits). That "0 H4" is one of the five bugs. Hold that thought.
+
+<img
+  src="/images/blog/homenet-mission-control-v2-overview.png"
+  alt="The Overview tab of the V2 dashboard for context. The new Threat Intel tab sits next to Overview, Clients, Security, and DNS in the cyber-themed nav, fed by the same poll-and-cache architecture as the rest of the dashboard."
+  loading="lazy"
+/>
+
+## The Persona Team Carried Forward (Briefly)
+
+I ran the dispatch pattern from [Phase 2](/blog/home-network-mission-control-dashboard-phase-2) and [Phase 3](/blog/home-network-mission-control-dashboard-phase-3) on every backend wave: Threat Intel + Security + Network reviewers fanned out in parallel after each backend slice; UX/UI reviewer for the cyber tab. Eight blocking findings landed in the integration step, all fixed pre-merge:
+
+- A PII schema-contract leak on the anomaly response (`client_mac` was unconditionally serialized; redaction now mirrors the `pii_mode` pattern from `/dns/query-log`).
+- An `expires_at` gating bug on H6 (the heuristic was joining against feed-cache rows that had expired; the fix adds `expires_at > now` to the join predicate).
+- APScheduler jitter required on the 86,400-second cohort (the daily Hagezi job collided with the daily purge; jitter spreads the cohort).
+- Retry-budget vs `misfire_grace_time` confusion (the feed downloader was eating retries during the misfire window; the budget now resets on misfire, not on attempt).
+- FQDN grouping for H2 and H4 (the SQL was grouping on `domain` not `(client_mac, domain)`, which silently merged two clients' beacons into one anomaly).
+- Rule pill ordering (the specific-before-broad order described above).
+- Tooltip copy on the score chip (originally read "8 = high"; now reads "8 = critical, 6+ = high, 3+ = elevated, 1+ = informational").
+- RDAP and ASN fall-through behavior (a 404 on RDAP was raising; now it records `rdap_unavailable: true` and the IPinfo branch still runs if the FQDN resolves).
+
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-08.png" alt="Persona team dispatch: 8 blocking findings caught pre-merge across Threat Intel, Security, Network, and UX reviewers. All fixed before the marquee PR landed." />
+
+None of those are interesting on their own. They're interesting in aggregate because the persona team is what catches them; they're also interesting because all eight got fixed before any of the five "tests pass, production fails" bugs went live. The reviewers caught the wave-level mistakes. They didn't catch the merge-ordering, migration-shape, or v6-wire-format mistakes. Those came after. The post-merge audit is what found them, and that's the whole point of the next section.
+
+## Five Bugs Only Production Caught
+
+My merge celebration on the marquee ran for about twenty seconds. Then the dashboard's `/threat-intel` page returned "Not Found." That kicked off a post-merge audit.
+
+The audit ran in parallel with the next slice and produced five bug reports. Three of them are GitHub-mechanics-and-deploy issues. Two of them are silent zeros: the failure mode where the test asserts the right thing on the wrong shape and I shipped on green CI. Each one ate roughly the same amount of time to fix, regardless of how serious the impact was. In aggregate they made up three more PRs (#11, #12, #13) and one direct-to-main hotfix on the homenet-client-profile skill across three sync'd repos.
+
+The shape of all five matches a single pattern: **the test was correct, the system around the test was wrong.** Different shapes of "system around the test," but the same underlying gap.
+
+### Bug 1: Orphaned PR #10 (Inverted Merge Order)
+
+PR #10 was my on-demand enrichment slice (Phase 2.4 + 2.5). It was stacked on PR #9 (the UI tab), which was stacked on PR #8 (the backend). My intended merge order was 8, 9, 10. GitHub's UI auto-retargets stacked PR bases as the bottom one merges, so my plan was: merge 8, GitHub retargets 9 to main, merge 9, GitHub retargets 10 to main, merge 10.
+
+Here's what actually happened: PR #9 merged at 03:47:15Z. PR #10 merged at 03:47:37Z. Twenty-two seconds apart. PR #10's base branch was `feat/threat-intel-ui` (PR #9's branch). GitHub's auto-retarget hadn't run yet because PR #9 had only been merged for twenty-two seconds. The base branch for PR #10 had already been deleted by PR #9's merge. The merge "succeeded" against the deleted branch, which now lived only as a remote ref pointing nowhere. PR #10's commits exist; the merge commit exists; GitHub displays "MERGED" on the PR page. The commits never reached main.
+
+I caught this because the live `/threat-intel` page returned "Not Found" once production tried to render the EnrichmentFooter card that PR #10 was supposed to wire up. The check was a `git log main --grep="threat-intel.*enrichment"` that returned nothing. PR #10 might as well have never run.
+
+The fix was PR #11: a fresh branch off main, cherry-pick the eleven commits from the orphaned `feat/threat-intel-enrichment` branch (still alive as a remote ref, even though its base was gone), open a new PR titled "recover Phase 2.4 + 2.5 content orphaned by PR #10 merge order," and merge. Two cherry-picks needed manual resolution because main had moved forward in the meantime; the rest applied cleanly.
+
+The bug wasn't in the code. The bug was in my assumption that GitHub's auto-retarget runs synchronously with the merge button.
+
+<Warning title="Stacked PRs are a wire format">
+GitHub treats a stacked PR's base as a string, not as a contract. If you merge the bottom PR and the next-up PR's base disappears before the next-up PR's merge, the merge runs against an orphan and looks successful. The mitigation is the boring one: serialize the merges with a polling step that waits for `gh pr view <next> --json baseRefName` to read `main` before clicking the next merge button. Or stack with topic branches that explicitly target main from the start. Or, for high-stakes stacks, use a `git push --force-with-lease` rebase onto main between merges so the next PR's base is always main by the time you merge it.
+</Warning>
+
+### Bug 2: Missing Alembic Migration
+
+PR #8 introduced the three new SQLModel tables but didn't include an Alembic revision. The dashboard's `start-backend.sh` script ran `alembic upgrade head >/dev/null 2>&1 || true` on every boot. The redirect-and-or-true pattern silently swallowed the "no migration to run" status, which is fine in steady state. It also silently swallowed the "tables defined in models but not in revision" status, which is the actual condition that landed in production.
+
+When my live dashboard tried to open `/threat-intel`, the backend hit `no such table: threat_intel_feed_meta` and the frontend got back a 500. The fix-then-fix-the-fix sequence:
+
+1. Emergency: bootstrap production with `python -c "from homenet_dashboard.db import dbmod; dbmod.create_all()"` to materialize the missing tables. This worked because SQLModel's `create_all()` is idempotent on `IF NOT EXISTS`. The version row in `alembic_version` stayed at `0006_client_profile_overrides` while the underlying tables existed unmanaged.
+2. Real fix: PR #12 added migration `0007_threat_intel.py`. The migration is idempotent: it inspects the live schema and skips `create_table` for any threat_intel_* table already present. Production's emergency-bootstrapped tables get recognized; the version row advances to 0007 without a "table already exists" failure.
+3. The startup script change: `alembic upgrade head >/dev/null 2>&1 || true` becomes `alembic upgrade head >> logs/alembic.log 2>&1 || true`. Boot still proceeds on alembic failure (the launchd KeepAlive retries on next launch, same as before), but the migration output is no longer silently discarded. Next time a migration is missing, I'll get a logfile line, not silence.
+
+```bash
+# scripts/start-backend.sh, BEFORE
+"$VENV/bin/alembic" upgrade head >/dev/null 2>&1 || true
+
+# scripts/start-backend.sh, AFTER
+mkdir -p "$REPO/logs"
+"$VENV/bin/alembic" upgrade head >> "$REPO/logs/alembic.log" 2>&1 || true
+```
+
+Two characters of deletion (`/dev/null`) and one path (`logs/alembic.log`). The reason I'd silenced it in the first place was a Phase 1 decision to keep boot output clean for launchd. The reason silencing is wrong is that Alembic's exit code is the only signal I get that the schema actually advanced. Trading "clean boot output" for "blind to schema drift" is the wrong trade. PR #12 reversed it.
+
+<Warning title="The redirect-and-or-true pattern is a bug factory">
+`>/dev/null 2>&1 || true` on a startup migration is the shell equivalent of catching every exception and continuing. It's the right pattern for *idempotent re-runs* of something you don't need to see most days. It's the wrong pattern when the command is a schema-advancing migration. If you have to silence an idempotent command, log it; don't redirect it to `/dev/null`. The cost of a logfile line is zero. The cost of being blind to schema drift is whatever it takes to debug `no such table` against a happy `alembic upgrade head` exit code.
+</Warning>
+
+### Bug 3: Pi-hole v6 Silent Zero on H4
+
+The DNS-tunnel heuristic (H4) filters on `client_dns_queries.reply_type IN ('TXT', 'NULL')`. The first dispatcher run reported `h4_raw_txt_null_rows = 0`. The Network reviewer had flagged "silent-zero risk on H4" during the persona-team dispatch, so the audit went straight to the database:
+
+```sql
+SELECT COUNT(*) FROM client_dns_queries WHERE reply_type = '';
+-- 34600
+
+SELECT COUNT(*) FROM client_dns_queries WHERE reply_type IS NOT NULL AND reply_type != '';
+-- 0
+```
+
+Every single row in production had an empty string for `reply_type`. The heuristic was filtering the right column on the right values. The column itself was full of empty strings.
+
+The poller for `client_dns_queries` was reading `q.get("reply_type")` from the Pi-hole `/queries` response. That's the v5 key name. Pi-hole v6 returns the DNS query type at top-level `type`. The v5 key doesn't exist in v6; the lookup returned `None`; the model column defaulted to empty string; H4 had been silently zero-ing for as long as the dashboard had been running against v6.
+
+My CI test fixture used the v5 wire shape. Backend tests passed. Heuristic tests passed (they used synthetic candidates with `reply_type='TXT'` directly). Fixture-drift CI passed (it asserted the column existed, not its content). Every CI signal was green. The bug only existed in the gap between the v5 fixture and the v6 production wire format.
+
+The fix is one line:
+
+```python
+# BEFORE
+reply_type = q.get("reply_type") or ""
+
+# AFTER (PR #13)
+# Pi-hole v6 puts the DNS query type at top-level `type`; v5 used
+# `reply_type`. Read both so existing fixtures and live v6 traffic
+# both populate the column. The column name stays `reply_type` for
+# back-compat with v5 fixtures, but it stores the DNS query type.
+reply_type = q.get("type") or q.get("reply_type") or ""
+```
+
+Plus two regression tests: one with a v6-shaped fixture (top-level `type`, no `reply_type` key at all) asserting the column gets populated with `"TXT"`; one with a v5-shaped fixture asserting the column still populates from `reply_type`. Existing 34,600 production rows stay at empty string and get swept out by the 30-day retention purge. New rows populate correctly. H4 goes from "always zero" to "honest about TXT/NULL traffic."
+
+The trap shape: **a fixture that's wrong in the same way the production system is right.** The fixture shape was frozen at v5; the production system upgraded to v6; the test was asserting against the fixture, so the test passed. If I'd refreshed the fixture against live v6 once, the test would have broken on the first run.
+
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-11.png" alt="Bug 3: Pi-hole v6 silent zero on H4. Fixture frozen at v5 wire format; production ran v6. 34,600 rows with empty reply_type; H4 always scored zero." />
+
+<Tip title="Fixtures freeze the bug with the wire format">
+Recorded fixtures are the right call for unit tests that need a stable, fast input. They're a liability when the upstream system changes shape. The dashboard's fixture-drift CI job is supposed to catch this kind of thing; it runs on a schedule, not on PRs, and it asserts that the recorded fixture still matches the live API's *shape*. The Pi-hole v5-to-v6 upgrade happened during a window when the fixture-drift job hadn't run, and the recorded fixture stayed at v5 long enough for the production poller to silently skew. My mitigation is a quarterly fixture re-record AND a poller test that targets a live MCP endpoint with `--ci-only` semantics. Both are in the followups doc now.
+</Tip>
+
+### Bug 4: My homenet-client-profile Skill, Status-Token Mismatch
+
+This one was caught by a reviewer-AI on the `homenet-client-profile` skill output, not by the dashboard's CI. The skill (which I shipped in [Phase 3](/blog/home-network-mission-control-dashboard-phase-3) as part of Feature 1.4) generates a per-client intelligence profile by querying the dashboard's local SQLite. One of the queries asks "what blocked-domain categories does this client hit most?" and the SQL was filtering on uppercase Pi-hole v6 raw status tokens:
+
+```sql
+-- BEFORE
+SELECT domain, COUNT(*) AS hits
+FROM client_dns_queries
+WHERE client_mac = ?
+  AND status IN ('GRAVITY', 'BLACKLIST', 'REGEX')
+GROUP BY domain
+ORDER BY hits DESC
+LIMIT 10;
+```
+
+The dashboard's poller normalizes Pi-hole v6's raw status tokens (`GRAVITY`, `FORWARDED`, `CACHE_STALE`, `BLACKLIST`, `REGEX`, etc.) to a small set of lowercase categories at write time: `{'allowed', 'blocked', 'cached'}`. The collapse runs in `_normalize_pihole_status()` in the poller. The skill's SQL was filtering on the raw Pi-hole tokens that no longer exist in the database; the result was always zero rows; the profile always reported "no notable blocked domains" even on a client where 65% of queries were blocked.
+
+The reviewer-AI flagged it post-run because the profile claimed "no notable blocks" on a client whose Overview tab clearly showed a stack of blocks. The fix is one-character:
+
+```sql
+-- AFTER
+WHERE status = 'blocked'
+```
+
+Pushed directly to main on three sync'd repos (claude-code-config, CJClaude_1, CJClaudin_Mac) because skills live in `~/.claude/skills/` and that directory ships through the [config-sync skill](/blog/the-claude-code-config-repo-and-the-sync-skill) into all three sites.
+
+Two flavors of trap here. **First**: I wrote the skill against the Pi-hole v6 wire format docs, not against the dashboard's actual schema. Two layers of normalization between the wire and the DB; the skill skipped both. **Second**: the test for the skill was a hand-crafted SQLite fixture using the same uppercase tokens the skill expected, so the test passed. The right test is a fixture generated by the actual poller against a recorded Pi-hole response. That regression is in the followups now.
+
+### Bug 5: My homenet-client-profile Skill, NOD Retention Floor Contamination
+
+Same skill, different bug, surfaced on the same reviewer pass. The skill's "newly observed domain" check compared `first_seen` against the current `--window` (default 24h). On a fresh dashboard install (or the first 24 hours after a database purge), *every* domain looks new, because the global DNS retention floor (30 days, set by the purge job) IS inside any reasonable NOD window.
+
+My skill was reporting "newly observed domains: 412" on a fresh install with 412 distinct domains in the past 24 hours, all of them legitimately not-new. The signal was meaningless until the 30-day baseline had filled out.
+
+My fix adds a `dns_retention_floor` query at skill startup, gates the NOD check on `(now - window) > floor`, and updates the prose-instruction the composer-LLM reads to say "NOD signal not yet meaningful: the database has only N hours of history, NOD requires at least M hours" when the floor is inside the window. The skill still runs and still composes a profile; the NOD section just renders honestly as "insufficient history" rather than "412 newly observed domains." Same direct-to-main push across the three repos.
+
+The trap shape: **the heuristic is correct against a steady-state assumption that doesn't hold during onboarding.** The fix is to detect the assumption violation explicitly, not to silently report meaningless numbers.
+
+## Why Five Different Shapes Look the Same
+
+Step back from the five bugs and they share one feature: **the test was correct, the surrounding system was the bug.**
+
+- **Bug 1**: the test was the merge button ("PR shows green"); the system was GitHub's stacked-PR auto-retarget timing.
+- **Bug 2**: the test was `alembic upgrade head` exit code; the system was the shell redirect that swallowed it.
+- **Bug 3**: the test was the v5 fixture; the system was the v6 production wire format.
+- **Bug 4**: the test was the uppercase-token fixture; the system was the dashboard's `_normalize_pihole_status()` collapse.
+- **Bug 5**: the test was the steady-state assumption; the system was the fresh-install retention floor.
+
+In every case the test asserted the right thing about the wrong shape. CI can't catch this class of bug because CI runs against the recorded test inputs, not against the live system. Dog-fooding catches it because dog-fooding IS the live system.
+
+The Phase 1 lesson, "[dog-food before declaring done](/blog/home-network-mission-control-dashboard-phase-1)," was supposed to mitigate this. Phase 1 dog-fooded the four enrichment waves on the live LAN before merge. V2 didn't, because the marquee feature was complete on green CI and the merge celebration came at 22 seconds after the second-to-last PR landed. The dashboard worked in CI; the dashboard worked in dev; the dashboard broke in production for the cluster of reasons above.
+
+The post-merge audit ran the dog-food in production. The five bugs were what the audit found. Different shapes, same lesson. The question isn't "did the tests pass" but "did the tests look at the same shape production looks at." Five times in one Sunday, the answer was no.
+
+<Tip title="Dog-food the merge, not just the feature">
+The merge moment is the most-likely-broken moment of any deploy: you have just changed the production environment in N places at once, and your most-recent CI run was against the pre-merge tree. Dog-food the merge: open the live URL, click through the changed surface, run the new heuristic against real data, refresh the changed page. Five minutes of dog-food after the merge button catches an entire class of bug that no fixture ever will.
+</Tip>
+
+## The Numbers At Merge
+
+For the record, here's where I ended the day:
+
+- **PRs I merged**: 7. PR #7 (Phase 1.4 follow-ups), PR #8 (Threat Intel backend), PR #9 (Threat Intel UI), PR #10 (Threat Intel enrichment, orphaned), PR #11 (orphan recovery), PR #12 (migration fix), PR #13 (Pi-hole v6 wire fix). Plus three direct-to-main hotfix pushes on the homenet-client-profile skill across three sync'd repos.
+- **Tests at the close**: 603 backend pytest, 163 Vitest, 20 Playwright. Coverage above the 80% floor. Backend (3.12) pass, Frontend (Node 20) pass, E2E pass, fixture-drift skipping (correct, schedule-only).
+- **Anomalies on first dispatcher run**: 161. 134 feed-hits, 57 NOD, 59 DGA candidates, 0 H4 (because of bug #3).
+- **Daily DNS query volume**: ~45,000 on my LAN. Steady-state.
+- **New SQLite tables**: 3. New Alembic migration: 1 (`0007_threat_intel.py`, idempotent against my emergency `create_all()` bootstrap).
+- **Mode posture**: still A. The POST `/api/threat-intel/enrich` endpoint is gated by `MISSION_CONTROL_MODE=A`; the Run-now button is hidden in mode A. Everything ships as read-only. My agent surface is unchanged.
+
+<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-12.png" alt="Why all five bugs share one shape: the test was correct, the surrounding system was the bug. Five different failure modes, same root cause." />
+
+## Patterns Worth Carrying Forward (V2 Edition)
+
+- **Dog-food the merge, not just the feature.** A five-minute click-through after I press the merge button catches the class of bug no fixture ever will. CI's job is to keep my test suite honest. The dog-food's job is to keep my production system honest.
+- **Schemas that ship without migrations are unscheduled outages waiting for a deploy.** I'm pairing every SQLModel table with an Alembic revision from now on. Fail loud on missing revisions; don't redirect alembic output to /dev/null. The cost of a logfile line is zero; the cost of `no such table` in production is whatever my patience for a 03:00 audit is.
+- **Stacked PR merges aren't atomic.** GitHub's auto-retarget runs asynchronously. If I merge stacked PRs back-to-back, I can land an orphaned commit that GitHub still marks "MERGED." Serialize merges by polling the next PR's `baseRefName` until it reads `main`, or rebase onto main between merges, or accept the recovery cherry-pick as a known cost of the pattern.
+- **A fixture is the bug if the wire format moved.** Pi-hole v5-to-v6 changed the DNS-type field name from `reply_type` to top-level `type`. My fixture froze at v5; the production system was v6; the test passed against the fixture; H4 silently produced zero anomalies. Fixture-drift CI is the right mitigation, but only if it runs against current upstreams on a cadence that's shorter than the upstream's release cycle.
+- **Skills query the database, not the wire.** My homenet-client-profile skill was filtering on Pi-hole v6 raw tokens that the dashboard's poller had already normalized away. Skills should treat the dashboard's SQLite as the contract, not the upstream service's response shape.
+- **Heuristics need an "I don't know yet" output state.** My NOD check on a fresh install was returning a count instead of "insufficient history." The right behavior is to detect the assumption-violation explicitly and render honestly. Same pattern as the `collector_up` sentinel rows in the time-series store: when the data isn't there, say so.
+- **Tune-mode is a feature, not a delay.** Shipping H3 and H5 at weight zero while still evaluating them is the cheapest way to collect false-positive data at production scale before I decide whether the heuristic is honest. The promotion to weight 5 / 4 happens when the FP profile says it should. That's a decision, not a clock.
+
+## What's Next: The Roadmap From Here
+
+My next slices are scheduled, not handwaved. Here's the board:
+
+| Phase | What ships | Status |
+|------|------------|--------|
+| **F2.2 false-positive review** | Sample 20 anomalies against +7 days of real data; promote H3/H5 to weight 5/4 if the FP profile holds; otherwise re-tune thresholds. | Scheduled remote agent at 2026-05-04 09:00 ET via the Anthropic remote-trigger API on the bridge environment. |
+| **F2.5 score promotion** | Flip `h3_dga: 0 -> 5` and `h5_burst: 0 -> 4` in `backend/configs/threat_intel_scores.yml` if the +14d FP review confirms low noise. | Scheduled remote agent at 2026-05-11 09:00 ET. |
+| **Phase 1.4 TTL verification** | Around 30 days after the first agent profile was written, exercise the TTL boundary: rows older than 30 days should fall back to the template summary; row count should be bounded by distinct profiled MACs. | Scheduled at ~2026-05-26 (operational check; no code change expected unless drift is observed). |
+| **Slice D: Clients tab port** | Apply the persona-team Wave structure to port `cyber-clients.jsx` to `frontend/src/components/cyber/` components. | In the slice menu. Persona team ready. |
+| **Phase 1.1 (UniFi)** | Wi-Fi + RF tab. Needs the UniFi session-auth follow-up first. | Visible-but-locked in the cyber SideNav. |
+| **Phase B (A → B)** | Mutation unlock. The EnrichmentFooter Run-now button lights up. PII gate on `RecentMutation.session_id` lands. | `MISSION_CONTROL_MODE` env flip + security review. |
+| **Phase C (B → C)** | Agent unlocked in read-only posture. | All Phase 1 plumbing already in place. |
+| **Phase D (C → D)** | Agent drafts mutations, human approves them. End state of the four-mode flag. | End state. |
+
+Two of those items are scheduled-agent runs against the live database. That's V2's other quiet shift: the dashboard's data is now interesting enough that scheduling a future agent to evaluate it is cheaper than doing it manually. The bridge environment has local SQLite access; the Anthropic remote-trigger API hands the agent a one-line prompt; the agent reads the data, drafts a follow-up note, opens a PR if a tuning change is warranted. My only job is to read the PR.
+
+V2 of the dashboard does what V1 did, plus a Threat Intel tab that surfaces 161 anomalies a day from 45,000 DNS queries. It also surfaced five bugs that no green CI run could see. The marquee feature is the tab; the marquee lesson is that "tests pass" is a measurement, not a guarantee. The audit closed the gap between the two, this time. Next time, the dog-food has to happen *before* the merge celebration, not after.
+
+If you've followed this thread from the [UniFi MCP](/blog/building-a-custom-unifi-mcp-103-tools-across-three-days), [Pi-hole MCP](/blog/consolidating-three-pihole-mcps-into-one), and [`/homenet-document`](/blog/dogfooding-the-unifi-mcp-homenet-document-and-the-bug-it-found) posts through to [Phase 1](/blog/home-network-mission-control-dashboard-phase-1), [Phase 2](/blog/home-network-mission-control-dashboard-phase-2), and [Phase 3](/blog/home-network-mission-control-dashboard-phase-3), the through-line is the same: every post is one more reusable primitive on top of the last. V2's primitive is the post-merge audit. Build the feature, ship the feature, audit the production system, fix what only production sees. Five bugs, five PRs, one Sunday. The dashboard tells the truth about my LAN. The audit makes sure the dashboard tells the truth about itself.
