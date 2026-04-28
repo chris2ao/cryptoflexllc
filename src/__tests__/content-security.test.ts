@@ -95,8 +95,12 @@ describe("Content Security: Information Disclosure Prevention", () => {
 
         // Match chris2ao NOT followed by common URL patterns
         // This catches: `authenticated as chris2ao` or `gh repo create chris2ao/...`
-        // But allows: [github.com/chris2ao/repo](https://...)
-        const codeExamplePattern = /(?<!github\.com\/)(?<!linkedin\.com\/)(?<!@)chris2ao(?!\/cryptoflexllc)(?!\/CJClaude_1)(?!\/unifi-mcp)(?!\/pihole-mcp)(?!\/claude-code-config)(?!["'\])])/g;
+        // But allows: [github.com/chris2ao/repo](https://...) AND hyphenated
+        // public repo names (chris2ao-unifi-mcp, chris2ao-pihole-mcp,
+        // chris2ao-claude-code-config) AND launchd reverse-dns identifiers
+        // (com.chris2ao.foo) since those are factual references to the
+        // operator's own public artifacts, not username-substitution targets.
+        const codeExamplePattern = /(?<!github\.com\/)(?<!linkedin\.com\/)(?<!@)(?<!com\.)chris2ao(?!\/cryptoflexllc)(?!\/CJClaude_1)(?!\/unifi-mcp)(?!\/pihole-mcp)(?!\/claude-code-config)(?!\/home-network-mission-control-dashboard)(?!-unifi-mcp)(?!-pihole-mcp)(?!-claude-code-config)(?!-homenet)(?!-home-network)(?!["'\])])/g;
 
         const matches = content.match(codeExamplePattern);
 
@@ -178,10 +182,17 @@ describe("Content Security: Information Disclosure Prevention", () => {
         // Check for env var assignments with actual values (not placeholders)
         const suspiciousEnvPattern = /(DATABASE_URL|ANALYTICS_SECRET|SUBSCRIBER_SECRET|GMAIL_APP_PASSWORD|VERCEL_API_TOKEN)\s*=\s*["'][^$<][^"']{10,}["']/g;
 
-        const matches = content.match(suspiciousEnvPattern);
+        const rawMatches = content.match(suspiciousEnvPattern);
+
+        // Filter out template strings: anything containing ${...} anywhere
+        // in the value is a placeholder, not a real secret. The base regex
+        // only inspects the FIRST character after the quote, so values like
+        // "sqlite+aiosqlite:///${PWD}/data/foo.db" pass the initial filter.
+        const matches = rawMatches?.filter((m) => !/\$\{[^}]+\}/.test(m)) ?? null;
+        const finalMatches = matches && matches.length > 0 ? matches : null;
 
         expect(
-          matches,
+          finalMatches,
           `Found environment variable with potential real value in ${path.basename(file)}. Should use placeholder or process.env reference.`
         ).toBeNull();
       });
