@@ -79,6 +79,7 @@ import {
   TrafficRulesAssumptionsDiagram,
   ImageLightbox,
   CoverImageLightbox,
+  MermaidDiagram,
 } from "@/components/mdx";
 import {
   getAllPosts,
@@ -399,6 +400,7 @@ export default async function BlogPostPage({ params }: Props) {
                     WazuhFinalArchitectureDiagram,
                     ZBFPolicyChainDiagram,
                     TrafficRulesAssumptionsDiagram,
+                    MermaidDiagram,
                     img: ImageLightbox,
                   }}
                 />
