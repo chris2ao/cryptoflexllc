@@ -1,5 +1,32 @@
 [
   {
+    "timestamp": "2026-05-08T00:10:15Z",
+    "account": "chris2ao@gmail.com",
+    "duration_seconds": 30,
+    "sync_mode": "aborted",
+    "emails_processed": 0,
+    "promotions_trashed": 0,
+    "promotions_rescued": 0,
+    "social_trashed": 0,
+    "social_rescued": 0,
+    "newsletters_trashed": 0,
+    "newsletters_rescued": 0,
+    "primary_kept": 0,
+    "primary_archived": 0,
+    "primary_trashed": 0,
+    "primary_flagged": 0,
+    "urgent_count": 0,
+    "vip_overrides": 0,
+    "security_threats_detected": 0,
+    "drafts_generated": 0,
+    "pending_replies": 0,
+    "attention_email_sent": false,
+    "errors": [
+      "Auth failure on Step 0.1: invalid_grant - Token has been expired or revoked. Refresh token is present but has been revoked at the Google side. Aborted before any API mutations."
+    ],
+    "circuit_breaker_triggered": false
+  },
+  {
     "timestamp": "2026-05-07T12:16:30Z",
     "account": "chris2ao@gmail.com",
     "duration_seconds": 42,
