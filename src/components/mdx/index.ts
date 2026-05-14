@@ -95,6 +95,12 @@ export {
   RotationLadderDiagram,
 } from "./diagrams-vercel-breach";
 export { WazuhHomelabIngestDiagram } from "./diagrams-homelab-wazuh";
+export {
+  SiemLoglakeArchitectureDiagram,
+  SiemLoglakeIngestionDiagram,
+  SiemSchemaEnginesDiagram,
+} from "./diagrams-siem-loglake";
+export { SiemRolloutTimelineDiagram } from "./diagrams-siem-rollout";
 export { WazuhWavesDependencyDiagram } from "./diagrams-homelab-wazuh-waves";
 export {
   WazuhBugCascadeDiagram,

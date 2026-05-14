@@ -86,6 +86,10 @@ import {
   WazuhFinalArchitectureDiagram,
   ZBFPolicyChainDiagram,
   TrafficRulesAssumptionsDiagram,
+  SiemLoglakeArchitectureDiagram,
+  SiemLoglakeIngestionDiagram,
+  SiemSchemaEnginesDiagram,
+  SiemRolloutTimelineDiagram,
   ImageLightbox,
   MermaidDiagram,
 } from "@/components/mdx";
@@ -251,6 +255,10 @@ export default async function BacklogPostPage({ params }: Props) {
               WazuhFinalArchitectureDiagram,
               ZBFPolicyChainDiagram,
               TrafficRulesAssumptionsDiagram,
+              SiemLoglakeArchitectureDiagram,
+              SiemLoglakeIngestionDiagram,
+              SiemSchemaEnginesDiagram,
+              SiemRolloutTimelineDiagram,
               MermaidDiagram,
               img: ImageLightbox,
             }}
