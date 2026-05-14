@@ -146,7 +146,7 @@ etld1 = {q:String}
 
 The shape is identical except for the predicate. The substring path scans the `domain` column and is bounded by the partition pruning on `ts >= now() - INTERVAL`. The etld1 path is much cheaper because `etld1` is a `LowCardinality(String)` and ClickHouse can prune to a single value range. The 3-char minimum on the substring path is a guard rail: shorter strings would match too much, and a one-character substring scan over 30 days of queries on this LAN is millions of rows.
 
-<Info title="`topK(1)` plus `uniqExact` is the cheap "most common (+N more)" pattern">
+<Info title='`topK(1)` plus `uniqExact` is the cheap "most common (+N more)" pattern'>
 Two ClickHouse aggregates per column give you the dominant value and the distinct count for free. `topK(1)(qtype)[1]` returns the most-frequent qtype (the `[1]` indexes the 1-element Array `topK` returns). `uniqExact(qtype)` counts distinct values. Render as `"A (+2)"` to mean "A is most common, two other qtypes also seen." Cost: one extra aggregate per column. Benefit: bounds the row width on high-cardinality fields like `reply_ip` while preserving the "is there variation here" signal.
 </Info>
 
