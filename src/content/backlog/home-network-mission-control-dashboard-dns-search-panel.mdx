@@ -310,8 +310,8 @@ Then curl. The five smoke queries I ran:
 
 | Query | Window | Result |
 |---|---|---|
-| `q=goog match=substring` | 24h | 41 rows in <100ms; first row `googleapis.com` from `BXWPF5H65K7`, total 454 |
-| `q=goog match=substring` | 720 (30d) | 106 rows in <100ms; deeper history, partition pruning still bounded |
+| `q=goog match=substring` | 24h | 41 rows in `<100ms`; first row `googleapis.com` from `BXWPF5H65K7`, total 454 |
+| `q=goog match=substring` | 720 (30d) | 106 rows in `<100ms`; deeper history, partition pruning still bounded |
 | `q=apple.com match=etld1` | 24h | 7 rows; etld1 path, exact match, no substring scan |
 | `q=ad match=substring` (3-char min) | 24h | accepts; 211 rows hits the 200-default limit, total_matched=211 |
 | `q=a match=substring` | 24h | 400 rejected (3-char minimum) |
