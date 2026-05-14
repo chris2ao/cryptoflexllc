@@ -42,7 +42,7 @@ That's the build report. The interesting part of this post is what came after th
 
 This post is V2 of the dashboard, but it's really about the gap between "tests pass" and "production works." The gap has a shape, and the shape is dictated by what the tests do and don't see. Five bugs, five different shapes. The marquee feature is downstream of that lesson, not upstream of it.
 
-<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-01.png" alt="Home Network Mission Control V2 overview: 161 anomalies from 45,000 daily DNS queries, Threat Intel tab marquee, 7 PRs on one Sunday, 603 backend tests at merge." />
+![Home Network Mission Control V2 overview: 161 anomalies from 45,000 daily DNS queries, Threat Intel tab marquee, 7 PRs on one Sunday, 603 backend tests at merge.](/blog/home-network-mission-control-dashboard-phase-4/slides/slide-01.png)
 
 <Info title="Series Context">
 This is part 4 of the [Home Network Mission Control](/blog/series/home-network-mission-control) series. Direct prerequisites:
@@ -64,11 +64,7 @@ The small ones cleared the Phase 1.4 follow-up queue. The Refresh-profile popove
 
 The marquee was Feature 2. The Threat Intel tab I'd scoped at the end of Phase 3. Three SQLite tables, two free public feeds, six heuristics, seven UI cards, one POST endpoint, and one Claude Code skill for on-demand enrichment.
 
-<img
-  src="/images/blog/homenet-mission-control-v2-anomaly-feed.png"
-  alt="The AnomalyFeed card on the live Threat Intel tab: cursor-paginated list of anomalies, score badges color-coded by severity, rule pills rendered specific-before-broad with feed_hit always first, score collapse and tune-mode tagged with a tilde glyph."
-  loading="lazy"
-/>
+![The AnomalyFeed card on the live Threat Intel tab: cursor-paginated list of anomalies, score badges color-coded by severity, rule pills rendered specific-before-broad with feed_hit always first, score collapse and tune-mode tagged with a tilde glyph.](/images/blog/homenet-mission-control-v2-anomaly-feed.png)
 
 My data foundation is three new tables under `backend/src/homenet_dashboard/models/threat_intel.py`. `threat_intel_domain_cache` holds enrichment results keyed by `(etld1, feed_name)` with TTLs (6h for URLhaus, 24h for Hagezi, 7d for RDAP, 24h for IPinfo). `threat_intel_anomalies` holds computed anomaly records (heuristic hits, scores, first/last seen, dismissed flag, enrichment JSON). `threat_intel_feed_meta` holds per-feed last-fetch timestamp and row count for the health display.
 
@@ -85,7 +81,7 @@ My six heuristics live in `backend/src/homenet_dashboard/poll/jobs/threat_intel_
 | **H5** | Single-client query burst | 0 | Tune-mode; design-promoted: 4 |
 | **H6** | Feed match while answered allowed | 9 | Critical; in feed AND not blocked |
 
-<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-04.png" alt="The six heuristics (H1-H6) with weights, tune-mode for H3 and H5 at weight zero, and the H1+H6 score collapse rule." />
+![The six heuristics (H1-H6) with weights, tune-mode for H3 and H5 at weight zero, and the H1+H6 score collapse rule.](/blog/home-network-mission-control-dashboard-phase-4/slides/slide-04.png)
 
 Three details about that table aren't obvious. They're the difference between "scoring works" and "scoring is operationally honest."
 
@@ -109,11 +105,7 @@ RDAP has no formal rate limit but is shared infrastructure; IPinfo's free tier i
 
 The numbers from the dispatcher's first real-data run, captured live: 45,000 daily DNS queries on my LAN, 161 anomalies surfaced (134 feed-hits, 57 NOD, 59 DGA candidates, 0 H4 tunnel hits). That "0 H4" is one of the five bugs. Hold that thought.
 
-<img
-  src="/images/blog/homenet-mission-control-v2-overview.png"
-  alt="The Overview tab of the V2 dashboard for context. The new Threat Intel tab sits next to Overview, Clients, Security, and DNS in the cyber-themed nav, fed by the same poll-and-cache architecture as the rest of the dashboard."
-  loading="lazy"
-/>
+![The Overview tab of the V2 dashboard for context. The new Threat Intel tab sits next to Overview, Clients, Security, and DNS in the cyber-themed nav, fed by the same poll-and-cache architecture as the rest of the dashboard.](/images/blog/homenet-mission-control-v2-overview.png)
 
 ## The Persona Team Carried Forward (Briefly)
 
@@ -128,7 +120,7 @@ I ran the dispatch pattern from [Phase 2](/blog/home-network-mission-control-das
 - Tooltip copy on the score chip (originally read "8 = high"; now reads "8 = critical, 6+ = high, 3+ = elevated, 1+ = informational").
 - RDAP and ASN fall-through behavior (a 404 on RDAP was raising; now it records `rdap_unavailable: true` and the IPinfo branch still runs if the FQDN resolves).
 
-<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-08.png" alt="Persona team dispatch: 8 blocking findings caught pre-merge across Threat Intel, Security, Network, and UX reviewers. All fixed before the marquee PR landed." />
+![Persona team dispatch: 8 blocking findings caught pre-merge across Threat Intel, Security, Network, and UX reviewers. All fixed before the marquee PR landed.](/blog/home-network-mission-control-dashboard-phase-4/slides/slide-08.png)
 
 None of those are interesting on their own. They're interesting in aggregate because the persona team is what catches them; they're also interesting because all eight got fixed before any of the five "tests pass, production fails" bugs went live. The reviewers caught the wave-level mistakes. They didn't catch the merge-ordering, migration-shape, or v6-wire-format mistakes. Those came after. The post-merge audit is what found them, and that's the whole point of the next section.
 
@@ -217,7 +209,7 @@ Plus two regression tests: one with a v6-shaped fixture (top-level `type`, no `r
 
 The trap shape: **a fixture that's wrong in the same way the production system is right.** The fixture shape was frozen at v5; the production system upgraded to v6; the test was asserting against the fixture, so the test passed. If I'd refreshed the fixture against live v6 once, the test would have broken on the first run.
 
-<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-11.png" alt="Bug 3: Pi-hole v6 silent zero on H4. Fixture frozen at v5 wire format; production ran v6. 34,600 rows with empty reply_type; H4 always scored zero." />
+![Bug 3: Pi-hole v6 silent zero on H4. Fixture frozen at v5 wire format; production ran v6. 34,600 rows with empty reply_type; H4 always scored zero.](/blog/home-network-mission-control-dashboard-phase-4/slides/slide-11.png)
 
 <Tip title="Fixtures freeze the bug with the wire format">
 Recorded fixtures are the right call for unit tests that need a stable, fast input. They're a liability when the upstream system changes shape. The dashboard's fixture-drift CI job is supposed to catch this kind of thing; it runs on a schedule, not on PRs, and it asserts that the recorded fixture still matches the live API's *shape*. The Pi-hole v5-to-v6 upgrade happened during a window when the fixture-drift job hadn't run, and the recorded fixture stayed at v5 long enough for the production poller to silently skew. My mitigation is a quarterly fixture re-record AND a poller test that targets a live MCP endpoint with `--ci-only` semantics. Both are in the followups doc now.
@@ -292,7 +284,7 @@ For the record, here's where I ended the day:
 - **New SQLite tables**: 3. New Alembic migration: 1 (`0007_threat_intel.py`, idempotent against my emergency `create_all()` bootstrap).
 - **Mode posture**: still A. The POST `/api/threat-intel/enrich` endpoint is gated by `MISSION_CONTROL_MODE=A`; the Run-now button is hidden in mode A. Everything ships as read-only. My agent surface is unchanged.
 
-<img src="/blog/home-network-mission-control-dashboard-phase-4/slides/slide-12.png" alt="Why all five bugs share one shape: the test was correct, the surrounding system was the bug. Five different failure modes, same root cause." />
+![Why all five bugs share one shape: the test was correct, the surrounding system was the bug. Five different failure modes, same root cause.](/blog/home-network-mission-control-dashboard-phase-4/slides/slide-12.png)
 
 ## Patterns Worth Carrying Forward (V2 Edition)
 

@@ -33,7 +33,7 @@ My home network had a Mission Control Dashboard that could see clients, DNS quer
 
 That's where this series starts. Two posts on replacing the SQLite-only event store with a Vector + ClickHouse log-lake, kept inside the same docker-compose stack as the dashboard, sized to fit on a Mac mini M4 that also has to be my dev machine. This post covers the use case, why it exists, and the architecture. Part 2 (drafted next) covers the 13 implementation phases, the launchd watchdog bug that almost shipped, and the persona-rule track record from 137 commits.
 
-<img src="/blog/building-a-custom-siem-part-1-why-and-architecture/infographic.png" alt="Custom Homelab SIEM Architecture: UDP syslog from UDM Pro, Pi-hole, U7 Pro APs, and USW-Flex switches into Vector running on a Mac mini M4 docker-compose stack, parsed and written to ClickHouse on a 300 GB external SSD with 180-day TTL retention. SQLite retained for reference and ack data. macOS osascript push and Gmail digest for findings." />
+![Custom Homelab SIEM Architecture: UDP syslog from UDM Pro, Pi-hole, U7 Pro APs, and USW-Flex switches into Vector running on a Mac mini M4 docker-compose stack, parsed and written to ClickHouse on a 300 GB external SSD with 180-day TTL retention. SQLite retained for reference and ack data. macOS osascript push and Gmail digest for findings.](/blog/building-a-custom-siem-part-1-why-and-architecture/infographic.png)
 
 <Info title="Series Context">
 This is part 1 of the **Custom SIEM** series. It builds directly on the Home Network Mission Control series:

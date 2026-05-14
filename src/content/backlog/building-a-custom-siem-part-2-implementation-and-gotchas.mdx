@@ -29,7 +29,7 @@ import { SiemRolloutTimelineDiagram } from '@/components/mdx';
 
 [Part 1](/blog/building-a-custom-siem-part-1-why-and-architecture) was the design: why the Mission Control Dashboard outgrew SQLite as an event store, why I went custom instead of adopting Wazuh or Splunk, and how Vector plus ClickHouse on a Mac mini M4 hangs together. This post is what it took to ship that design. The phase order. The cutover gate that caught 19 column-name drifts before they could hit production. The launchd watchdog that fired three orders of magnitude more often than the event it was supposed to detect. The persona-rule track record from 11 phases of work, including the three drifts where the captain agent was the one who got the framing wrong.
 
-<img src="/blog/building-a-custom-siem-part-2-implementation-and-gotchas/infographic.png" alt="SIEM Log-Lake Technical Retrospective infographic. 137 commits, 14 phases, 68 catches across 11 phases of work. Vector plus ClickHouse cutover from SQLite-only event store. 984 backend tests passing at merge, 31,587 lines added, 7,747 removed across 221 files." />
+![SIEM Log-Lake Technical Retrospective infographic. 137 commits, 14 phases, 68 catches across 11 phases of work. Vector plus ClickHouse cutover from SQLite-only event store. 984 backend tests passing at merge, 31,587 lines added, 7,747 removed across 221 files.](/blog/building-a-custom-siem-part-2-implementation-and-gotchas/infographic.png)
 
 <Info title="Series Context">
 This is part 2 of the **Custom SIEM** series. Part 1 covers the architecture and is the prerequisite read:

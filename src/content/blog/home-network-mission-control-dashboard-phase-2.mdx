@@ -61,11 +61,7 @@ So I didn't. Cyber tokens layer behind `[data-theme="cyber"]` in `frontend/src/s
 If you're porting a redesign onto a working app, gate the new tokens behind a `[data-theme="..."]` selector in the same CSS file as the originals, not a parallel stylesheet you load conditionally. The CSS cascade does the right thing for free, the bundler doesn't care, and you can A/B between palettes by toggling one attribute. The cost is one wrapper selector. The benefit is no regression risk on the components you didn't touch.
 </Tip>
 
-<img
-  src="/blog/homenet-dashboard-phase-2/slides/slide-04.png"
-  alt="Slide showing the theme-as-attribute layering: Phase 1's OKLCH tokens, the cyber visual tokens behind [data-theme=cyber], and the additive redesign keeping locked-but-visible navigation tabs."
-  loading="lazy"
-/>
+![Slide showing the theme-as-attribute layering: Phase 1's OKLCH tokens, the cyber visual tokens behind data-theme=cyber, and the additive redesign keeping locked-but-visible navigation tabs.](/blog/homenet-dashboard-phase-2/slides/slide-04.png)
 
 The new components live under `frontend/src/components/cyber/`: `SideNav`, `TopBar`, `StatCard`, `ThreatVectorPanel`, `WanProbePanel`, `NoisyEndpointsPanel`, `PageHeader`. The shell got replaced. The Overview tab got rebuilt. Every other tab still uses Phase 1's components, lifted onto the cyber tokens by the theme attribute alone.
 
@@ -87,11 +83,7 @@ The reviewers don't write code. They produce findings. The orchestrator integrat
 Parallel agents that all edit code converge on conflicts and fan-out coordination overhead. Parallel agents that produce findings only converge on a shared review surface, which the orchestrator integrates serially. The win is bigger than it sounds: every reviewer reads the full diff with no lock contention, and the orchestrator gets three parallel critiques of one piece of work in the time it takes to read three short reports.
 </Tip>
 
-<img
-  src="/blog/homenet-dashboard-phase-2/slides/slide-03.png"
-  alt="Diagram contrasting standard parallel editing (four agents A through D producing a merge conflict bottleneck) with read-only parallel findings (three reviewer agents producing findings while the orchestrator integrates serially)."
-  loading="lazy"
-/>
+![Diagram contrasting standard parallel editing (four agents A through D producing a merge conflict bottleneck) with read-only parallel findings (three reviewer agents producing findings while the orchestrator integrates serially).](/blog/homenet-dashboard-phase-2/slides/slide-03.png)
 
 Four dispatches happened in the cyber port. Each dispatch was a numbered review checklist, file paths the reviewer needed to read, and an output template (verdicts table, blocking findings, recommended fixes, defer-to-v2). Total findings across the four dispatches: 18. Five of them were blocking enough to fix in the same session before merge. The rest landed in `docs/plans/2026-04-26-cyber-redesign-followups.md` for the next slice to pick up.
 
@@ -113,11 +105,7 @@ That's the right call and I should've known it. The whole point of a severity co
 When a categorization step can't classify an input, the safe default is to escalate, not to suppress. A green sentinel for "couldn't classify" is the same shape of bug as a `null` field rendered as an empty string. Both quietly remove information from the operator's view. Default unknowns to whatever color says "look at me," not whatever color says "ignore me."
 </Warning>
 
-<img
-  src="/blog/homenet-dashboard-phase-2/slides/slide-06.png"
-  alt="Slide showing the severity-unknown bug and fix: the original code defaulted unknown severity to a 'safe' green badge, the Network Engineer's finding pushed it to amber so unclassified events still land in triage."
-  loading="lazy"
-/>
+![Slide showing the severity-unknown bug and fix: the original code defaulted unknown severity to a 'safe' green badge, the Network Engineer's finding pushed it to amber so unclassified events still land in triage.](/blog/homenet-dashboard-phase-2/slides/slide-06.png)
 
 ### Threat Counts Are About Posture, Not Volume
 
@@ -135,11 +123,7 @@ The fix was a one-router rewrite (`backend/src/homenet_dashboard/routers/overvie
 A security dashboard's top-level posture indicator should reflect current state, not a rolling event count. Events are inputs to signals; signals are the synthesized state. Wire your hero counters to whichever primitive answers the question the panel is *labeled* with. If the panel is "Threat Vector," the question is "what's my current threat posture," and that's a signal-eval count. Use events on the page that's literally titled "Recent Events."
 </Info>
 
-<img
-  src="/blog/homenet-dashboard-phase-2/slides/slide-07.png"
-  alt="Slide contrasting recent events (a noisy scatter of yesterday's incidents) with security signal evals (three gauge dials showing the latest status of the eight persistent signals). The hero counter belongs on the right."
-  loading="lazy"
-/>
+![Slide contrasting recent events (a noisy scatter of yesterday's incidents) with security signal evals (three gauge dials showing the latest status of the eight persistent signals). The hero counter belongs on the right.](/blog/homenet-dashboard-phase-2/slides/slide-07.png)
 
 ### Explicit Breakpoints Beat Auto-Fit
 
@@ -191,11 +175,7 @@ That's a real cost. The fix was to hide the subsection entirely when `MISSION_CO
 A subsection that is permanently empty in your current mode is not a placeholder; it's a habit-forming reveal that you will pay for later. Either populate it with current-mode-relevant content or hide it entirely until the mode flip. There is no third option that doesn't compromise the surface when it finally has data to show.
 </Info>
 
-<img
-  src="/blog/homenet-dashboard-phase-2/slides/slide-09.png"
-  alt="Slide showing the empty-state habit-formation flow: in mode A the RECENT MUTATIONS subsection renders empty every day, the operator learns to skip it, and when mode B ships with real content the operator keeps skipping it. Hide instead of empty."
-  loading="lazy"
-/>
+![Slide showing the empty-state habit-formation flow: in mode A the RECENT MUTATIONS subsection renders empty every day, the operator learns to skip it, and when mode B ships with real content the operator keeps skipping it. Hide instead of empty.](/blog/homenet-dashboard-phase-2/slides/slide-09.png)
 
 ## Five Findings, One Pattern
 
@@ -205,11 +185,7 @@ None of them are bugs in the way Phase 1's enrichment caught bugs. Phase 1 caugh
 
 A general-purpose agent reading the same diff would've caught maybe one of the five. A persona-typed reviewer dispatched against the diff with explicit non-overlap scope caught all five and twelve more.
 
-<img
-  src="/blog/homenet-dashboard-phase-2/slides/slide-05.png"
-  alt="Domain lens matrix: a four-row table mapping each persona reviewer (Network Engineer, Security Engineer, UX/UI Designer, Threat Intel Analyst) to the lens they read the diff through and the specific bug each one caught."
-  loading="lazy"
-/>
+![Domain lens matrix: a four-row table mapping each persona reviewer (Network Engineer, Security Engineer, UX/UI Designer, Threat Intel Analyst) to the lens they read the diff through and the specific bug each one caught.](/blog/homenet-dashboard-phase-2/slides/slide-05.png)
 
 ## Two Features Designed in the Same Session
 
@@ -232,11 +208,7 @@ The skill is the interesting part. It's the first time the dashboard's data flow
 When you want LLM output to influence a UI but you can't grant the model write access to your data sources, write the output to a local override table the UI prefers when present. The model never touches the upstream. The dashboard's `compose` step reads the override first, falls back to deterministic templates if missing or stale. You get the qualitative win without expanding the threat surface, and you can A/B template-vs-agent because the `summary_source` field is already a discriminator.
 </Tip>
 
-<img
-  src="/blog/homenet-dashboard-phase-2/slides/slide-11.png"
-  alt="Feature 1 architecture diagram: the Claude Code skill issues read-only queries against UniFi MCP and Pi-hole MCP, generates a per-client profile, and writes only to a local client_profile_overrides table. A 'zero outbound writes boundary' separates the LLM from the upstream data sources."
-  loading="lazy"
-/>
+![Feature 1 architecture diagram: the Claude Code skill issues read-only queries against UniFi MCP and Pi-hole MCP, generates a per-client profile, and writes only to a local client_profile_overrides table. A 'zero outbound writes boundary' separates the LLM from the upstream data sources.](/blog/homenet-dashboard-phase-2/slides/slide-11.png)
 
 ### Feature 2: A Threat Intelligence Tab
 
@@ -268,11 +240,7 @@ H6 and H4 are the highest-confidence, lowest-noise signals. H3 and H5 ship behin
 Heuristic H3 (high-entropy subdomain) and H5 (per-client query burst) are valuable signals on a real attacker but generate false positives on legitimate traffic patterns: CDN-issued random subdomains, OS update bursts, mDNS chatter. Default-on means an operator wakes up to ten amber rows in their first week and learns to dismiss them. Default-off-with-tune-mode means the operator gets to set thresholds against their own baseline before the signal influences the score. The cost is a feature flag. The benefit is the signal is trusted when it does fire.
 </Warning>
 
-<img
-  src="/blog/homenet-dashboard-phase-2/slides/slide-12.png"
-  alt="Feature 2 funnel: 45,000 daily DNS queries enriched against URLhaus, Hagezi, RDAP, and IPinfo, then filtered through six classical heuristics ranked by false-positive risk to yield 5 to 20 highly confident anomalies. H6 feed-match scores +9. The noisier H3 and H5 ship behind a tune_mode=true flag."
-  loading="lazy"
-/>
+![Feature 2 funnel: 45,000 daily DNS queries enriched against URLhaus, Hagezi, RDAP, and IPinfo, then filtered through six classical heuristics ranked by false-positive risk to yield 5 to 20 highly confident anomalies. H6 feed-match scores +9. The noisier H3 and H5 ship behind a tune_mode=true flag.](/blog/homenet-dashboard-phase-2/slides/slide-12.png)
 
 The five-phase implementation lives in the deep doc: data foundation (Phase 2.1), anomaly engine (2.2), UI tab (2.3), on-demand enrichment skill (2.4), tuning and retention (2.5). The exit gate at Phase 2.2 is "fewer than 20 false positives per day on the operator's real historical 7-day window." That's the kind of gate you can write down because the dataset already exists in `client_dns_queries`. You can't tune a heuristic against synthetic data; you'd just be tuning the synthesis.
 

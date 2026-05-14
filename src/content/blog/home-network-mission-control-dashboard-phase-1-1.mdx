@@ -44,13 +44,9 @@ Phase 1.1 here lands the Network tab inside the cyberpunk shell, lights two new 
 
 Open the companion deck: [slide-01 through slide-13](/blog/home-network-mission-control-dashboard-phase-1-1/slides/). Infographic in the Wave 0 section below.
 
-<img src="/blog/home-network-mission-control-dashboard-phase-1-1/slides/slide-01.png" alt="Two Bugs Past the Goal Line: Phase 1.1 title slide. 5 surfaces, 2 security signals, 694 pytest, 24/24 Playwright, Wave 0 found 3 UDM v9+ wire-shape surprises." />
+![Two Bugs Past the Goal Line: Phase 1.1 title slide. 5 surfaces, 2 security signals, 694 pytest, 24/24 Playwright, Wave 0 found 3 UDM v9+ wire-shape surprises.](/blog/home-network-mission-control-dashboard-phase-1-1/slides/slide-01.png)
 
-<img
-  src="/blog/home-network-mission-control-dashboard-phase-1-1/network-full-page.png"
-  alt="The full /network tab on the live dashboard: stat strip across the top, VLAN cards row, port-forward table, ZBF zone matrix, SSID-to-VLAN Sankey, and topology graph. Cyber theme palette, all five surfaces fed from one poll."
-  loading="lazy"
-/>
+![The full /network tab on the live dashboard: stat strip across the top, VLAN cards row, port-forward table, ZBF zone matrix, SSID-to-VLAN Sankey, and topology graph. Cyber theme palette, all five surfaces fed from one poll.](/blog/home-network-mission-control-dashboard-phase-1-1/network-full-page.png)
 
 ## What Phase 1.1 Actually Ships
 
@@ -71,11 +67,7 @@ Two new security signals lit at the same time:
 
 The signals plug into the existing security panel from [Phase 1](/blog/home-network-mission-control-dashboard-phase-1). Same evaluator pattern, same red/amber/green semantics, same `latest_completed_poll_run()` helper. That last one is the load-bearing piece. Hold that thought.
 
-<img
-  src="/blog/home-network-mission-control-dashboard-phase-1-1/vlan-cards.png"
-  alt="VLAN cards row: one card per UniFi network with subnet, gateway, DHCP range, IGMP snooping flag, and a live client-count chip."
-  loading="lazy"
-/>
+![VLAN cards row: one card per UniFi network with subnet, gateway, DHCP range, IGMP snooping flag, and a live client-count chip.](/blog/home-network-mission-control-dashboard-phase-1-1/vlan-cards.png)
 
 ## Wave 0: The Probe That Found Three UDM v9+ Surprises
 
@@ -95,13 +87,9 @@ Wave 0 wrote three findings into the slice plan before any code got written. Eac
 A persona team reading static fixtures asks "is the design correct against this fixture." A Wave 0 probe against the live API asks "did the upstream change shape since the fixture was recorded." Those are different questions. UniFi 9.x shipped four months ago. My fixtures were 8.x. The probe took fifteen minutes and saved me from designing the port-forward security signal against an `src` field that no longer exists.
 </Tip>
 
-<img src="/blog/home-network-mission-control-dashboard-phase-1-1/udm-v9-gotchas-infographic.png" alt="UDM v9+ deployment analysis infographic: Wave 0 wire-shape surprises, the 5-wave deployment funnel catching the CRITICAL ship-blocker, and the two post-merge silent-zero bugs caught by live in-session verification." />
+![UDM v9+ deployment analysis infographic: Wave 0 wire-shape surprises, the 5-wave deployment funnel catching the CRITICAL ship-blocker, and the two post-merge silent-zero bugs caught by live in-session verification.](/blog/home-network-mission-control-dashboard-phase-1-1/udm-v9-gotchas-infographic.png)
 
-<img
-  src="/blog/home-network-mission-control-dashboard-phase-1-1/zone-matrix.png"
-  alt="ZBF zone matrix with a question-mark glyph in cells the dashboard can't verify due to UDM v9+ ID encoding. Color-coded for allow, block, and unknown, with a footer disclaimer explaining the limitation."
-  loading="lazy"
-/>
+![ZBF zone matrix with a question-mark glyph in cells the dashboard can't verify due to UDM v9+ ID encoding. Color-coded for allow, block, and unknown, with a footer disclaimer explaining the limitation.](/blog/home-network-mission-control-dashboard-phase-1-1/zone-matrix.png)
 
 ## The 5-Wave Persona Team Pattern
 
@@ -162,11 +150,7 @@ The reviewer caught it because the persona's job description was "look at this f
 
 The fix landed before merge: the poller pulls firewall policies in parallel with the port-forward list, joins them on the `Allow Port Forward {name}` convention, and infers `src_is_any` from whether the policy's source zone resolves to the internet-facing zone. Three regression tests guarding the inference. Wave 3 caught one bug. Eight findings total in that wave; one of them was a CRITICAL.
 
-<img
-  src="/blog/home-network-mission-control-dashboard-phase-1-1/port-forward-table.png"
-  alt="Port-forward table on the live dashboard with the source-is-any column flagged red on two rows: qBittorrent and a folx Mac. The port_forward_open signal evaluates RED on the live LAN."
-  loading="lazy"
-/>
+![Port-forward table on the live dashboard with the source-is-any column flagged red on two rows: qBittorrent and a folx Mac. The port_forward_open signal evaluates RED on the live LAN.](/blog/home-network-mission-control-dashboard-phase-1-1/port-forward-table.png)
 
 ## The Merge, the Restart, and the First Live Bug
 
@@ -214,11 +198,7 @@ The test for this surface used a fixture where both `Client.ssid` and `Wlan.ssid
 
 The fix joined `Client.essid` (wireless SSID) against `Wlan.essid`, plus a fallback path for wired clients that joins on the network ID. The fixture for the regression test was rebuilt from a live UniFi snapshot, so the bug shape can't recur in CI without first surfacing in a real wire response.
 
-<img
-  src="/blog/home-network-mission-control-dashboard-phase-1-1/ssid-vlan-sankey.png"
-  alt="SSID to VLAN Sankey diagram on the live dashboard, with thick flow bands from each SSID into the VLAN it lands on, and a final flow band into the live client-count chip on each VLAN."
-  loading="lazy"
-/>
+![SSID to VLAN Sankey diagram on the live dashboard, with thick flow bands from each SSID into the VLAN it lands on, and a final flow band into the live client-count chip on each VLAN.](/blog/home-network-mission-control-dashboard-phase-1-1/ssid-vlan-sankey.png)
 
 Both fixes shipped in PR #15 the next morning. One commit message, two regression tests, one updated fixture, two flipped column references. PR #15 was open for forty minutes.
 
@@ -251,11 +231,7 @@ That's the whole protocol. No specialized tool. No agent dispatch. Just an SSH s
 
 The reason this isn't already automatic in my CI is that CI doesn't have a UDM Pro and a Pi-hole on the test runner. It's just got fixtures. The fixtures will, by definition, reflect what the developer thought the wire shape was at the moment the fixture was recorded. If the fixture is wrong in the same way the production poller is right, the test passes and the bug ships. The only place the right shape lives is the live system. The only way to read the live system is to talk to it.
 
-<img
-  src="/blog/home-network-mission-control-dashboard-phase-1-1/security-signals-row.png"
-  alt="Security signals row on the live dashboard after PR #15: port_forward_open evaluates RED with value 2.0, gravity_stale evaluates GREEN with value 2.03 days. Both signals reading honestly against the LAN."
-  loading="lazy"
-/>
+![Security signals row on the live dashboard after PR #15: port_forward_open evaluates RED with value 2.0, gravity_stale evaluates GREEN with value 2.03 days. Both signals reading honestly against the LAN.](/blog/home-network-mission-control-dashboard-phase-1-1/security-signals-row.png)
 
 ## The Local-vs-CI Tool Skew
 
@@ -283,11 +259,7 @@ Phase 1.1 closed Monday afternoon at:
 - **Post-merge bugs caught by live verification**: 2 (poll-run-id mismatch on the security evaluator, SSID column mismatch on the VLAN client-count join). Both fixed in PR #15 the next morning.
 - **Mode posture**: still A. The Network tab is read-only. No mutations on any of the new surfaces. The security signals are evaluator-only. Phase 1.1 doesn't touch the agent surface.
 
-<img
-  src="/blog/home-network-mission-control-dashboard-phase-1-1/topology-graph.png"
-  alt="Topology graph on the live dashboard with a synthetic WAN node inserted at the top, edges flowing down to the gateway, switches, access points, and clients. Force-directed D3 layout, color-coded by device type."
-  loading="lazy"
-/>
+![Topology graph on the live dashboard with a synthetic WAN node inserted at the top, edges flowing down to the gateway, switches, access points, and clients. Force-directed D3 layout, color-coded by device type.](/blog/home-network-mission-control-dashboard-phase-1-1/topology-graph.png)
 
 ## Patterns Worth Carrying Forward (Phase 1.1 Edition)
 

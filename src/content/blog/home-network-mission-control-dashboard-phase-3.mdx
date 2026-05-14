@@ -64,11 +64,7 @@ Here's what the doc has, the five sections that matter:
 4. **Two phased feature designs in the same file.** Feature 1 (DNS click-throughs, four phases). Feature 2 (Threat Intel tab, five phases). Each phase has files-to-change, response shapes, test names, and exit gates.
 5. **A verification checklist.** `pytest -q`, `vitest run`, `playwright test`, an OpenAPI export plus codegen step when schemas change, and a parity-screenshot step.
 
-<img
-  src="/blog/homenet-dashboard-phase-3/slides/slide-03.png"
-  alt="The plan doc as a self-contained engine: five sections (deferred queue, persona model, slice menu, phased designs, verification checklist) wired together so a fresh agent session can read state, fetch specs, load rules, follow the slice menu, and execute the verification checklist without a single clarifying prompt."
-  loading="lazy"
-/>
+![The plan doc as a self-contained engine: five sections (deferred queue, persona model, slice menu, phased designs, verification checklist) wired together so a fresh agent session can read state, fetch specs, load rules, follow the slice menu, and execute the verification checklist without a single clarifying prompt.](/blog/homenet-dashboard-phase-3/slides/slide-03.png)
 
 The header line on the doc is the load-bearing one:
 
@@ -156,17 +152,9 @@ Codex understood it was tapping out. The wrap-up file is what survived the rate 
 
 A new Claude Code session, same branch, started by reading three things in parallel: the original plan doc, Codex's wrap-up file, and the actual diff Codex shipped. Two issues surfaced inside the first minute. Here's what they were.
 
-<img
-  src="/blog/homenet-dashboard-phase-3/slides/slide-07.png"
-  alt="The cold-handoff architecture: a fresh Claude session reads three inputs in parallel — the original plan doc (API and specs), the Codex wrap-up file (state and position), and the Codex diff (implementation). Instant context alignment, zero human prompting required."
-  loading="lazy"
-/>
+![The cold-handoff architecture: a fresh Claude session reads three inputs in parallel — the original plan doc (API and specs), the Codex wrap-up file (state and position), and the Codex diff (implementation). Instant context alignment, zero human prompting required.](/blog/homenet-dashboard-phase-3/slides/slide-07.png)
 
-<img
-  src="/blog/homenet-dashboard-phase-3/slides/slide-08.png"
-  alt="The two issues a fresh context window spotted instantly: ruff format CI red (a five-second mechanical fix that saves three hours of CI grief) and a PII consistency gap on the new domain endpoint (the real fix, where the new endpoint silently leaked unidentified clients' MAC addresses)."
-  loading="lazy"
-/>
+![The two issues a fresh context window spotted instantly: ruff format CI red (a five-second mechanical fix that saves three hours of CI grief) and a PII consistency gap on the new domain endpoint (the real fix, where the new endpoint silently leaked unidentified clients' MAC addresses).](/blog/homenet-dashboard-phase-3/slides/slide-08.png)
 
 ### Issue 1: ruff format --check Was Red
 
@@ -237,11 +225,7 @@ The regression test is `test_domain_detail_redacts_unidentified_mac_when_pii_off
 When a new endpoint adds the same kind of data a sibling endpoint already handles (PII redaction, pagination, time-window filtering), check the sibling first. Codex's `dns_domain_detail` was correct against the spec it was given. The spec didn't say "and apply the same PII gate the query-log endpoint applies." The sibling did. A persona reviewer with the explicit lens of "did this change preserve the project's existing PII gate?" would have caught this. A single-agent review reading just the diff probably wouldn't.
 </Warning>
 
-<img
-  src="/blog/homenet-dashboard-phase-3/slides/slide-09.png"
-  alt="Spec-driven review versus sibling-driven review: spec-driven asks 'does it match the prompt' and produces a working endpoint that ignores existing systemic constraints; sibling-driven asks 'does it match the adjacent architecture' and spots the missing pii_mode signature. The blindspot of spec-only review is precisely the cross-endpoint consistency rules the spec leaves implicit."
-  loading="lazy"
-/>
+![Spec-driven review versus sibling-driven review: spec-driven asks 'does it match the prompt' and produces a working endpoint that ignores existing systemic constraints; sibling-driven asks 'does it match the adjacent architecture' and spots the missing pii_mode signature. The blindspot of spec-only review is precisely the cross-endpoint consistency rules the spec leaves implicit.](/blog/homenet-dashboard-phase-3/slides/slide-09.png)
 
 PR #5 went green after those two fixes. Backend (3.12) pass at 1m49s. Frontend (Node 20) pass at 1m28s. E2E pass at 1m11s. The fixture-drift job correctly skipped (it only runs on `workflow_dispatch` and `schedule` triggers, not on PR pushes; same matrix Phase 1 readers know). 522 backend pytest at merge, 141 Vitest, 15 Playwright. PR merged.
 
@@ -289,11 +273,7 @@ The plan doc is the node every other arrow touches. That's not aesthetic. It's t
 
 Same Claude session, same Sunday afternoon, fresh branch `feat/cyber-followups-polish`. The plan doc's deferred-items list was the input. Two waves shipped 11 items.
 
-<img
-  src="/blog/homenet-dashboard-phase-3/slides/slide-10.png"
-  alt="Sweeping the deferred queue closes the loop: 20 starting items at the top of Phase 3, then Wave 1 backend hardening (3 items) and Wave 2 frontend polish (8 items) closed in the same session, leaving 9 items remaining (the explicit v2 / mode-B-gated work)."
-  loading="lazy"
-/>
+![Sweeping the deferred queue closes the loop: 20 starting items at the top of Phase 3, then Wave 1 backend hardening (3 items) and Wave 2 frontend polish (8 items) closed in the same session, leaving 9 items remaining (the explicit v2 / mode-B-gated work).](/blog/homenet-dashboard-phase-3/slides/slide-10.png)
 
 ### Wave 1: Backend Hardening (items 13, 14, 15)
 
@@ -307,11 +287,7 @@ Same Claude session, same Sunday afternoon, fresh branch `feat/cyber-followups-p
 Two of the items in this wave (13 and 14) trace back to silent off-by-bug-classes from Phase 1. Centralizing one helper and writing one regression test won't prevent every TZ bug, but they make the next one cost ten minutes instead of an afternoon. The cost of the centralization is one import line per file. The cost of the regression test is one fixture and three assertions. Both are cheap insurance against a class of bug I have already paid for.
 </Tip>
 
-<img
-  src="/blog/homenet-dashboard-phase-3/slides/slide-11.png"
-  alt="Centralize helpers to cap the cost of bugs: 14 backend files now converge on a single naive_utc_now() helper, replacing every prior datetime.now(), datetime.utcnow(), pd.Timestamp.now(utc=True), and inline UTC-strip pattern. Centralizing one helper makes the next TZ bug cost ten minutes instead of an afternoon."
-  loading="lazy"
-/>
+![Centralize helpers to cap the cost of bugs: 14 backend files now converge on a single naive_utc_now() helper, replacing every prior datetime.now(), datetime.utcnow(), pd.Timestamp.now(utc=True), and inline UTC-strip pattern. Centralizing one helper makes the next TZ bug cost ten minutes instead of an afternoon.](/blog/homenet-dashboard-phase-3/slides/slide-11.png)
 
 ### Wave 2: Frontend Polish (items 1, 2, 3, 4, 7, 17)
 
@@ -368,11 +344,7 @@ The meta-thread of this phase is integration. Three distinct kinds, all in one S
 
 **Process integration.** Deferred items don't decay if you sweep them. Eleven items got stale during Phase 2; closing them in the same session that landed Phase 3's Feature 1 is what kept the loop closed. The follow-up doc was the same artifact in both roles: an entry point for new work AND a swept queue. The deferred-items list at the start of Phase 3 had 20 items. By the end of PR #6 it had 9, and most of those were either done-but-verified-no-change or explicit "wait for v2" gates. The queue compounds when you let it. It gets paid down when you reload the same doc.
 
-<img
-  src="/blog/homenet-dashboard-phase-3/slides/slide-12.png"
-  alt="Phase 3 was about integration, not capability: a Venn diagram of software integration (flat query rows become deep multi-threaded investigations), AI-tool integration (Codex and Claude pass the baton seamlessly via markdown APIs), and process integration (deferred queues are swept alongside active feature work to prevent staleness), all centered on the plan doc."
-  loading="lazy"
-/>
+![Phase 3 was about integration, not capability: a Venn diagram of software integration (flat query rows become deep multi-threaded investigations), AI-tool integration (Codex and Claude pass the baton seamlessly via markdown APIs), and process integration (deferred queues are swept alongside active feature work to prevent staleness), all centered on the plan doc.](/blog/homenet-dashboard-phase-3/slides/slide-12.png)
 
 <Tip title="The doc is the API; the deferred queue is the work item">
 A re-runnable plan doc gives you two things at once. It's the entry point for whatever slice you're shipping today, and it's the swept queue of what didn't fit last time. Sweep both in the same session and the queue stays current. Skip the sweep and the queue compounds: items go stale, file paths drift, the next session has to re-investigate before it can execute. The cost is fifteen minutes at the end of a session to update the doc with what's done, what's deferred, and what's gated. The benefit is the next session reads it cold and ships.
@@ -391,11 +363,7 @@ The mode-phase trajectory hasn't moved. Everything in this phase was Mode-A-comp
 
 ## Patterns Worth Carrying Forward (Phase 3 Edition)
 
-<img
-  src="/blog/homenet-dashboard-phase-3/slides/slide-13.png"
-  alt="Four immutable heuristics for AI engineering distilled from Phase 3: FORMAT_IS_PRE_CI, SIBLINGS_ARE_TRUTH, CLICK_THROUGHS_ARE_INTEGRATION, SWEEP_QUEUES_IN_SESSION."
-  loading="lazy"
-/>
+![Four immutable heuristics for AI engineering distilled from Phase 3: FORMAT_IS_PRE_CI, SIBLINGS_ARE_TRUTH, CLICK_THROUGHS_ARE_INTEGRATION, SWEEP_QUEUES_IN_SESSION.](/blog/homenet-dashboard-phase-3/slides/slide-13.png)
 
 - **A re-runnable plan doc is the cheapest handoff between AIs.** One sentence ("read the plan doc and execute the persona-team pattern in it") starts a new session that can ship the next slice without further input.
 - **Sibling endpoints are the canonical reference.** When a new endpoint adds a kind of data a sibling already handles (PII gates, pagination, time-window filtering), match the sibling, not the spec. Specs leave the cross-endpoint consistency rules implicit.
@@ -407,11 +375,7 @@ The mode-phase trajectory hasn't moved. Everything in this phase was Mode-A-comp
 
 ## What's Next: The Roadmap From Here
 
-<img
-  src="/blog/homenet-dashboard-phase-3/slides/slide-14.png"
-  alt="The roadmap to full agentic mutation: Phase A (Mode-A read-only UI, current) unlocked, Phase B (preview-then-confirm mutations) the next lock, Phase C (read-only agent chat), Phase D (agent drafts mutations and the human approves) as the end state. Next up: Feature 2 (Threat Intel) and Feature 1.4 (LLM-generated client profiles)."
-  loading="lazy"
-/>
+![The roadmap to full agentic mutation: Phase A (Mode-A read-only UI, current) unlocked, Phase B (preview-then-confirm mutations) the next lock, Phase C (read-only agent chat), Phase D (agent drafts mutations and the human approves) as the end state. Next up: Feature 2 (Threat Intel) and Feature 1.4 (LLM-generated client profiles).](/blog/homenet-dashboard-phase-3/slides/slide-14.png)
 
 The next slice is whichever Sunday I've got. The board:
 

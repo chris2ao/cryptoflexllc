@@ -37,11 +37,7 @@ That sentence is also where this post came from. The SIEM cutover from [Phase 1.
 
 That's the build report. The interesting part of this post is everything else: the diagnosis, the brainstorming workflow that pinned down five contested design choices before any code got written, the parallel persona reviews that caught a third-scan query and a PII gate divergence, the FastAPI int-Literal trap that doesn't appear in the docs, and what "a SIEM you can actually search" means when the only operator on the network is the guy who built it.
 
-<img
-  src="/blog/home-network-mission-control-dashboard-dns-search-panel/infographic.png"
-  alt="Visual summary of the DNS Search Panel session: the SIEM cutover gap that triggered it, the five contested design decisions (aggregation grain, status display, forensic columns, PII default, time visualization), the five-wave persona dispatch, the four reviewer findings (sort-key full scan, third-scan waste, PII gate divergence, raw-error echo), the FastAPI int-Literal gotcha, and the live smoke result with the 454 = 454 sparkline invariant holding."
-  loading="lazy"
-/>
+![Visual summary of the DNS Search Panel session: the SIEM cutover gap that triggered it, the five contested design decisions (aggregation grain, status display, forensic columns, PII default, time visualization), the five-wave persona dispatch, the four reviewer findings (sort-key full scan, third-scan waste, PII gate divergence, raw-error echo), the FastAPI int-Literal gotcha, and the live smoke result with the 454 = 454 sparkline invariant holding.](/blog/home-network-mission-control-dashboard-dns-search-panel/infographic.png)
 
 <Info title="Series Context">
 This is part 6 of the [Home Network Mission Control](/blog/series/home-network-mission-control) series. Direct prerequisites:

@@ -64,11 +64,7 @@ I kicked off a survey of existing UniFi MCP servers. Two real contenders came ba
 
 Both were good. Neither was enough on its own.
 
-<img
-  src="/blog/unifi-mcp/slide-sirkirby-vs-enuno.png"
-  alt="Slide comparing sirkirby and enuno UniFi MCP servers across license, coverage, auth pattern, and strengths. Verdict: both excellent, neither complete alone; a fork inherits technical debt, a fresh architecture composes their best patterns."
-  loading="lazy"
-/>
+![Slide comparing sirkirby and enuno UniFi MCP servers across license, coverage, auth pattern, and strengths. Verdict: both excellent, neither complete alone; a fork inherits technical debt, a fresh architecture composes their best patterns.](/blog/unifi-mcp/slide-sirkirby-vs-enuno.png)
 
 <Warning title="The gap between the two">
 sirkirby had Protect and Access but missed the modern Network 9.x additions like Zone-Based Firewall. enuno nailed the firewall and topology surface but had no Protect at all. And both defaulted to cookie authentication patterns that date from the pre-API-key era.
@@ -113,11 +109,7 @@ UniFi exposes two different kinds of API keys. The one at unifi.ui.com (the Site
 
 Day two morning. The MVP compiled, the tests passed, but I hadn't verified the tools against the live console yet. So I wrote a discovery sweep at `/tmp/unifi_full_audit.py` that called every read-only tool and collected the response or error. Three blockers surfaced in the first ten minutes.
 
-<img
-  src="/blog/unifi-mcp/slide-three-blockers.png"
-  alt="Slide titled 'The Live Hardware Audit Exposes Three Critical Blockers'. Three cards: Pydantic Serialization Crash (FastMCP cannot serialize UnifiClient), Multi-Tenant Proxy Trap (HTML landing page crashes JSON parser), Legacy Endpoint Drift (Protect probe 500 because legacy API requires cookie auth)."
-  loading="lazy"
-/>
+![Slide titled 'The Live Hardware Audit Exposes Three Critical Blockers'. Three cards: Pydantic Serialization Crash (FastMCP cannot serialize UnifiClient), Multi-Tenant Proxy Trap (HTML landing page crashes JSON parser), Legacy Endpoint Drift (Protect probe 500 because legacy API requires cookie auth).](/blog/unifi-mcp/slide-three-blockers.png)
 
 ### Blocker 1: FastMCP cannot serialize UnifiClient
 
@@ -192,11 +184,7 @@ The 405 was the giveaway. The endpoint existed; it just wanted POST with an empt
 404 means "nothing here, try another path." 405 means "right path, wrong method." 400 means "right path, probably wrong args." 401 means "right path, bad auth." Every non-200 status code is directional information. Ignoring them and re-curling the same URL in hope is the search-engine equivalent of trying the same door over and over.
 </Tip>
 
-<img
-  src="/blog/unifi-mcp/slide-endpoint-archaeology.png"
-  alt="Slide titled 'Navigating Undocumented APIs via Endpoint Archaeology'. An API Probe box points at three outcomes: 404 Endpoint Gone (path is completely dead), 405 Wrong Method (endpoint exists, requires POST with specific query params), 400 AJV_PARSE_ERROR (blueprint found; strict schema validation rejects payload but exposes the exact expected fields)."
-  loading="lazy"
-/>
+![Slide titled 'Navigating Undocumented APIs via Endpoint Archaeology'. An API Probe box points at three outcomes: 404 Endpoint Gone (path is completely dead), 405 Wrong Method (endpoint exists, requires POST with specific query params), 400 AJV_PARSE_ERROR (blueprint found; strict schema validation rejects payload but exposes the exact expected fields).](/blog/unifi-mcp/slide-endpoint-archaeology.png)
 
 <ProbeDecisionFlowDiagram />
 
@@ -463,11 +451,7 @@ Tool surface at the finish line: 5 utility + 86 Network + 12 Protect = 103 tools
 
 Twelve patterns came out of this build. These are the ones I expect to reuse.
 
-<img
-  src="/blog/unifi-mcp/slide-12-patterns.png"
-  alt="Slide titled 'A 12-Pattern Framework for Agentic Integrations' showing four quadrants: Architecture and Design (compose over clone, lazy async resolvers), API Integration (probe by status code, AJV negative-space mapping, fail at the boundary on non-JSON), Security and Privacy (empty env: {} for secret passthrough, systematic identifier scrubbing), UX and Tooling (FastMCP closure dependency injection, register stubs over fake data, marketplace of one, live captures over invented fixtures, parallelize docs via subagents)."
-  loading="lazy"
-/>
+![Slide titled 'A 12-Pattern Framework for Agentic Integrations' showing four quadrants: Architecture and Design (compose over clone, lazy async resolvers), API Integration (probe by status code, AJV negative-space mapping, fail at the boundary on non-JSON), Security and Privacy (empty env: {} for secret passthrough, systematic identifier scrubbing), UX and Tooling (FastMCP closure dependency injection, register stubs over fake data, marketplace of one, live captures over invented fixtures, parallelize docs via subagents).](/blog/unifi-mcp/slide-12-patterns.png)
 
 
 1. **Compose, do not clone.** Two good servers existed. The answer was combining their strengths with a fresh architecture, not forking either.
