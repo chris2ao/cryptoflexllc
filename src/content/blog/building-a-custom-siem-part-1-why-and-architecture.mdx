@@ -51,7 +51,7 @@ Part 2 of this series will cover the implementation: 14 phases, 137 commits, +31
 
 Before any of the why, here is the what.
 
-The substrate ingests UDP syslog from the UDM Pro at 172.16.27.1, the Pi-hole at 172.16.27.227 (via an `rsyslog` `imfile` relay that tails `FTL.log`), the U7 Pro APs, and the USW-Flex switches. All of it lands on UDP port 5140 of the Mac mini M4 at 172.16.27.187. Vector is the listener. The boundary is "any device on the LAN can push syslog." The LAN is treated as a trusted security boundary in this network, with the mitigation path (a one-line VRL source-IP filter) documented for the day that stops being true.
+The substrate ingests UDP syslog from the UDM Pro at 10.0.0.1, the Pi-hole at 10.0.0.227 (via an `rsyslog` `imfile` relay that tails `FTL.log`), the U7 Pro APs, and the USW-Flex switches. All of it lands on UDP port 5140 of the Mac mini M4 at 10.0.0.187. Vector is the listener. The boundary is "any device on the LAN can push syslog." The LAN is treated as a trusted security boundary in this network, with the mitigation path (a one-line VRL source-IP filter) documented for the day that stops being true.
 
 Once parsed, events are written to ClickHouse running on the same Mac mini, with the data directory on a 300 GB slice of an external SSD at `/Volumes/MacExternal`. Retention is 180 days with TTL-based eviction. With ZSTD codecs and ClickHouse's columnar compression, the expected steady-state footprint is 30 to 80 GB on a 300 GB cap.
 
@@ -129,7 +129,7 @@ All event-shaped data lands in ClickHouse via one of three patterns. The boundar
 
 ### 1. Syslog Push (Vector Owns It)
 
-The UDM Pro, the Pi-hole, the U7 Pro APs, and the USW-Flex switches all forward syslog over UDP to `172.16.27.187:5140`. Vector's `syslog` source accepts both RFC3164 and RFC5424. A `route_by_source` VRL transform dispatches by source IP and hostname prefix into one of four parsers:
+The UDM Pro, the Pi-hole, the U7 Pro APs, and the USW-Flex switches all forward syslog over UDP to `10.0.0.187:5140`. Vector's `syslog` source accepts both RFC3164 and RFC5424. A `route_by_source` VRL transform dispatches by source IP and hostname prefix into one of four parsers:
 
 - `parse_udmpro` extracts firewall PREROUTING-DNAT rules, CoreDNS content-filter JSON, and CEF wireless events.
 - `parse_pihole` parses FTL log lines (forwarded by an `rsyslog` `imfile` config that tails `/var/log/pihole/FTL.log`).

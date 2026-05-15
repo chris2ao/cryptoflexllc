@@ -95,7 +95,7 @@ I had pasted the 514/udp port mapping into the manager service from a stock Wazu
 ```text
 UDM Pro -> rsyslog (host UDP 514)
        -> /var/log/udm-pro.log
-       -> wazah local agent (logcollector tail)
+       -> siem-host local agent (logcollector tail)
        -> manager TCP 1514
 ```
 
@@ -208,7 +208,7 @@ The Ansible task posted JSON to the indexer's REST API. Failure mode:
 Connection refused: 127.0.0.1:9200
 ```
 
-The indexer binds 9200 to loopback only on `wazah` (post 1's hardening invariant: nobody on the LAN talks directly to OpenSearch). The Ansible URI module, by default, runs on the controller. The controller is my Mac. The Mac's loopback is not the HUNSN's loopback.
+The indexer binds 9200 to loopback only on `siem-host` (post 1's hardening invariant: nobody on the LAN talks directly to OpenSearch). The Ansible URI module, by default, runs on the controller. The controller is my Mac. The Mac's loopback is not the HUNSN's loopback.
 
 The fix was a host-side run. Update the URL to `https://127.0.0.1:9200/...` and run the task on the target rather than the controller. In Ansible terms, that is `delegate_to: 127.0.0.1` semantics with `ansible_connection: local` on the inner block, or equivalently the `community.general.uri` shipped over SSH and executed on the host. I used the latter for symmetry with the rest of the play.
 
@@ -292,7 +292,7 @@ If your decoders use `\w`, `\s`, or `\d`, mark the regex `type="pcre2"`. Otherwi
 
 ## After the Cascade: First Stack Up
 
-After bug 8's fix, the dashboard's API connections page reported the manager **Online**. Three containers healthy, indexer green, dashboard at `https://172.16.27.210/` returning a 302 to `/login`.
+After bug 8's fix, the dashboard's API connections page reported the manager **Online**. Three containers healthy, indexer green, dashboard at `https://10.0.0.210/` returning a 302 to `/login`.
 
 | Wave | Bugs caught | Bugs deferred |
 |---|---|---|
@@ -304,7 +304,7 @@ After bug 8's fix, the dashboard's API connections page reported the manager **O
 
 That table is honest. Wave 5 was the heavy one because it touched five surfaces at once: containers, certs, ports, auth, and content. Every wave after it touched fewer surfaces and produced fewer bugs.
 
-The wazah local agent enrolled and went active immediately. It tails `/var/log/udm-pro.log` for UniFi events and watches `/var/log/apcupsd.events` for UPS state changes. Both files were already populated from earlier work, so the agent had a backlog to chew through and shipped a few hundred events in the first minute.
+The siem-host local agent enrolled and went active immediately. It tails `/var/log/udm-pro.log` for UniFi events and watches `/var/log/apcupsd.events` for UPS state changes. Both files were already populated from earlier work, so the agent had a backlog to chew through and shipped a few hundred events in the first minute.
 
 ## Wave 6: Pointing the UDM Pro at the SIEM
 
@@ -321,7 +321,7 @@ Settings -> CyberSecure -> Traffic Logging -> Activity Logging (Syslog)
 Configuration:
 
 - **Type**: SIEM Server
-- **Server**: 172.16.27.210
+- **Server**: 10.0.0.210
 - **Port**: 514
 - **Categories enabled**: Gateway, Access Points, Switches, Admin Activity,
   Clients, Critical, Devices, Security Detections, Triggers, Updates, VPN,
@@ -329,7 +329,7 @@ Configuration:
 - **Debug Logs**: off (massive volume, low signal)
 - **Netconsole**: off (different format, no decoders for it)
 
-Saved. Within twenty seconds, `tcpdump -i any port 514` on `wazah` was showing live UDM Pro packets. The host's rsyslog was writing them to `/var/log/udm-pro.log`.
+Saved. Within twenty seconds, `tcpdump -i any port 514` on `siem-host` was showing live UDM Pro packets. The host's rsyslog was writing them to `/var/log/udm-pro.log`.
 
 And then the wazuh-agent could not read the file.
 
@@ -382,13 +382,13 @@ I picked the level-10-alerts page in the dashboard and watched. About four minut
 
 > **UniFi IPS Threat Detected: ET CINS Active Threat Intelligence Poor Reputation IP group 64**
 > level 10, rule 100130 (custom pihole/unifi ruleset)
-> source: 172.16.27.x, dest: an external IP, blocked by UDM Pro firewall
+> source: 10.0.0.x, dest: an external IP, blocked by UDM Pro firewall
 
 That is the proof-of-success quote I wanted. The UDM Pro was already detecting and blocking the threat. The new piece is that the SIEM saw it, parsed it, raised it to level 10, and is now retaining it for 30 days alongside everything else from the network.
 
 ## Wave 7: The Pi-hole Agent
 
-The Pi-hole runs on a Raspberry Pi 4 at 172.16.27.227. ARMv7l (32-bit ARM, not aarch64). Wazuh ships an `armhf` agent, so the agent itself is fine. The wrinkles were on the Ansible side.
+The Pi-hole runs on a Raspberry Pi 4 at 10.0.0.227. ARMv7l (32-bit ARM, not aarch64). Wazuh ships an `armhf` agent, so the agent itself is fine. The wrinkles were on the Ansible side.
 
 The play, `deploy-agent-pihole.yml`, does three things: backs up `/etc/pihole`, installs the agent, registers it with the manager. The first run failed at step one.
 
@@ -427,14 +427,14 @@ Fix: delete the role-vars line. The play-level variable was already in scope whe
 Re-ran the play. Agent registered. Dashboard shows:
 
 ```text
-002  raspberrypi  raspbian  172.16.27.227  active
+002  pi-hole-host  raspbian  10.0.0.227  active
 ```
 
 DNS query events flowing through Pi-hole's syslog into the manager's decoders.
 
 ## Wave 8: The Mac Agent (Apple Silicon)
 
-The Mac is the only macOS endpoint on the network, an M-series Mac mini at 172.16.27.187. The Wazuh agent ships an arm64 macOS package, so the architecture is fine. The enrollment was not.
+The Mac is the only macOS endpoint on the network, an M-series Mac mini at 10.0.0.187. The Wazuh agent ships an arm64 macOS package, so the architecture is fine. The enrollment was not.
 
 I wrote a one-shot install script at `tests/install-mac-agent.sh`. It downloads the .pkg from the Wazuh release CDN, runs `installer -pkg ... -target /`, reads the authd PSK from the macOS Keychain (same wrapper pattern as the vault password), and registers with the manager. Three attempts.
 
@@ -444,7 +444,7 @@ I wrote a one-shot install script at `tests/install-mac-agent.sh`. It downloads 
 ERROR: Invalid request for new agent
 ```
 
-The agent name was `Chriss-Mac-mini.local`. macOS appends `.local` (the mDNS domain) to the hostname by default. Wazuh's authd uses the agent name in URL paths internally and the dot in `.local` gets parsed as a path separator. Authd rejects.
+The agent name was `Workstation.local`. macOS appends `.local` (the mDNS domain) to the hostname by default. Wazuh's authd uses the agent name in URL paths internally and the dot in `.local` gets parsed as a path separator. Authd rejects.
 
 ### Attempt 2: Strip the Dot, Lowercase
 
@@ -452,7 +452,7 @@ Updated the script:
 
 ```bash
 AGENT_NAME=$(hostname -s | tr '[:upper:]' '[:lower:]')
-# now: chriss-mac-mini
+# now: workstation
 ```
 
 Same error. Same response. So the dot-in-the-name was real, and the lowercasing was a good hygiene step, but it was not the only thing biting.
@@ -465,7 +465,7 @@ On macOS arm64, the same flag breaks the enrollment. The macOS agent-auth on App
 
 ```bash
 /Library/Ossec/bin/agent-auth \
-  -m 172.16.27.210 \
+  -m 10.0.0.210 \
   -A "$AGENT_NAME"
 # no -P
 ```
@@ -479,7 +479,7 @@ Valid key received
 Agent registered. Dashboard:
 
 ```text
-003  chriss-mac-mini  darwin  172.16.27.187  active
+003  workstation  darwin  10.0.0.187  active
 ```
 
 <Tip title="Apple Silicon Wazuh agent gotchas">
@@ -528,11 +528,11 @@ Four agents, all active. Manager 4.12.0. Every OS variant on the home network re
 | ID | Hostname | OS | IP | Source |
 |---|---|---|---|---|
 | 000 | wazuh.manager | amzn | container | manager self-monitoring |
-| 001 | wazah | ubuntu | 172.16.27.210 | UDM Pro syslog tail + apcupsd |
-| 002 | raspberrypi | raspbian | 172.16.27.227 | Pi-hole DNS events |
-| 003 | chriss-mac-mini | darwin | 172.16.27.187 | macOS endpoint |
+| 001 | siem-host | ubuntu | 10.0.0.210 | UDM Pro syslog tail + apcupsd |
+| 002 | pi-hole-host | raspbian | 10.0.0.227 | Pi-hole DNS events |
+| 003 | workstation | darwin | 10.0.0.187 | macOS endpoint |
 
-ISM policy active: `wazuh-alerts-*` rolls over daily, deletes after 30 days. Dashboard at `https://172.16.27.210/`, accessible from the LAN or via the UDM Pro's WireGuard server. Real UDM Pro IPS events firing alerts in single-digit-minutes after they happen. Pi-hole's blocked-domain events landing as informational entries. Mac auth and FIM events landing on every login and every file change in the surveilled paths.
+ISM policy active: `wazuh-alerts-*` rolls over daily, deletes after 30 days. Dashboard at `https://10.0.0.210/`, accessible from the LAN or via the UDM Pro's WireGuard server. Real UDM Pro IPS events firing alerts in single-digit-minutes after they happen. Pi-hole's blocked-domain events landing as informational entries. Mac auth and FIM events landing on every login and every file change in the surveilled paths.
 
 The thing I wanted at the start of post 1 (SIEM-grade visibility across the home LAN, no SaaS) is the thing I have at the end of post 3.
 

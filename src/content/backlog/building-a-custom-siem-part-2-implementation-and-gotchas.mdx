@@ -45,7 +45,7 @@ This post stands on its own as a debug-and-ship narrative, but the architecture 
 
 Fourteen phases shipped on a single feature branch. Numbering runs Phase 0 through Phase 13, with Phase 4.5 and Phase 5.5 inserted as gates between engineering phases. Each phase is TDD-shaped: a pre-verify step that fails, an implementation step, a post-verify step that passes. The shape of the rollout breaks into four bands.
 
-**Setup (0 through 2).** Prerequisites that have to be true before any code changes: the Mac mini's DHCP reservation pinned to 172.16.27.187, external SSD sleep disabled (`pmset -a disksleep 0`), `rsyslog` `imfile` config installed on the Pi-hole host, and live `tcpdump` captures of UDM Pro and Pi-hole syslog committed as VRL test fixtures. Then the docker-compose scaffolding and the 11 ClickHouse migrations.
+**Setup (0 through 2).** Prerequisites that have to be true before any code changes: the Mac mini's DHCP reservation pinned to 10.0.0.187, external SSD sleep disabled (`pmset -a disksleep 0`), `rsyslog` `imfile` config installed on the Pi-hole host, and live `tcpdump` captures of UDM Pro and Pi-hole syslog committed as VRL test fixtures. Then the docker-compose scaffolding and the 11 ClickHouse migrations.
 
 **Wire-up (3 through 4.5).** The Vector pipeline (sources, VRL transforms, sinks), the backend ClickHouse module (`clickhouse-connect` client wrapper, migration runner, query helpers, disk-cap poller), and an operator-side smoke gate to verify dual-write parity before flipping any read paths.
 
@@ -85,14 +85,14 @@ Each item is a rule that got formalized after a drift caught by the rule's absen
 The first thing this project shipped was 60 seconds of `tcpdump`.
 
 ```bash
-sudo tcpdump -i any -n udp port 5140 and src host 172.16.27.1 -w /tmp/udmpro-live.pcap -c 500
+sudo tcpdump -i any -n udp port 5140 and src host 10.0.0.1 -w /tmp/udmpro-live.pcap -c 500
 ```
 
-That capture became `vector/tests/fixtures/udmpro-samples.txt`. Same pattern for the Pi-hole at 172.16.27.227. The captures gave the VRL transforms in Phase 3 an actual ground truth to test against, instead of guessed-at log shapes from vendor docs.
+That capture became `vector/tests/fixtures/udmpro-samples.txt`. Same pattern for the Pi-hole at 10.0.0.227. The captures gave the VRL transforms in Phase 3 an actual ground truth to test against, instead of guessed-at log shapes from vendor docs.
 
 The captures also surfaced two architectural facts the design spec had wrong.
 
-First: the U7 Pro APs and the USW-Flex switches were already forwarding syslog directly to the LAN, not just relaying through the UDM Pro. Phase 0 expected one syslog source on 172.16.27.1. Phase 0 found four classes: UDM Pro, Pi-hole (via `rsyslog` relay on 172.16.27.227), three U7 Pro APs, and one USW-Flex switch. The plan grew a `parse_unifi_device` transform to handle five additional shapes (hostapd 802.11 events, hostapd WPA, kernel `wlan` events, `stahtd` JSON STA-tracker events, and PSE flap events from the Flex).
+First: the U7 Pro APs and the USW-Flex switches were already forwarding syslog directly to the LAN, not just relaying through the UDM Pro. Phase 0 expected one syslog source on 10.0.0.1. Phase 0 found four classes: UDM Pro, Pi-hole (via `rsyslog` relay on 10.0.0.227), three U7 Pro APs, and one USW-Flex switch. The plan grew a `parse_unifi_device` transform to handle five additional shapes (hostapd 802.11 events, hostapd WPA, kernel `wlan` events, `stahtd` JSON STA-tracker events, and PSE flap events from the Flex).
 
 Second: that USW-Flex was also flapping its PSE-2 PoE port repeatedly during the capture window. Hardware finding, surfaced before any detection rule was written, just by reading the syslog stream the way the future SIEM was going to read it.
 

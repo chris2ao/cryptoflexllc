@@ -104,7 +104,7 @@ One SSD. No RAID. No offsite backup. If the drive fails, I lose my alert history
 
 ## The Threat Model (Small, On Purpose)
 
-LAN-only deployment, subnet 172.16.27.0/24. The UDM Pro is the network boundary; nothing on the Wazuh stack is publicly exposed. No Tailscale, no Cloudflare Tunnel, no port forwards. Remote admin uses the UDM Pro's existing WireGuard server: connect to the home VPN, browser at `https://172.16.27.210/`. One operator. One network. One host.
+LAN-only deployment, subnet 10.0.0.0/24. The UDM Pro is the network boundary; nothing on the Wazuh stack is publicly exposed. No Tailscale, no Cloudflare Tunnel, no port forwards. Remote admin uses the UDM Pro's existing WireGuard server: connect to the home VPN, browser at `https://10.0.0.210/`. One operator. One network. One host.
 
 What I am **not** defending against: physical access to the house, Wazuh supply-chain compromise via OCI images (I pin versions), offsite disaster recovery (history loss on hardware failure is accepted), compliance certification.
 
@@ -247,7 +247,7 @@ Post 2 covers the deploy itself. Nine waves. The Multipass E2E dry-run that caug
 
 Post 3 covers day-2. What fires at level 10, what turned out to be noise, what rules I ended up tuning, the hardening-deferred backlog (UFW, password rotations, real TLS), and the enhancements I want next (Wazuh MCP for Claude Code, VirusTotal integration, Mac FIM).
 
-The repo is `chris2ao/homelab-wazuh`. It is currently private because LAN IPs, port maps, and decoder fixtures can leak network topology even without any secrets in them. When I get around to redacting those, it will go public.
+The repo is `homelab-wazuh`. It is currently private because LAN IPs, port maps, and decoder fixtures can leak network topology even without any secrets in them. When I get around to redacting those, it will go public.
 
 Until then, the pattern stands on its own: **spec, then plan, then plan review, then code**. The plan mode output paid for itself five times over before I ran a single playbook. Post 2 will be the part where the plan meets the server and some of it breaks anyway.
 

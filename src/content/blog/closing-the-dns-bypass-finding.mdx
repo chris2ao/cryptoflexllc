@@ -43,9 +43,9 @@ I pulled the active UniFi client list (twenty-six entries) and cross-referenced 
 
 The interesting part was the *why*. Two distinct root causes, each on a different subnet:
 
-1. **Default network was handing out four DNS servers.** DHCP option 6 carried `172.16.27.227` (Pi-hole), `9.9.9.9` (Quad9), `1.1.1.1` (Cloudflare), and `8.8.8.8` (Google). Clients round-robin across the list, so roughly three out of four queries skipped Pi-hole entirely and went straight to a public resolver.
+1. **Default network was handing out four DNS servers.** DHCP option 6 carried `10.0.0.227` (Pi-hole), `9.9.9.9` (Quad9), `1.1.1.1` (Cloudflare), and `8.8.8.8` (Google). Clients round-robin across the list, so roughly three out of four queries skipped Pi-hole entirely and went straight to a public resolver.
 
-2. **VLAN 2 (OnboardNetwork) and VLAN 3 (RoamingQuarantine) couldn't reach Pi-hole at all.** Both networks had `dhcpd_dns_enabled: false` and `network_isolation_enabled: true`. The first meant the controller never advertised a resolver via DHCP. The second meant UniFi auto-generated an `Isolated Networks` ZBF BLOCK rule at index 30000 that dropped any traffic from those VLANs to other internal networks, including 172.16.27.227. Even if a client guessed the right DNS server, the firewall would've killed the query.
+2. **VLAN 2 (OnboardNetwork) and VLAN 3 (RoamingQuarantine) couldn't reach Pi-hole at all.** Both networks had `dhcpd_dns_enabled: false` and `network_isolation_enabled: true`. The first meant the controller never advertised a resolver via DHCP. The second meant UniFi auto-generated an `Isolated Networks` ZBF BLOCK rule at index 30000 that dropped any traffic from those VLANs to other internal networks, including 10.0.0.227. Even if a client guessed the right DNS server, the firewall would've killed the query.
 
 <Warning title="Two failures, two profiles">
 The Default-subnet clients were happily resolving DNS, just not through Pi-hole. The VLAN 2 / VLAN 3 clients couldn't resolve at all unless they were configured with an external resolver out-of-band. The same red card was hiding two completely different failure modes.
@@ -84,14 +84,14 @@ A network change that involves both DHCP and firewall policies has at least four
 
 ## Phase C: ZBF Allow Exceptions for VLAN 2 and VLAN 3
 
-This is where the work started. The goal: let VLAN 2 and VLAN 3 clients reach `172.16.27.227:53` even though `network_isolation_enabled: true` on both networks generates a blanket BLOCK to other internal subnets.
+This is where the work started. The goal: let VLAN 2 and VLAN 3 clients reach `10.0.0.227:53` even though `network_isolation_enabled: true` on both networks generates a blanket BLOCK to other internal subnets.
 
 ZBF policies in UniFi evaluate in ascending index order. First match wins. The auto-generated `Isolated Networks` rule sits at index 30000. So an ALLOW rule placed at any index lower than 30000 carves a hole through the isolation policy, but only for the source / destination / port tuple specified.
 
 I added two ALLOW rules, one per VLAN, both at index 10000:
 
-- `Allow OnboardNetwork DNS to Pi-hole`: src VLAN 2, dst `172.16.27.227`, dst port 53 (UDP+TCP)
-- `Allow RoamingQuarantine DNS to Pi-hole`: src VLAN 3, dst `172.16.27.227`, dst port 53 (UDP+TCP)
+- `Allow OnboardNetwork DNS to Pi-hole`: src VLAN 2, dst `10.0.0.227`, dst port 53 (UDP+TCP)
+- `Allow RoamingQuarantine DNS to Pi-hole`: src VLAN 3, dst `10.0.0.227`, dst port 53 (UDP+TCP)
 
 Both rules used the existing `chris2ao/unifi-mcp` `create_zbf_policy` tool. The tool wraps `/v2/api/site/{site}/firewall-policies` and is the right surface for port-level filtering. (Foreshadowing.)
 
@@ -102,7 +102,7 @@ After the ALLOW rules went in, I confirmed VLAN 2 and VLAN 3 clients could resol
 With the firewall holes carved, I flipped DHCP on the same two VLANs:
 
 - `dhcpd_dns_enabled: true`
-- `dhcpd_dns_1: 172.16.27.227`
+- `dhcpd_dns_1: 10.0.0.227`
 
 This was a one-line change per VLAN through the UniFi MCP `update_network` tool. New leases get Pi-hole as the resolver immediately. Existing leases will refresh on lease renewal (default 24h on this controller), or sooner if a client reconnects. Within ten minutes of the change, the next-hop test from a VLAN 3 client showed Pi-hole answering.
 
@@ -127,7 +127,7 @@ The full evaluation chain on those two VLANs now looks like this:
 
 | Index | Action | Match | Effect |
 |------:|--------|-------|--------|
-| 10000 | ALLOW | src VLAN2/3, dst 172.16.27.227, port 53 | Pi-hole works |
+| 10000 | ALLOW | src VLAN2/3, dst 10.0.0.227, port 53 | Pi-hole works |
 | 10001 | BLOCK | src VLAN2/3, dst ANY, port 53 | Public DNS blocked |
 | 30000 | BLOCK (predefined) | Isolated Networks | Cross-VLAN dropped |
 

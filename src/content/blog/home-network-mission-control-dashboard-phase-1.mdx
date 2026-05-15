@@ -357,7 +357,7 @@ Fix: an absolute-path override at the top of `scripts/start-backend.sh`:
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export DATABASE_URL="sqlite+aiosqlite:///${PWD}/data/homenet.db"
-exec uv run uvicorn app.main:app --host 172.16.27.187 --port 3000
+exec uv run uvicorn app.main:app --host 10.0.0.187 --port 3000
 ```
 
 Belt and suspenders. `cd` into the repo, then explicitly export the absolute path. Either one alone is fragile; both make the script launchd-proof.
@@ -387,7 +387,7 @@ When two systems reference the same semantic value with different keys (`PIHOLE_
 
 ## And Then, In the Browser
 
-Everything built. All tests green. Backend up, frontend up, polling jobs running, cache populated. I opened the browser at `http://172.16.27.187:3000/` and clicked on Overview.
+Everything built. All tests green. Backend up, frontend up, polling jobs running, cache populated. I opened the browser at `http://10.0.0.187:3000/` and clicked on Overview.
 
 The page crashed: `TypeError: (n ?? []).map is not a function at HealthStrip (HealthStrip.tsx:17)`. The component was calling `.map()` on something that wasn't an array.
 

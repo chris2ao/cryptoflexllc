@@ -194,12 +194,12 @@ Round four. The compose stack started bringing up containers and immediately fel
 exec /usr/bin/bash: exec format error
 ```
 
-Apple Silicon Multipass runs arm64 VMs. The Wazuh OCI images are amd64-only. There is a path forward (`qemu-user-static` plus binfmt registration) but I was not going to build amd64 emulation into a one-shot E2E script for a CI lane I do not yet have. The real `wazah` is amd64. This failure mode cannot recur in production.
+Apple Silicon Multipass runs arm64 VMs. The Wazuh OCI images are amd64-only. There is a path forward (`qemu-user-static` plus binfmt registration) but I was not going to build amd64 emulation into a one-shot E2E script for a CI lane I do not yet have. The real `siem-host` is amd64. This failure mode cannot recur in production.
 
 I declared the gate clear with the arm64 caveat documented in `docs/runbook.md` and a `monthly-e2e` CI stub for future amd64 runner coverage.
 
 <Tip title="What the Multipass gate actually bought">
-Sixty-eight Ansible tasks executed cleanly on Ubuntu 26.04 in a throwaway VM. Two real playbook bugs caught (cert filename, docker entrypoint env) that would have surfaced on the production server otherwise. The arm64 OCI mismatch was a valid limit, not a real bug. Net: I went into Wave 5 with the bootstrap path empirically validated. The first time `wazah` saw any of my playbooks was after `wazah`-equivalent had already run them.
+Sixty-eight Ansible tasks executed cleanly on Ubuntu 26.04 in a throwaway VM. Two real playbook bugs caught (cert filename, docker entrypoint env) that would have surfaced on the production server otherwise. The arm64 OCI mismatch was a valid limit, not a real bug. Net: I went into Wave 5 with the bootstrap path empirically validated. The first time `siem-host` saw any of my playbooks was after `siem-host`-equivalent had already run them.
 </Tip>
 
 ## Wave 5: First Contact
@@ -303,7 +303,7 @@ Third run of the day:
 
 ```text
 PLAY RECAP **********************************************************
-hunsn : ok=28  changed=20  unreachable=0  failed=0  skipped=4
+siem-host : ok=28  changed=20  unreachable=0  failed=0  skipped=4
 ```
 
 Twenty-eight tasks ran. Twenty changed something. Zero failed. Four were skipped because hardening was tagged out (more on that). The roles that landed: `common`, `docker`, `apcupsd`, `rsyslog_udm`. The role authored but explicitly tagged-out: `hardening`.
