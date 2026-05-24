@@ -1,0 +1,366 @@
+---
+title: 'Home Network Mission Control: A SIEM You Can Actually Search'
+date: '2026-05-24'
+description: >-
+  Part 6 of the home network dashboard build. The SIEM cutover dropped the DNS
+  search endpoint without replacing it, and the only reason I caught it was
+  clicking into the live dashboard and seeing "Failed to load DNS query log."
+  This post walks the session that put search back: the diagnosis, the
+  brainstorming workflow that pinned down five contested design choices, the
+  five-wave persona dispatch, the parallel reviews that caught a third-scan
+  query and a PII gate divergence, the FastAPI int-Literal gotcha that ate an
+  hour, and a live smoke at 41 results in under 100ms with the
+  sparkline-sum-equals-aggregate-total invariant holding 454 = 454 on the first
+  row.
+tags:
+  - Home Lab
+  - SIEM
+  - ClickHouse
+  - FastAPI
+  - React
+  - Pi-hole
+  - Claude Code
+  - Multi-Agent
+  - Persona Teams
+author: Chris Johnson
+readingTime: 21 min read
+series: Home Network Mission Control
+seriesOrder: 6
+coverImage: /blog/home-network-mission-control-dashboard-dns-search-panel/infographic.png
+coverImageAlt: >-
+  Engineering a Searchable SIEM Dashboard, branded NotebookLM infographic
+  summarizing the DNS Search Panel build session
+published: false
+---
+
+I clicked into the DNS tab on my home network dashboard on Saturday morning and got a red card that said "Failed to load DNS query log" with a Retry button. Hit Retry. Same error. The browser console showed a 404 on `/api/dns/query-log`. The whole point of having a SIEM is to be able to search across it, and mine had stopped letting me. That's what I said out loud, more or less, before I started typing.
+
+That sentence is also where this post came from. The SIEM cutover from [Phase 1.4](/blog/home-network-mission-control-dashboard-phase-4) had dropped the SQLite-backed `/api/dns/query-log` endpoint as part of the move to ClickHouse. The cutover migrated the storage layer cleanly. It did not migrate the consumer. The deployed `dist/` was still calling the old route, and the old route was gone. By Saturday night, PR `6c13af6` was on main: a SIEM-style search panel on the DNS tab, per (eTLD+1, client) aggregation across 1h / 24h / 7d / 30d windows, three numeric columns for allowed / blocked / cached, qtype + upstream + reply-IP forensics, an hour-bucket sparkline per row, click-through into the existing Domain Detail drawer. 1008 backend tests passing. 41 results in under 100ms on a "goog" query. The sparkline sum invariant held: 24 buckets summing to exactly 454, identical to the row's `total`.
+
+That's the build report. The interesting part of this post is everything else: the diagnosis, the brainstorming workflow that pinned down five contested design choices before any code got written, the parallel persona reviews that caught a third-scan query and a PII gate divergence, the FastAPI int-Literal trap that doesn't appear in the docs, and what "a SIEM you can actually search" means when the only operator on the network is the guy who built it.
+
+![Visual summary of the DNS Search Panel session: the SIEM cutover gap that triggered it, the five contested design decisions (aggregation grain, status display, forensic columns, PII default, time visualization), the five-wave persona dispatch, the four reviewer findings (sort-key full scan, third-scan waste, PII gate divergence, raw-error echo), the FastAPI int-Literal gotcha, and the live smoke result with the 454 = 454 sparkline invariant holding.](/blog/home-network-mission-control-dashboard-dns-search-panel/infographic.png)
+
+<Info title="Series Context">
+This is part 6 of the [Home Network Mission Control](/blog/series/home-network-mission-control) series. Direct prerequisites:
+
+- [**Phase 1**](/blog/home-network-mission-control-dashboard-phase-1): the chassis, 12 workstreams, four enrichment waves, mode-A read-only design.
+- [**Phase 2**](/blog/home-network-mission-control-dashboard-phase-2): the cyberpunk re-skin and the four-persona reviewer team.
+- [**Phase 3**](/blog/home-network-mission-control-dashboard-phase-3): Feature 1 (DNS click-throughs) shipped via a re-runnable plan doc that two different agentic CLIs took turns on.
+- [**Phase 4 (V2)**](/blog/home-network-mission-control-dashboard-phase-4): the Threat Intel tab and the post-merge audit that caught five bugs CI never saw.
+- [**Phase 1.1**](/blog/home-network-mission-control-dashboard-phase-1-1): Network tab, two security signals, two post-merge bugs of the same shape as Phase 4's silent zeros.
+
+This post lands a search panel on the existing DNS tab. No new tab, no new poller, no new schema. Just an endpoint, a hook, a panel, and the recognition that an unsearchable log lake is an archive.
+</Info>
+
+## The Cold Open: A SIEM You Can't Search Is an Archive
+
+I keep the dashboard open in a pinned tab. Saturday morning I was looking at a different problem, switched to the DNS tab to verify a hunch about an Apple-TV resolution pattern, and the page showed the error card. The two-line diagnosis took me about as long as reading the network panel:
+
+1. The deployed `dist/` was built on April 28 from a worktree branch.
+2. PR #16 (the SIEM cutover, May 7) had dropped `/api/dns/query-log` and its SQLite-backed cursor scheme.
+
+The frontend had been calling a route that didn't exist for two days. I just hadn't loaded the DNS tab in that window. CI had stayed green the whole time because CI builds the frontend against the current backend; the deployed frontend was not the current frontend.
+
+<Warning title="`start-frontend.sh` only rebuilds when dist/ is missing">
+The launchd job that fronts the dashboard runs `vite preview` against `frontend/dist/`. The wrapper script only triggers `npm run build` when `dist/` is missing or stale relative to `package.json`, not when source files have changed since the last build. The fix when source has shifted is explicit: `npm run build && launchctl kickstart -k gui/$UID/com.chris2ao.homenet-dashboard-frontend`. Same shape as the [Phase 1.1 prod-smoke lesson](/blog/home-network-mission-control-dashboard-phase-1-1): the deployed artifact is its own thing, not a derivative of the latest commit.
+</Warning>
+
+The dist rebuild was a one-line fix. The endpoint was the real problem, and rebuilding the deployed frontend would just make a working UI call a non-existent route faster. The cutover had dropped a feature without replacing it. A SIEM you can't search is an archive.
+
+That's where the session pivoted from "fix the broken dist" to "build the replacement endpoint that should have shipped with the cutover."
+
+## The Brainstorming Workflow Earned Its Keep
+
+Before I touched any code, I ran the project's brainstorming workflow. The dashboard repo has a `docs/plans/brainstorming-decisions.md` file that's been the load-bearing artifact across every Phase since Phase 2. The pattern: think the problem out loud through `mcp__sequential-thinking`, surface the decisions you're not sure about with `AskUserQuestion`, write a plan doc, and append a versioned amendment to the decision log so future-me has the full reasoning. Phase 3 [used the same workflow](/blog/home-network-mission-control-dashboard-phase-3) when the slice menu was being assembled. Phase 1.1 used it for the Wave 0 wire-shape decisions. This session ran it again.
+
+The sequential-thinking pass produced ten thoughts. The one that mattered was the third: this is a search interface, and search interfaces have a small number of decisions that matter and a large number that don't. The four that mattered were aggregation grain, status display, forensic columns, and PII default. A fifth one (time visualization) emerged on thought eight when I realized "first/last seen" alone wouldn't distinguish a constant beacon from a one-off blip on a wide window.
+
+I asked myself those five questions through `AskUserQuestion`. Not for answers, but to force the trade-off statement before I could move on. The answers landed:
+
+| Decision | Choice | Why |
+|---|---|---|
+| Aggregation grain | (eTLD+1, client) | Cleanest signal for "who's hitting this domain"; subdomain depth lives one click away in the existing Domain Detail drawer. |
+| Status display | Three numeric columns (Allowed / Blocked / Cached) | Lossless, sortable, matches Splunk and Elastic conventions. Badge-of-dominance is lossy on mixed history. |
+| Forensic columns | qtype + upstream + reply_ip, all three, "most-common (+N more)" | `topK(1)` for the value, `uniqExact` for the distinct count. Bounds width without dropping signal. |
+| PII default | `pii_mode=off`, toggle to reveal | Consistency with `/api/dns/domain/{etld1}`. Identified clients always show hostnames anyway; only unidentified MACs are gated. |
+| Time visualization | First/last + hour-bucket sparkline | "Constant beacon vs one-off" reads at a glance. Worth a second CH query. |
+
+Each row is a decision I would otherwise have made implicitly while writing the code. Each row is a decision I'd want explicit if a reviewer asked "why did you do it that way" in three weeks. The plan doc and the decision-log amendment got committed alongside the code: `docs/plans/2026-05-09-dns-search-panel-plan.md` and the 2026-05-09 entry in `docs/plans/brainstorming-decisions.md`.
+
+<Tip title="Brainstorming-decisions.md is the artifact that pays compound interest">
+The pattern of writing decisions down before writing code keeps paying off. Phase 2 used it for slice ordering. Phase 3 used it for the re-runnable plan doc that two different CLIs took turns on. Phase 1.1 used it for Wave 0 wire-shape calls. This session used it for five UI/API trade-offs that would otherwise have been implicit. The cost is fifteen minutes of typing. The payoff is that "why is the API shaped like this" has a better answer than "I made it up at the keyboard." Write the trade-offs down; let future-you read them when the design gets questioned.
+</Tip>
+
+## The Endpoint Shape That Fell Out
+
+The five decisions plus the existing ClickHouse schema (`client_dns_query`, 180-day TTL, columns `ts / client_mac / domain / etld1 / qtype / status / upstream / reply_ip`) collapsed the API surface to a single `GET /api/dns/search` route:
+
+| Param | Type | Default | Notes |
+|---|---|---|---|
+| `q` | string | required | Min 3 chars on substring path; min 1 on `etld1`. |
+| `match` | `substring` \| `etld1` | `substring` | Substring is case-insensitive on `domain`; etld1 is exact equality on the LowCardinality column (much faster). |
+| `window_hours` | int | 24 | Allowlist: 1, 24, 168, 720. |
+| `pii_mode` | `on` \| `off` | `off` | Identified MACs always show hostname; unidentified gated by this. |
+| `limit` | int | 200 | Hard cap 500. |
+
+The response carries one row per (eTLD+1, client_mac) pair plus a `total_matched_rows` for "showing 47 of 47" or "200 of 1500" UX. Sparkline buckets are sized so each row fits ~30 cells: 12 × 5min for 1h, 24 × 1hr for 24h, 28 × 6hr for 7d, 30 × 1d for 30d. At the 200-row default and ~30 cells each, the payload caps around 6,000 sparkline points: small for a JSON response, big enough to read.
+
+The aggregate query is the most interesting one I wrote. It's worth pasting because the predicate switch is doing real work:
+
+```sql
+SELECT
+    etld1,
+    client_mac,
+    count() AS total,
+    countIf(status = 'allowed') AS allowed,
+    countIf(status = 'blocked') AS blocked,
+    countIf(status = 'cached')  AS cached,
+    topK(1)(qtype)[1]    AS qtype_top,
+    uniqExact(qtype)     AS qtype_count,
+    topK(1)(upstream)[1] AS upstream_top,
+    uniqExact(upstream)  AS upstream_count,
+    topK(1)(reply_ip)[1] AS reply_ip_top,
+    uniqExact(reply_ip)  AS reply_ip_count,
+    min(ts) AS first_seen,
+    max(ts) AS last_seen
+FROM client_dns_query
+WHERE ts >= now() - INTERVAL {window_hours:UInt32} HOUR
+  AND {predicate}
+GROUP BY etld1, client_mac
+ORDER BY total DESC
+LIMIT {limit:UInt32}
+```
+
+`{predicate}` swaps in one of two strings depending on `match`:
+
+```sql
+-- substring path (full domain scan, case-insensitive):
+positionCaseInsensitive(domain, {q:String}) > 0
+
+-- etld1 path (exact equality on LowCardinality column):
+etld1 = {q:String}
+```
+
+The shape is identical except for the predicate. The substring path scans the `domain` column and is bounded by the partition pruning on `ts >= now() - INTERVAL`. The etld1 path is much cheaper because `etld1` is a `LowCardinality(String)` and ClickHouse can prune to a single value range. The 3-char minimum on the substring path is a guard rail: shorter strings would match too much, and a one-character substring scan over 30 days of queries on this LAN is millions of rows.
+
+<Info title='`topK(1)` plus `uniqExact` is the cheap "most common (+N more)" pattern'>
+Two ClickHouse aggregates per column give you the dominant value and the distinct count for free. `topK(1)(qtype)[1]` returns the most-frequent qtype (the `[1]` indexes the 1-element Array `topK` returns). `uniqExact(qtype)` counts distinct values. Render as `"A (+2)"` to mean "A is most common, two other qtypes also seen." Cost: one extra aggregate per column. Benefit: bounds the row width on high-cardinality fields like `reply_ip` while preserving the "is there variation here" signal.
+</Info>
+
+The sparkline is a separate query joined client-side on `(etld1, client_mac)`. I considered folding it into the aggregate with `groupArray((bucket, hits))` and rejected it: the payload growth would be unbounded on a wide window, and a second indexed scan against the same predicate is fast in ClickHouse anyway.
+
+```sql
+SELECT
+    etld1,
+    client_mac,
+    toUnixTimestamp(toStartOfInterval(ts, INTERVAL {bucket_seconds:UInt32} SECOND)) AS t,
+    count() AS n
+FROM client_dns_query
+WHERE ts >= now() - INTERVAL {window_hours:UInt32} HOUR
+  AND {predicate}
+  AND (etld1, client_mac) IN {pairs:Array(Tuple(String, String))}
+GROUP BY etld1, client_mac, t
+ORDER BY etld1, client_mac, t
+```
+
+The `(etld1, client_mac) IN {pairs}` clause restricts the second scan to only the rows whose pair appeared in the first query's output. Same predicate, same window, scoped to ~200 pairs. The invariant I tested for is the one a SIEM operator should never have to second-guess: the sparkline buckets for a row sum to exactly the row's `total`. If they didn't, a row's "455 queries" claim and its sparkline would tell different stories. The integration test pins the invariant by inserting a fixed fixture, computing both, and asserting equality on every row.
+
+## Five Waves, Two of Them in Parallel
+
+The implementation followed the project's persona-team pattern, scaled down for a single endpoint plus one frontend panel. Five waves, two parallel pairs:
+
+```text
+Wave 1: backend foundation
+  - Pydantic schemas (DnsSearchRow, DnsSearchSparklineBucket, DnsSearchResponse)
+  - Three CH query helpers (aggregate, total_matched, sparkline)
+  - 11 CH integration tests pinning the sparkline-sum invariant
+  
+Wave 2: backend integration
+  - GET /api/dns/search router
+  - Input validation, PII gate, bucket-size table
+  - 13 router tests (validation, PII branches, bucket-size mapping)
+  
+Wave 3: frontend (parallel with Wave 2)
+  - Types + query-key namespace + useDnsSearch hook
+  - DnsSearchPanel component with inline-SVG sparkline
+  - DomainDetailDrawer click-through wiring
+  
+Wave 4: parallel persona reviews
+  - siem-database subagent
+  - siem-security subagent
+  
+Wave 5: build + restart + live smoke
+```
+
+Wave 4 is the load-bearing one for this post. The dashboard repo carries dedicated persona agents under `~/.claude/agents/siem-database.md` and `~/.claude/agents/siem-security.md`, each with a sharply-bounded job description. The database persona's job: find the queries that are about to hurt. The security persona's job: find the leaks, the divergences, and the validation gaps. Both ran in parallel against the unmerged diff before any of it left my machine.
+
+<Tip title="Persona agents with bounded job descriptions outperform generic reviewers">
+Each of these agents reads the same diff a generic code reviewer would, but they only have one lens. The database agent isn't asked "is the code clean"; it's asked "is this query going to scale, what's the worst case, where's the cardinality bomb." The security agent isn't asked "are the tests green"; it's asked "where does PII flow, where's the input gap, is this consistent with sibling endpoints." Bounded lenses surface bounded findings. I get more signal per review than I would with a single generalist pass.
+</Tip>
+
+The reviews surfaced four findings worth walking through.
+
+## Wave 4 Finding 1: A Cardinality Bomb in the Sort Key
+
+**Database persona, HIGH:** the ClickHouse `client_dns_query` table's sort key is `(client_mac, ts)`. That makes per-client time queries fast, which is what 90% of the dashboard does. It also makes substring search across all clients a full-partition scan, because the `domain` column isn't in the sort key and the substring predicate can't use it.
+
+The persona's read was straightforward: the worst case is a 1-character substring on the 30-day window, which would scan every row in the table, and the dashboard would be unresponsive for the duration. The current 3-char minimum bounds it some. The remaining bound needed to be a wall-clock cap.
+
+I added `max_execution_time=10` as a per-query setting on every CH call in the helpers:
+
+```python
+# Wall-clock cap on each search query. Substring scans on the 30-day window
+# can touch millions of rows; without a ceiling a single bad query could pin
+# the shared CH client. 10s is generous for home-lab volume and short enough
+# that the FE timeout won't fire first.
+_DNS_SEARCH_QUERY_SETTINGS = {"max_execution_time": 10}
+```
+
+Acknowledged the finding rather than restructured. The right structural answer is a covering index or a materialized view keyed on `domain`, but I'm not paying that complexity cost for a single-operator home LAN. The 10s ceiling plus the 3-char minimum plus partition pruning by `ts` is enough for my volume. Documented in the helper's docstring; flagged in the plan doc as a future optimization if I ever care about substring search latency on a fleet.
+
+## Wave 4 Finding 2: Three Full Scans When One Would Do
+
+**Database persona, MEDIUM:** the original implementation ran three queries per request. The aggregate (with LIMIT). The sparkline (joined on the limited pairs). And `total_matched_rows`, which scanned the table again to compute `uniqExact(etld1, client_mac)` for the "showing N of M" UX.
+
+The persona's observation: the third scan is wasted whenever the result set fits under the limit. If the aggregate returned 47 rows and the limit was 200, then the count is exactly 47 already; there's no need to scan again. Only when the aggregate hits the limit (200 rows, possibly meaning 200+ matched) does the third scan add information.
+
+The fix is one line in the router:
+
+```python
+if len(rows) < limit:
+    total_matched = len(rows)  # Exact count; no additional scan needed.
+else:
+    total_matched = dns_search_total_matched(client, q, match, window_hours)
+```
+
+The common case on this LAN (most queries fit in 200 rows) saves an entire CH round-trip. The uncommon case still gets the accurate count. One conditional, one less query, identical UX.
+
+<Info title="Short-circuiting your own queries is a one-line optimization that costs nothing">
+This is the kind of fix that doesn't show up in a benchmark because the benchmarks tend to hit the wide case where the limit is reached. In normal home-LAN search traffic, my queries return well under 200 rows, and `len(rows)` is exact. Cost: one if-statement. Benefit: half the round-trips, every request.
+</Info>
+
+## Wave 4 Finding 3: A PII Gate That Disagreed With Its Sibling
+
+**Security persona, HIGH:** the existing `/api/dns/domain/{etld1}` endpoint applies a specific PII rule. Identified clients always expose MAC + label. Unidentified clients have their MAC redacted, but the `client_label` field still carries a stable hash pseudonym (`unid-XXXX`) so the operator can distinguish multiple unidentified devices in the same response.
+
+My draft of `/api/dns/search` was redacting both fields: `client_mac=None` AND `client_label=None` for unidentified clients with `pii_mode=off`. That's stricter than the sibling endpoint, and stricter is not safer; it's inconsistent. An operator looking at search results and a domain drawer for the same query would see different shapes of the same redaction.
+
+The fix: align the gate to match `/api/dns/domain/{etld1}`. Identified clients pass through. Unidentified clients have their MAC redacted but keep the `unid-XXXX` pseudonym in `client_label`. The pseudonym is stable per (poll-run-id, MAC) hash, which means the same unidentified device shows the same pseudonym across surfaces.
+
+Same persona caught two more lower-severity issues:
+
+**Security persona, MEDIUM:** the helper signatures typed `match` as `str`, and the response schema typed it as bare `str` too. Pydantic validation on the URL Query parameter caught invalid values, but the helpers themselves accepted any string. Defense in depth: declare the helpers' `match` parameter with `assert match in _DNS_SEARCH_VALID_MATCH` and the response schema with `Literal["substring", "etld1"]`. Fixes a future caller (CLI script, scheduled job, test harness) that bypasses Pydantic from setting up an injection.
+
+**Security persona, LOW:** the error response was echoing the raw exception text to the UI, and the row-level `data-testid` attribute was rendering the raw MAC for E2E selectors. Replaced both. Errors now map to friendly status strings; testids use the row index instead.
+
+These are the kinds of findings that compound across surfaces if you don't catch them. One inconsistent PII gate becomes two becomes ten over a year of feature shipping. A persona with a sharply-bounded job description finds them at the inflection point, when the new endpoint is being introduced and you have a chance to align it to the existing surface.
+
+## The FastAPI int-Literal Trap
+
+Two minutes into wiring up the router, I had a 422 on every request that passed `window_hours=24`. I had typed the parameter as:
+
+```python
+async def search_dns(
+    window_hours: Literal[1, 24, 168, 720] = Query(default=24),
+    ...
+):
+```
+
+The validation error said `Input should be 1, 24, 168 or 720`. My input *was* 24. The browser was sending the URL `?window_hours=24` and FastAPI was reading it as the string `"24"`. Pydantic's `Literal[1, 24, 168, 720]` matches against the int values, not their string forms. URL query parameters arrive as strings.
+
+For string-valued Literals (`Literal["on", "off"]` for `pii_mode`), this works because the URL-decoded value is already a string. For int Literals on a Query param, it doesn't.
+
+The fix is straightforward once you've seen the trap: type the parameter as `int` so FastAPI coerces it, then add the allowlist guard manually:
+
+```python
+_ALLOWED_WINDOW_HOURS = (1, 24, 168, 720)
+
+async def search_dns(
+    window_hours: int = Query(default=24, description="..."),
+    ...
+):
+    if window_hours not in _ALLOWED_WINDOW_HOURS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"window_hours must be one of {_ALLOWED_WINDOW_HOURS}, got {window_hours}",
+        )
+```
+
+`Literal["on", "off"]` on `pii_mode` works fine because the URL string and the literal type already agree. `Literal[1, 24, 168, 720]` on `window_hours` doesn't because there's no string-to-int coercion before the Literal match.
+
+<Warning title="`Literal[int, ...]` on a Query parameter does not coerce URL strings">
+FastAPI validates Pydantic-typed Query parameters against the typed shape, but URL query values arrive as strings. `Literal["a", "b"]` accepts string values directly. `Literal[1, 24]` doesn't accept the string `"24"`, even though Python's `int("24") == 24`. The two workarounds are: (1) declare as `int = Query()` and add a manual `if value not in _ALLOWED:` guard, or (2) use a Pydantic model with a validator that does the coercion. The Literal-only path silently 422s. Save yourself the hour I lost finding this.
+</Warning>
+
+## Wave 5: Restart, Curl, Smoke
+
+The build-and-restart sequence is the same one [Phase 1.1](/blog/home-network-mission-control-dashboard-phase-1-1) made habit:
+
+```bash
+cd backend && pytest                              # 1008 tests passing
+cd frontend && npm run build                      # rebuilds dist/
+launchctl kickstart -k gui/$UID/com.chris2ao.homenet-dashboard-frontend
+launchctl kickstart -k gui/$UID/com.chris2ao.homenet-dashboard-backend
+```
+
+Then curl. The five smoke queries I ran:
+
+| Query | Window | Result |
+|---|---|---|
+| `q=goog match=substring` | 24h | 41 rows in `<100ms`; first row `googleapis.com` from `BXWPF5H65K7`, total 454 |
+| `q=goog match=substring` | 720 (30d) | 106 rows in `<100ms`; deeper history, partition pruning still bounded |
+| `q=apple.com match=etld1` | 24h | 7 rows; etld1 path, exact match, no substring scan |
+| `q=ad match=substring` (3-char min) | 24h | accepts; 211 rows hits the 200-default limit, total_matched=211 |
+| `q=a match=substring` | 24h | 400 rejected (3-char minimum) |
+
+The first row of the goog query was the load-bearing one. `googleapis.com` from a laptop, 454 queries: 198 allowed, 0 blocked, 256 cached. The sparkline rendered 24 hour-buckets that summed to 454. The first-seen and last-seen timestamps bracketed the window. The `qtype_top` was `A` with `qtype_count=1`. `upstream_top` was the Pi-hole. `reply_ip_top` was a Google IP with `reply_ip_count=23`, meaning Google's LB was rotating through 23+ A-record values across the day.
+
+The invariant held. 454 = 454. The CH integration test had asserted this on a fixture; the live smoke confirmed it on real data. If those numbers had disagreed, something in the predicate or the (etld1, mac) join was wrong, and the panel would have been quietly lying about the relationship between the row and the chart. They didn't. The invariant pinned the result.
+
+## Why the Same Bug Class Didn't Happen This Time
+
+Phase 4 had five post-merge bugs that CI missed. Phase 1.1 had two. The pattern in both cases was "the test asserts the right column, the test passes, the feature works against the fixture, and production has been running on empty data because the join was wrong." This session didn't trip that bug class, and it's worth saying why: the integration tests for this feature were not isolated unit tests. They ran the actual ClickHouse helpers against a real ClickHouse instance, populated with realistic fixture data, and asserted post-aggregate invariants like "the sparkline sum equals the aggregate total." That kind of assertion can only pass if both queries are reading the same underlying rows through compatible predicates. A unit test that mocked ClickHouse and asserted "we called `client.query()` with the right SQL" would have missed the same class of bug Phase 4 and Phase 1.1 paid for.
+
+<Tip title="Integration tests that pin cross-query invariants beat unit tests that assert call-shape">
+The cross-query invariant (`sum(sparkline.n) == aggregate.total`) is the kind of property that only passes if both queries are correctly joined to the same data. A unit test asserting "we called `client.query` with these arguments" doesn't pin that. An integration test that runs both queries against a shared fixture and asserts the invariant does. For ClickHouse work specifically, prefer integration tests over mocks. The setup cost is real but the bug-class coverage is dramatically wider.
+</Tip>
+
+The other thing the persona-team review caught here that wouldn't have surfaced from "is the code clean" was the PII gate divergence. That's the same bug class as Phase 4's silent zeros: an inconsistency between sibling surfaces that compounds over time. The security persona's job description (look at this from a defender's seat, against the existing API surface) made it the question the persona was already asking.
+
+## The Numbers At Merge
+
+The session closed Saturday night at:
+
+- **Commit**: `6c13af6` on main, `feat(dns): SIEM-style search panel with per-(eTLD+1, client) aggregation`.
+- **Files changed**: 13. Backend: 4 (queries.py, routers/dns.py, schemas/dns.py, plus 24 lines of plan-doc + decision-log updates). Frontend: 5 (api/types.ts, api/query-keys.ts, components/DnsSearchPanel.tsx, hooks/useDnsSearch.ts, pages/DnsPage.tsx). Tests: 2 (test_router_dns_search.py + test_queries.py additions). README: 1 (one-line update mentioning searchable DNS).
+- **Lines changed**: +1,718 −3.
+- **Tests at the close**: 1,008 backend pytest passing.
+- **Live smoke**: five queries, all green, sparkline invariant held on the first row.
+- **Reviewer findings**: 4. Two HIGH (sort-key full scan, PII gate divergence), one MEDIUM (third-scan waste), one LOW (raw error / raw MAC in testid). All four addressed before merge.
+- **Mode posture**: still A. The search panel is a read endpoint. No mutations. The PII gate is operator-controlled via a UI toggle, off by default.
+
+## Patterns Worth Carrying Forward
+
+- **Click into your own dashboard regularly.** Whatever protocol you have for catching post-merge bugs, the cheapest version is "open the UI you ship and use it like an operator." This bug had been live for two days. The CI was green for two days. The dashboard was lying to me for two days. The instant I clicked the DNS tab, the lie surfaced. Build the habit; it costs less than building a probe and catches what probes don't.
+- **Brainstorming-decisions.md keeps paying back.** Five contested design choices got explicit reasoning written down before any code got written. The decision-log entry is the artifact; the workflow is what generates it. Cost: fifteen minutes. Benefit: every future "why is this shaped this way" question has a real answer.
+- **Persona agents with bounded scopes outperform generalist reviewers.** The siem-database persona caught the third-scan waste because that's the question it was already asking. The siem-security persona caught the PII gate divergence because comparing against sibling endpoints is its lens. A generic reviewer would have caught fewer of these because it would have been asking broader questions across more surfaces.
+- **Cross-query invariants in integration tests pin the bugs unit tests miss.** The sparkline-sum-equals-aggregate-total assertion only passes if both queries are correctly joined to the same data. A test that mocked ClickHouse and asserted "we called `client.query` with this SQL" would have green-checked a bug that returned a sparkline summing to a different number than the row's `total`. Run the real database when the bug class lives across queries.
+- **Short-circuit your own queries.** `total_matched` going from a third full scan to `len(rows)` for the common case is the kind of one-line optimization that costs nothing and saves a query per request. The CH cost on a single dev's home LAN is rounding error; the principle is the same on a fleet.
+- **`Literal[int, ...]` on a Query parameter does not coerce URL strings.** New project memory. Will save someone an hour next time they reach for it. Either type as `int` and guard manually, or use a Pydantic model with a validator. The Literal-only path silently 422s.
+
+If you'd rather read this as slides, the deck version is here: [DNS Search Panel slide deck (PDF)](/blog/home-network-mission-control-dashboard-dns-search-panel/slides.pdf). Same arc as the post, fewer words per page.
+
+## What's Next
+
+| Phase | What ships | Status |
+|------|------------|--------|
+| **Saved searches** | Bookmark a `(q, match, window_hours, pii_mode)` quad as a named query, surface in a sidebar panel. | Deferred to v2 once I have actual usage data. |
+| **CSV export** | `?format=csv` on `/api/dns/search`. | Easy; deferred until someone asks. |
+| **Cross-source correlation** | Join DNS hits against UniFi DPI / syslog connection events for the same client+timeframe. | Substantial Phase 2 work; not in scope here. |
+| **Phase 1.2 (Wi-Fi + RF)** | The Wi-Fi tab. | Visible-but-locked in the cyber SideNav. |
+| **Phase B (A → B)** | Mutation unlock. The agent surface stays read-only. | `MISSION_CONTROL_MODE` env flip + security review. |
+
+The DNS search panel is additive on a read-only endpoint. If usage shows the substring grain is wrong (too noisy or too narrow), I can swap to eTLD+1 substring as the default without changing the API or the table. Sparkline can be cut without touching the row schema. The point of the read-only mode is exactly this: ship a feature, watch real usage on a real LAN, iterate cheaply. The architecture is doing what it was designed to do.
+
+The dashboard tells the truth about my LAN. The search panel makes the truth queryable. If you've followed this thread from [Phase 1](/blog/home-network-mission-control-dashboard-phase-1) through [Phase 1.1](/blog/home-network-mission-control-dashboard-phase-1-1), the through-line is the same one it's always been: every post is one more reusable primitive on top of the last. Phase 1.1's primitive was the in-session prod smoke. This session's primitive is the brainstorming-decisions workflow turned into a five-decision API surface in fifteen minutes. The real lesson is the cold open: a SIEM you can't search is an archive. Build the search before someone asks why they can't find what they're looking for.
