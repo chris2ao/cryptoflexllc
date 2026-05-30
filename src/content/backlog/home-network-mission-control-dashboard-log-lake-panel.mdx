@@ -33,7 +33,14 @@ readingTime: 24 min read
 series: Home Network Mission Control
 seriesOrder: 7
 coverImage: /blog/home-network-mission-control-dashboard-log-lake-panel/infographic.png
-coverImageAlt: LOG LAKE panel build, branded NotebookLM infographic. Two halves. Top half is the clean architecture (ingestion-health strip, GUI query builder, identifier-allowlist compiler, parameterized ClickHouse SQL). Bottom half is the five-bug deploy gauntlet (readonly-pool 500, poll crash loop, 20-day Pi-hole gap, stale Vector config, UDM doubled-hostname frame). Closes with the meta-lesson: one SELECT count() revealed 100% of 159,909 rows were DNAT, vetoing a complex rewrite in favor of a four-line MV recreation.
+coverImageAlt: >-
+  LOG LAKE panel build, branded NotebookLM infographic. Two halves. Top half is
+  the clean architecture (ingestion-health strip, GUI query builder,
+  identifier-allowlist compiler, parameterized ClickHouse SQL). Bottom half is
+  the five-bug deploy gauntlet (readonly-pool 500, poll crash loop, 20-day
+  Pi-hole gap, stale Vector config, UDM doubled-hostname frame). Closes with the
+  meta-lesson, one SELECT count() that revealed 100% of 159,909 rows were DNAT
+  and vetoed a complex rewrite in favor of a four-line MV recreation.
 published: false
 ---
 
