@@ -1,0 +1,481 @@
+---
+title: >-
+  Home Network Mission Control: The LOG LAKE Panel, Five Deploy Bugs, and a
+  Vetoed Bytes-Codec Rewrite
+date: '2026-05-30'
+description: >-
+  Part 6 of the home network dashboard build. The LOG LAKE panel ships a SIEM
+  ingestion-health strip and a GUI firewall query builder that compiles to
+  parameterized ClickHouse under the hood. One PR, two waves, 1193 backend tests
+  at merge. Then deploy day on the live Mac mini produced five production-only
+  bugs in a single afternoon: a readonly-pool 500, a timezone-mixed poll crash
+  that had been firing every five minutes for hours, a 20-day-silent Pi-hole
+  pipeline (two layers stacked), a Vector container reading a stale bind-mounted
+  config, and a UDM doubled-hostname frame that silently broke action derivation
+  for 159,909 rows. The meta-lesson is that the proposed fix for the last one
+  was an invasive Vector source rewrite that the persona team vetoed in favor of
+  an operator toggle and a four-line MV recreation.
+tags:
+  - Home Lab
+  - SIEM
+  - ClickHouse
+  - Vector
+  - FastAPI
+  - React
+  - UniFi
+  - Pi-hole
+  - Claude Code
+  - Multi-Agent
+  - Persona Teams
+author: Chris Johnson
+readingTime: 24 min read
+series: Home Network Mission Control
+seriesOrder: 7
+coverImage: /blog/home-network-mission-control-dashboard-log-lake-panel/infographic.png
+coverImageAlt: >-
+  LOG LAKE panel build, branded NotebookLM infographic. Two halves. Top half is
+  the clean architecture (ingestion-health strip, GUI query builder,
+  identifier-allowlist compiler, parameterized ClickHouse SQL). Bottom half is
+  the five-bug deploy gauntlet (readonly-pool 500, poll crash loop, 20-day
+  Pi-hole gap, stale Vector config, UDM doubled-hostname frame). Closes with the
+  meta-lesson, one SELECT count() that revealed 100% of 159,909 rows were DNAT
+  and vetoed a complex rewrite in favor of a four-line MV recreation.
+published: false
+---
+
+The LOG LAKE panel shipped on Wednesday. One PR, two internally-gated waves, a new top-level dashboard tab with a SIEM ingestion-health strip and a GUI firewall query builder that compiles to parameterized ClickHouse SQL under the hood. 1193 backend pytest, 351 Vitest, full Playwright pass at merge. Then I clicked the deploy button on the live Mac mini and the afternoon turned into five production-only bugs, one after another, none of which any CI job had a chance of catching.
+
+That's the build report. The interesting part of this post is the deploy afternoon: a readonly-pool 500 caused by a client setting that fights a server profile, a `poll_security_finding_emit` job that'd been crashing every five minutes for hours because one side was naive and one side was aware, a Pi-hole syslog pipeline that'd been silently dead for 20 days because of a v6 log-path move stacked on top of a Docker Desktop macOS UDP source-IP rewrite, a Vector container reading a stale bind-mounted config because the inode rewrite didn't bust the macOS cache, and a UDM doubled-hostname frame that broke action derivation for 159,909 rows. And then the meta-lesson: the proposed fix for the last one was an invasive Vector source rewrite that the persona team redirected in two cheap moves, an operator toggle in the UniFi UI and a four-line materialized view recreation that fell out of one live cardinality query.
+
+<Info title="Series Context">
+This is part 6 of the [Home Network Mission Control](/blog/series/home-network-mission-control) series. Direct prerequisites:
+
+- [**Phase 1**](/blog/home-network-mission-control-dashboard-phase-1): the chassis, 12 workstreams, four enrichment waves, mode-A read-only design, 497 backend tests at the end.
+- [**Phase 1.1**](/blog/home-network-mission-control-dashboard-phase-1-1): the Network tab, two security signals, and the live-system bug audit that caught two more bugs of the same class as the in-band ship-blocker.
+- [**Phase 2**](/blog/home-network-mission-control-dashboard-phase-2): the cyberpunk re-skin and the four-persona reviewer team.
+- [**Phase 3**](/blog/home-network-mission-control-dashboard-phase-3): Feature 1 (DNS click-throughs) shipped via a re-runnable plan doc.
+- [**Phase 4 (V2)**](/blog/home-network-mission-control-dashboard-phase-4): the Threat Intel tab and the five-bug post-merge audit.
+
+A companion post on the Claude Code Workflow side covers the squash-vs-granular reconciliation that landed this stack on `main` weeks later via PR #23. The post you are reading is the build story. The companion post is the merge story.
+</Info>
+
+## What the LOG LAKE Panel Actually Is
+
+The dashboard already had a SIEM under the hood. Phase 1.4 had moved `raw_syslog` and the related typed views into ClickHouse, and the panels that consumed it (DNS Search, Threat Intel, the Security tab signals) were all in production. What the operator did not have was a way to look at firewall traffic directly. The whole point of a SIEM is that you can search across it, and mine was missing the search.
+
+The LOG LAKE tab's the search. Two panels, one tab:
+
+1. **Ingestion-health strip.** Freshness age per source, disk usage with a colored bar, a plain-English status line ("Recovering after reboot", "All sources current", "Pi-hole 20 days stale"). Events-per-minute and parse-health are folded into a collapsible Advanced row so the default view does not become a dashboard within a dashboard.
+2. **GUI firewall query builder.** Pick a time window. Pick a source IP, destination port, action, direction, interface. The builder compiles the field set into a parameterized ClickHouse SQL string against `firewall_events` and renders the result table. It also shows the compiled SPL/KQL-style display string (collapsed) so a curious operator can passively pick up the syntax.
+
+<Info title="Why GUI-first">
+The brainstorm started with a single line from me to the planner: "I want it to have an SPL/KQL query language but honestly I'm not going to learn it. I think there needs to be a gui way to select fields like a query builder feature." Splunk's strength is the query language. Splunk's weakness is the same thing. For a single-operator home lab, the cost of "learn the syntax" is the cost of never opening the panel. It's a literal opportunity cost: every minute spent learning syntax is a minute not spent looking at the firewall.
+</Info>
+
+The internal name on the tab is LOG LAKE. The user-facing label is "Logs". The first label is for me, in the codebase. The second label is for me, in front of the dashboard.
+
+![LOG LAKE infographic. Top half is the clean architecture: ingestion-health strip with source freshness, parse health, and amber-not-red on reboot; the GUI firewall query builder with field/operator/value panels; the identifier-allowlist compiler; the parameterized ClickHouse SQL it emits. Bottom half is the five-bug deploy gauntlet, one panel per bug. Bug 1: readonly-pool 500 (server readonly profile rejects client-set settings; drop connect-time settings). Bug 2: poll crash loop (offset-naive minus offset-aware TypeError; normalize to naive UTC). Bug 3: 20-day Pi-hole data gap (Pi-hole v6 log path move on the sender plus Docker Desktop macOS rewriting UDP source IPs to the VM gateway; repoint forwarder, route by hostname). Bug 4: stale Vector config (bind-mount cache held a truncated copy; force-recreate the container). Bug 5: UDM doubled-hostname frame (zoneless BSD timestamps, lost netfilter tag; .ts = .time_received, optional tag regex, descr fallback in migration 0017). Closes with the meta-lesson: one SELECT count() revealed 100% of 159,909 rows were DNAT, vetoing the complex bytes-codec rewrite in favor of a four-line MV recreation.](/blog/home-network-mission-control-dashboard-log-lake-panel/infographic.png)
+
+## The Brainstorm That Pinned the Design
+
+I don't start a panel like this with code. I start it with `/sequential-thinking` on the planner and twenty minutes of conversation that turns into a plan doc. The plan doc for this one lives at `docs/plans/2026-05-25-log-lake-panel-plan.md`, and the part of it that mattered most was the table of locked decisions at the top.
+
+The contested ones, in the order they came up:
+
+- **Query language vs builder.** GUI builder is the primary surface. It generates an SPL/KQL-style display string, read-only, collapsed by default, for transparency and passive learning. The user never types it. (Me, talking to myself: "I am the user.")
+- **Query target.** A new typed `firewall_events` materialized view off `raw_syslog`, not direct queries against the raw table. A typed view costs one migration and pays for itself the first time a column-pruning optimization helps.
+- **Sequencing.** One PR, two internally-gated waves. Wave 1 was schema and the freshness strip. Wave 2 was the safety harness and the GUI builder.
+- **Posture.** Both endpoints are read-only. `/api/siem/query` is POST with a structured body (idempotent, mode-A-open). `/api/siem/ingestion` is GET. No agent call in v1.
+
+Then the persona team got the plan. Four agents in parallel: `siem-database`, `siem-network`, `siem-security`, `siem-homeoperator`. The captain agent synthesized. Three of the four came back with concrete corrections to the proposed `firewall_events` schema, and one of them rewrote the entire ingestion strip.
+
+<Warning title="Persona Team Corrections to the firewall_events Schema">
+Plan-as-written had `rule_id` as a column, a tag-only action, and `CAST(fields['dpt'] AS UInt16)`. Three of those were wrong, and the fix dictated the eventual migration shape.
+
+- `rule_id` does not exist on the wire from the UDM. Removed.
+- Action is **derived from the netfilter chain tag** prefix via `multiIf`, not a wire field. (And then, two weeks later, the doubled-hostname frame broke even this. See Bug 5.)
+- Ports must be `toUInt16OrNull` returning `Nullable(UInt16)`. **A CAST throws on empty-Map rows and rejects the entire insert batch for all sources on that block.** This is the kind of detail that a database persona earns its keep on.
+- IPs as `Nullable(IPv4)`. A non-nullable `IPv4` would require a `0.0.0.0` sentinel that confuses range predicates.
+- Add `in_iface`, `out_iface`, `direction`. The first two are the ground truth; the third is synthesized from them (`eth9` is the WAN discriminator on this UDM).
+- Exclude `raw`, `message`, `fields`. They are credential-leak surfaces. JOIN back to `raw_syslog` if anyone ever needs full context.
+- `ORDER BY (ts, action, src_ip, dst_port)`. `ts` leads for time-range scans.
+</Warning>
+
+The operator persona cut the ingestion strip down. The original sketch had six numbers across the top: freshness age, events-per-minute (1h average), events-per-minute (24h average), parse-success-rate, disk-used-bytes, and TTL-active-days. The operator review said that's six numbers, of which the operator (me, the guy who reboots the Mac for OS updates) wants three: am I fresh, am I full, am I OK. The rest fold into the Advanced row.
+
+The operator review also caught the after-reboot color choice. The default behavior was RED for "stale" the moment ingestion paused. The operator persona pointed out that this fires every time the Mac reboots, and the user's going to learn to ignore it. AMBER "recovering" was the answer. RED is for "this has been stale long enough that you should look at it." Two color tiers, two different anxieties. They're not the same anxiety.
+
+## Wave 1: Schema, Strip, and the argMax Bug That Was Already There
+
+Wave 1 was the typed view, the ingestion-health endpoint, the frontend strip. The migration's `0016_create_firewall_events.sql`, a `MATERIALIZED VIEW` that fires on every insert into `raw_syslog` and writes a row into `firewall_events` when `event_type = 'firewall'`. Forward-only. No backfill.
+
+That part went in clean. The part that did not go in clean was the freshness query.
+
+The dashboard already had a `collector_health_latest` view used by other strips. It was an `argMax`-shaped query that picked the latest row per `(source, host, component)`. When I tried to reuse it, the strip showed thirty-seven rows instead of three. One source, with all thirty-seven variations of `(host, component)` combinations the source had ever emitted. Every reboot had spawned new component identifiers. The view was returning the cartesian product of every distinct combination, not the per-source latest.
+
+The fix was small and ugly:
+
+```sql
+SELECT
+    source,
+    argMax(host, ts) AS host,
+    argMax(component, ts) AS component,
+    max(ts) AS last_ts
+FROM raw_syslog
+GROUP BY source
+```
+
+Two interesting things in that snippet.
+
+First, `argMax(host, ts)` instead of `host` in the GROUP BY. The old query was `GROUP BY (source, host, component)`. With mutable fields in the group key, every distinct historical value gets its own row. With `argMax(field, ts)` in the projection, every source gets exactly one row and the field is the most recent value. This is the right shape for a "latest" snapshot.
+
+Second, `max(ts) AS last_ts` instead of `max(ts) AS ts`. The latter's a ClickHouse nested-aggregate parser error: the column `ts` is already an aggregation key, and aliasing the `max(ts)` aggregation back to `ts` makes the parser think you're nesting aggregates inside aggregates. Renaming to `last_ts` makes the parser happy. I learned this the hard way once, and now I write `last_ts` from the start every time.
+
+Wave 1 also caught a small VRL bug on ICMP events. The old `firewall` VRL transform required `dpt` to be present, which ICMP events do not have. The fix was making ports optional in the transform. Cheap. Caught only because the ingestion-health strip surfaced parse-error rates per source and I clicked into the parse-error sample for one row and saw `dpt` missing on an ICMPv6 NDP message.
+
+<Tip title="The Ingestion Strip Found Its Own Test Cases">
+The point of the strip was to tell me when ingestion was sick. The first thing it told me was that ICMP events were getting bounced by a VRL gate that did not need to be there. The strip earned its keep before the panel that ate it shipped.
+</Tip>
+
+## Wave 2: The Safety Harness and the GUI Builder
+
+Wave 2 was the part that scared me. A panel that lets the user (me) construct an arbitrary ClickHouse query, even through a GUI, is the kind of thing that I'd normally never expose. The safety harness is the only reason this was even on the table.
+
+The harness lives in `backend/src/homenet_dashboard/siem/query_compiler.py`. The shape is:
+
+1. The frontend posts a structured DSL: a JSON body with `time_window`, `where` (a list of field-comparison pairs), `limit`, `select` (optional, defaults to a stable set).
+2. The compiler walks the DSL through an **identifier allowlist**. Every field name, every operator, every value type is checked against an allow-list constant in code. Anything not on the list raises `ValueError` and the request gets a 400.
+3. The allowed AST emits two outputs from one pass: a parameterized ClickHouse SQL string with `%(param_N)s` placeholders, and a SPL/KQL-style display string. Same AST, two renderers.
+4. The 30-day-capped mandatory time window is enforced by the compiler, not by the caller. A caller cannot bypass it by omitting the window or by setting a 31-day window. The 30-day cap is the cost of "the operator may misclick" insurance.
+5. The `LIMIT` is clamped to a hard ceiling regardless of what the body says. The default is 1000. The ceiling is 5000.
+
+The IP wildcard handling deserves its own callout, because it surprised me.
+
+<Info title="IP Wildcard as IPv4 BETWEEN">
+The DSL accepts `192.168.1.*` as a value for `src_ip`. The compiler does not turn it into a `LIKE` string match. It turns it into `src_ip BETWEEN toIPv4('192.168.1.0') AND toIPv4('192.168.1.255')`. ClickHouse's `IPv4` type is an integer under the hood, so BETWEEN is fast and uses the sort key. A `LIKE` on `IPv4::String` would be a full scan and a wrong-result-shape footgun on edge values (`192.168.10.1` matches `192.168.1.*` under naive LIKE).
+</Info>
+
+The frontend GUI lives at `frontend/src/components/cyber/loglake/`. The shape is a field panel on the left, a results table on the right, and the compiled display string in a collapsible row above the table. Clicking "Add filter" cycles through the allowed fields. Picking a field cycles through the operators that field supports. Typing a value validates against the field's type. The validation's a thin frontend mirror of the compiler's allowlist, which means the backend compiler is the source of truth and the frontend's just a UX skin over it. Two checks, one source.
+
+`GET /api/siem/query/fields` returns the allowlist as JSON so the frontend does not encode it twice. One change, one place. The compiler exports it.
+
+PII handling: the dashboard already has `pii_mode` as a query parameter pattern (see the [DNS Search Panel](/backlog/home-network-mission-control-dashboard-dns-search-panel) post for how that came to be). The LOG LAKE query inherits that. By default, RFC1918 IPs in `src_ip` and `dst_ip` are hashed, and `mac` is suppressed entirely. There is no UI to flip it off in v1, intentionally.
+
+The audit table is `alembic 0015` on the SQLite side. Every POST writes an audit row: who, when, what DSL, what compiled SQL, how many rows. Mode-A safe. Local SQLite. No external dependencies.
+
+<MermaidDiagram chart={`flowchart LR
+  subgraph fe["Frontend (LogLakePage)"]
+    UI["GUI builder<br/>(field, op, value)"]
+    DSL["Structured DSL<br/>(JSON body)"]
+  end
+  subgraph be["Backend query_compiler.py"]
+    AL["Identifier allowlist<br/>(fields, ops, value types)"]
+    AST["Validated AST"]
+    SQL["Parameterized<br/>ClickHouse SQL"]
+    DISP["SPL/KQL-style<br/>display string"]
+    CAP["30d window cap<br/>+ LIMIT clamp"]
+  end
+  subgraph ch["ClickHouse"]
+    FE["firewall_events MV<br/>(typed off raw_syslog)"]
+  end
+  subgraph al["SQLite audit"]
+    AUD["alembic 0015<br/>(who/when/DSL/SQL/rows)"]
+  end
+  UI --> DSL
+  DSL --> AL
+  AL --> AST
+  AST --> SQL
+  AST --> DISP
+  AST --> CAP
+  CAP --> FE
+  SQL --> AUD
+`} />
+
+One more wave-2 detail: the `claude_client` ClickHouse pool size went from 2 to 4. Two readonly connections were enough for the existing tabs, which queried sequentially. The new tab queries the ingestion endpoint, the fields endpoint, and the query endpoint concurrently from one page load. Two connections deadlocked the page on the first smoke. Four was empirically enough.
+
+## Deploy Day, And Five Bugs in a Single Afternoon
+
+Wave 2 passed all four CI jobs. PR description was clean. All seven §9 security P0s captain-verified. I pushed the deploy button on the live Mac mini at 3:41 PM and the afternoon turned into five bugs.
+
+The shape of this section: each bug gets a root cause and a fix. Some of them are small. Some of them had been broken for days or weeks before the LOG LAKE deploy made them visible. All five were caught by clicking around in production on the deployed dashboard, which is exactly the workflow Phase 1.1 of this series codified as a wave (the live-system smoke that the persona team does not do for you).
+
+### Bug 1: A 500 on POST /api/siem/query, Because Two Layers Both Wanted to Be Readonly
+
+First click on the LOG LAKE tab, first query, immediate 500. The trace pointed at `_claude_client()` and a `ProgrammingError` from the ClickHouse driver about a setting that couldn't be applied.
+
+The cause was a clash between two readonly profiles. The live Mac mini's ClickHouse server has a `claude` user with a **server-side readonly profile** configured in `~/.claude/state/clickhouse-users.xml`. The server enforces readonly on every query that user issues. Separately, `_claude_client()` was passing `settings={readonly:1, ...}` at connect time, which the driver tries to set on the session. A server-readonly session **rejects client-set settings**, including the `readonly` setting itself. The driver translates that into `ProgrammingError`, which the FastAPI handler turns into a 500.
+
+The fix was four lines: drop the connect-time `settings={...}` dict on the readonly pool. Read-only stays server-enforced, which it already was. The client mustn't also try to set it.
+
+<Tip title="When the Server Enforces a Profile, the Client Must Defer">
+This is the kind of bug you only get when development and production differ in their auth model. Development used a single user with default permissions. Production used a server-side readonly profile. The first time the LOG LAKE panel ran against the live server was the first time the readonly-double-setting collision had a path to fire. Lesson logged: when production runs a server-side profile, audit every client-side setting that overlaps with it.
+</Tip>
+
+### Bug 2: A Five-Minute Crash Loop That Had Been Running for Hours
+
+While I was debugging Bug 1, I noticed a stack trace in the backend logs that was not mine. `poll_security_finding_emit`, a job that fires every five minutes, was crashing on `gmail_stale.py`. The trace said `can't subtract offset-naive and offset-aware datetimes`.
+
+The thing about this bug is that it had nothing to do with the LOG LAKE deploy. It'd been crashing every five minutes for hours before I deployed. The fact that I hadn't noticed is its own data point.
+
+The cause was a mixed `datetime` arithmetic that the cutover to ClickHouse for the Gmail heartbeat had introduced. The poll caller passed a naive `now` (a `datetime.utcnow()` from the APScheduler hook, no tzinfo). The ClickHouse-returned `last_seen_at` came back with a UTC tzinfo attached (ClickHouse Driver default for `DateTime` types). Subtracting one from the other is a `TypeError` in Python 3.
+
+The fix was a one-liner that I'd write three more places before the day ended: normalize both to naive UTC before the subtraction. I added a regression test (`tests/test_security_findings/test_gmail_stale_naive_utc.py`) so the next person who refactors the heartbeat doesn't get to repeat this for a fourth time.
+
+<Warning title="The naive_utc_now() Helper Is Load-Bearing">
+This codebase has a `naive_utc_now()` helper in `utils/time.py` for exactly this reason. Phase 3's PR #6 migrated 14 files to use it (see [Phase 3](/blog/home-network-mission-control-dashboard-phase-3)). The Gmail heartbeat path was a recent enough addition that it had not been touched by that migration, and it imported `datetime.utcnow()` directly. Lesson: when you ship a project-wide helper, search for the anti-pattern it replaces at every merge, not just at the migration that introduced the helper.
+</Warning>
+
+### Bug 3: Pi-hole Syslog Had Been Silently Dead for 20 Days
+
+I went back to the LOG LAKE tab after Bug 1 was fixed, ran a query for any Pi-hole-sourced row in the last 24 hours, and got zero results. Ran the same query against the last 30 days. Zero. Ran it against all-time. Zero.
+
+The strip was telling me `pihole` was 20 days stale. Twenty days. That meant on the same day the Phase 1.4 cutover landed, Pi-hole syslog ingestion stopped, and nothing else in the dashboard had needed it. I hadn't known.
+
+The diagnosis took longer than the fix. Two layers, stacked.
+
+**Layer A: Pi-hole v6 moved query logging.** The old path was `/var/log/pihole/FTL.log` (the FTL daemon log). The new path's `/var/log/pihole/pihole.log` (the dnsmasq-format log). The rsyslog forwarder on the Raspberry Pi was still tailing `FTL.log`, which existed as a frozen file from before the upgrade. So the Pi was sending nothing.
+
+**Layer B: Docker Desktop macOS rewrites inbound UDP source IPs.** This one I didn't know. Vector inside the docker-compose stack has a syslog source listening on UDP 5140. A `route_by_source` VRL transform branches the message based on the source IP: `src_ip == "172.16.27.227"` routes to the `pihole` parser. The thing is, when a UDP packet comes from the LAN to Docker Desktop on macOS, **the kernel rewrites the source IP to the Docker Desktop VM gateway 192.168.65.1**. So the rule `src_ip == "172.16.27.227"` never matched, and every Pi-hole packet that did make it through fell off the end of the route table into `_unmatched`.
+
+The fix was two changes on two different boxes.
+
+On the Pi:
+
+```nginx
+# /etc/rsyslog.d/30-pihole-ftl.conf
+module(load="imfile")
+input(type="imfile"
+      File="/var/log/pihole/pihole.log"
+      Tag="pihole"
+      Severity="info"
+      freshStartTail="on")
+*.* @172.16.27.10:5140
+```
+
+On Vector:
+
+```yaml
+# route_by_source.transforms
+pihole:
+  type: filter
+  inputs: [syslog_in]
+  condition: '.hostname == "raspberrypi"'
+```
+
+Two changes, two failure modes. The Layer A fix made the Pi send the right log. The Layer B fix made Vector route it by a field that survived the source-IP rewrite (`hostname` is in the syslog payload, not in the UDP header).
+
+<Stop title="Bind-Mount Update Did Not Take Effect">
+The Vector config change above did not take effect when I edited the file. Vector's container was reading a stale, cached version. See Bug 4. The fact that the fix I had just typed was not actually live is what set up the next 90 minutes of debugging.
+</Stop>
+
+### Bug 4: Vector Was Reading a Stale Bind-Mounted Config for 28 Hours
+
+After I made the Vector config change, the Pi-hole rows still didn't flow. I tailed the Vector container logs. I saw a healthcheck failing. The healthcheck had been failing for 28 hours. I hadn't noticed.
+
+`vector validate` inside the container failed with a parser error pointing at a line number that didn't match the file I had on disk. I `docker exec`'d into the container and ran `wc -l /etc/vector/vector.yaml`. The container saw 535 lines. The file on the host was 547 lines. The container was reading a truncated, stale copy. The missing 12 lines included an `emit_heartbeat` transform that other parts of the pipeline depended on.
+
+This is a macOS Docker Desktop bind-mount cache problem. The host file had been edited and saved, but the container hadn't re-read it. **The kicker:** I'd already done one trick to bust the cache that I knew worked from other projects, which was rewriting the inode (write to a tmp file, then `mv` over the target). The inode rewrite didn't bust the cache in this case. I don't know why. What did bust it was a force-recreate:
+
+```bash
+docker compose up -d --force-recreate --no-deps vector
+```
+
+A new container, a fresh read of the bind mount, the 547 lines all showed up, the healthcheck went green, and the Pi-hole rows started flowing. Three minutes later, the ingestion strip showed `pihole` at freshness "0s ago". Twenty days resolved.
+
+<Warning title="Force-Recreate, Not Inode-Rewrite, for Docker Desktop Bind Mounts">
+This is now a documented gotcha in the project. The mental model "edit the file on the host, the container sees it" is true for Linux Docker but is **conditionally true** for macOS Docker Desktop. The bind mount goes through a virtualization layer that caches aggressively. When a config change does not take effect after a SIGHUP or a container restart, do `--force-recreate --no-deps`. It is the difference between fifteen minutes of "why is my config not loading" and "oh, that one."
+</Warning>
+
+### Bug 5: "The UDM Stopped Logging at 22:24", or, Three Hidden Bugs Behind One Misread Timestamp
+
+After Pi-hole was healthy, I went back to the LOG LAKE tab. Ran a query for any UDM-sourced row in the last hour. Got rows. Ran a query for any UDM-sourced row in the last six hours. Got rows from the last hour only. Ran "last 24 hours". Same. The UDM was logging continuously, but the dashboard thought it'd stopped at 22:24 the night before.
+
+This took me longer than the prior four bugs combined, because the first sentence I told myself (the UDM stopped logging at 22:24) was wrong, and every diagnostic I ran proceeded from that wrong sentence. The UDM hadn't stopped logging. The dashboard's read of the timestamp was four hours off.
+
+Three bugs stacked, and the first one was my own:
+
+**Bug 5a (operator error): four-hour timezone skew.** UDM sends RFC3164 BSD syslog timestamps. RFC3164 has **no timezone field**. The Vector syslog source has a global `timezone:` config that I had set to `UTC`. I expected Vector to assume `UTC` for naive BSD timestamps from the configured source. **It does not.** Vector's syslog source documents this: the global `timezone:` is for the parsed message, not for the syslog framing. BSD timestamps with no zone are parsed as the container's local time, and the container's local time is UTC. The UDM sends in Eastern (UTC-4 in May), so every row landed four hours into the future of when the UDM actually emitted it. Querying "last hour" against a row dated four hours ahead returned nothing. The fix:
+
+```yaml
+udmpro_parser:
+  type: remap
+  source: |
+    .ts = .time_received
+```
+
+`.time_received` is Vector's ingestion timestamp, which is UTC and which I trust more than the wire ts because the wire ts is zoneless. I made the same change for the `unifi` source for consistency. Eight hours of data became visible the moment I deployed it.
+
+**Bug 5b (vendor wire bug): UDM doubled-hostname frame.** With the timestamp fixed, I queried "UDM rows in the last 10 minutes" and got 221 of them, and every single one had `event_type` unset. Which meant the materialized view for `firewall_events` was getting **zero rows**, which meant the LOG LAKE tab was empty for the marquee firewall use case.
+
+Sample message, raw from the wire:
+
+```text
+<13>May 29 18:04:11 UDM-Pro UDM-Pro [PREROUTING-DNAT-4] DESCR=PortForward DNAT [qBittorrent] IN=eth9 OUT=br0 SRC=185.180.143.213 DST=24.150.122.46 PROTO=TCP SPT=42103 DPT=6881
+```
+
+The frame has `UDM-Pro` twice. RFC3164 has one hostname slot. Vector's syslog parser fills the hostname slot from the first `UDM-Pro`, and then consumes the second `UDM-Pro` as the syslog `appname`. Then it consumes `[PREROUTING-DNAT-4]` as the `procid`. Then `.message` begins at `DESCR=...`. The netfilter chain tag `[PREROUTING-DNAT-4]` is now in the `procid` field, not in the message.
+
+My `parse_udmpro` VRL transform had three regex shapes. Shape 3, the firewall shape, required a leading `[TAG]` at the start of the message. With `.message` starting at `DESCR=`, Shape 3 matched zero rows. `event_type` never got set to `firewall`. The MV's `WHERE event_type = 'firewall'` filter rejected every row.
+
+The fix: make the `[TAG]` prefix optional in Shape 3, and extract the tag from `.procid` if `.message` doesn't have one. Two lines. The MV started getting rows the moment Vector reloaded.
+
+**Bug 5c (the meta-bug): action was still "unknown" for every row.** With the MV filling, I ran the first real LOG LAKE query: "show me everything from `firewall_events` in the last 90 seconds." 159 rows. Every single one had `action = 'unknown'`.
+
+The first instinct was to fix the parser to recover the netfilter tag from the doubled-hostname frame more aggressively, on a separate bytes-codec syslog source path. This was the proposed-rewrite path. It was non-trivial. Two parser paths, one UDP listener split into two on a second port, a bytes-codec source so I could see the literal frame bytes and reconstruct the tag from positions the syslog parser had thrown away.
+
+I almost wrote it. I didn't write it. Section coming up.
+
+## The Vetoed Rewrite, and the Operator Toggle That Replaced It
+
+I had a draft of the bytes-codec rewrite open in a buffer and I was 40 minutes into it when I checked in with the persona team on the proposed approach. The captain agent's response was the day's most useful redirect.
+
+The redirect's two questions:
+
+1. What is the actual distribution of `action` values you need to surface?
+2. Why is the UDM only logging this one kind of event?
+
+I went and ran a live cardinality query on `firewall_events`:
+
+```sql
+SELECT
+    action,
+    multiIf(descr ILIKE '%dnat%', 'dnat',
+            descr ILIKE '%block%', 'block',
+            descr ILIKE '%allow%', 'allow',
+            'other') AS inferred,
+    count(*) AS n
+FROM firewall_events
+WHERE ts >= now() - INTERVAL 24 HOUR
+GROUP BY action, inferred
+ORDER BY n DESC
+```
+
+Result: 159,909 rows, 100% of them with `action = 'unknown'`, 100% of them with `inferred = 'dnat'`. Zero drops. Zero accepts. Zero rejects. Zero other.
+
+The UDM was logging exactly one thing: PREROUTING DNAT events for the qBittorrent port-forward. That was it. Not because the firewall wasn't dropping or accepting traffic, but because the UDM by default doesn't log accept/drop events on its WAN firewall. Per-rule logging is an opt-in checkbox in the UniFi UI that I'd never enabled.
+
+So the bytes-codec rewrite would've done the work of parsing tags out of doubled-hostname frames, and it would've parsed `[PREROUTING-DNAT-4]` for the only kind of row the UDM was emitting, and the LOG LAKE panel would still have shown nothing useful for drop/accept analysis.
+
+The redirect was: **enable per-rule logging in the UniFi UI, then look at the wire again**. I clicked the checkbox. WAN-scan drops started flowing at roughly 33 per minute. Now I had real data.
+
+And the data revealed the simpler fix. Every row that had `action = 'unknown'` also had a `descr` field that carried the verdict in human-readable English: `[WAN_LOCAL]Block All Traffic`, `PortForward DNAT [qBittorrent]`, `[LAN_LAN]Allow All Traffic`. The doubled-hostname frame had cost me the netfilter tag, but the `descr` field had been there the whole time. It's the kind of detail you'd never look at until you needed it.
+
+Migration `0017_firewall_events_action_from_descr.sql` recreated the MV with a case-insensitive descr fallback:
+
+```sql
+multiIf(
+    -- explicit tag-based derivation, when the tag is present
+    fields['tag'] ILIKE '%block%' OR fields['tag'] ILIKE '%drop%', 'drop',
+    fields['tag'] ILIKE '%allow%' OR fields['tag'] ILIKE '%accept%', 'accept',
+    fields['tag'] ILIKE '%dnat%', 'dnat',
+    -- descr fallback, for doubled-hostname frames where the tag is lost
+    fields['descr'] ILIKE '%block%' OR fields['descr'] ILIKE '%drop%', 'drop',
+    fields['descr'] ILIKE '%allow%' OR fields['descr'] ILIKE '%accept%', 'accept',
+    fields['descr'] ILIKE '%dnat%', 'dnat',
+    'unknown'
+) AS action
+```
+
+Tag-first, descr-second. The tag wins when it is present (other source paths, future firmware fixes). The descr wins when the tag is missing (today's UDM). Forward-only: old rows with `action = 'unknown'` stay that way and age out via the 180-day TTL. New rows get the descr-derived verdict.
+
+Live verification 90 seconds later: 11 `drop` rows, 21 `dnat` rows. `POST /api/siem/query {action: 'drop'}` returned real inbound-WAN drops including the WAN-scan attempts the UDM had been silently dropping since I plugged it in.
+
+<Stop title="The Durable Lesson From the Vetoed Rewrite">
+Before any parse-enhancement, run a live cardinality query on the target column. If the distribution is degenerate, the fix is almost certainly upstream (source config, sender config) or moot. The bytes-codec rewrite would have been a real piece of engineering, and it would have parsed the right thing about the wrong rows, and the panel would still have been empty for everything that mattered. Cheap diagnostic before expensive surgery.
+</Stop>
+
+### Before and After: firewall_events.action
+
+| Window | Before 0017 | After 0017 |
+|---|---|---|
+| Last 10 min, all sources | 221 rows, 100% `unknown` | 221 rows, ~50% `dnat`, ~50% `drop`, 0% `unknown` |
+| Last 90s, action=drop | 0 rows | 11 rows (organic WAN-scan drops) |
+| Last 90s, action=dnat | 0 rows | 21 rows (qBittorrent port-forward) |
+| All-time `unknown` count | 159,909 (and rising) | 159,909 (frozen, aging out via 180d TTL) |
+
+Old rows are not retroactively fixed. That is by design. Backfilling a MV against `raw_syslog` for 180 days would be a real query and a real disk-IO event. Forward-only fix, age-out the past, accept the gap.
+
+## The Ingestion Pipeline, End to End
+
+The shape of the LOG LAKE pipeline, with all five bug fixes applied, looks like this. UDM Pro and Pi-hole and UAPs push syslog UDP 5140 to Vector on the Mac mini. Vector routes by hostname (post Bug 3), parses with VRL (post Bug 5), writes `raw_syslog`. The `firewall_events` MV fires on every insert (post 0016, 0017) and projects typed rows. The Mission Control backend exposes two endpoints. The LOG LAKE panel reads them.
+
+<SiemLoglakeIngestionDiagram caption="LOG LAKE ingestion pipeline as deployed. Lane 1 (syslog) covers UDM Pro and Pi-hole, with the post-deploy fixes: hostname-based routing in Vector, .ts = .time_received for BSD timestamp normalization, optional [TAG] in the UDM parser, descr fallback in firewall_events. Lane 2 (REST poll) covers UniFi and Pi-hole API snapshots. Lane 3 (operator and Claude Code) covers SQLite reference writes." />
+
+If you'd rather read this as slides, the deck version is here: [LOG LAKE Panel slide deck (PDF)](/blog/home-network-mission-control-dashboard-log-lake-panel/slides.pdf). Same arc as the post, fewer words per page.
+
+## Lessons Learned
+
+<Tip title="When a server enforces a profile, the client must defer">
+The dev environment used a default-permission user. Production used a server-side readonly profile. The driver tries to set settings on the session; a server-readonly session rejects them. Lesson: audit every client-set option that overlaps with a server-side profile. Bug 1.
+</Tip>
+
+<Tip title="Project-wide helpers need a search at every merge, not just at introduction">
+`naive_utc_now()` exists for the exact bug class that crashed the poll job every five minutes for hours. The Gmail heartbeat path was added after the helper migration and used `datetime.utcnow()` directly. Lesson: when a helper supersedes an anti-pattern, search for the anti-pattern at every PR, not just at the migration. Bug 2.
+</Tip>
+
+<Tip title="Vendor moves matter">
+Pi-hole v6 moved the dnsmasq log path. The rsyslog forwarder was tailing a frozen file for 20 days. Lesson: any sender-side file path is a vendor-policy dependency. Treat it as something that can move during a routine upgrade. Bug 3a.
+</Tip>
+
+<Tip title="UDP source IPs are not reliable on macOS Docker Desktop">
+The Docker Desktop VM gateway rewrites inbound UDP source IPs. Vector's source-IP routing rule never matched. Route on a payload field (hostname), not on the framing-layer source IP. Bug 3b.
+</Tip>
+
+<Tip title="Inode rewrite does not always bust the macOS bind-mount cache">
+A trick that works on other projects (tmp file plus mv) did not work here. `docker compose up -d --force-recreate --no-deps` did. Lesson: when a config change does not take effect, force-recreate before debugging the config. Bug 4.
+</Tip>
+
+<Tip title="BSD syslog timestamps are zoneless and Vector's global timezone does not apply">
+RFC3164 has no zone field. Vector parses naive BSD timestamps as container-local. Use `.ts = .time_received` for any source that emits BSD timestamps from a different time zone than the Vector container. Bug 5a.
+</Tip>
+
+<Tip title="Run a live cardinality query before any parse rewrite">
+The bytes-codec rewrite was a real piece of engineering aimed at the wrong row distribution. One `SELECT action, count(*) GROUP BY action` told me the UDM was logging exactly one kind of event. The fix was an operator-side checkbox, not a parser. Bug 5c.
+</Tip>
+
+<Tip title="A descr-style human-readable field is a parser of last resort">
+The netfilter tag was lost to a doubled-hostname frame. The descr field carried the same information in English. A case-insensitive descr fallback in the MV beat a Vector source rewrite. Lesson: when a typed field is lost upstream, look for a human-readable peer field that carries the same semantics. Bug 5c.
+</Tip>
+
+<Info title="The persona team's job is to redirect, not just to review">
+Three of the four persona reviews on the plan doc rewrote the `firewall_events` schema. One of them (operator) rewrote the ingestion strip. And on deploy day, the captain agent vetoed the bytes-codec rewrite in favor of two cheap moves. None of those are "code review" in the LGTM sense. All of them changed the shape of what got shipped.
+</Info>
+
+## The Numbers at Merge
+
+| Metric | Value |
+|---|---|
+| Backend pytest | 1193 passed |
+| Frontend vitest | 351 passed |
+| Playwright e2e | full pass |
+| Migrations added (ClickHouse) | 2 (`0016`, `0017`) |
+| Migrations added (SQLite) | 1 (`alembic 0015`) |
+| Backend endpoints added | 3 (`GET /api/siem/ingestion`, `POST /api/siem/query`, `GET /api/siem/query/fields`) |
+| Frontend components added | LogLakePage, ingestion strip, GUI builder, results table, display string row |
+| Lines of code (net) | ~+3100 (incl. tests and frontend) |
+| Production bugs found on deploy day | 5 |
+| Production bugs that pre-dated the deploy | 4 (Bugs 2, 3a, 3b, 4) |
+| Production bugs the LOG LAKE deploy itself introduced | 1 (Bug 1) |
+| Production bug the LOG LAKE deploy exposed but did not introduce | Bug 5b, 5c (UDM frame and action distribution were always like this) |
+
+The bug-attribution row is the one I want to flag for the next post. Of the five bugs caught on deploy day, only one was actually caused by the LOG LAKE deploy. Four had been broken for hours, days, or weeks. The dashboard had not surfaced them because no other panel was looking. LOG LAKE was the first panel to look.
+
+## Patterns Worth Carrying Forward
+
+**A typed materialized view's cheaper than parameterized raw queries.** `firewall_events` is one migration. Every query against it is a column-pruned scan with the right sort key. The cost of designing the schema (one pass with the persona team) was the same as the cost of writing a single ad-hoc parameterized query, and the typed view paid for itself by the third query.
+
+**The GUI builder and the display string come from one AST.** Two renderers, one source of truth. The user can read the syntax they did not type. The frontend cannot construct an SQL string the backend would refuse. Both checks are the same check.
+
+**The ingestion-health strip is the test rig for its own pipeline.** Wave 1 caught the ICMP VRL bug because the strip surfaced parse-error rates per source. The first thing a panel like this is good for is finding bugs in itself. That's not an accident; it's the same principle as a smoke test that exercises the path it's named for.
+
+**Forward-only is a real shape, not a cop-out.** Migration 0017 did not backfill 159,909 rows. It rolled the MV forward and let old rows age out via the existing TTL. Backfilling a MV against `raw_syslog` for 180 days is a real query. The shape "new code, new rows, old rows age" is the same shape that worked for the `naive_utc_now()` migration in Phase 3. Cheap fix, accept the gap.
+
+**Run live cardinality on the target column before parser surgery.** The vetoed bytes-codec rewrite is the case study. The bug was upstream (UDM not logging accept/drop by default). The fix that would have eaten an afternoon would have parsed the right tag from the wrong rows.
+
+## What's Next
+
+The companion post on the Claude Code Workflow side covers the merge story: this PR (#19) grew to 8 commits, got marked MERGED with only 3 of 8 landed when its base branch moved mid-stack, and was recovered via PR #20 and PR #21, and then weeks later the whole thing landed on `main` via PR #23. The blog post you are reading is the build story. The companion post is the "what to do when GitHub's PR state and your commits disagree" story.
+
+For the dashboard itself, the next visible feature is east-west log visibility. `firewall_events` is firewall-only by design (the persona team made that explicit). LAN-to-LAN intra-VLAN visibility is a different kind of log, and it lives on a different scope. That is a future tab, not a LOG LAKE expansion. The Backlog tracks it as FUT-1.
+
+The thing about the LOG LAKE panel is that I built it for me, the single operator who reboots the Mac mini for OS updates, and I didn't have to learn anyone else's query language to use it. I sat down on Wednesday, clicked into the tab, picked `action = drop` and `time_window = 1h`, and saw real WAN-scan drops on my home network for the first time. Not because I figured out the syntax. Because the panel did the figuring out for me. That's the version of "a SIEM you can actually search" that this build was aiming at.
