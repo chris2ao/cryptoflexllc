@@ -2,7 +2,7 @@
  * Tests for IP-based rate limiting utility
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import { createRateLimiter, getClientIp } from "../rate-limit";
 import { NextRequest } from "next/server";
 import type { NeonQueryFunction } from "@neondatabase/serverless";
@@ -109,14 +109,14 @@ describe("createRateLimiter (in-memory fallback)", () => {
 });
 
 describe("createRateLimiter (database-backed)", () => {
-  let mockSql: MockedFunction<NeonQueryFunction<false, false>>;
+  let mockSql: Mock<NeonQueryFunction<false, false>>;
 
   beforeEach(() => {
     // Set DATABASE_URL to enable database mode
     process.env.DATABASE_URL = "postgresql://test:test@localhost/test";
 
     // Mock the getDb function
-    mockSql = vi.fn();
+    mockSql = vi.fn<NeonQueryFunction<false, false>>();
     vi.doMock("@/lib/analytics", () => ({
       getDb: () => mockSql,
     }));
