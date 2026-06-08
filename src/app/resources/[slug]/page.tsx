@@ -101,6 +101,7 @@ export default async function ResourceDetailPage({ params }: Props) {
               />
             ) : /\.(png|jpe?g|gif|webp|svg)$/i.test(resource.downloadPath) ? (
               <div className="rounded-lg border border-border overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element -- dynamic resource path, not a build-time asset */}
                 <img
                   src={resource.downloadPath}
                   alt={resource.title}

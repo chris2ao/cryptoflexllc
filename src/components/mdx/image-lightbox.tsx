@@ -58,7 +58,7 @@ export function ImageLightbox(
           }
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img {...props} className="w-full h-auto rounded" />
+          <img {...props} alt={props.alt ?? ""} className="w-full h-auto rounded" />
           <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-md bg-zinc-800/80 px-2 py-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
             <svg
               width="12"

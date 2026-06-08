@@ -196,9 +196,6 @@ export function CommandPalette({ posts }: CommandPaletteProps) {
           flex flex-col
         "
         style={{ boxShadow: "0 0 0 1px oklch(0.72 0.17 192 / 0.15), 0 20px 60px oklch(0 0 0 / 0.6)" }}
-        role="combobox"
-        aria-expanded="true"
-        aria-haspopup="listbox"
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-primary/15">
@@ -216,6 +213,9 @@ export function CommandPalette({ posts }: CommandPaletteProps) {
               focus:outline-none
             "
             aria-label="Search"
+            role="combobox"
+            aria-expanded={results.length > 0}
+            aria-haspopup="listbox"
             aria-autocomplete="list"
             aria-controls="command-palette-list"
             aria-activedescendant={
