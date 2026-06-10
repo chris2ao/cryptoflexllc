@@ -14,10 +14,12 @@ function formatTimestamp(ts: string): string {
 }
 
 function runStatus(run: GmailRun): string {
-  if (run.circuit_breaker_triggered) return "CIRCUIT BREAK";
-  if (run.errors.length > 0) {
-    const first = run.errors[0];
-    return first.length > 30 ? first.slice(0, 27) + "..." : first;
+  if (run.circuit_breaker_tripped || run.status === "circuit_broken") {
+    return "CIRCUIT BREAK";
+  }
+  if (run.status === "error") {
+    const msg = run.error ?? "ERROR";
+    return msg.length > 30 ? msg.slice(0, 27) + "..." : msg;
   }
   return "OK";
 }
@@ -25,20 +27,20 @@ function runStatus(run: GmailRun): string {
 export function GmailRunsPanel({ runs }: { runs: GmailRun[] }) {
   const headers = [
     "Date",
-    "Processed",
-    "Promo Trashed",
-    "NL Trashed",
-    "Kept",
+    "Scanned",
+    "Trashed",
+    "Archived",
+    "Flagged",
     "Duration",
     "Status",
   ];
 
   const rows = runs.map((r) => [
-    formatTimestamp(r.timestamp),
-    String(r.emails_processed),
-    String(r.promotions_trashed),
-    String(r.newsletters_trashed),
-    String(r.primary_kept),
+    formatTimestamp(r.started_at),
+    String(r.messages_scanned),
+    String(r.messages_trashed),
+    String(r.messages_archived),
+    String(r.messages_flagged),
     `${r.duration_seconds}s`,
     runStatus(r),
   ]);
@@ -46,7 +48,7 @@ export function GmailRunsPanel({ runs }: { runs: GmailRun[] }) {
   return (
     <PanelWrapper
       title="Gmail Assistant Runs"
-      tooltip="Recent runs of the Gmail assistant showing processed, trashed, and kept counts plus error state."
+      tooltip="Recent runs of the gmail-agent showing scanned, trashed, archived, and flagged counts plus error state."
     >
       <DataTable
         title=""

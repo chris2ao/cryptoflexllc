@@ -348,31 +348,26 @@ export interface SearchQueryRow {
 
 // ---- Claude Automation types ----
 
-/** Single run record from the Gmail assistant */
+/** Single run record from the gmail-agent (v4 standalone Python agent).
+ * Exported by /gmail-metrics-export from ~/.cache/gmail-agent/run-metrics.jsonl;
+ * duration is computed and the details map is flattened at export time. */
 export interface GmailRun {
-  timestamp: string;
-  account: string;
+  run_id: string;
+  started_at: string;
+  ended_at: string | null;
+  status: "success" | "error" | "circuit_broken" | "running" | "unknown";
   duration_seconds: number;
-  sync_mode?: string;
-  emails_processed: number;
-  promotions_trashed: number;
-  promotions_rescued?: number;
-  social_trashed?: number;
-  social_rescued?: number;
-  newsletters_trashed: number;
-  newsletters_rescued?: number;
-  primary_kept: number;
-  primary_archived?: number;
-  primary_trashed?: number;
-  primary_flagged?: number;
-  urgent_count?: number;
-  vip_overrides?: number;
-  security_threats_detected?: number;
-  drafts_generated?: number;
-  pending_replies?: number;
+  messages_scanned: number;
+  messages_trashed: number;
+  messages_archived: number;
+  messages_flagged: number;
+  filters_created?: number;
+  unsubscribes_succeeded?: number;
+  cost_usd?: number;
+  circuit_breaker_tripped?: boolean;
+  agent_version?: string;
   attention_email_sent?: boolean;
-  errors: string[];
-  circuit_breaker_triggered?: boolean;
+  error?: string | null;
 }
 
 /** Single session archive entry from the local Claude Code install */

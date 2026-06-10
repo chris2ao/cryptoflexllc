@@ -1164,14 +1164,11 @@ function ClaudeAutomationSection() {
   const sessions = sessionArchiveRaw as unknown as SessionEntry[];
 
   const totalRuns = gmailRuns.length;
-  const totalProcessed = gmailRuns.reduce((s, r) => s + r.emails_processed, 0);
-  const totalTrashed = gmailRuns.reduce(
-    (s, r) => s + r.promotions_trashed + r.newsletters_trashed,
-    0
-  );
+  const totalProcessed = gmailRuns.reduce((s, r) => s + r.messages_scanned, 0);
+  const totalTrashed = gmailRuns.reduce((s, r) => s + r.messages_trashed, 0);
   const totalDuration = gmailRuns.reduce((s, r) => s + r.duration_seconds, 0);
   const avgDuration = totalRuns > 0 ? Math.round(totalDuration / totalRuns) : 0;
-  const totalErrors = gmailRuns.reduce((s, r) => s + r.errors.length, 0);
+  const totalErrors = gmailRuns.filter((r) => r.status === "error").length;
 
   // Build chart data: newest first, trim to last 30, then reverse for chronological display
   function formatChartLabel(ts: string): string {
@@ -1181,14 +1178,14 @@ function ClaudeAutomationSection() {
 
   const chartData = gmailRuns
     .slice()
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
     .slice(0, 30)
     .reverse()
     .map((r) => ({
-      label: formatChartLabel(r.timestamp),
-      processed: r.emails_processed,
-      trashed: r.promotions_trashed + r.newsletters_trashed,
-      kept: r.primary_kept,
+      label: formatChartLabel(r.started_at),
+      processed: r.messages_scanned,
+      trashed: r.messages_trashed,
+      archived: r.messages_archived,
     }));
 
   const automationKpis = [

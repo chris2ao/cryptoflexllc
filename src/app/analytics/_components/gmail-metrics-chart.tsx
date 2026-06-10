@@ -12,7 +12,7 @@ export interface GmailMetricsChartEntry {
   label: string;
   processed: number;
   trashed: number;
-  kept: number;
+  archived: number;
 }
 
 const chartConfig = {
@@ -24,8 +24,8 @@ const chartConfig = {
     label: "Trashed",
     color: "var(--chart-3)",
   },
-  kept: {
-    label: "Kept",
+  archived: {
+    label: "Archived",
     color: "var(--chart-2)",
   },
 } satisfies ChartConfig;
@@ -51,7 +51,7 @@ export function GmailMetricsChart({ data }: { data: GmailMetricsChartEntry[] }) 
             <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={0.3} />
             <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0} />
           </linearGradient>
-          <linearGradient id="fillGmailKept" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="fillGmailArchived" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
             <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
           </linearGradient>
@@ -81,9 +81,9 @@ export function GmailMetricsChart({ data }: { data: GmailMetricsChartEntry[] }) 
           strokeWidth={2}
         />
         <Area
-          dataKey="kept"
+          dataKey="archived"
           type="monotone"
-          fill="url(#fillGmailKept)"
+          fill="url(#fillGmailArchived)"
           stroke="var(--chart-2)"
           strokeWidth={2}
         />
