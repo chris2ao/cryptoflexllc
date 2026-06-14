@@ -20,9 +20,9 @@ coverImageAlt: "Infographic of the issue-to-release journey for unifi-mcp: issue
 
 import {} from '@/components/mdx';
 
-Someone I have never met filed a bug against my open-source project, and one of the two bugs was the kind that lies to you. The tool returned `rc: ok`, HTTP 200, the universal signal for "it worked." It had not worked. Nothing had changed.
+Someone I have never met filed a bug against my open-source project, and one of the two bugs was the kind that lies to you. The tool returned `rc: ok` and HTTP 200, then nothing on the device actually changed. A green checkmark over a write that did nothing is a specific kind of bug, and it is the one I want to start with.
 
-That was issue #5 against [unifi-mcp](https://github.com/chris2ao/unifi-mcp), the unified UniFi Network and Protect MCP server I [built over three days](/blog/building-a-custom-unifi-mcp-103-tools-across-three-days) and have been [dogfooding](/blog/dogfooding-the-unifi-mcp-homenet-document-and-the-bug-it-found) ever since. This post is the whole arc: from the report, to the fix, to a published release that users can actually install. The fix is the easy part. The release hygiene around it is the part nobody teaches you.
+That was issue #5 against [unifi-mcp](https://github.com/chris2ao/unifi-mcp), the unified UniFi Network and Protect MCP server I [built over three days](/blog/building-a-custom-unifi-mcp-103-tools-across-three-days) and have been [dogfooding](/blog/dogfooding-the-unifi-mcp-homenet-document-and-the-bug-it-found) ever since. Two real port-forward bugs, a couple of edits to fix, and then the longer tail: turning a merged fix into a release a stranger can actually install.
 
 ![Infographic of the issue-to-release journey for unifi-mcp: issue #5 reports two port-forward bugs, the fix flows into PR #6 with Resolves #5, a squash-merge to main, a SemVer patch bump to v0.4.1, a Keep-a-Changelog entry, a git tag plus published GitHub Release marked Latest, and the issue closed with an explanatory note.](/blog/from-bug-report-to-release-maintaining-an-open-source-mcp/infographic.png)
 
@@ -101,7 +101,7 @@ if not data:
 A successful update echoes the changed rule in `data`. An empty array means the controller accepted the request and persisted nothing. That is now `executed: false` with a plain-English error, not `executed: true`. A non-persisting write is no longer reported as success.
 
 <Tip title="Surface the no-op as a failure">
-When an API can return success-shaped responses that did not actually do anything, make your wrapper assert on the result, not the status code. The honest failure ("the update did not persist") is infinitely more useful to a caller than a cheerful lie.
+When an API can return success-shaped responses that did not actually do anything, make your wrapper assert on the result, not the status code. The honest failure ("the update did not persist") is far more useful to a caller than a cheerful lie.
 </Tip>
 
 The extras: `update_port_forward` now accepts the forward target as either `fwd` or `fwd_ip` and normalizes both to `fwd`, so callers do not have to know the controller's field name. `create_port_forward` gained an optional `pfwd_interface` parameter for dual-WAN binding. And I added regression tests for both bugs. The full suite landed at 232 passed, 19 skipped.
@@ -118,7 +118,7 @@ The same story in two slides: the two bugs first, then the write-path fix that t
 
 ## Merging Is Not Releasing
 
-Here is the part I actually want to talk about, because the code fix is the easy 20 percent. The other 80 percent is the hygiene that turns a fix into something a stranger can install and trust.
+The code fix was the small part. The bigger part is the hygiene that turns a merged fix into something a stranger can install and trust.
 
 I worked the change on a branch named `fix/port-forward-tools-issue-5`. Descriptive branch names are free documentation: anyone scanning the branch list knows exactly what it is and which issue it maps to.
 
@@ -206,7 +206,7 @@ The `Resolves #5` line did its job: merging PR #6 auto-closed issue #5. I could 
 
 I did not. I added a closing comment that mapped each of the two bugs to its specific fix and linked the v0.4.1 release.
 
-The thing about a silent close is that it teaches nobody. Someone lands on issue #5 six months from now, sees a closed issue, and has no idea what actually happened or which version fixed it. They have to go spelunking through commits to find out. A closed issue with a note is documentation. A closed issue with no note is a dead end with a green checkmark.
+A silent close teaches nobody. Someone lands on issue #5 six months from now, sees a closed issue, and has no idea what actually happened or which version fixed it. They have to go spelunking through commits to find out. A closed issue with a note is documentation. A closed issue with no note is a dead end with a green checkmark.
 
 <Tip title="Close issues with a paper trail">
 Even when an auto-close fires, leave a human comment: what was wrong, what fixed it, and which release carries the fix. The person who reads that closed issue later is often the most underserved reader in your whole project. Serve them.
@@ -218,24 +218,8 @@ That whole chain, from a fix branch to a published release to an issue closed wi
 
 ## Lessons Learned
 
-The code fix for issue #5 was a couple of small edits. The work that made it a real release was everything around the code.
+Four things I will carry into the next issue, none of them new, all of them things I have gotten wrong at least once. A merge is not a release, so I check whether "Latest" actually moved before I call anything shipped. The SemVer level follows impact, not how much code the fix took, so a backward-compatible bug fix stays a patch even when it touches a lot. Issue references in a changelog turn a flat list into something you can navigate six months later. And a wrapper sitting in front of an API that returns 200 on a no-op has to assert on the body, because the status code will lie to you.
 
-<Tip title="Merged is not released">
-A merged PR lives on your default branch. A release is a tag plus a published Release object. For anything users install, the release is the deliverable, not the merge. Always check whether "Latest" actually moved.
-</Tip>
-
-<Tip title="Pick the SemVer level by impact, not by effort">
-A backward-compatible bug fix is a patch, no matter how much code it took. Ask whether existing callers must change. If not, it is a patch.
-</Tip>
-
-<Tip title="Release notes are an index into your history">
-Keep a Changelog plus issue references turns a flat list into a navigable map. What changed, why, and where to read the full story.
-</Tip>
-
-<Tip title="Make your wrapper distrust success-shaped lies">
-When an API can return 200 with an empty result on a no-op, assert on the body. An honest failure beats a cheerful lie every time.
-</Tip>
-
-The MCP is one bug lighter today than it was when issue #5 landed, and the next person who calls `update_port_forward` gets either a real success or an honest failure, never a silent lie. That is the whole job of maintaining something in public: not just fixing the bug, but shipping the fix in a form a stranger can trust, and leaving enough of a paper trail that the next stranger does not have to start from scratch.
+The MCP is one bug lighter today than it was when issue #5 landed, and the next person who calls `update_port_forward` gets a real success or an honest failure, never a silent lie. Fixing the bug was the small part. Shipping it where a stranger can find it, install it, and read why it changed was the rest.
 
 The next entry in this series will come from whatever the next issue teaches me. With luck, the bug count stays at zero for a while. History suggests it will not stay there long.
