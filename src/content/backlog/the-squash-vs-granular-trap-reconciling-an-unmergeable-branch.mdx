@@ -22,13 +22,9 @@ coverImage: /blog/the-squash-vs-granular-trap-reconciling-an-unmergeable-branch/
 coverImageAlt: Squash-vs-granular merge trap, branded NotebookLM infographic. Top panel is the ancestry gap, with main carrying the cutover as one squash commit (14a0661) and the integration branch carrying it as 161 granular commits, both descended from the pre-cutover base a965def. Middle panel is the categorization donut splitting 105 conflicted files into 94 mechanical (bulk git checkout --ours) and 11 careful (5 main supersets, 6 spliced or in-place edits). Bottom panel is the resolution playbook in numbered git commands and the final outcome, 85 files changed (+12,118/-32) with all 174 granular commits preserved as parents.
 ---
 
-105 conflicted files. 161 commits ahead of an ancestor that no longer existed on `main`. One PR that git could not merge under any normal definition of the word.
+GitHub showed PR #22 in red: CONFLICTING, 105 files. I had expected a clean merge. The branch was `siem-loglake`, where I had spent two months stacking the SIEM log-lake cutover and two more phases of work on top of it. What I had forgotten was that the trunk took that same cutover two months earlier as a single squash commit, then kept moving. By the time I opened `PR #22 (siem-loglake -> main)`, the branch sat 174 commits ahead of an ancestor that predated everything I cared about, and plain `git merge` could not reconcile the two. It was right not to try.
 
-The branch was `siem-loglake`, the integration branch that had carried the SIEM log-lake cutover and two more phases of work on top of it. The trunk had taken that same cutover two months earlier as a single squash commit, then kept moving. By the time I opened `PR #22 (siem-loglake -> main)`, GitHub flagged it as CONFLICTING across 105 files. Plain `git merge` could not do it.
-
-The fix was not heroic. It was a careful categorization step, four lines of bash, and a clear-eyed read on which side of each conflict was actually the truth. Once the categorization was right, 94 of the 105 conflicts resolved in a single while-loop. The remaining 11 got hand-merged in under an hour. The result on `main`: 85 files changed, +12,118 / -32, almost purely additive, full CI green, all 174 granular commits preserved as parents of the merge.
-
-This is the playbook.
+Landing it did not take a rebase of 174 commits or a hand-merge of all 105 files. It took a categorization pass, four lines of bash that cleared 94 of the conflicts in one loop, and about an hour of reading the other 11 carefully. The result on `main`: 85 files changed, +12,118 / -32, almost entirely additive, CI green, all 174 granular commits preserved as parents of one merge commit. Here is how it went, in order.
 
 ![Squash-vs-granular merge trap infographic. Top section is the ancestry gap: main carrying the cutover as one squash commit (14a0661) and the integration branch (siem-loglake) carrying the same cutover as 161 granular commits plus 13 more on top, both descended from the pre-cutover base a965def. A callout explains why git fails to merge: 1 squash commit vs 161 granular commits creates overlapping content with no shared modern ancestor, which is why 105 files conflicted. Middle section is the categorization donut: 94 mechanical files resolved by bulk `git checkout --ours` and 11 careful files split into 5 main supersets and 6 spliced or in-place edits. Bottom section is the resolution playbook in numbered git commands and the final outcome: 85 files changed (+12,118/-32) with all 174 granular commits preserved as parents of the merge.](/blog/the-squash-vs-granular-trap-reconciling-an-unmergeable-branch/infographic.png)
 
@@ -46,7 +42,7 @@ A squash merge takes every commit on a feature branch and collapses them into a 
 
 ## Why a Squash Merge Made It Unmergeable
 
-Here is the shape of the problem in one diagram:
+The problem in one diagram:
 
 ```text
                   a965def (pre-cutover base, last shared ancestor)
@@ -62,7 +58,7 @@ Here is the shape of the problem in one diagram:
 
 When you ask git to merge `siem-loglake` into `main`, it picks the merge base (the most recent common ancestor) and three-way-merges from there. The most recent common ancestor of `main` and `siem-loglake` is `a965def`, the pre-cutover base. Everything that happened on either branch after that point is a "change" relative to the base.
 
-That is the trap. Every file the cutover touched on either branch shows as "changed on both sides" relative to the merge base, because both sides changed it independently. Git has no way to say "actually these two changes describe the same final state." The squash commit and the 161 granular commits are not ancestors of each other. They are siblings descended from the same parent, both carrying overlapping but independently-written content.
+The trap is that every file the cutover touched on either branch shows as "changed on both sides" relative to the merge base, because both sides changed it independently. Git has no way to say "actually these two changes describe the same final state." The squash commit and the 161 granular commits are not ancestors of each other. They are siblings descended from the same parent, both carrying overlapping but independently-written content.
 
 The trunk's own additions on top of the squash (the DNS search panel in `6c13af6`, the TTL test fix `9322e4c`, the post-merge CI cleanup in `1bd4997` and `ba6ce37`) layered on more divergence. By the time `PR #22` opened, every cutover-touched file conflicted, regardless of whether the content was actually different.
 
@@ -74,11 +70,11 @@ This is the underlying mechanic behind a lot of "why won't this branch merge?" p
 
 The real fix is to categorize the merge-commit conflicts and resolve them in bulk. That is what this post is about.
 
-## The Categorization Step (The Most Important Insight)
+## The Categorization Step
 
-Not all 105 conflicts are equal. The killer insight is that most of them are conflicts in name only. The squash commit's content and the integration branch's content describe the same files. The integration branch has the more evolved version (because it kept getting touched), so taking the integration branch's version is correct for the vast majority of files.
+Not all 105 conflicts are equal. Most of them are conflicts in name only. The squash commit's content and the integration branch's content describe the same files, and the integration branch has the more evolved version because it kept getting touched. So taking the integration branch's version is correct for the vast majority of files.
 
-The killer command is:
+One command splits the real conflicts from the fake ones:
 
 ```bash
 git diff --name-only 14a0661 origin/main
@@ -109,7 +105,7 @@ The 105 split cleanly:
 | `msw-handlers.ts` | 1 | `--ours` (had unique gmail + SIEM mock handlers) |
 | `query-keys.ts`, `types.ts`, `DnsPage.test.tsx` | 3 | edit in place (small / blank-line conflicts) |
 
-The 94 in the first row are the win. Every one of them is a file the squash commit touched as part of the cutover, that the integration branch then evolved further. Taking the integration branch's version preserves the evolution and overwrites the now-stale squash version of the same content.
+The 94 in the first row are the easy ones. Every one of them is a file the squash commit touched as part of the cutover, that the integration branch then evolved further. Taking the integration branch's version preserves the evolution and overwrites the now-stale squash version of the same content.
 
 The next four rows are the careful set. Each one needs a per-file decision.
 
@@ -224,7 +220,7 @@ The line numbers for the splice (482 to 652) came from a one-time read of main's
 
 The verification step matters. `py_compile` confirms the splice did not leave a syntax error or a dangling block. `grep -n 'def dns_search'` confirms main's contribution is present. `grep -n 'argMax'` confirms the integration branch's contribution survived.
 
-The last three files (the in-place edits) needed a different approach. That is the next gotcha, and it deserves its own callout.
+The last three files, the in-place edits, needed a different approach.
 
 ```bash
 # 6. Commit the content-resolution merge.
@@ -241,7 +237,7 @@ The merge commit's content was correct. The merge commit's *formatting* was not.
 
 The cause: when `1bd4997` and `ba6ce37` landed on main as the post-cutover lint cleanup, they applied `ruff --fix` and `ruff format` to the trunk's cutover-touched files. The integration branch never received that cleanup. When I took `--ours` on Group 1 (94 files), I pulled the pre-cleanup formatting along with the evolved content.
 
-This is a general failure mode worth naming: **when you take `--ours` on a file the trunk has reformatted, you take the unreformatted version with it.** The reformatting is content from the trunk's perspective, but it is "the wrong version of identical content" from the merge tool's perspective, and `--ours` discards it.
+Taking `--ours` on a file the trunk has reformatted pulls the unreformatted version along with the content. The reformatting is real content from the trunk's side, but to the merge tool it is the wrong version of identical content, and `--ours` discards it.
 
 The diagnostic is short. If main's tip (which passed CI) passes `make format-check` locally, then your local ruff is at parity with CI and reformatting is safe.
 
@@ -262,10 +258,10 @@ git add -u
 git commit -m "style: reproduce main's ruff + prettier cleanup on merged content"
 ```
 
-That becomes `2a841b1`. Separate from the merge commit, mirrors how main got its own `1bd4997` and `ba6ce37`. Easy to revert. Easy to inspect.
+That becomes `2a841b1`. It mirrors how main got its own `1bd4997` and `ba6ce37`, and it stays easy to revert and inspect.
 
 <Info title="Why a separate commit and not a merge-commit amendment">
-Folding the cleanup into the merge commit conflates two different changes: "merged content from main" and "ran the formatter." Keeping them separate makes the merge commit's diff readable (it shows the content reconciliation only) and the cleanup commit's diff readable (it shows the formatter's footprint only). When you have to come back to this in six months, you will be grateful for the separation.
+Folding the cleanup into the merge commit conflates two different changes: "merged content from main" and "ran the formatter." Keeping them separate makes the merge commit's diff readable (it shows the content reconciliation only) and the cleanup commit's diff readable (it shows the formatter's footprint only). When you come back to this in six months, the separation is what keeps each diff readable and each commit revertible on its own.
 </Info>
 
 ## The zip(strict=True) Autofix Trap
@@ -331,7 +327,7 @@ gh pr create --base main --head reconcile/loglake-to-main \
 
 That became `PR #23`. CI ran independently of the original conflicted PR: backend tests 6m1s, frontend tests 2m7s, e2e Playwright 1m39s, all green. The diff shipped as 85 files changed, +12,118 / -32. Almost purely additive, which is what you want from a long-overdue integration merge: it should look like you added a feature, not like you rewrote half the codebase.
 
-I merged with a merge commit, not a squash. The merge commit (`b9be7c4`) preserves all 174 granular commits as parents. The branch history is intact; the trunk history is linear; both views are correct.
+I merged with a merge commit, not a squash. The merge commit (`b9be7c4`) preserves all 174 granular commits as parents. The branch history stays intact and the trunk history stays linear. Both views are correct.
 
 Then the cleanup step that prevents this from recurring:
 
@@ -378,22 +374,12 @@ This is not the first git ordering trap I have written up on this site. Two earl
 
 ## Lessons Learned
 
-A few worth carrying forward.
+The squash-merge trade-off is the one I keep relearning. Squash keeps the trunk's history clean, but it leaves any long-lived branch still holding the un-squashed version permanently re-conflicting with itself. So squash the short-lived branches that get deleted on merge, and use merge commits for branches that still have people building on them.
 
-**The squash-merge trade-off is one-way.** Squash merges keep the trunk's history pretty, but they make any long-lived branch that holds the un-squashed version permanently re-conflicting with itself. Pick squash for short-lived feature branches that will be deleted on merge. Pick merge commits for branches with downstream consumers.
+Most of the rest comes down to two habits. Categorize before you resolve: with hundreds of conflicts, the actual work is sorting the mechanical ones from the per-file decisions, and getting that 94-vs-11 split right is what made everything after it cheap. And keep in mind that `--ours` and `--theirs` are whole-file, so any region git auto-merged from the side you did not pick goes out with the rest of it. For files where both sides contributed, edit the markers by hand.
 
-**Categorization beats resolution.** The hard work in any merge with hundreds of conflicts is not the resolution. It is figuring out which conflicts can be resolved mechanically and which need a per-file decision. The 94-vs-11 split was the entire win.
+Two diagnostics earned their keep. If `main` passes CI but fails `make format` locally, your local tools have drifted from CI's, and reformatting before you pin them just trades one divergence for another. And if the trunk reformatted files after the squash, that cleanup is its own commit sitting on top of the merge, never folded into it.
 
-**`git checkout --ours/--theirs` is whole-file.** Auto-merged regions get dropped if they come from the side you did not pick. For any file where both sides contributed content, edit the markers in place.
+The last step is the one that stops the trap from coming back: fast-forward the integration branch to match the trunk once the reconcile lands. One command. Saves a future-you an afternoon.
 
-**Reformatter cleanups travel with their content.** If the trunk applied a formatter after the squash, you have to reproduce that formatter run on the merged result. It is its own commit. It is not part of the merge.
-
-**Local-vs-CI tool parity is a real diagnostic.** If `main` passes CI but fails `make format` locally, your tools have drifted from CI's. Pin them before reformatting anything else.
-
-**Fast-forward the integration branch as the last step.** The trap recurs unless you reset the integration branch to match the trunk after the reconcile lands. One command. Saves a future-you afternoon.
-
-The mechanical step (94 files in a `while` loop) was the satisfying part. The careful step (10 files, hand-merged with `git diff :2:<file> :3:<file>` open in another pane) was the slow part. The categorization step was the part that made the rest of it possible.
-
-If you maintain a long-lived integration branch against a squash-merging trunk, this trap is going to find you. When it does, the playbook is above. The branch will merge. The history will be intact. The trunk will move forward with all the work preserved as parents of one merge commit.
-
-That is the shape that worked.
+The mechanical step, 94 files in a `while` loop, took under a minute. The careful step, 10 files hand-merged with `git diff :2:<file> :3:<file>` open in another pane, took most of the afternoon. If you keep a long-lived integration branch against a squash-merging trunk, this trap will find you eventually. When it does, the branch merges, the granular history survives as parents of one commit, and the trunk moves on with all the work intact.

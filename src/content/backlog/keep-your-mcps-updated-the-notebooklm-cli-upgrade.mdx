@@ -14,7 +14,7 @@ coverImageAlt: "Infographic summarizing the stale MCP story: a re-auth banner re
 
 import {} from '@/components/mdx';
 
-I was two minor versions behind on `notebooklm-mcp-cli` and didn't know it until a re-auth banner interrupted a session. The gap was 0.5.25 to 0.7.2. Catching it by accident is the part worth writing about.
+I was two minor versions behind on `notebooklm-mcp-cli` and didn't know it until a re-auth banner interrupted a session. The gap was 0.5.25 to 0.7.2, two minor releases of fixes and features that had shipped without my noticing any of it.
 
 ![Infographic summarizing the stale MCP story: a re-auth banner reveals the 0.5.25 to 0.7.2 version gap, the security hardening and auth reliability fixes that were missed, and the three-step upgrade process of upgrading the package, reconnecting the running server, and updating agents and skills](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/infographic.png)
 
@@ -32,12 +32,10 @@ That was it. A single line appended to the login output. No notification, no war
 The `notebooklm-mcp-cli` package (by jacob-bd) is the MCP server and CLI that drives Google NotebookLM from Claude Code. It installs via `uv tool` and exposes the `nlm` binary and the `notebooklm-mcp` server binary. I'd set it up months earlier when I wrote about [integrating NotebookLM MCP into Claude Code](/blog/integrating-notebooklm-mcp-into-claude-code). Since then, it had been silently drifting.
 
 <Info title="What 'Two Minor Versions Behind' Actually Means">
-From 0.5.25 to 0.7.2 isn't a cosmetic delta. It covers 0.6.x and 0.7.x, spanning security hardening, auth reliability rewrites, live token pickup, and three new feature areas. Version numbers in MCP servers carry weight.
+From 0.5.25 to 0.7.2 covers all of 0.6.x and 0.7.x: security hardening, auth-reliability rewrites, live token pickup, and three new feature areas. That is not a patch-level nudge.
 </Info>
 
 ## What I Was Missing
-
-The short version: quite a bit.
 
 **Auth reliability (0.6.14 through 0.7.2).** This is the one that would've bitten me soonest. Google runs different session lifecycles for the NotebookLM homepage versus the RPC API. So "semi-stale" cookies, ones rejected by the homepage but still accepted by the API, caused tools to wrongly report auth as expired. I'd have been seeing false re-auth prompts and transient failures with no clear cause.
 
@@ -86,27 +84,21 @@ nlm login --check
 # Authentication valid. Default profile. 38 notebooks.
 ```
 
-Done. Except it's not done.
+That upgrades the package. It does not touch the server you are actually connected to.
 
 <Warning title="The Easy-to-Miss Step">
 Upgrading the package does not update the already-running MCP server process. The connected `notebooklm` server keeps the old 0.5.25 code in memory until you reconnect it. Use `/mcp` in Claude Code to disconnect and reconnect the server. Only after reconnecting does `server_info` report version 0.7.2 with auth_status "configured." Upgrading the binary and reconnecting the server are two separate steps, and skipping the second one means you're still running old code.
 </Warning>
 
-After reconnecting, I confirmed via `server_info`: version 0.7.2, auth_status "configured." The two steps together take about 90 seconds. The part most people stop at (just the `uv tool upgrade`) leaves the running process untouched.
+After reconnecting, I confirmed via `server_info`: version 0.7.2, auth_status "configured." The two steps together take about 90 seconds. The `uv tool upgrade` on its own leaves the running process untouched.
 
 ## Updating Agents and Skills
 
-Here's what I actually spent the most time on, and it's the step that determines whether you get any value from the upgrade.
+This is the step I spent the most time on, and the one that decides whether the upgrade buys you anything.
 
 I found four files in my `claude-code-config` repo that referenced the NotebookLM MCP: `agents/notebooklm-assistant.md`, `agents/notebooklm-content.md`, `skills/notebooklm-content/SKILL.md`, and `skills/homenet-document/SKILL.md`. All four had accumulated drift since the original setup.
 
-The specific issues:
-
-**Consolidated `source_add`.** The old `source_add_text` and `source_add_url` tools no longer exist as separate tools. They're now a single `source_add(source_type=url|text|drive|file, ...)` call. Any agent doc still referencing the old names would silently fail or confuse the model.
-
-**`studio_revise` rename.** One file still referenced the old `revise-slide` name.
-
-**Stale tool count.** One file still advertised "35 tools" in its description. The consolidated surface on 0.7.2 no longer matches that number, so the doc was quietly lying about its own capabilities. I removed the hardcoded count rather than chase a figure that'll drift again on the next release.
+The specific issues were small, and the kind that fail silently. The old `source_add_text` and `source_add_url` tools no longer exist as separate calls; they're consolidated into a single `source_add(source_type=url|text|drive|file, ...)`, and any doc still naming the old tools would confuse the model or fail outright. One file still referenced the pre-rename `revise-slide` instead of `studio_revise`. Another still advertised "35 tools" in its description, a number the consolidated 0.7.2 surface no longer matches, so the doc was quietly lying about its own capabilities. I dropped the hardcoded count rather than chase a figure that'll drift again next release.
 
 Beyond fixing the regressions, I added the new capabilities:
 
@@ -133,7 +125,7 @@ The whole upgrade, end to end, is three steps. Most people do the first one and 
 
 The thing about MCP servers is that they're dependencies, the same as any npm package or pip wheel. They drift. They ship security fixes. They add features you won't use unless you know about them.
 
-Unlike a library that breaks your build when it updates, an MCP server update is invisible. Your tools keep working. You keep calling the old surface. The new capabilities exist and you never reach them. The security fixes apply to the new binary but you're still running the old one in memory.
+Unlike a library that breaks your build when it updates, an MCP server update is invisible. Your tools keep working, you keep calling the old surface, and the new capabilities just sit there unreached while the security fixes apply only to a binary you have not loaded.
 
 Your signals are the re-auth banners (like the one that caught this) and the `server_info` response, which includes an `update_available` flag on some servers. Build a habit of checking `nlm --version` periodically, or better, after any session where you run `nlm login`.
 
@@ -141,8 +133,6 @@ Your signals are the re-auth banners (like the one that caught this) and the `se
 When you upgrade an MCP server, there are always three jobs: upgrade the package, reconnect the running server so the new binary loads, then update the agents and skills that call it so they know the new surface. All three, every time.
 </Tip>
 
-And when you do upgrade, remember those three parts: upgrade the package, reconnect the running server so the new binary loads, update the agents and skills that call it so they know the new surface. Skip the third part and you're running new code through an old map. The agents will still call deprecated tools, miss new capabilities, and mis-handle auth states the new server knows how to distinguish.
-
-The upgrade announcement is the easy part. The real work is keeping your agents and skills current with the thing you just upgraded. That doc pass is what turns a package upgrade into a capability upgrade.
+Skip that third job and you're running new code through an old map: agents still calling deprecated tools, missing the new capabilities, and mis-handling the auth states the new server now knows how to tell apart. The package upgrade is the announcement. Keeping the agents and skills current with it is the actual work, and on this upgrade it was most of the work.
 
 If you're setting up NotebookLM MCP for the first time, [MCP Servers: The Missing Piece in Your Claude Code Setup](/blog/mcp-servers-the-missing-piece-in-your-claude-code-setup) covers the fundamentals. And [NotebookLM as a Content Pipeline: From Blog Posts to Branded Visuals](/blog/notebooklm-content-pipeline-from-blog-posts-to-branded-visuals) shows what the updated tool surface enables once you've got it running.
