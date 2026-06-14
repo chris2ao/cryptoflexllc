@@ -65,3 +65,7 @@ activity_log.txt
 notebooklm-artifacts/
 content-assets/
 content-assets/notebooklm/
+
+# NotebookLM slide source (pdf kept, pptx + per-slide PNGs are redundant local-only)
+public/blog/**/slides.pptx
+public/blog/**/slides/
