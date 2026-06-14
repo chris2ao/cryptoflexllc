@@ -1,0 +1,148 @@
+---
+title: "Keep Your MCPs Updated: The NotebookLM CLI Upgrade"
+date: '2026-06-13'
+author: Chris Johnson
+readingTime: '7 min read'
+description: "I was two minor versions behind on notebooklm-mcp-cli and had no idea until a re-auth banner interrupted a session. The gap was 0.5.25 to 0.7.2. Security fixes, auth reliability improvements, and new features I was missing the whole time. Here is the three-part upgrade that most people stop after step one."
+tags: ["Claude Code", "MCP", "NotebookLM", "Security", "Workflow", "Upgrades", "Agents"]
+series: 'Claude Code Workflow'
+seriesOrder: 9
+featured: false
+coverImage: /blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/infographic.png
+coverImageAlt: "Infographic summarizing the stale MCP story: a re-auth banner reveals the gap from 0.5.25 to 0.7.2, listing security hardening and auth fixes missed, then the three-step upgrade (upgrade the package, reconnect the running server, update agents and skills to the new tool surface)"
+---
+
+import {} from '@/components/mdx';
+
+I was two minor versions behind on `notebooklm-mcp-cli` and didn't know it until a re-auth banner interrupted a session. The gap was 0.5.25 to 0.7.2. Catching it by accident is the part worth writing about.
+
+![Infographic summarizing the stale MCP story: a re-auth banner reveals the 0.5.25 to 0.7.2 version gap, the security hardening and auth reliability fixes that were missed, and the three-step upgrade process of upgrading the package, reconnecting the running server, and updating agents and skills](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/infographic.png)
+
+## How I Caught It
+
+I ran `nlm login` to re-authenticate for an unrelated task. The login completed fine, and then at the end of the output I saw this:
+
+```
+Update available: 0.5.25 -> 0.7.2
+Run `uv tool upgrade notebooklm-mcp-cli` to update.
+```
+
+That was it. A single line appended to the login output. No notification, no warning on tool calls, no banner in Claude Code. The re-auth banner is the only reason I noticed. If I hadn't needed to re-authenticate that day, I'd have kept running 0.5.25 indefinitely.
+
+The `notebooklm-mcp-cli` package (by jacob-bd) is the MCP server and CLI that drives Google NotebookLM from Claude Code. It installs via `uv tool` and exposes the `nlm` binary and the `notebooklm-mcp` server binary. I'd set it up months earlier when I wrote about [integrating NotebookLM MCP into Claude Code](/blog/integrating-notebooklm-mcp-into-claude-code). Since then, it had been silently drifting.
+
+<Info title="What 'Two Minor Versions Behind' Actually Means">
+From 0.5.25 to 0.7.2 isn't a cosmetic delta. It covers 0.6.x and 0.7.x, spanning security hardening, auth reliability rewrites, live token pickup, and three new feature areas. Version numbers in MCP servers carry weight.
+</Info>
+
+## What I Was Missing
+
+The short version: quite a bit.
+
+**Auth reliability (0.6.14 through 0.7.2).** This is the one that would've bitten me soonest. Google runs different session lifecycles for the NotebookLM homepage versus the RPC API. So "semi-stale" cookies, ones rejected by the homepage but still accepted by the API, caused tools to wrongly report auth as expired. I'd have been seeing false re-auth prompts and transient failures with no clear cause.
+
+Version 0.7.1 added a multi-probe `AuthHealthChecker` to distinguish these cases. Version 0.7.2 unified all the MCP auth gates so `server_info`, `refresh_auth`, and `studio_create` stop disagreeing with each other. On 0.5.25, they could give you three different opinions on whether you were authenticated.
+
+**Live token pickup (0.6.15).** A long-running MCP server now detects a fresh `nlm login` immediately via an mtime file-watch, instead of using stale tokens for up to 60 seconds after you re-authenticate. Small thing, but the kind of thing that makes debugging auth issues maddening when you don't know it's happening.
+
+**Security hardening (0.6.13).** Three specific fixes:
+
+1. TOCTOU-safe credential file creation. Previously, `cookies.json` and `auth.json` were briefly world-readable between creation and the `chmod 0600` call. That window is now closed.
+2. HTTP/SSE transports refuse to bind to `0.0.0.0` unless `NOTEBOOKLM_ALLOW_EXTERNAL_BIND=1` is set explicitly. Running the server on a shared machine without this protection exposed it to any local process.
+3. CI actions pinned to full commit SHAs. Before this, tag-drift could silently swap in different code during package builds.
+
+I run this server on a couple of different machines, so that world-readable credential window wasn't a hypothetical for me.
+
+<Security title="Real Credential Exposure Risk">
+The TOCTOU window on credential files isn't theoretical. On any multi-user system or CI environment, that brief world-readable moment is enough for a race condition exploit. If you were running 0.5.25 in those environments, the files were intermittently exposed at creation time.
+</Security>
+
+**New features.** Source label management shipped in 0.6.0, which lets you categorize sources inside a notebook. Studio 0.7.0 added a fast-track mode (generate without a questionnaire) and a cinematic video format. Version 0.7.2 added a ChatGPT file/artifact upload bridge. None of these were available to me.
+
+### Visual walkthrough
+
+{/* NOTEBOOKLM-SLIDES: article2 */}
+
+Here is everything those two minor versions added, in one frame:
+
+![What two minor versions added: security hardening including TOCTOU-safe 0600 credential files, external-bind guard, and SHA-pinned CI actions, plus auth-reliability fixes for the semi-stale cookie problem and the unified auth gate, and new features including source labels, cinematic video format, and the ChatGPT bridge](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/slide-whats-new.png)
+
+## The Upgrade Itself
+
+The package upgrade is the easy part:
+
+```bash
+uv tool upgrade notebooklm-mcp-cli
+```
+
+Confirm it landed:
+
+```bash
+nlm --version
+# notebooklm-mcp-cli 0.7.2
+# You are on the latest version.
+
+nlm login --check
+# Authentication valid. Default profile. 38 notebooks.
+```
+
+Done. Except it's not done.
+
+<Warning title="The Easy-to-Miss Step">
+Upgrading the package does not update the already-running MCP server process. The connected `notebooklm` server keeps the old 0.5.25 code in memory until you reconnect it. Use `/mcp` in Claude Code to disconnect and reconnect the server. Only after reconnecting does `server_info` report version 0.7.2 with auth_status "configured." Upgrading the binary and reconnecting the server are two separate steps, and skipping the second one means you're still running old code.
+</Warning>
+
+After reconnecting, I confirmed via `server_info`: version 0.7.2, auth_status "configured." The two steps together take about 90 seconds. The part most people stop at (just the `uv tool upgrade`) leaves the running process untouched.
+
+## Updating Agents and Skills
+
+Here's what I actually spent the most time on, and it's the step that determines whether you get any value from the upgrade.
+
+I found four files in my `claude-code-config` repo that referenced the NotebookLM MCP: `agents/notebooklm-assistant.md`, `agents/notebooklm-content.md`, `skills/notebooklm-content/SKILL.md`, and `skills/homenet-document/SKILL.md`. All four had accumulated drift since the original setup.
+
+The specific issues:
+
+**Consolidated `source_add`.** The old `source_add_text` and `source_add_url` tools no longer exist as separate tools. They're now a single `source_add(source_type=url|text|drive|file, ...)` call. Any agent doc still referencing the old names would silently fail or confuse the model.
+
+**`studio_revise` rename.** One file still referenced the old `revise-slide` name.
+
+**Stale tool count.** One file still advertised "35 tools" in its description. The consolidated surface on 0.7.2 no longer matches that number, so the doc was quietly lying about its own capabilities. I removed the hardcoded count rather than chase a figure that'll drift again on the next release.
+
+Beyond fixing the regressions, I added the new capabilities:
+
+- The unified `studio_create` now accepts `video` as an artifact type, with a `cinematic` video format option.
+- Studio fast-track behavior: when context is clear, it infers format, style, and prompt and generates without a questionnaire. Agents should know this to avoid prompting users unnecessarily.
+- The `tag` vs `label` distinction, which is genuinely confusing. `tag` operates at the notebook level: tag whole notebooks, find them later by query with smart-select. `label` operates at the source level: categorize the sources inside one notebook. Different tools for different jobs, and conflating them produces wrong results.
+- The reliable `auth_status` model: `configured` means valid, `stale` means actually re-authenticate, `unverified` means a transient network error so retry rather than re-login. Agents that don't know this distinction will prompt for re-auth on every transient failure.
+
+I verified all of it live against 0.7.2: `server_info` (0.7.2, configured), `notebook_list` (38 notebooks), `tag` list (works), and confirmed the live tool surface now exposes both `tag` and `label` plus the new `source_add_chatgpt_file`. Then I synced all four updated files to my public [claude-code-config](https://github.com/chris2ao/claude-code-config) repo and updated my knowledge graph.
+
+<Tip title="Verify Against the Live Tool Surface">
+After any MCP upgrade, run `server_info` and cross-reference the returned tool list against your agent docs. Any tool name in your docs that doesn't appear in the live surface is a silent failure waiting to happen.
+</Tip>
+
+<Tip title="The Tag vs Label Distinction">
+In NotebookLM MCP: `tag` is for notebooks, `label` is for sources inside a notebook. They're easy to conflate because both sound like "categorization." Update your agent docs to make this explicit, or your agents will use the wrong one.
+</Tip>
+
+The whole upgrade, end to end, is three steps. Most people do the first one and stop:
+
+![The three-step upgrade: step 1 upgrade the package with uv tool upgrade notebooklm-mcp-cli, step 2 reconnect the running MCP server via /mcp in Claude Code because the running process still holds old code in memory, step 3 update every agent and skill that calls the MCP to the new tool surface (fix tool names like source_add and studio_revise, remove hardcoded tool counts, and add the tag versus label distinction and the auth_status model)](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/slide-three-step-upgrade.png)
+
+## Why This Matters Beyond NotebookLM
+
+The thing about MCP servers is that they're dependencies, the same as any npm package or pip wheel. They drift. They ship security fixes. They add features you won't use unless you know about them.
+
+Unlike a library that breaks your build when it updates, an MCP server update is invisible. Your tools keep working. You keep calling the old surface. The new capabilities exist and you never reach them. The security fixes apply to the new binary but you're still running the old one in memory.
+
+Your signals are the re-auth banners (like the one that caught this) and the `server_info` response, which includes an `update_available` flag on some servers. Build a habit of checking `nlm --version` periodically, or better, after any session where you run `nlm login`.
+
+<Tip title="The Three-Part Upgrade">
+When you upgrade an MCP server, there are always three jobs: upgrade the package, reconnect the running server so the new binary loads, then update the agents and skills that call it so they know the new surface. All three, every time.
+</Tip>
+
+And when you do upgrade, remember those three parts: upgrade the package, reconnect the running server so the new binary loads, update the agents and skills that call it so they know the new surface. Skip the third part and you're running new code through an old map. The agents will still call deprecated tools, miss new capabilities, and mis-handle auth states the new server knows how to distinguish.
+
+The upgrade announcement is the easy part. The real work is keeping your agents and skills current with the thing you just upgraded. That doc pass is what turns a package upgrade into a capability upgrade.
+
+If you're setting up NotebookLM MCP for the first time, [MCP Servers: The Missing Piece in Your Claude Code Setup](/blog/mcp-servers-the-missing-piece-in-your-claude-code-setup) covers the fundamentals. And [NotebookLM as a Content Pipeline: From Blog Posts to Branded Visuals](/blog/notebooklm-content-pipeline-from-blog-posts-to-branded-visuals) shows what the updated tool surface enables once you've got it running.
