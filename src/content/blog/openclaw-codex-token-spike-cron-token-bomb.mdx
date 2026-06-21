@@ -55,6 +55,10 @@ openclaw status --usage --json
 
 The response showed the `openai` provider with plan `plus`. The week window: 100% consumed, resetting in approximately five days. The five-hour window: 1%. So the drain was not happening in the current rolling five-hour slice. It had happened steadily, in the background, over the preceding days, and the weekly cap was the first ceiling it hit.
 
+Put the two windows side by side and the diagnosis writes itself:
+
+![Two gauges side by side. The weekly subscription budget reads 100 percent consumed in red. The rolling five-hour window reads 1 percent active. Caption: the drain occurred steadily in the background over preceding days, not during current interactive sessions, and the weekly cap hit 100 percent before the interactive workload even began.](/blog/openclaw-codex-token-spike-cron-token-bomb/weekly-vs-hourly-window.png)
+
 Next:
 
 ```bash
@@ -81,6 +85,10 @@ Across a full day, this one job was consuming roughly 400,000-600,000 tokens, da
 
 That is the token math before I looked at the other six jobs. One summary note was burning more budget than the entire rest of the interactive workload.
 
+The cost-to-value ratio was lopsided enough to draw as a seesaw:
+
+![A seesaw weighed down on the left by an input payload of seven agent transcripts plus full memory context at 400,000 to 600,000 tokens per day, against a single summary note on the right read about twice a week. Caption: one daily roll-call job was burning more budget than the entire interactive workload combined.](/blog/openclaw-codex-token-spike-cron-token-bomb/roll-call-token-seesaw.png)
+
 ### The Healthchecks That Launched Rockets to Check the Weather
 
 Three jobs carried names with "healthcheck" in them: `healthcheck:team-usage`, `healthcheck:update-status`, and `healthcheck:cron-health`. Two of them ran every eight hours. All three had `agentTurn` payloads.
@@ -88,6 +96,10 @@ Three jobs carried names with "healthcheck" in them: `healthcheck:team-usage`, `
 <Stop title="The recursive healthcheck trap">
 Each of these jobs booted a full gpt-5.5 agent to run a shell command. The shell wrappers themselves always succeeded: the cron run log showed `success` for every execution. The work being done was deterministic. A shell script could have done it with zero model tokens. Instead, every run spun up a reasoning model, incurred a context initialization, ran the script, and returned. When the weekly cap hit 100%, all three started failing with `rate_limit` errors, logging failures in the very jobs that were supposed to monitor health. The system was generating the anomaly it was supposed to detect.
 </Stop>
+
+The section title is not hyperbole. Here is what an agentTurn payload actually does to run a one-line shell command:
+
+![Top: a simple trigger running a standard shell script, drawn as one clean arrow into a gear. Bottom: an agentTurn payload doing the same work, drawn as a dense tangle of API calls feeding each other. Pull quote in the center: launching rockets to check the weather. Side note: three healthcheck jobs running every eight hours at 10,000 to 30,000 tokens per run. Caption: rate-limit failures triggered the exact anomalies the system was designed to detect.](/blog/openclaw-codex-token-spike-cron-token-bomb/healthcheck-agentturn-overkill.png)
 
 ### The Gateway Watchdog That Would Not Stay Fixed
 
@@ -102,6 +114,10 @@ But there was a complication. The `~/.openclaw` directory is synced via Syncthin
 Worse: there was a stale duplicate of the old watchdog logic inside a synced config-repo checkout. Two copies of the old logic, one copy of the fix, and Syncthing had no opinion on which one was canonical.
 
 The resolution required confirming, by reading the actual running process, that the live watchdog was the connectivity-probe version, then deleting the stale duplicate from the checkout so Syncthing could not re-propagate it. The watchdog flapping stopped. The gateway stays up between its scheduled restarts.
+
+The failure was a chain, each link feeding the next:
+
+![An anomaly timeline of repeated restart spikes above a four-step cascading failure chain. Step one, Trigger: 20-minute log silence during normal idle gaps. Step two, Event: gateway restarts at 120 false restarts per day. Step three, Impact: interrupted cron jobs. Step four, Result: cascading retries and wasted tokens. Context note: synced configuration files preserved outdated modification timestamps, so the system ran stale logic while masking the available fix.](/blog/openclaw-codex-token-spike-cron-token-bomb/watchdog-cascading-failure.png)
 
 <Warning title="Syncthing preserves file mtimes: the fixed file can look older than the broken one">
 When you sync config files across machines with Syncthing, the modification timestamp comes from the source machine's filesystem, not the sync time. A file you fixed yesterday on one machine may arrive on another machine with a three-week-old mtime if that was when you first created it. Do not trust mtime to determine which version is current in a Syncthing-managed config directory. Read the content.
@@ -135,6 +151,10 @@ The fix for the healthchecks and the roll-call depended on one feature I had ove
 <Info title="What is a no-agent cron payload?">
 OpenClaw cron jobs support two payload types. An `agentTurn` payload sends a message to a named agent, boots the agent if needed, and waits for a model completion before the job is marked done. A `command` payload runs a shell command directly on the gateway process, with no model involved. For deterministic work (shell scripts, status checks, structured reports from CLI tools), the command payload is the right choice. It is faster, immune to rate limits, and costs nothing against your model budget.
 </Info>
+
+The replacement architecture takes the model out of the loop entirely:
+
+![A before-versus-after comparison. On the left, agentTurn boots an agent and loads a reasoning model, highly vulnerable to rate limits. On the right, a command payload running sh -lc bypasses the model entirely for deterministic execution. Below, a flow showing three CLI outputs feeding a local Python script that assembles them into a single Telegram message. Caption: zero tokens consumed, two seconds total execution time.](/blog/openclaw-codex-token-spike-cron-token-bomb/command-payload-architecture.png)
 
 <Tip title="Do not pay a reasoning model to run shell commands">
 If the work a cron job does is deterministic and scriptable, use a command payload. Reserve agentTurn jobs for tasks that genuinely require model reasoning: synthesis, summarization of ambiguous data, decisions that depend on context. Structural status checks, daily digests assembled from CLI output, and config backups are all command-payload work.
@@ -183,3 +203,5 @@ The fixes were not clever. The zero-token command payload had always been availa
 The expensive part was not fixing it. The expensive part was the period between "I added this cron job" and "I looked at the full cron list." That gap is where the budget went.
 
 Interactive sessions get scrutiny because I am present for them. Background jobs run while I am asleep, so they feel free even when they carry a standing order to spend.
+
+If you would rather skim this as slides, the full deck is here: [The 7 Cron Jobs slide deck (PDF)](/blog/openclaw-codex-token-spike-cron-token-bomb/slides.pdf). Same arc as the post, fewer words per page.
