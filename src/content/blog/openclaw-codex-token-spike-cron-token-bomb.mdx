@@ -1,0 +1,185 @@
+---
+title: 'The 7 Cron Jobs That Burned My Weekly Codex Budget (While I Did Almost Nothing)'
+date: '2026-06-20'
+author: Chris Johnson
+readingTime: '11 min read'
+coverImage: /blog/openclaw-codex-token-spike-cron-token-bomb/infographic.png
+description: >-
+  A weekly OpenAI Codex subscription cap hit 100% despite minimal interactive
+  use. The culprit: 7 background cron jobs spinning up full gpt-5.5 agents for
+  work a shell script could do, plus a roll-call job consuming 400,000-600,000
+  tokens per day. Fixing it meant a before/after cron inventory that went from
+  11 daily agent runs to 2, plus a zero-token digest command that works even
+  when the cap is exhausted.
+tags:
+  - OpenClaw
+  - Codex
+  - Token Budget
+  - Cron
+  - Multi-Agent
+  - Cost Optimization
+  - Observability
+  - Automation
+series: 'Under the Hood'
+seriesOrder: 5
+featured: false
+---
+
+import { Info, Tip, Warning, Stop, TokenBudgetFlowDiagram } from '@/components/mdx';
+
+The usage meter said my weekly Codex budget was 100% consumed. My calendar said I had spent maybe two hours in chat all week, running a "wizdom" skill to process a handful of articles. These two facts do not add up.
+
+The five-hour rolling window was at 1%. Something had eaten the weekly subscription cap while I slept, and it was not happening right now. It happened in the background, over days, and it was nearly done.
+
+<Info title="What counts against the weekly cap?">
+OpenClaw 2026.6.6 routes all model calls through configured providers. My setup had one: `openai/gpt-5.5` served through a ChatGPT Plus subscription (plan "plus" in OpenClaw's provider config). As of 2026.6.6, this provider is labeled `openai`; earlier configs referenced it as `openai-codex`. Either way, every agent turn, every LCM compaction, every cron job that boots an agent: all of it draws from the same weekly subscription window. There is no cheap tier. There is no per-token fallback. One pool, shared by everything.
+</Info>
+
+This is the fifth post in the [Under the Hood](/blog/series/under-the-hood) series. Earlier entries covered the [Homunculus Evolution Layer](/blog/homunculus-evolution-layer-when-your-ai-learns-to-upgrade-itself), the [5-Agent Design Team](/blog/building-a-5-agent-design-team-the-ui-ux-skill-system), [dogfooding the UniFi MCP](/blog/dogfooding-the-unifi-mcp-homenet-document-and-the-bug-it-found), and [consolidating three Pi-hole MCPs](/blog/consolidating-three-pihole-mcps-into-one). For background on the OpenClaw setup itself, the [Mission Control post](/blog/openclaw-deployment-part-4-mission-control) and the [headless Mac Mini post](/blog/headless-mac-mini-openclaw-power-tips) cover the architecture.
+
+## The System That Was Spending
+
+Seven agents run on a headless Mac Mini: the main agent ("JClaw27"), plus sysadmin, builder, writer, security, researcher, and secretary. All reachable over Telegram. All pinned to `openai/gpt-5.5`. The memory compaction engine (OpenClaw's lossless-claw context layer, "LCM") also runs on `openai/gpt-5.5`. One model, one subscription, seven agents and a compaction daemon all sharing the pool.
+
+Interactive use was light that week: a few article-processing runs through the "wizdom" skill. Maybe 20-30 minutes of actual conversation across all agents. Whatever the wizdom runs cost, it was not 100% of a weekly budget.
+
+The real picture was in the background scheduler. And I had not audited it in a while. The wizdom article processing I actually did that week was a rounding error in the final accounting.
+
+## Finding the Evidence
+
+The first step was pulling the actual usage numbers:
+
+```bash
+openclaw status --usage --json
+```
+
+The response showed the `openai` provider with plan `plus`. The week window: 100% consumed, resetting in approximately five days. The five-hour window: 1%. So the drain was not happening in the current rolling five-hour slice. It had happened steadily, in the background, over the preceding days, and the weekly cap was the first ceiling it hit.
+
+Next:
+
+```bash
+openclaw cron list --json
+```
+
+Seven scheduled jobs came back. I had added them incrementally over several months of OpenClaw upgrades, each one solving a specific problem at the time, and I had never looked at the full list side by side. Looking at it now, two things stood out immediately.
+
+First: four of the seven jobs had an `agentTurn` payload type. That means each of those runs boots a full gpt-5.5 agent, sends it a message, waits for a completion, and charges the tokens to the weekly pool on every run, whatever the schedule.
+
+Second: one job, `report:daily-roll-call`, ran at 7am every day and its log showed multi-turn completions. Not one agent turn. Multiple.
+
+That one warranted a closer look.
+
+## The Four Culprits
+
+### The Roll-Call That Ate Everything
+
+`report:daily-roll-call` was the main agent's daily summary job. The intent was reasonable: each morning, read all team transcripts, gather reflections from each of the seven agents, and write an Obsidian note summarizing the team's state. A morning standup, but automated.
+
+The implementation was expensive. Reading all seven agent transcripts plus memory in a single context means the input token count starts high before the first word of the response. Sampled runs showed 50,000-150,000 input tokens per turn, with multiple turns per run.
+
+Across a full day, this one job was consuming roughly 400,000-600,000 tokens, daily, to produce one Obsidian note that I read approximately twice a week.
+
+That is the token math before I looked at the other six jobs. One summary note was burning more budget than the entire rest of the interactive workload.
+
+### The Healthchecks That Launched Rockets to Check the Weather
+
+Three jobs carried names with "healthcheck" in them: `healthcheck:team-usage`, `healthcheck:update-status`, and `healthcheck:cron-health`. Two of them ran every eight hours. All three had `agentTurn` payloads.
+
+<Stop title="The recursive healthcheck trap">
+Each of these jobs booted a full gpt-5.5 agent to run a shell command. The shell wrappers themselves always succeeded: the cron run log showed `success` for every execution. The work being done was deterministic. A shell script could have done it with zero model tokens. Instead, every run spun up a reasoning model, incurred a context initialization, ran the script, and returned. When the weekly cap hit 100%, all three started failing with `rate_limit` errors, logging failures in the very jobs that were supposed to monitor health. The system was generating the anomaly it was supposed to detect.
+</Stop>
+
+### The Gateway Watchdog That Would Not Stay Fixed
+
+The fourth problem was not a cron job. It was a watchdog process that had been intermittently restarting the OpenClaw gateway about 120 times per day.
+
+The original watchdog logic inferred gateway health from log file silence: if the log had not been written to in roughly 20 minutes, the watchdog declared the gateway hung and restarted it. On a quiet day, when agents were idle, normal log silence during idle gaps triggered false positives. The gateway got restarted. Running cron jobs got interrupted mid-turn. The logs filled with `cron: job interrupted by gateway restart`. Interrupted jobs retried. Retries consumed more tokens.
+
+The fix for this had already been written. A connectivity-probe version that checks the gateway's TCP port directly, with a fail-open posture: if the probe itself fails (network hiccup, probe bug), do nothing rather than restart. Probe liveness directly; fail open.
+
+But there was a complication. The `~/.openclaw` directory is synced via Syncthing, and Syncthing preserves file modification timestamps on sync. The fixed watchdog file had an older mtime than the broken one it replaced, because the fix had been written on a different machine at an earlier time. From Syncthing's perspective, the fixed file was already present, with its correct content, but the mtime told the running system nothing useful.
+
+Worse: there was a stale duplicate of the old watchdog logic inside a synced config-repo checkout. Two copies of the old logic, one copy of the fix, and Syncthing had no opinion on which one was canonical.
+
+The resolution required confirming, by reading the actual running process, that the live watchdog was the connectivity-probe version, then deleting the stale duplicate from the checkout so Syncthing could not re-propagate it. The watchdog flapping stopped. The gateway stays up between its scheduled restarts.
+
+<Warning title="Syncthing preserves file mtimes: the fixed file can look older than the broken one">
+When you sync config files across machines with Syncthing, the modification timestamp comes from the source machine's filesystem, not the sync time. A file you fixed yesterday on one machine may arrive on another machine with a three-week-old mtime if that was when you first created it. Do not trust mtime to determine which version is current in a Syncthing-managed config directory. Read the content.
+</Warning>
+
+<TokenBudgetFlowDiagram />
+
+## Before and After: The Cron Inventory
+
+Here is the full before-and-after. Seven jobs became three.
+
+| Job | Schedule | Before | Token cost (before) | After |
+|-----|----------|--------|---------------------|-------|
+| `report:daily-roll-call` | Daily 7am | agentTurn on gpt-5.5, read all transcripts + memory | 400k-600k tokens/day | **Removed** |
+| `report:roll-call-validator` | Daily 7:30am | agentTurn on gpt-5.5, verified roll-call output | ~20k-50k tokens/day | **Removed** |
+| `healthcheck:team-usage` | Every 8h | agentTurn on gpt-5.5, ran shell script | ~10k-30k tokens/run | **Removed** |
+| `healthcheck:update-status` | Every 8h | agentTurn on gpt-5.5, ran shell script | ~10k-30k tokens/run | **Removed** |
+| `healthcheck:cron-health` | Daily | agentTurn on gpt-5.5, ran shell script | ~10k-30k tokens/run | **Removed** |
+| `backup:openclaw-config-github` | Daily 2:15am | command payload, git push | Zero tokens | **Kept** |
+| `memory:weekly-synthesis` | Mondays | agentTurn on gpt-5.5, memory consolidation | Weekly, intentional | **Kept** |
+| `report:daily-digest` | Daily 7am | command payload, Python script | **Zero tokens** | **Added** |
+
+Before: approximately 11 gpt-5.5 agent runs per day from cron alone, with the roll-call pair consuming the bulk of the budget. After: 1 intentional weekly agent run (memory synthesis), 1 daily backup (zero tokens), 1 daily digest (zero tokens).
+
+## The Zero-Token Command Payload
+
+The fix for the healthchecks and the roll-call depended on one feature I had overlooked in the cron documentation.
+
+`openclaw cron add --command '<shell>'` creates a job with a `command` payload type. A command payload runs `sh -lc` directly on the gateway. No agent is booted and no model is loaded, so nothing is charged against the weekly pool. It also keeps running when the weekly cap is exhausted, because there is no API call to rate-limit.
+
+<Info title="What is a no-agent cron payload?">
+OpenClaw cron jobs support two payload types. An `agentTurn` payload sends a message to a named agent, boots the agent if needed, and waits for a model completion before the job is marked done. A `command` payload runs a shell command directly on the gateway process, with no model involved. For deterministic work (shell scripts, status checks, structured reports from CLI tools), the command payload is the right choice. It is faster, immune to rate limits, and costs nothing against your model budget.
+</Info>
+
+<Tip title="Do not pay a reasoning model to run shell commands">
+If the work a cron job does is deterministic and scriptable, use a command payload. Reserve agentTurn jobs for tasks that genuinely require model reasoning: synthesis, summarization of ambiguous data, decisions that depend on context. Structural status checks, daily digests assembled from CLI output, and config backups are all command-payload work.
+</Tip>
+
+The replacement for the roll-call is a Python script called `daily-digest.py`. It contains no model calls. It assembles one Telegram message from three sources:
+
+1. `openclaw status --usage --json`: the weekly and five-hour subscription limit windows, headlined by the weekly percentage, plus 24-hour per-agent token usage broken out by agent name.
+2. `openclaw update status`: whether an OpenClaw update is available.
+3. The cron run log: 24-hour job health, showing the last result for each scheduled job.
+
+Then it self-delivers via `openclaw message send`. The whole thing takes about two seconds on the gateway, costs zero tokens, and produces a message I actually read every morning instead of a 1,000-word Obsidian note I checked twice a week.
+
+The four agentTurn healthchecks were dissolved entirely. Their signal (are the agents running, is the cron scheduler healthy, are there updates available) is now folded into the daily digest. One command-payload job replaced five agent-turn jobs.
+
+## The LCM Threshold Change
+
+One more knob was worth adjusting. The LCM context engine (OpenClaw's compaction system) had a `contextThreshold` of 0.75. When an agent's context window reached 75% full, LCM would summarize it, a gpt-5.5 call. Raising the threshold to 0.85 means compaction fires less frequently on agents with moderately full contexts. For agents that rarely hit 85% (the secretary, the researcher during quiet weeks), this eliminates compaction calls that were mostly unnecessary. For agents that do hit 85% (the main agent during busy sessions), the behavior is unchanged.
+
+This is a tuning decision, not a fix. The right threshold depends on how often your agents approach context limits during normal use. The point is that memory compaction runs on a model, and the compaction trigger is configurable. Audit it before you assume it is correctly set.
+
+<Tip title="Memory compaction runs on a model too">
+The LCM `contextThreshold` controls how often OpenClaw summarizes an agent's context to free window space. Lower values mean more frequent compaction calls, each one a gpt-5.5 turn against your budget. If your agents rarely approach context limits, a higher threshold (0.85 or above) reduces compaction frequency with no impact on normal operation. Check the value in your LCM config before assuming the default is right for your usage pattern.
+</Tip>
+
+## What the Weekly Window Is Telling You
+
+After the fixes, I ran `openclaw status --usage --json` again. The weekly window was still at 100% (it resets on a fixed cadence, not on config change). But the five-hour window, which had been at 1%, started moving normally again as the daily digest ran and the day's actual interactive sessions happened. No surprise spikes, no interrupted cron jobs, and the watchdog stayed quiet.
+
+The weekly cap is the metric that matters for background automation. The five-hour window tells you about right now. If the weekly cap is at 100% and the five-hour window is at 1%, the budget was consumed in the past, not the present, and the culprit is background work, not interactive sessions. That combination is a diagnostic, not just a number.
+
+<Warning title="Audit your scheduled jobs before blaming interactive use">
+If your subscription cap is exhausted but you feel like you barely used the system, the first thing to check is the background scheduler. Interactive sessions feel expensive because you are present for them. Background jobs feel free because you are not. They are not free. Run `openclaw cron list --json` and look at the payload types and schedules. Add up how many agentTurn jobs fire per day. That is your background model budget floor, before you send a single interactive message.
+</Warning>
+
+<Tip title="Reports that ingest full transcripts are token bombs">
+A job that reads all agent transcripts plus memory before producing a summary starts with a very large input context. That input cost is paid on every run, regardless of how much actually changed since the last run. A deterministic digest assembled from structured CLI output (`openclaw status --usage --json`, `openclaw update status`, cron run logs) captures the useful signal without paying the transcript-ingestion cost. Prefer structured sources over full-transcript reads for recurring reports.
+</Tip>
+
+## The Closing Observation
+
+Looking back, I can see the investigation followed a predictable path. The weekly cap at 100% while the five-hour window sat at 1% pointed directly at background work. Background work lives in the cron scheduler. The cron scheduler had seven jobs I had not reviewed as a set. Reviewing them as a set revealed two categories of waste: one expensive synthesis job that I rarely consumed, and four agent-turn jobs wrapping deterministic shell work.
+
+The fixes were not clever. The zero-token command payload had always been available. The `daily-digest.py` script took less than an hour to write. The contextThreshold change was one number in one config file. The watchdog cleanup required confirming the running version and deleting a stale file.
+
+The expensive part was not fixing it. The expensive part was the period between "I added this cron job" and "I looked at the full cron list." That gap is where the budget went.
+
+Interactive sessions get scrutiny because I am present for them. Background jobs run while I am asleep, so they feel free even when they carry a standing order to spend.

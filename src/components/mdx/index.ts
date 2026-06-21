@@ -110,5 +110,6 @@ export {
   ZBFPolicyChainDiagram,
   TrafficRulesAssumptionsDiagram,
 } from "./diagrams-dns-bypass";
+export { TokenBudgetFlowDiagram } from "./diagrams-codex-token-spike";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
