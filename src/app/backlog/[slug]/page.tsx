@@ -91,8 +91,12 @@ import {
   SiemLoglakeIngestionDiagram,
   SiemSchemaEnginesDiagram,
   SiemRolloutTimelineDiagram,
+  SpringDriveEnergyFlowDiagram,
+  SpringDriveComparisonDiagram,
+  GrandSeikoTimelineDiagram,
   ImageLightbox,
   MermaidDiagram,
+  YouTubeEmbed,
 } from "@/components/mdx";
 
 export const dynamic = "force-dynamic";
@@ -261,7 +265,11 @@ export default async function BacklogPostPage({ params }: Props) {
               SiemLoglakeIngestionDiagram,
               SiemSchemaEnginesDiagram,
               SiemRolloutTimelineDiagram,
+              SpringDriveEnergyFlowDiagram,
+              SpringDriveComparisonDiagram,
+              GrandSeikoTimelineDiagram,
               MermaidDiagram,
+              YouTubeEmbed,
               img: ImageLightbox,
             }}
           />

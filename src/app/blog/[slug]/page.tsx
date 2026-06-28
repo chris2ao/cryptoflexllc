@@ -82,9 +82,13 @@ import {
   SiemLoglakeIngestionDiagram,
   SiemSchemaEnginesDiagram,
   SiemRolloutTimelineDiagram,
+  SpringDriveEnergyFlowDiagram,
+  SpringDriveComparisonDiagram,
+  GrandSeikoTimelineDiagram,
   ImageLightbox,
   CoverImageLightbox,
   MermaidDiagram,
+  YouTubeEmbed,
 } from "@/components/mdx";
 import {
   getAllPosts,
@@ -410,7 +414,11 @@ export default async function BlogPostPage({ params }: Props) {
                     SiemLoglakeIngestionDiagram,
                     SiemSchemaEnginesDiagram,
                     SiemRolloutTimelineDiagram,
+                    SpringDriveEnergyFlowDiagram,
+                    SpringDriveComparisonDiagram,
+                    GrandSeikoTimelineDiagram,
                     MermaidDiagram,
+                    YouTubeEmbed,
                     img: ImageLightbox,
                   }}
                 />
