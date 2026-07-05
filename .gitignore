@@ -66,6 +66,11 @@ notebooklm-artifacts/
 content-assets/
 content-assets/notebooklm/
 
-# NotebookLM slide source (pdf kept, pptx + per-slide PNGs are redundant local-only)
+# NotebookLM slide source (pdf kept locally, pptx + per-slide PNGs are redundant local-only)
 public/blog/**/slides.pptx
+public/blog/**/slides.pdf
 public/blog/**/slides/
+
+# Working research artifacts and raw source media (local-only)
+docs/research/
+docs/Snowflake\ Pics/
