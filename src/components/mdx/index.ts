@@ -111,11 +111,6 @@ export {
   TrafficRulesAssumptionsDiagram,
 } from "./diagrams-dns-bypass";
 export { TokenBudgetFlowDiagram } from "./diagrams-codex-token-spike";
-export {
-  SpringDriveEnergyFlowDiagram,
-  SpringDriveComparisonDiagram,
-  GrandSeikoTimelineDiagram,
-} from "./diagrams-grand-seiko-spring-drive";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
