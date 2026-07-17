@@ -8,7 +8,7 @@ import { useSubscribe } from "@/hooks/use-subscribe";
 const DISMISSED_KEY = "cf_newsletter_dismissed_at";
 const SUBSCRIBED_KEY = "cf_newsletter_subscribed";
 const DELAY_MS = 20_000;
-const GATE_MS = 60 * 60 * 1000;
+const GATE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const EXCLUDED_PREFIXES = ["/analytics", "/unsubscribe"];
 
@@ -77,14 +77,19 @@ export function NewsletterPopup() {
     let timerId: ReturnType<typeof setTimeout> | null = null;
     let elapsed = 0;
     let startedAt = Date.now();
+    let fired = false;
 
     const schedule = (remaining: number) => {
       timerId = setTimeout(() => {
-        setVisible(true);
+        timerId = null;
+        fired = true;
+        // Dismissal or subscription may have happened since the timer was armed
+        if (!shouldSuppress(pathname)) setVisible(true);
       }, Math.max(0, remaining));
     };
 
     const onVisibilityChange = () => {
+      if (fired) return;
       if (document.hidden) {
         if (timerId !== null) {
           clearTimeout(timerId);
@@ -92,6 +97,7 @@ export function NewsletterPopup() {
           elapsed += Date.now() - startedAt;
         }
       } else {
+        if (timerId !== null) return;
         startedAt = Date.now();
         schedule(DELAY_MS - elapsed);
       }
