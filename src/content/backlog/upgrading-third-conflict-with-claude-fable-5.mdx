@@ -2,11 +2,11 @@
 title: "New Model, Old Galaxy: Claude Fable 5 Rebuilds Third Conflict's Game Feel"
 date: '2026-07-16T12:00:00'
 description: >-
-  A first session with Claude Fable 5 turned Third Conflict's turn resolution into an
-  animated playback sequence, layered a parallax starfield over the galaxy map, wired a
-  dormant GOAP planner into AI strategy through a 300-games-per-second self-play harness,
-  and switched on veterancy and supply lines behind new setup toggles. Twenty-five verified
-  bug fixes later, the balance pass came back honest about the numbers it did not hit.
+  I know very little about game development. My retro 4X remake now has animated
+  turn playback, a parallax starfield, a working AI planner, and 221 new passing
+  tests anyway, thanks to one session with Claude Fable 5 and seven agents running
+  in parallel. Also included: the difficulty system we caught making easy mode
+  stronger than hard.
 tags:
   - Claude Code
   - Claude Fable 5
@@ -16,58 +16,56 @@ tags:
   - 4X Strategy
   - AI Agents
 author: Chris Johnson
-readingTime: '16 min read'
+readingTime: '13 min read'
 series: 'Game Development with Claude Code'
 seriesOrder: 7
 coverImage: /blog/upgrading-third-conflict-with-claude-fable-5/infographic.png
 coverImageAlt: "Rebuilding the Galaxy: The Claude Fable 5 Transformation. An intelligence and measurement layer (300 games-per-second self-play harness, Goal-Oriented Action Planning) feeds the shift from invisible logic to immersive experience: animated turn playback in a 3.5-second budget, a three-layer parallax atmosphere, placebo controls wired to real logic, and growth from 924 to 1,145 passing tests with 25 verified bug fixes"
 ---
 
-Seven agents in parallel, 221 new passing tests, roughly 25 verified bug fixes, and a difficulty system that had to be caught making easy mode stronger than hard. That was one session with Claude Fable 5.
+Full disclosure: I am not a game developer. I couldn't write a particle system, an AI planner, or parallax camera math if you paid me. My little retro strategy game now has all three, plus 221 new passing tests, because I spent one session pointing Claude Fable 5 at it.
 
 ![Infographic titled Rebuilding the Galaxy: The Claude Fable 5 Transformation, pairing the intelligence and measurement layer (the 300 games-per-second self-play harness and Goal-Oriented Action Planning) with the move from invisible logic to immersive experience: animated turn playback on a 3.5-second budget, the three-layer parallax atmosphere, placebo controls wired into real game logic, and a quantitative growth table showing tests rising from 924 to 1,145 alongside 8,804 new lines and 25 verified bug fixes](/blog/upgrading-third-conflict-with-claude-fable-5/infographic.png)
 
 ## The Roadmap I Almost Believed
 
-`Third-Conflict` is my web remake of *Second Conflict*, a 1991 Windows 3.0 shareware 4X game nobody remembers except me. By this point in the series it's a real project: a <Nextjs>Next.js</Nextjs> 15 and React 19 app, a pure-function engine (`(GameState, Action) => GameState`, zero React, zero DOM), a seeded xoshiro128** PRNG, a PixiJS v8 galaxy map, and a Zustand v5 store bridging engine to UI. Going in, it had 924 passing engine-heavy tests across 169 source files.
+`Third-Conflict` is my web remake of *Second Conflict*, a 1991 Windows 3.0 shareware 4X game that nobody remembers except me. Over the course of this series it's grown into a real project: a <Nextjs>Next.js</Nextjs> 15 app with a pure-function game engine, a seeded random number generator so replays are deterministic, a PixiJS galaxy map, and 924 passing tests. I understand maybe two thirds of it on a good day.
 
-It also had a problem, and the problem had a name: `docs/plans/production-enhancement-roadmap.md`, a senior-dev-style audit a previous session left behind. Its number one finding: turn resolution was invisible. Click End Turn and the game just swaps state. Fleets teleport. Battles are log entries you read after the fact instead of watching happen.
+It also had a homework file: `docs/plans/production-enhancement-roadmap.md`, an audit a previous session left behind. Finding number one was blunt. Turn resolution was invisible. You click End Turn and the game just swaps state. Fleets teleport. Battles are log entries you read after the fact.
 
-Further down was a list of fully built, fully tested systems doing nothing in an actual game: a GOAP AI planner with 33 passing tests and zero callers, veterancy with 29 tests and zero callers, supply lines with 34 tests and zero callers, and a procedural music system where the Music volume slider in Settings controlled silence.
-
-That last one made me laugh out loud. An earlier session had built ambient drones, combat stingers, and faction motifs into a clean `sound-manager.ts` API, tested it, and never called it from anywhere. The slider worked. It just adjusted the volume of nothing.
+Further down was a list of fully built, fully tested systems that nothing actually used. A GOAP AI planner: 33 passing tests, zero callers. Veterancy: 29 tests, zero callers. Supply lines: 34 tests, zero callers. And my favorite, a complete procedural music system whose volume slider in Settings worked perfectly. It adjusted the volume of nothing. There was never any music.
 
 ![Slide comparing roadmap claims against codebase reality: turn resolution claimed fully implemented but actually an invisible atomic state swap with zero UI feedback, the GOAP planner and veterancy and supply lines claimed ready but fully tested with zero callers, and a procedural music system whose settings slider adjusted the volume of nothing](/blog/upgrading-third-conflict-with-claude-fable-5/slide-02.jpg)
 
-This was my first real session running **Claude Fable 5**, Anthropic's first Mythos-class model in the Claude 5 family, sitting above Opus. I wanted to see what a frontier model plus real multi-agent orchestration would do to a roadmap like that in one sitting. Short answer: a lot. Longer answer is the rest of this post, including the parts that didn't go as expected.
+This was my first real session with **Claude Fable 5**, Anthropic's new Mythos-class model that sits above Opus. I wanted to see what it would do to a roadmap like that in one sitting. The answer was a lot, including one thing that went wrong in the most interesting way possible.
 
 <Info title="What Is GOAP?">
-GOAP stands for Goal-Oriented Action Planning, an AI architecture where an agent evaluates a set of possible goals (expand, defend, attack, research), scores them against the current situation, and picks the top few to pursue. It's a step up from a fixed priority list because the goals themselves compete for attention every turn instead of always firing in the same order.
+Goal-Oriented Action Planning. Instead of following a fixed priority list, the AI scores a set of possible goals (expand, defend, attack, research) against the current situation every turn and pursues the top few. The goals compete for its attention.
 </Info>
 
 ## The Plan: Two Deep, Two Light, One Bug Hunt
 
-Before touching code, I ran plan mode. Three `Explore` agents checked the roadmap's claims against the actual codebase instead of trusting the document and came back having corrected six stale claims: things flagged as broken that were already fixed, things described confidently that worked differently in practice. Verify, don't assume, became the tone for the whole session.
+The first thing Fable did in plan mode was refuse to trust the roadmap. Three exploration agents checked its claims against the actual code and came back with six corrections: things flagged as broken that were already fixed, things described confidently that worked differently in practice. That set the tone for the whole session.
 
-With the corrected picture in hand, I picked scope. Two workstreams would go deep, two would stay light, and a full-app bug hunt would run alongside everything:
+The scope we landed on:
 
-- **Deep: Graphics.** Turn playback (the flagship fix for "invisible turn resolution"), a three-layer parallax starfield, particle pooling, and a frame-budget watchdog.
-- **Deep: AI.** Wire the dead GOAP planner into all four strategies, rework difficulty from stat cheats into behavioral levers, and build a headless self-play harness to measure any of it.
-- **Light: Gameplay.** Turn on veterancy and supply lines behind new setup toggles.
-- **Light: Quality of life.** Wire the dormant music system, add error boundaries, fix save validation, make turn recap entries clickable.
-- **Bug hunt.** Three read-only reviewer agents (engine, store, rendering) sweeping the whole app for defects, independent of the feature work.
+- **Deep: graphics.** Turn playback, a parallax starfield, particle pooling, a frame-budget watchdog.
+- **Deep: AI.** Wire up the dead GOAP planner, rebuild difficulty from stat cheats into actual behavior, and build a self-play harness to measure any of it.
+- **Light: gameplay.** Switch on veterancy and supply lines behind new setup toggles.
+- **Light: quality of life.** Music, error boundaries, save validation, clickable turn recaps.
+- **Bug hunt.** Three read-only reviewer agents sweeping the whole app, independent of the feature work.
 
-Execution used seven named agents in parallel: `harness-builder`, `graphics-artist`, `ai-engineer`, and `gameplay-engineer` building features, plus `rendering-reviewer`, `store-reviewer`, and `engine-reviewer` doing nothing but reading code and reporting findings. I kept the orchestrating session for the work touching everything at once: foundation fixes, turn-playback integration, audio wiring, game modifiers, review fixes, and the balance pass.
+Execution was seven named agents running in parallel: four building features, three doing nothing but reading code and reporting what's broken. I mostly watched, asked questions, and clicked things in the browser to check they were real.
 
 ![New game setup screen showing the six-faction picker (Terran, Krell, Velthari, Draxi, Synthex, Ashani) with per-faction bonuses, CPU opponent count, galaxy shape, and the new difficulty disclosure text explaining how each level behaves](/blog/upgrading-third-conflict-with-claude-fable-5/setup-factions.jpg)
 
-## Turn Playback: Making Resolution Visible
+## Turn Playback: Watching a Turn Actually Happen
 
-This was the flagship fix. The old `processTurn` swapped `GameState` in a single frame: one moment your fleet is at Sol, the next it's orbiting Fomalhaut, no transition, no sense that a battle even happened beyond a line in a combat log.
+This was the flagship fix. The old `processTurn` swapped the entire game state in a single frame. One moment your fleet is at Sol, the next it's orbiting Fomalhaut. Did a battle happen? Check the log, I guess.
 
-The new approach keeps the state swap (autosave, persistence, and game-over logic depend on that happening immediately) but adds a presentation layer on top. A pure function, `buildTurnTimeline`, diffs the previous and next `GameState` by fleet ID into an ordered list of playback events: departures, in-transit advances, arrivals, battle beats, ownership flips, milestones. No Pixi, no store, just data in and data out, which is why it anchors the biggest single test suite added this session.
+The design Fable came up with keeps the instant state swap (autosave and game-over logic depend on it) and adds a presentation layer on top. A pure function called `buildTurnTimeline` diffs the before and after states into an ordered list of playback events: departures, arrivals, battle beats, ownership flips. No rendering code, no store, just data in and data out, which is why it anchors the biggest test suite added this session.
 
-Battle beats are ranked human-first (your battles before ones you merely witnessed), then conquests before losses, then by total casualties, capped at four so a chaotic turn doesn't become a five-minute cutscene. Ownership flips already covered by a battle beat get deduped instead of shown twice. None of that individually respects a time budget, so everything gets scaled proportionally into a fixed 3.5-second window:
+Battle beats get ranked (your battles first, then conquests, then by casualties) and capped at four, so a chaotic turn doesn't become a five-minute cutscene. Then the whole thing gets squeezed proportionally into a fixed 3.5-second window:
 
 ```typescript
 // ---- Scale everything proportionally into the duration budget ----
@@ -87,25 +85,23 @@ const scaled = scale === 1
 
 ![Slide diagramming turn playback as pure-function resolution: State A plus State B flow through a buildTurnTimeline diff pass into an event timeline and a render overlay, with panels explaining the swap-first logic, the fleet-ID diff mechanism, and the strictly enforced 3.5-second skippable budget](/blog/upgrading-third-conflict-with-claude-fable-5/slide-03.jpg)
 
-A pure sequencer, `updatePlayback(nowMs)`, consumes the timeline and emits per-frame instructions: where ghost fleet markers should be, which labels are visible, where the camera should be lerping to, and one-shot events like particle bursts or screen shake. The Pixi layer just reads those frames and draws them: ghost markers fly their legs, the camera glides between battle beats, outcome text rises and fades.
-
-Click anywhere, hit Space, Enter, or Escape, and the whole thing skips straight to the end state. A new Fast Turn Resolution setting, the Reduced Motion toggle, and game-over all bypass playback entirely.
+A sequencer walks that timeline and tells the renderer what to draw each frame: ghost fleet markers flying their routes, the camera gliding between battles, outcome text rising and fading. Click anywhere, or hit Space, Enter, or Escape, and it all skips straight to the end state. Reduced Motion, a new Fast Turn Resolution setting, and game-over skip playback entirely.
 
 ![Turn playback mid-resolution: the End Turn button reads "Resolving...", a ghost fleet marker is mid-flight between Sol and Fomalhaut, and Sol's warship count has already dropped to zero](/blog/upgrading-third-conflict-with-claude-fable-5/turn-playback-resolving.jpg)
 
 <Info title="Swap First, Animate Second">
-The key design decision was ordering: swap the real game state immediately, then animate a presentation overlay on top of it. Autosave, persistence, and game-over checks never wait on an animation, and skipping playback is a pure visual cancel with zero effect on game logic. That made the whole feature much less risky to add on top of an already-working turn processor.
+The ordering is the whole trick: commit the real game state immediately, then animate on top of it. Nothing in the game logic ever waits on an animation, and skipping is a pure visual cancel. That's what made this safe to bolt onto an already-working turn processor.
 </Info>
 
-The engine still resolves a turn atomically in one call. The only new thing is a diff pass that turns state A and state B into a story about how you got between them, played back at a human pace. The roadmap's number one complaint is gone, and no actual game logic had to change.
+The engine itself didn't change at all. The only new code is a diff pass that turns state A and state B into a short story about how you got from one to the other. Roadmap complaint number one: gone.
 
-## Painting the Galaxy: The Atmosphere Pass
+## Painting the Galaxy
 
-Turn playback needed something to happen *in front of*, so the graphics work also went after atmosphere. The galaxy map previously had a single flat starfield; it now has three depth layers (0.35, 0.6, 0.85) panning at different rates as the camera moves, six twinkle groups plus 24 individually-twinkling "hero" stars (not 500 individually animated sprites, a frame-budget disaster waiting to happen), drifting nebula sprites, and flowing dashed fleet routes that show direction of travel.
+The map used to have one flat starfield. Now it has three layers at different depths panning at different rates as the camera moves, drifting nebulas, stars that twinkle in staggered groups (rather than 500 individually animated sprites, which I'm told is a frame-rate disaster), and dashed fleet routes that flow in the direction of travel.
 
 ![Fresh galaxy view showing the layered parallax starfield, soft nebula glows, and hyperlanes connecting star systems](/blog/upgrading-third-conflict-with-claude-fable-5/galaxy-map-parallax.jpg)
 
-The math behind it is a small pure function, `computeParallaxTransform`, solving a specific problem: the background layers live *inside* the world container (so bloom post-processing still covers them), but the world container already has its own camera transform applied. Reading a layer as "farther away" means composing a second transform with the first:
+This is the section where I most obviously did not write the code, because I couldn't have. The math is one small pure function solving a problem I didn't know existed until Fable explained it: the background layers live inside the world container so the bloom effect covers them too, but that container already has the camera transform applied. Making a layer look farther away means stacking a second transform on top of the first:
 
 ```typescript
 export function computeParallaxTransform(
@@ -125,49 +121,47 @@ export function computeParallaxTransform(
 }
 ```
 
-At the galaxy-center anchor with zoom at 1, this collapses to identity: the layer tracks the world exactly. As the camera moves away, each layer's scale becomes `zoom^(depth - 1)`, so a depth-0.35 layer barely moves while a depth-0.85 layer hugs the foreground. It's the old side-scroller trick, adapted to a top-down camera with zoom.
+At the galaxy center with zoom at 1, this collapses to identity and the layer tracks the world exactly. Move the camera and each layer scales by `zoom^(depth - 1)`, so deep layers barely move while shallow ones hug the foreground. It's the classic side-scroller parallax trick adapted to a top-down camera that can zoom.
 
 ![Slide showing the parallax depth math: three starfield layers stacked at depths 0.35, 0.6, and 0.85, the scale equals zoom to the power of depth minus one formula, and notes on the pooled radial-texture particle system capped at 1,000 sprites holding frames under the 8ms target](/blog/upgrading-third-conflict-with-claude-fable-5/slide-04.jpg)
 
-The particle system also got rebuilt from one `Graphics` object per particle to a pooled `Sprite` system with a shared radial texture and a hard cap of 1,000 particles, and a dev-only frame-budget watchdog now warns if any frame takes longer than 8ms. In live testing it flagged exactly one 16.7ms frame, at startup, and nothing since.
+The particle system also got rebuilt, from one `Graphics` object per particle to a pooled sprite system with a shared texture and a hard cap of 1,000. A dev-only watchdog now complains about any frame that takes longer than 8ms. So far it has complained exactly once, at startup.
 
 <Warning title="Reduced Motion Was a Lie">
-The in-game Reduced Motion toggle never actually reached the Pixi renderer. It only toggled a CSS class, while the renderer read the OS-level `prefers-reduced-motion` query once, at mount; flipping the setting mid-game changed nothing in the canvas. The fix: a single helper combining the store setting OR the OS preference, evaluated live every frame, with bloom rebuilt reactively when the flag flips.
+The in-game Reduced Motion toggle never reached the renderer. It toggled a CSS class, while the canvas checked the OS-level preference once at mount, so flipping the setting mid-game changed nothing. The fix checks the store setting OR the OS preference, live, every frame.
 </Warning>
 
-## Teaching the AI to Practice: The Harness
+## Teaching the AI to Practice
 
-You cannot tune an AI you cannot measure, so the first piece of the AI workstream wasn't AI behavior at all: it was a headless self-play harness. `runHeadlessGame` loops the same pure `processTurn` the real game uses, converts one seat to an AI, and records economy snapshots. No rendering, no store, no browser.
+You can't tune an AI you can't measure, so the AI work started with something that isn't AI at all: a headless self-play harness. It loops the exact same `processTurn` the real game uses, no browser, no rendering, and plays the AI against itself.
 
 ```bash
 npm run ai:harness -- --seeds 10 --turn-cap 150
 ```
 
-That single command runs a full round-robin duel suite: 120 games at 2-player, medium difficulty, at roughly 300 games per second, so the suite finishes in about 0.4 seconds. A first pass, before any GOAP or difficulty changes landed, gave a baseline across the four strategies: Balanced 83%, Expansionist 83%, Turtle 33%, Aggressive 0%. Not meaningful in isolation, but worth having before changing anything.
+That one command plays 120 full games in about 0.4 seconds, around 300 games per second. The baseline run, before anything changed: Balanced won 83% of its duels, Expansionist 83%, Turtle 33%, Aggressive 0%. I had no idea whether those numbers were good. Didn't matter. They were written down, and everything after got compared to them.
 
 ![Slide on the headless self-play harness: 300 games per second throughput, a 120-game round-robin duel suite finishing in 0.4 seconds, no rendering layer or store or browser overhead, and the shift from subjective feels-right tuning to empirical before-and-after measurement](/blog/upgrading-third-conflict-with-claude-fable-5/slide-05.jpg)
 
 <Tip title="Measure Before You Tune">
-Every subsequent AI change in this session got a before-and-after harness run instead of a "feels right" judgment call. That habit is what turned the difficulty inversion (next section) from an embarrassing shipped bug into a caught-and-fixed one. A 0.4-second test suite removes any excuse not to run it.
+Every AI change after this point got a before-and-after harness run instead of a "feels right" judgment call. That habit is the only reason the difficulty inversion in the next section got caught instead of shipped. A 0.4-second test suite removes every excuse.
 </Tip>
 
-## Wiring the Dead Planner: GOAP
+## Wiring Up the Dead Planner
 
-With a way to measure results, the GOAP planner could finally get connected to something. The first step was deliberately boring: extract the existing strategy constants, previously scattered as inline literals through the AI code, into a single `StrategyProfile` struct, verbatim, zero behavior change. Every test stayed green, which meant any later failure would be clearly attributable to the new logic rather than to moving code around.
+With measurement in place, the GOAP planner finally got connected to something. Step one was deliberately boring: gather the strategy constants scattered through the AI code into a single `StrategyProfile` struct, changing zero behavior. Every test stayed green, so any later failure would point at the new logic and not at moved furniture.
 
-Only after that refactor landed did the actual wiring happen. `evaluateGoals` scores the available goals for the current situation, `selectTopGoals(3)` keeps the three highest, and `applyGoalModulation` nudges a handful of bounded knobs based on which goals won. An `attack_weak` goal, for instance, lowers the AI's `requiredAdvantage` toward a hard floor of 1.05, so it accepts a thinner numerical edge before committing to an attack, but never a losing one.
+Step two did the wiring. Each turn the AI scores its available goals, keeps the top three, and lets the winners nudge a few bounded knobs. If `attack_weak` wins, for example, the AI accepts a thinner numerical edge before committing to an attack, down to a hard floor of 1.05. Thinner, never losing.
 
 ![Slide diagramming GOAP integration: input state flows through parallel goal scoring into variable modulation, with panels covering the two-phase approach of extracting StrategyProfile first and rewiring second, and the dynamic PersonalityWeights modulation that adjusts hard boundaries like required attack advantage](/blog/upgrading-third-conflict-with-claude-fable-5/slide-06.jpg)
 
-Each faction also got its own `PersonalityWeights`: Krell lean hard into `attack_weak` (2.2x), Velthari weight `research` higher (1.6x), Draxi favor `expand` (2.2x), and so on. These aren't static flavor text. They evolve turn over turn with a decay term pulling them back toward baseline and persist on `Player.aiWeights`, so a Krell AI that's been pounded for ten turns behaves differently than one that's been steamrolling.
+Each faction also got personality weights on top: the Krell lean hard into attacking the weak, the Velthari favor research, the Draxi expand aggressively. The weights drift turn over turn based on how the game is going, so a Krell AI that's been getting pounded for ten turns plays differently than one that's been steamrolling. That detail delights me more than it probably should.
 
 ## The Difficulty Inversion
 
-This is the part of the session that surprised me, because the first version was wrong in an interesting way.
+This is the part of the session I keep telling people about, because the first version was wrong.
 
-The old difficulty system was a stat cheat: higher difficulties just got production bonuses. The new one is behavioral. `makeEvaluationNoise` gives lower difficulties a bounded chance to misjudge a target, `maxOffensivesPerTurn` caps simultaneous attacks, and (added later, see below) `offensiveForceScale` controls how undersized those attacks are.
-
-The noise function has a determinism contract that mattered for keeping replay and save-parity tests intact: at amplitude 0 it draws zero random numbers and always returns 0, so hard difficulty and above stay byte-identical to pre-difficulty behavior. Above zero, it draws exactly one `u32` from the threaded RNG as a per-player, per-turn salt, then derives every per-system noise value from a stateless hash of that salt XORed with the system ID:
+The old difficulty system was a stat cheat: harder AIs just produced more stuff. The new one changes behavior. Lower difficulties get a bounded chance to misjudge targets and a cap on how many attacks they can launch at once. The misjudgment function comes with a determinism contract I would never have thought to ask for: at amplitude 0 it draws zero random numbers, so hard difficulty stays byte-identical to the old behavior and none of the replay or save-parity tests can tell it exists.
 
 ```typescript
 export function makeEvaluationNoise(
@@ -190,12 +184,12 @@ export function makeEvaluationNoise(
 ```
 
 <Info title="Why Exactly One RNG Draw?">
-Threading a seeded RNG through pure functions means every draw has to be accounted for or replays and save-reload parity break. One salt per AI per turn keeps the stream identical at amplitude 0 and adds exactly one predictable draw otherwise. No `Math.random()`, no wall-clock, no surprises for the replay generator.
+The engine threads a seeded RNG through pure functions, so every random draw has to be accounted for or replays and save-reload parity break. One salt per AI per turn adds exactly one predictable draw, and everything else derives from a stateless hash. No `Math.random()`, no wall clock, no surprises.
 </Info>
 
-The first version shipped with noise and an offensive-count cap, and nothing else. I ran the obvious sanity check: a difficulty mirror match, same strategy on both seats, easy AI against hard AI. Easy won 15 of 20 games.
+Then the sanity check: a mirror match, same strategy on both seats, easy AI versus hard AI. Easy won 15 of 20 games.
 
-The handicap had backfired. Capping an AI to fewer simultaneous attacks doesn't weaken it if the winning doctrine in this game *is* fewer, bigger attacks. Hoard the fleet, then strike once with everything, turns out to be strong play, and a count cap accidentally implements it for free. The fix was `offensiveForceScale`: easy and medium now also launch undersized strike forces (0.45 and 0.85 of the intended unit count), so the handicap costs something instead of accidentally granting an advantage.
+The handicap had backfired. Capping how many attacks an AI can launch doesn't weaken it when the winning doctrine in this game is fewer, bigger attacks. Hoard your fleet and strike once with everything is strong play, and the cap implements it for free. The fix was a third lever, `offensiveForceScale`: easy and medium now also launch undersized strike forces, so the handicap finally costs something.
 
 ![Slide titled Architectural Warning: The Difficulty Inversion, showing the feedback loop where capping attacks for the easy AI forces fleet hoarding and single massive strikes, which is the optimal economy strategy, alongside panels describing the flaw, the mirror-match data revealing easy consistently beat hard, and the offensiveForceScale fix](/blog/upgrading-third-conflict-with-claude-fable-5/slide-07.jpg)
 
@@ -205,78 +199,72 @@ The handicap had backfired. Capping an AI to fewer simultaneous attacks doesn't 
 | Medium | 0.15 | 3 | 0.85 |
 | Hard and above | 0 | Infinity | 1.0 |
 
-After the fix, the mirror match ran again across all four strategy doctrines. Hard won three of the four: Balanced 13 of 20, Turtle 12 of 20, Expansionist 11 of 20, and Aggressive 9 of 20 (the Aggressive doctrine, it turns out, self-destructs regardless of who's piloting it).
+With that in place, hard beat easy in three of the four strategy doctrines. The fourth, Aggressive, self-destructs no matter who's piloting it.
 
 <Warning title="Handicaps Can Invert">
-A cap that reduces an AI's *options* is not automatically a weakening. If the reduced option set happens to overlap with strong play, the "handicapped" side can end up stronger. The only way to catch this is to actually run the mirror match and look at the win rate, not reason about it from the difficulty knob's description.
+Reducing an AI's options is not automatically a weakening. If the smaller option set happens to overlap with strong play, the "handicapped" side comes out stronger. You catch this by running the mirror match and reading the win rate, not by reasoning about what the difficulty knob sounds like it does.
 </Warning>
 
 ## The Balance Confession
 
-Difficulty tuning was a genuine win. Strategy balance was not, and I'd rather say so than quietly round the numbers.
+Difficulty tuning was a win. Strategy balance was not, and I'd rather show you the real numbers than round them into something flattering.
 
-The target, set before tuning started, was every strategy landing in a 30-65% aggregate win rate against the others in round-robin duels. Nine tuning rounds later, using the same harness, the numbers were: Expansionist 78%, Turtle 75%, Aggressive 42%, Balanced 5%.
+The target, set before tuning started: every strategy winning 30 to 65% of its round-robin duels. After nine tuning rounds: Expansionist 78%, Turtle 75%, Aggressive 42%, Balanced 5%.
 
 ![Slide charting the balance tuning miss: Expansionist at 78 percent and Turtle at 75 percent sit far above the shaded 30 to 65 percent target band while Balanced lands at 5 percent, with the diagnosis that the duel meta structurally rewards extreme force concentration and the note that the data was not massaged](/blog/upgrading-third-conflict-with-claude-fable-5/slide-08.jpg)
 
-That's not close. Digging into the economy-curve dumps the harness produces, the diagnosis is structural, not a tuning-knob problem: the duel meta rewards single-minded force concentration. Turtle hoards and counterattacks. Expansionist grabs neutral systems fast and snowballs the resulting economy. Both are coherent, narrow doctrines that are hard to beat in a 1v1 duel precisely because they don't split their attention.
-
-Balanced, a generalist by design, loses head-to-head almost by definition against opponents that never hedge. Its earlier reported 15% win rate turned out to be a measurement artifact: score-at-turn-cap wins from factory spam, not actual military victories. A real bug did turn up along the way: Balanced's defensive trigger fired on any `threat > 0`, dumping its *entire* military budget into defense the moment any threat existed. Fixed now, though not enough to close a 73-point gap against Expansionist.
+Not close. The diagnosis from the harness's economy dumps is structural: a 1v1 duel rewards single-minded doctrines. Turtle hoards and counterattacks. Expansionist grabs neutral systems and snowballs the economy. Balanced hedges by design, and hedging loses head-to-head against opponents that never do. One real bug fell out of the digging: Balanced's defensive trigger fired on *any* threat greater than zero, dumping its entire military budget into defense the moment anything looked scary. Fixed now. Not 73-points-of-win-rate fixed.
 
 <Stop title="The Target Was Not Hit">
-Nine tuning rounds did not bring strategy win rates into the 30-65% band. Fixing this properly requires redesigning the Balanced doctrine around pooled, multi-system offensives, plus a look at `system_defense` cost-effectiveness in the combat economy. Both are documented as follow-up work instead of being tuned around until the numbers merely looked acceptable.
+Nine tuning rounds did not bring the win rates into the 30-65% band, and the numbers above are the real ones. The proper fix is redesigning the Balanced doctrine around pooled, multi-system offensives, and that's documented as follow-up work instead of being tuned around until the results merely looked acceptable.
 </Stop>
 
-Two things are worth separating from that failure. Veterancy and supply toggles shift the Expansionist-versus-Turtle rate by only 6.7 points, inside the 10-point "doesn't distort balance" criterion. And player-facing difficulty is still carried correctly by the untouched economy modifiers (AI production bonuses up to 2x at Impossible). This isn't "the AI is broken." It's one specific tuning target, measured honestly, not reached, with the follow-up written down instead of hidden.
+Two things kept this from being a disaster. The new veterancy and supply toggles shift win rates by under 7 points, so they aren't distorting balance. And player-facing difficulty still works fine through the untouched economy modifiers. The AI isn't broken. One specific target got measured honestly and missed.
 
-## Gameplay Toggles and the Placebo Modifiers
+## Gameplay Toggles and the Placebo Checkboxes
 
-The light gameplay pass turned on the two dormant systems the roadmap flagged: veterancy (units earn XP and fight better over time) and supply lines (fleets striking deep into hostile territory fight at a penalty). Both are new setup toggles, default on for new games; `undefined` on old saves means off, so existing games are untouched.
+The light gameplay pass switched on the two dormant systems: veterancy (units earn experience and fight better) and supply lines (fleets deep in hostile territory fight worse). Both are new setup toggles, on by default for new games, and old saves read as off, so nothing existing changes.
 
-The trick that made this a light lift instead of a deep one: every combat effect from both systems folds into a single `CombatModifiers` object, consumed by *both* the statistical combat resolver and the replay generator. Because the replay code already just reads whatever `CombatModifiers` it's handed, replay parity held with zero changes to the replay path itself.
+The reason this stayed light: both systems fold their combat effects into a single `CombatModifiers` object, which the combat resolver and the replay generator both already consume. Replay parity held without touching the replay code at all.
 
-While in that part of the codebase, three more toggles sitting in the setup screen since an earlier session, Total War, Arms Race, and Fog Eternal, turned out to be wired to nothing. Pure placebo checkboxes. They're real now: Total War starts every AI relation at war with trust clamped to -50, Arms Race halves research costs (UI shows the discounted cost), and Fog Eternal removes persistent map memory while still allowing same-turn scout intel. Ironman, the fourth modifier, blocks manual saves.
+While in that corner of the codebase, Fable noticed that three other setup toggles (Total War, Arms Race, Fog Eternal) were wired to nothing. They rendered, they saved their state, they did absolutely nothing. They're real now: Total War starts every AI at war, Arms Race halves research costs, Fog Eternal removes persistent map memory. Ironman, the fourth modifier, blocks manual saves.
 
 <Warning title="Placebo Controls Hide in Plain Sight">
-A checkbox that renders correctly, saves its state correctly, and does nothing is one of the easier bugs to miss, because everything about it *looks* right until you trace what reads that flag. If you inherit a settings screen, grep every toggle's backing field to confirm something actually consumes it.
+A checkbox that renders correctly and saves its state correctly but does nothing is one of the easiest bugs to miss, because everything about it looks right until you trace what actually reads the flag. If you inherit a settings screen, check every toggle for a consumer.
 </Warning>
 
-One more latent bug turned up nearby: faction trust bonuses were never applied at galaxy initialization, because the players array was never passed into `initializeDiplomacy`. Six-faction games had quietly started with flat trust values regardless of faction identity since that function was written.
+One more latent bug nearby: faction trust bonuses were never applied at galaxy setup, because the players array was never passed into `initializeDiplomacy`. Every six-faction game ever started had flat trust values, and nobody noticed, including me.
 
 ![Send Fleet dialog showing a live success-odds bar reading roughly 65 percent Favorable, reflecting the combined effect of veterancy and supply-line combat modifiers](/blog/upgrading-third-conflict-with-claude-fable-5/fleet-dialog-odds.jpg)
 
 ![New game setup screen with Veterancy and Supply Lines checkboxes on by default, plus the Game Modifiers row for Total War, Arms Race, Fog Eternal, and Ironman, now all wired to real behavior](/blog/upgrading-third-conflict-with-claude-fable-5/setup-gameplay-systems.jpg)
 
-The quality-of-life pass finally called the fully-built music system from somewhere: ambient audio starts on the first user gesture for autoplay policy, mood follows the war state each turn, music ducks under dialogs, new games get a faction motif. `playSoundPositional` created a stereo panner, then played the sound through the default bus anyway; fixed by threading the destination node through. Save validation, also previously dead code, got wired into both rehydration and slot loads with a friendly failure toast instead of silently trusting untrusted localStorage data.
+The quality-of-life pass finally gave the music system a caller: ambient audio starts on your first click, the mood follows the war state, music ducks under dialogs. And the save validator, also dead code until now, got wired into the load paths. That one came with a landmine.
 
 <Stop title="The Save Validator's Landmine">
-It was a good thing the unused validator got read carefully before activation: its blanket rule clamping negative numbers would have turned neutral systems (`owner: -1`, a legitimate sentinel) into player-0-owned systems, and corrupted morale (valid range `-3..5`) and `conquestTurn` (valid `-1`) the same way. Wiring dead code back in isn't just "does it run"; it's "does it agree with every convention the codebase quietly relies on."
+The unused validator had a blanket rule clamping negative numbers to zero. Sounds sensible, except neutral systems are marked `owner: -1` and morale legitimately runs negative. Switching it on blindly would have quietly converted every neutral system into player-owned territory. Reviving dead code isn't "does it run", it's "does it agree with every convention the codebase silently relies on".
 </Stop>
 
 ## The Bug Hunt's Greatest Hits
 
-Three read-only reviewer agents (engine, store, rendering), run in parallel against the whole app and independent of the feature work, turned up roughly 25 verified defects.
+While the feature agents built, the three reviewer agents read, and they came back with roughly 25 verified defects.
 
 ![Slide summarizing the parallel bug hunt: read-only agents swept the store, rendering, and engine systems independently of feature work, yielding roughly 25 verified fixes including silently frozen UI from unhandled async rejections, O(N squared) visibility scans replaced with map lookups, and stale XP leaking to green conscripted units](/blog/upgrading-third-conflict-with-claude-fable-5/slide-09.jpg)
 
-The store reviewer's best find: `endTurn`'s dynamic import chain had no `.catch`, and React error boundaries do not catch promise rejections. An engine throw during that import meant the End Turn button silently froze forever, nothing visibly wrong except the game had stopped responding. It's caught now, surfaced as a danger toast confirming the pre-turn autosave is intact.
+The store reviewer's best find: End Turn's dynamic import chain had no `.catch`, and React error boundaries don't catch promise rejections. If the engine threw during that import, the End Turn button silently froze forever. No error message, no crash screen, just a game that stopped responding.
 
-The rendering reviewer turned up several. Loading a save mid-playback permanently soft-locked the game, because the playback-active flag never got cleared on load. In-transit fleets visually vanished during battle beats; fixed by pinning ghost markers at the leg end. Loading a save into a different galaxy rendered stars at stale positions until a layout-key fix forced the star containers to rebuild. Per-frame visibility scans were O(N²), replaced with a map lookup. And returning to a long-hidden tab dumped every queued playback one-shot into a single frame; that now has a storm cap.
+The rendering reviewer found that loading a save mid-playback soft-locked the game permanently, that fleets in transit vanished during battle beats, and that per-frame visibility checks were O(N²) when they could be a map lookup. The engine reviewer's best catch was my favorite: drain a system's veteran troops to zero, recruit green replacements into the same slot, and the rookies inherited the dead veterans' experience, because nothing cleared the XP ledger between occupants.
 
 <Warning title="Promises Don't Trip Error Boundaries">
-React error boundaries only catch errors thrown during render. An unhandled rejection in an async chain (like a dynamic `import()` that fails) will not trigger one, and depending on where the failure lands, the UI can end up frozen with no visible error at all. Any async chain gating a critical user action needs its own explicit `.catch`.
+React error boundaries only catch errors thrown during render. An unhandled rejection in an async chain, like a failed dynamic `import()`, sails right past them, and the UI can freeze with no visible error at all. Any async chain gating a critical user action needs its own `.catch`.
 </Warning>
-
-The engine reviewer's best find was subtler: stale veterancy leaking across unit replacement. Drain a system's five veteran troops to zero, conscript green replacements into the same slot, and the greens inherited the veterans' accumulated XP, because nothing pruned the per-unit-type XP map on any depletion path. Fixed at all three sites.
 
 ## What Fable 5 Actually Felt Like
 
-"The new model is smarter" is an easy claim to make and a hard one to back up. Here's what I can actually point to in this session's transcript, nothing more.
-
-It treated the inherited roadmap as claims to verify, not ground truth: three exploration agents checked it against the real codebase before planning and came back with six corrections. It caught a landmine before triggering it: the save validator's negative-number clamp would have silently corrupted saves the moment it got wired in. It measured instead of eyeballing: every AI-affecting change got a harness run before and after, which is how the difficulty inversion got caught instead of shipped. And it wrote the balance section you just read: when the tuning target wasn't hit, the response was a diagnosis and a documented follow-up, not adjusted numbers or a quietly dropped acceptance criterion.
+"The new model is smarter" is easy to claim and hard to back up, so here's only what I can point to in the transcript. It treated the inherited roadmap as claims to verify and found six errors in it. It read the save validator closely enough to spot the landmine before arming it. It measured every AI change with the harness, which is the only reason the difficulty inversion got caught. And when the balance target wasn't hit, it reported the miss instead of massaging the numbers. For someone who can't personally review parallax math, that last habit is the one that matters most.
 
 <Info title="About Claude Fable 5">
-Claude Fable 5 is Anthropic's first Mythos-class model, part of the Claude 5 family, positioned above Opus in capability. I ran this session with reasoning effort turned up. I'm not claiming these behaviors are unique to this model; I'm just reporting what showed up in this session's transcript.
+Claude Fable 5 is Anthropic's first Mythos-class model, part of the Claude 5 family, positioned above Opus in capability. I ran this session with reasoning effort turned up. I'm not claiming these behaviors are unique to this model, just reporting what showed up in this session.
 </Info>
 
 ## By the Numbers
@@ -293,15 +281,15 @@ Claude Fable 5 is Anthropic's first Mythos-class model, part of the Claude 5 fam
 | Turn playback budget | 3.5 seconds |
 | Engine test coverage | 84% (85% overall on covered dirs) |
 
-Everything shipped as two commits to main: an engine-and-logic pass and a presentation-and-integration pass. Full verification before either landed: the complete test suite green, TypeScript clean, a production build that succeeds, and live browser verification with zero console errors.
+Everything shipped as two commits to main, with the full test suite green, TypeScript clean, a production build passing, and a live browser check with zero console errors before either landed.
 
-The infographic at the top of this post and the slides throughout it came from feeding the finished draft to NotebookLM. If you want the session in shareable form for a team channel, the [full 10-slide deck is available as a PDF](/blog/upgrading-third-conflict-with-claude-fable-5/third-conflict-fable-5-slides.pdf).
+The infographic at the top and the slides throughout came from feeding the finished draft to NotebookLM. If you want the session in shareable form, the [full 10-slide deck is available as a PDF](/blog/upgrading-third-conflict-with-claude-fable-5/third-conflict-fable-5-slides.pdf).
 
 ## Closing the Session
 
-None of this makes Third Conflict a finished game. Balanced still needs a doctrine redesign, and a codebase that hid a silent music system probably has more corners like it. But turn resolution is no longer invisible, the galaxy looks like a galaxy, and an AI that used to play identically at every difficulty now provably plays differently, verified by a command that finishes in under half a second.
+None of this makes Third Conflict a finished game. Balanced needs a real redesign, and a codebase that hid a silent music system probably has more corners like it. But turns are watchable now, the galaxy looks like a galaxy, and the AI provably plays differently at every difficulty, confirmed by a command that runs in under half a second.
 
-The most useful thing about this session wasn't any single feature. It was watching a plan survive contact with reality (the difficulty inversion), get caught, and get fixed, next to watching a plan fail to survive contact with reality (the balance target) and get written down honestly instead of massaged into looking successful. Same discipline, two different outcomes.
+I still can't write a particle system. But I own one now, I roughly understand it, and I watched the thing that built it catch its own mistake using a test harness it also built. No feature on the list beats that.
 
 ---
 
