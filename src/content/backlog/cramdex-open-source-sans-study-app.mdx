@@ -1,0 +1,229 @@
+---
+title: 'Cramdex: Building an Open-Source SANS Study App for GIAC Open-Book Exams'
+date: '2026-07-19T09:00:00'
+description: >-
+  Six-book, open-book GIAC exams pushed me to build my own SANS study app for
+  LDR553: search, a reader, a flashcard quiz, and a personal-index builder in
+  one tool. I open-sourced it as Cramdex, built with Claude Code and now MIT
+  licensed at v1.0.0.
+tags:
+  - Claude Code
+  - Open Source
+  - SANS
+  - GIAC
+  - AI
+  - Security
+author: Chris Johnson
+readingTime: 15 min read
+---
+
+I've sat through a lot of training: military schools, first responder courses, college, and more vendor certifications than I can honestly remember. SANS training is the best of it, and it isn't particularly close. The instructors have worked the material they teach, and the courseware reads like it gets rewritten against what actually happens in the field instead of against a marketing calendar.
+
+That quality has a cost at exam time. GIAC certification exams, the ones tied to SANS courses, run for hours. They're open book, which sounds like a mercy until you sit one. Open book doesn't mean you have time to open the book. You get a few hours and a stack of course material several inches thick, and if your plan is to flip through six or seven books hunting for the right paragraph, you'll run out of time long before you run out of questions.
+
+## The GIAC Open-Book Problem
+
+The standard prep advice comes down to three things: reread the material at least once, build your own glossary of the terms you keep losing track of, and build a personal index. That last one is the must-have. A personal index is a page of your own notes mapping a term to the exact book and page number where it lives. Walk into the exam without one and you're gambling hours of prep on your memory holding up under a clock. Walk in with a good one and you can find almost anything in under a minute.
+
+The scale of the problem is what makes the index non-optional. Most SANS courses ship six or more books, each running a few hundred pages. Building an index by hand means rereading all of that, catching every term worth indexing, and writing down the citation correctly the first time, because you won't have time to redo it later.
+
+<Info title="Why the Personal Index Matters">
+GIAC lets you bring your own printed notes into the exam room along with the course books themselves. A personal index turns "I remember this was in book 4 somewhere" into "book 4, page 187" in seconds. It's the single highest-leverage thing you can build before test day, and building it well takes almost as long as studying the material in the first place.
+</Info>
+
+Here's the whole shape of the problem, and where cramdex fits, on one page:
+
+![Infographic covering the GIAC open-book exam problem, the cramdex study loop of reading, searching, quizzing, and capturing citations, and the printed index it produces on exam day, illustrated with fictional MOON-101 course terms](/images/blog/cramdex/cramdex-index-infographic.png)
+
+*Generated with NotebookLM from this article's draft and the cramdex README. The example terms are all from the fictional demo course.*
+
+## Voltaire Got There First
+
+I didn't invent the idea of building software for this. Long before I touched any of it, [Voltaire](https://legacy.voltaire.publickey.io/) was already solving the indexing half of the problem: an awesome webapp to create an index, source available at [github.com/0sm0s1z/Voltaire](https://github.com/0sm0s1z/Voltaire). I used it, it worked, and if all you need is a clean way to build and print a GIAC index, it's still a solid choice.
+
+Cramdex isn't a response to anything wrong with Voltaire. It grew out of a different course where I wanted the index builder wired directly into search, a page-image reader, and a quiz engine, all working off the same set of books instead of a separate tool for each step.
+
+## LDR553 and Building My Own
+
+Earlier this year I took LDR553, SANS's Cyber Incident Management course. For that one, instead of reaching for a separate index tool and a stack of sticky notes, I decided to build the whole study environment myself: a reader for the PDFs, search across every book, a quiz engine pulled from the glossary, and an index builder wired into all of it.
+
+I built that private version with Claude Code doing the actual implementation while I directed it: what to build, in what order, and what "done" meant for each piece. It worked well enough that I used it for the entire course, index and all. I showed it to a couple of colleagues who were also studying for GIAC exams, and the reaction surprised me. They wanted to use it too, not as a demo, as their actual study tool.
+
+That's what tipped it from "thing I built for myself" into "thing I should open source." Cramdex is an independent project built by and for students. It's not affiliated with, endorsed by, or sponsored by SANS Institute, GIAC, or any other training provider or certification body. I say that plainly because the app names real course and certification providers throughout this post, and I want it clear from the start whose project this is, and whose it isn't.
+
+Here's cramdex running against my actual LDR553 books (a fresh browser profile, so the reading and quiz trackers show empty; the corpus, quiz deck, and lab tracking underneath are the real thing). Notice how the two screenshots needed very different amounts of redaction. The dashboard needed exactly one bar, over my exam countdown, because cramdex doesn't put course content on that screen: the books get generic labels and everything else is my own progress. Search is another story. Every result snippet is a quote from a copyrighted course book, so every one of them is behind a bar. That gap between the two screenshots is the content problem in miniature, and it's the constraint that shaped everything about the public release.
+
+![Cramdex dashboard running against the author's real LDR553 course pack, seven books and a 195-card quiz deck visible, with only the exam countdown redacted](/images/blog/cramdex/cramdex-real-dashboard-redacted.png)
+
+![Cramdex search results against the real LDR553 corpus with every result snippet redacted; the citation chips, book filters, and index capture buttons remain visible](/images/blog/cramdex/cramdex-real-search-redacted.png)
+
+## What Cramdex Actually Does
+
+Cramdex is a local, single-user study app for SANS courses and other PDF-based training. It runs entirely on your machine. Your course PDFs live outside the repository, under `~/.cramdex/courses/<slug>/`, and the engine itself ships with zero course content: no book titles, no glossary terms, nothing that identifies a real course. Every screenshot below comes from the fictional demo course that ships with the repo, MOON-101 Lunar Base Incident Response, not anything real.
+
+### The Dashboard
+
+Open cramdex and you land on an exam readiness dashboard: books read, quiz mastery by topic, labs completed, and a running count of how many terms are in your exam index.
+
+![Cramdex exam readiness dashboard showing reading progress, quiz mastery percentages, and an exam index tile populated with fictional MOON-101 demo course data](/images/blog/cramdex/cramdex-dashboard.png)
+
+None of those numbers mean much on their own. What matters is that they update live as you work through the material, so you can see at a glance which books you haven't touched yet and which quiz topics need another pass.
+
+### The Book Reader
+
+Each book renders as a stack of page images with printed-page navigation, so jumping to "page 187" means the actual printed page 187, not a PDF viewer's internal page count that's off by a title page and two blank inserts.
+
+![Cramdex book reader mid-book showing a rendered page image with page navigation controls](/images/blog/cramdex/cramdex-reader.png)
+
+Reading progress tracks per book, which feeds directly into the dashboard.
+
+### Search
+
+Every page of every book is indexed with SQLite FTS5, and results cite the book and printed page directly.
+
+![Cramdex search results for the term Regolith Sweep, showing per-hit citations with SAVE and INDEX buttons](/images/blog/cramdex/cramdex-search.png)
+
+Click a result and it opens straight to that page image. Each hit also carries a `[+SAVE]` and a `[+INDEX]` button, so finding a term and capturing it for your exam index happens in one motion instead of two separate trips through the app.
+
+### Quiz
+
+The flashcard deck builds itself from whatever the pack's glossary, frameworks, and acronyms contain, with per-topic mastery tracking so you can see which areas are genuinely weak instead of guessing.
+
+![Cramdex flashcard quiz mid-round showing a question card with hit and miss counters](/images/blog/cramdex/cramdex-quiz.png)
+
+You can also turn on AI-generated questions if you have an LLM provider configured, pulled from the same corpus instead of a generic question bank.
+
+### Ask
+
+Ask is grounded question answering over your own corpus. Type a question, it retrieves the relevant pages, and an LLM answers with page citations attached, so you can check the answer against the source instead of trusting it blind.
+
+You choose what does the answering. The default is the Claude CLI, which needs Claude Code installed and on `PATH` and no separate API key. You can also point it at the Anthropic API directly, or at any OpenAI-compatible endpoint: Ollama, LM Studio, vLLM, whatever you already run locally.
+
+<Security title="API Keys Never Touch the Config File">
+Cramdex only ever reads API keys from environment variables. They're never collected through the setup wizard, never written to `config.yaml`, and never logged. If you use the Anthropic API or an OpenAI-compatible provider, the key lives in your shell environment and nowhere else in the app's files.
+</Security>
+
+### The Exam Index Builder
+
+This is the feature the whole app was built around. Prep advice for GIAC exams keeps coming back to the personal index, and cramdex tries to make building one as close to free as possible.
+
+Every place you can find a term, search results, the book reader, or the page image viewer, has a `[+INDEX]` button. Click it and a capture dialog opens with the citation already filled in: which book, which page. You type the term and your own definition, and save.
+
+![Cramdex Add to Index capture dialog open from a search result, with the citation pre-filled and a term typed in](/images/blog/cramdex/cramdex-capture-dialog.png)
+
+Nothing gets added to your index automatically. Cramdex suggests terms pulled from the corpus's extracted book titles and acronyms, plus optional AI-assisted suggestions generated from a page range you choose, but every suggestion routes through the same capture dialog and needs your explicit approval before it saves.
+
+The manage view groups entries alphabetically, shows a color dot per source book so you can see at a glance which book a term came from, supports inline editing, and flags duplicates if you capture the same term twice.
+
+![Cramdex exam index manage view with alphabetical groupings, per-book color dots, and a suggestions panel below](/images/blog/cramdex/cramdex-exam-index.png)
+
+When you're ready to print, there's a dedicated print view: a plain white page, a two-column layout, and the same color legend, formatted for the physical copy you carry into the exam room.
+
+![Cramdex exam index print view showing a white printable page with a two-column index and a per-book color legend](/images/blog/cramdex/cramdex-index-print.png)
+
+Entries export to CSV or JSON, JSON re-imports, and a course pack can ship a starter index that loads with one click. The demo course does exactly that.
+
+### Multi-Course
+
+You're not locked into one course pack. Run setup again for a second course and it writes a new pack under `~/.cramdex/courses/<slug>/` without touching the first. Once you have two or more, a switcher appears in the sidebar so you can flip the active course without restarting anything.
+
+## Two Minutes to a Working Demo
+
+The fastest way to see whether any of this is worth your time is the demo course: no real books, no setup wizard, just a fictional course that exercises every feature. If you've ever wanted to practice incident response for a lunar dust breach, this is your moment.
+
+```bash
+git clone https://github.com/chris2ao/cramdex cramdex
+cd cramdex
+
+bash setup.sh --demo
+bash app/run.sh
+```
+
+`setup.sh` checks for `uv`, Python 3.12, Node 18+, npm, and poppler, builds the fictional MOON-101 course pack, extracts and indexes it, and builds the frontend. `app/run.sh` then serves the app and opens `http://127.0.0.1:8553` in your browser. Every screenshot in this post came from that demo pack.
+
+<Tip title="Run the Demo First">
+Even if you already have your own course PDFs ready to go, run `setup.sh --demo` before you point cramdex at real material. It confirms your environment works in about a minute, and it gives you a safe course to click around in while you learn where everything lives.
+</Tip>
+
+## Setting Up With Your Own Books
+
+Once you're ready for the real thing, drop `--demo` and `setup.sh` hands off to an interactive wizard instead:
+
+```bash
+git clone https://github.com/chris2ao/cramdex cramdex
+cd cramdex
+
+bash setup.sh
+bash app/run.sh
+```
+
+The wizard walks through dependency checks, then asks for your course name, the folder holding your downloaded book PDFs, and an editable plan of which books to include and in what order. If your books are encrypted, it detects that automatically, prompts for a password with the input hidden, and stores it at `600` permissions (or reads it from `CRAMDEX_PDF_PASSWORD` if you'd rather not write it to disk at all). Last, it asks which LLM provider you want for Ask and AI-generated quiz questions, though you can skip that step and configure it later. Then it builds the corpus and the frontend, and you're done.
+
+Re-run `bash setup.sh` any time to add another course. Each run is additive; it never touches packs you already built.
+
+## How It Got Built
+
+Cramdex started as the private study app I built for LDR553. The public repo isn't that app with the serial numbers filed off. It's a clean extraction built around one hard constraint: SANS course material is copyrighted, so the public repository could not contain any of it. Not a book title, not a glossary term, nothing that would identify the source material.
+
+The fix was structural. Course packs live entirely outside the repo, under `~/.cramdex/courses/`, so there's nowhere in the tracked codebase for real content to hide. Since the app needed a working example anyway, I built an entirely fictional demo course from scratch: MOON-101, Lunar Base Incident Response, with an invented vocabulary like Regolith Sweep and Dust Lock. Its PDFs come out of a small hand-rolled generator script, which also meant the build never needed a PDF library, one less dependency for something that only exists as a demo.
+
+<Warning title="Zero Course Content, Enforced by CI">
+A rule like "no real course content" is easy to state and easy to violate by accident: one pasted example in a comment, and it's in git history forever. Cramdex enforces it with an automated content gate that scans every tracked file for course-identifying strings on every test run. The pattern list itself lives in an untracked local file, so even the list of things to avoid never ships in the public repo.
+</Warning>
+
+The build ran across six phased implementation plans, executed with a fresh subagent per task and a reviewer gate on every task: one pass for spec compliance, one for code quality, plus a full review of the whole branch at the end of each plan. I directed the plans and reviewed the reviewer's findings; Claude Code wrote essentially all of the code.
+
+Those reviewer gates caught real bugs before anything shipped. The best one: keystrokes inside the index capture dialog were leaking into the page viewer's keyboard handler underneath it. Tap an arrow key while the dialog was open, maybe just to move the cursor in the term field, and the page viewer would silently turn the page beneath you, changing which citation would actually get saved. You wouldn't have noticed until you reopened your index later and found a definition pointing at the wrong page.
+
+<Warning title="The Keystroke Leak Reviewers Caught">
+A modal dialog that doesn't fully capture keyboard focus lets its keystrokes bleed into whatever is rendered behind it. Here that meant a text field for an index term was also driving page navigation in the reader underneath it, silently corrupting the citation being saved. It got fixed three separate ways and pinned down with tests so it can't come back quietly.
+</Warning>
+
+Public history is clean on purpose. I regenerated it from a git archive and verified blob identity against the private repo, so there's no commit in the public timeline from before the decision to open source it. What ships is the finished thing, not the whole messy road to get there.
+
+At v1.0.0 the test suite comes to:
+
+| Test type | Count |
+|---|---|
+| Backend | 321 |
+| Web (frontend) | 256 |
+| End-to-end (Playwright) | 5 |
+
+`scripts/ci_local.sh` runs all of it locally, step for step with what GitHub Actions runs, which is how I caught most problems before a pull request ever saw them. Most, not all. The first real run on GitHub's own infrastructure failed within seconds, because the workflow set `CRAMDEX_HOME` from the runner's temp path at the job level, and GitHub rejects that at parse time: the runner context simply isn't available in job-level `env`. It had never surfaced, because the repo had been local-only up to that point; the workflow had literally never executed on a GitHub runner before launch day. The fix moved the computation into a step and exported it through `GITHUB_ENV`:
+
+```yaml
+# Rejected at parse time: job-level env cannot reference the runner context
+env:
+  CRAMDEX_HOME: ${{ runner.temp }}/cramdex-home
+
+# Fixed: computed inside a step, exported through GITHUB_ENV instead
+steps:
+  - name: Point CRAMDEX_HOME at the runner temp dir
+    run: echo "CRAMDEX_HOME=$RUNNER_TEMP/cramdex-home" >> "$GITHUB_ENV"
+```
+
+`ci_local.sh` had mirrored everything about the workflow except the one thing you can only find by actually running it on GitHub's own runners. Some bugs only live at the seam between your local simulation of a system and the real thing.
+
+One more surfaced while I was capturing the demo screenshots for this post: the search page showed seven book filters for a three-book course, a hardcoded list left over from the private version. The fix shipped as v1.0.1 the same afternoon.
+
+If you'd rather see the pieces laid out as slides than read through all of the above again, here's a short deck covering the same ground:
+
+![Slide titled The Study Engine: Four Core Tools, summarizing the book reader, SQLite FTS5 full-text search, quiz decks with mastery tracking, and grounded Ask with pluggable LLM providers](/images/blog/cramdex/cramdex-slide-core-tools.png)
+
+![Slide titled The Exam Index Builder, showing the four-step pipeline from capture anywhere through explicit review and the alphabetical manage view to export and print](/images/blog/cramdex/cramdex-slide-index-builder.png)
+
+![Slide titled Launch in Two Minutes, showing the three commands to clone cramdex, run the demo setup, and serve the app, with annotations for each step](/images/blog/cramdex/cramdex-slide-setup.png)
+
+![Slide titled The Zero-Content Constraint, diagramming the repo boundary between the public engine codebase with its fictional demo course and the user's local course packs](/images/blog/cramdex/cramdex-slide-zero-content.png)
+
+*Slides generated with NotebookLM from this article's draft and the cramdex README.*
+
+## Try It
+
+Cramdex is MIT licensed, v1.0.0 is tagged and released, and the repo already has issue tracking, a CONTRIBUTING guide, and a SECURITY policy in place: [github.com/chris2ao/cramdex](https://github.com/chris2ao/cramdex).
+
+If you're studying for a GIAC exam, or you just want to see what a study app built specifically for six-book open-book exams looks like, run the demo. It takes about two minutes and touches nothing real. If you find something worth fixing or a feature worth adding, the repo is open for it. Building this for one course taught me more about the shape of the problem than I expected going in, and I'd rather other people studying for the same exams get to skip that part.
+
+---
+
+*Written by Chris Johnson. Cramdex is built with FastAPI, SQLite FTS5, React, TypeScript, and Tailwind CSS v4, with Claude Code writing the implementation while I directed the plans and reviewed the results, the same process behind most of what ships on this blog. A different kind of build using that same process shows up in my [previous post on rebuilding Third Conflict's game feel with Claude Fable 5](/blog/upgrading-third-conflict-with-claude-fable-5).*
