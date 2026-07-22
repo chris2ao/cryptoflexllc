@@ -10,7 +10,6 @@ const stats = [
 
 const links = [
   { href: "https://cann-cann.vercel.app", label: "Play Now", primary: true },
-  { href: "https://github.com/chris2ao/Cann-Cann", label: "View Source" },
 ];
 
 export function CannCannPromo() {

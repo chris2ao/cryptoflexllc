@@ -4,6 +4,7 @@ import { TickerStrip } from "@/components/home/ticker-strip";
 import { JournalSection } from "@/components/home/journal-section";
 import { AboutSection } from "@/components/home/about-section";
 import { SelectedWork } from "@/components/home/selected-work";
+import { ArcadeSection } from "@/components/home/arcade-section";
 import { ConsultingSection } from "@/components/home/consulting-section";
 import { CVTimeline } from "@/components/home/cv-timeline";
 import { SubscribeBlock } from "@/components/home/subscribe-block";
@@ -60,6 +61,7 @@ export default function HomePage() {
         <JournalSection posts={posts} totalCount={allPosts.length} />
         <AboutSection />
         <SelectedWork />
+        <ArcadeSection />
         <ConsultingSection />
         <CVTimeline />
         <SubscribeBlock />

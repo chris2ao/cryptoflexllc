@@ -14,10 +14,6 @@ const links = [
     label: "Play Now",
     primary: true,
   },
-  {
-    href: "https://github.com/chris2ao/Third-Conflict",
-    label: "View Source",
-  },
 ];
 
 export function ThirdConflictPromo() {
