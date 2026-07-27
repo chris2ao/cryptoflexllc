@@ -190,7 +190,7 @@ The heartbeat matters because the Mac mini occasionally sleeps (despite `sudo pm
 If your time-series can have real zeros, never render a missing data point as zero. Emit a sentinel row on every attempted collection. Your chart component then has three states (value, zero, gap) rather than two (value, zero). Operators interpret the gap correctly; operators who see a zero assume something's broken.
 </Tip>
 
-![Side-by-side comparison of live-fetch versus poll-and-cache, plus a heartbeat sentinel time-series chart distinguishing accurate gaps (the host was asleep) from misleading zeros (Pi-hole blocked nothing — never true).](/blog/homenet-dashboard-phase-1/slides/slide-06.png)
+![Side-by-side comparison of live-fetch versus poll-and-cache, plus a heartbeat sentinel time-series chart distinguishing accurate gaps (the host was asleep) from misleading zeros (Pi-hole blocked nothing, never true).](/blog/homenet-dashboard-phase-1/slides/slide-06.png)
 
 ### The Read-Surface API
 
