@@ -111,6 +111,10 @@ export {
   TrafficRulesAssumptionsDiagram,
 } from "./diagrams-dns-bypass";
 export { TokenBudgetFlowDiagram } from "./diagrams-codex-token-spike";
+export {
+  AI1ScoringModelDiagram,
+  AI1TrustBoundaryDiagram,
+} from "./diagrams-ai1-security";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";

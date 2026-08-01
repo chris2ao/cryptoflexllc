@@ -1,0 +1,265 @@
+---
+title: "Passing AI1 While Missing Flags: An AI Security Exam That Grades How You Think"
+date: '2026-08-01'
+description: >-
+  I passed TryHackMe's AI1 AI Security certification without recovering every
+  flag, because the live scenarios weight reasoning four times heavier than
+  the answer key. Here's what the exam covers, how it's scored, and why the
+  feedback taught me more than the pass did.
+tags:
+  - Security
+  - AI Security
+  - Prompt Injection
+  - TryHackMe
+  - Certification
+  - OWASP
+author: Chris Johnson
+readingTime: 18 min read
+coverImage: /blog/tryhackme-ai1-ai-security-certification/infographic.png
+coverImageAlt: "How the AI1 exam scores its live scenarios: an AI grader reading your conversation transcript is worth 80% of the mark, and flag submission only 20%."
+series: Security Engineering
+seriesOrder: 8
+schemaType: TechArticle
+---
+
+## Passed, missing flags
+
+I passed TryHackMe's AI1 AI Security certification without recovering every flag in the live scenarios. On the sections that mattered most, the flag was worth a fifth of the score. The reasoning I demonstrated along the way was worth the other four fifths.
+
+I build AI agents for a living and for fun. I wanted to find out whether I actually understand how those systems fail, not just whether I can recite a vulnerability list from memory.
+
+AI1 turned out to be a real test of that: live chatbot scenarios graded on technique and adaptability, not a quiz to pattern-match through.
+
+This post contains no exam answers. The value is in the reasoning, not in the flags found or missed along the way.
+
+## Why a developer bothered
+
+I did not sign up for AI1 out of general curiosity about security certifications. I signed up because of what I already had running.
+
+Most days I'm inside Claude Code, wiring together automation, custom MCP servers, and multi-agent pipelines that hand tasks to each other with minimal supervision.
+
+Behind that sits a homelab SIEM that pulls my home network's telemetry into a queryable store, and a RAG-shaped persistent memory system that recalls context from weeks earlier without me re-explaining anything.
+
+All of it is AI-native by design. The agents read data, write files, call APIs. Increasingly they decide what happens next without a human approving every step.
+
+That's precisely the class of system AI1 is built to attack. Once I noticed the overlap, the decision made itself.
+
+If I'm going to keep shipping agents that read untrusted content and act on it, I want to have personally tried to break one of the same shape. That meant doing it under exam conditions, against a grader that doesn't accept vague hand-waving as an answer.
+
+There was a professional angle too, not just a personal one. The global cybersecurity workforce gap sits at 4.8 million people, up 19.1% year over year. More than a third of respondents in [ISC2's 2024 workforce study](https://www.isc2.org/insights/2024/10/isc2-2024-cybersecurity-workforce-study) named AI and automation skills as their team's biggest shortfall.
+
+Security engineering and AI system design are converging fast. Treating them as separate disciplines is starting to look like a mistake. Learning to attack the systems I build is the fastest way I know to learn how to defend them.
+
+The adoption numbers explain why that gap keeps widening rather than closing: eighty-four percent of developers now use or plan to use AI tools, up from seventy-six percent the year before, and fifty-one percent of professional developers use them daily, according to [Stack Overflow's 2025 Developer Survey](https://survey.stackoverflow.co/2025/ai). Only 3.1% said they highly trust the accuracy of what those tools produce. Heavy daily reliance paired with almost no confidence in the output is not a stable combination. Closing that gap for myself, rather than living inside it, was worth a weekend of exam prep.
+
+## What the learning path is
+
+AI1 sits on top of TryHackMe's AI Security learning path, which I finished after roughly nineteen hours and fifteen minutes of course time. Five modules, twenty-five hands-on labs, rated medium difficulty.
+
+The section names give away the shape of it: AI Fundamentals, Secure AI Systems, Prompt Security, AI Supply Chain Security, and Data Poisoning.
+
+The path's own framing is to build a practical foundation in AI security by teaching how these systems are built, where they break, and how to defend them. In practice, that framing held up.
+
+![Learning path completion certificate for TryHackMe's AI Security learning path](/blog/tryhackme-ai1-ai-security-certification/learning-path-certificate.png)
+
+<Info title="Independent write-up">
+This post isn't sponsored by or affiliated with TryHackMe. I paid for the path and the exam like anyone else does, and everything here is my own account of the experience, not a promotional one.
+</Info>
+
+What made the material stick wasn't the reading. It was the ratio of doing to reading. Twenty-five labs against five modules means you're rarely more than a page away from a hands-on environment.
+
+You break something yourself and watch what happens. I've done certification paths before where the labs feel bolted onto the theory as an afterthought. This one didn't feel that way.
+
+The written material set up a concept. The lab immediately made you use it against a live target. That's the only way most of this actually lands for me.
+
+Does a learning path matter if you already know the vocabulary? In my case, yes, because vocabulary was never the gap.
+
+Knowing that prompt injection exists is not the same as sitting in front of a chatbot that's actively refusing you. Figuring out, in real time, why your third approach failed when your first one worked is a different skill entirely.
+
+The path builds the reps for that. The exam is where you find out if the reps took.
+
+## How the exam is scored
+
+AI1 is thirteen hands-on scenarios spread across four sections, completed inside a 48-hour window: Threat Modelling, Prompt Injection and Jailbreaking, AI Supply Chain Security, and Data Poisoning.
+
+It costs $399, which includes a free retake, three months of premium, and the learning path itself.
+
+TryHackMe positions it as attack and defend in one exam rather than picking a side. It aligns the content to [OWASP](https://genai.owasp.org/llm-top-10/) and [MITRE ATLAS](https://atlas.mitre.org/).
+
+It's explicitly aimed at three audiences, one of which is people shipping AI-powered products. That's the bucket I fall into.
+
+The scoring model is what makes this exam different from a checklist quiz.
+
+Your score on a scenario is raw points divided by marks available. Your final result is the average across all thirteen. Seventy percent or above passes.
+
+<Tip title="Why equal weighting matters">
+A scenario worth a handful of raw marks counts exactly as much as one worth many, once it's converted to a percentage and averaged in. That stops the exam from turning into a search for the highest point-value scenario to grind. Every scenario carries the same weight as every other one, full stop.
+</Tip>
+
+### The static half
+
+Seven of the thirteen scenarios are static and web-based. Selection questions score a point for a correct answer, zero for a grey-area answer, and lose a point for an incorrect one, floored at zero so you can't go negative.
+
+Justification questions in this half are graded by an AI against a rubric rather than a human.
+
+### The live half
+
+The other six scenarios are live AI chatbot exercises, and this is where the interesting scoring lives.
+
+Each one is graded from two inputs: eighty percent from an AI grader reviewing your entire conversation transcript against the scenario's marking criteria, evaluating technique, reasoning, adaptability, and conduct. Twenty percent from flag submission, checked against an answer key with partial credit available.
+
+<AI1ScoringModelDiagram />
+
+<Info title="How the AI-graded rubric tiers work">
+Full marks require every key concept present with specific technical reasoning. The tiers step down from there: a high partial for hitting most of the key points but missing or blurring one important element, a lower partial for showing relevant understanding with real gaps, a minimal score for surface-level answers that aren't wrong so much as thin, and zero for a blank, incorrect, or contradictory response.
+</Info>
+
+<Warning title="Universal disqualifiers">
+Some responses zero out regardless of everything else you got right. One kind the grading explicitly watches for is claiming a confirmed-compromised artefact is safe. Get the reasoning right everywhere else in a scenario and say that, and the whole thing zeroes. It's a hard stop, not a deduction.
+</Warning>
+
+On the live scenarios, the flag you extract is worth a fifth of your grade.
+
+The transcript of how you got there, or tried to, is worth the other four fifths. That's why I could pass while missing several flags along the way.
+
+The exam isn't asking whether you got lucky. It's asking whether you can reason under pressure against a system that's actively resisting you. It grades the reasoning directly instead of inferring it from whether you happened to land the extraction.
+
+## The lessons that transfer
+
+I went in expecting to learn attack technique. What I actually walked out with was a sharper version of a question I already ask about my own systems.
+
+Where, specifically, is the line between data and instructions? Does my code enforce that line, or just hope the model respects it?
+
+<AI1TrustBoundaryDiagram />
+
+Indirect injection is the cleanest illustration of why that question matters. It doesn't arrive as a prompt typed at the model. It rides in on content the agent is already going to trust: a calendar entry, a wiki page, a retrieved document, an issue comment.
+
+If your agent concatenates that content into the same context window as its instructions, the model has no reliable way to tell "text I should reason about" from "text I should obey."
+
+The current [OWASP LLM Top 10](https://genai.owasp.org/llm-top-10/) puts Prompt Injection at LLM01 for exactly this reason. My RAG memory system carries the same shape of risk, which is not a comfortable thing to notice mid-exam.
+
+<Security title="The lethal trifecta">
+Simon Willison's [lethal trifecta](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) framing names the three ingredients that make an agent dangerous: access to private data, exposure to untrusted content, and a way to communicate externally. Any two of those are usually fine on their own. All three together is the failure mode.
+</Security>
+
+The clearest real-world version of that failure mode landed on a tool I use every day. In June, researcher RyotaK at GMO Flatt Security [disclosed](https://flatt.tech/research/posts/poisoning-claude-code-one-github-issue-to-break-the-supply-chain/) a malicious GitHub issue that could induce the Claude Code GitHub Action to read `/proc/self/environ` and harvest CI runner secrets, including an API key.
+
+The instructions were hidden inside HTML comments, invisible in the rendered UI. The payload framed itself as a routine compliance review and truncated the credential to dodge secret scanning.
+
+[Microsoft Threat Intelligence independently confirmed](https://www.microsoft.com/en-us/security/blog/2026/06/05/securing-ci-cd-in-agentic-world-claude-code-github-action-case/) the finding days later, and it was patched in Claude Code v2.1.128.
+
+The shape of the bug is the point: indirect prompt injection, against an AI coding agent, sitting inside CI/CD, on the exact tool I run automation through daily.
+
+A pair of chained flaws in Cursor's IDE that summer, [nicknamed DuneSlide](https://www.catonetworks.com/blog/duneslide-two-critical-rce-vulnerabilities/) and [tracked as CVE-2026-50548](https://www.tenable.com/cve/CVE-2026-50548), pushed the same bug class to full remote code execution via a poisoned MCP response. Prompt injection isn't a content-moderation problem. It's an RCE vector with a friendlier name.
+
+The second lesson sits right next to the first: authorization has to live outside the model, never inside it. A model that's asked to be both the guard and the judge of its own gate can be talked into opening that gate. "Access granted" narrated by a language model isn't authorization. It's a sentence the model generated because the conversation made that sentence plausible.
+
+This is what [OWASP's Agentic Applications list](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) calls out directly as ASI03, Identity and Privilege Abuse. It's why every MCP server I write now checks identity and permission deterministically in code before a tool call executes, never by asking the model whether the request seems okay. [GitHub's Octoverse 2025 report](https://github.blog/news-insights/octoverse/octoverse-a-new-developer-joins-github-every-second-as-ai-leads-typescript-to-1/) backs this up with a trend I did not expect: Broken Access Control overtook Injection as the most common CodeQL alert, flagged in over 151,000 repositories, much of it AI-generated scaffolding that skipped checks nobody told the model to add.
+
+Model artefacts are the third lesson, and the one that surprised me most, because it barely looks like security at first glance.
+
+A model file is software supply chain, filed under [OWASP LLM03](https://genai.owasp.org/llm-top-10/) and [ASI04, Agentic Supply Chain Vulnerabilities](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
+
+Format is the first control that actually matters. SafeTensors cannot execute code on load. Pickle can, by design, which is how researchers at ReversingLabs [found proof-of-concept malicious models](https://thehackernews.com/2025/02/malicious-ml-models-found-on-hugging.html) on Hugging Face in early 2025, using compression tricks to slip past the platform's own pickle scanner.
+
+A checksum proves a file wasn't corrupted in transit. A signature proves it came from a trusted publisher. Neither proves the contents are benign, and conflating "verified" with "safe" is exactly the gap that got exploited.
+
+The fourth lesson is the one I think about most, because my own memory system is built on it: a retrieval corpus is an authorization boundary, whether you designed it to be one or not. That's the ground OWASP's ASI06, Memory and Context Poisoning, covers on the agentic side.
+
+Similarity-only retrieval has no concept of truth or authority baked in. "Most similar to the query" quietly becomes "most repeated by whoever had write access to the corpus."
+
+<Info title="An honest caveat on RAG poisoning">
+I don't know of a confirmed, named production breach from RAG poisoning yet. The strong evidence is research: PoisonedRAG showed a small number of injected documents can hijack retrieval at a high rate against a multi-million-document corpus. That it hasn't shown up in a named breach doesn't mean the mechanism isn't real.
+</Info>
+
+Provenance that's cryptographically bound to the content, rather than just string-matched against a source label, is the actual fix for a poisoned corpus, not a scanner running after the fact.
+
+[MITRE ATLAS](https://atlas.mitre.org/) catalogs the specific techniques underneath all four lessons, worth bookmarking as the attacker's-eye taxonomy next to OWASP's defender-side checklist.
+
+## The feedback is the real product
+
+Prompt Injection and Jailbreaking was my weakest section, and the section average turned out to be the least useful number on the page. Underneath it sat four separate sub-scores, one for each variant the section tests: direct injection, indirect injection, and each of those again with guardrails in the loop.
+
+The spread between them was enormous. That spread, not the average, is what told me where my skill stopped and my instinct started.
+
+I'm keeping my own numbers to myself, since they're specific to my transcript and not to the exam. What's worth writing down is the shape of them.
+
+<Info title="What the feedback actually looks like">
+The results page breaks a section score into per-scenario bars underneath it, and beneath each of those sits an AI-written panel with two parts: what worked, and what to improve. It's written against your specific transcript, referencing what you actually tried and how you adapted, rather than handing you generic advice.
+</Info>
+
+I'm not going to reproduce a word of that panel here. What I can tell you is what it meant, in my own words, because I've had a few days to sit with it.
+
+On direct injection I was good, and I mean that without hedging. I built a coherent multi-turn narrative and sustained it. Every small concession the model granted became leverage for the next request.
+
+That reads as strategy when it works, not guesswork. It was comfortably my strongest sub-score of the four, and it worked far more often than it didn't.
+
+It's the version of me I'd want writing the authorization code I described two sections ago: deliberate, watching what the previous move bought, building on it.
+
+Indirect injection is where I fell apart, and the reason stings a little, because it's a debugging failure, not a technique failure.
+
+Against consistent refusals, I cycled through techniques instead of reading the failure signal and diagnosing which layer was actually blocking me.
+
+I'd hit a wall, try a different angle, hit the same wall from a slightly different position. I kept rotating instead of stopping to ask which specific control was firing.
+
+My indirect attempts were also too explicit, too obviously constructed, to survive contact with an agent that was actually paying attention.
+
+Would I have caught that faster outside an exam clock? Maybe. But the clock isn't really the excuse.
+
+I know how to debug a system by isolating variables one at a time. I didn't do it here, not consistently, and my weakest sub-score of the four is the honest record of that.
+
+The guardrail variants complicate that story instead of confirming it, and the honest version is more interesting than a clean pattern would have been. On direct injection, guardrails wrecked me. My strongest sub-score collapsed to nearly my weakest once a structural check entered the loop, which says the multi-turn narrative I was building does not survive contact with a guardrail. On indirect injection guardrails coincided with a marked improvement instead.
+
+Even after that improvement, indirect-with-guardrails still landed well below where I scored on direct injection with nothing in the way. Indirect is the weak axis on its own terms, guardrails or not. Guardrails did not make me uniformly worse; they exposed exactly where my technique was load-bearing and exactly where it wasn't.
+
+<Warning title="One skill, one gap">
+My best sub-score and my worst are not two different skill levels. They are the same underlying skill, tested against a target that demanded diagnosis first and technique second. I kept reaching for technique.
+</Warning>
+
+That's a real skill gap, not a scoring quirk.
+
+The fix isn't a bigger toolbox. It's reading each failure signal for what layer it's actually reporting on, and aiming at that layer specifically instead of trying every tool I own against the same wall.
+
+## What changed in how I build
+
+The indirect-injection gap didn't stay theoretical for long. Within the same week, I went back through every MCP server I've shipped.
+
+The question was narrower than before: is the boundary between retrieved content and executable instruction actually enforced somewhere, or is the model being trusted to keep them apart on its own?
+
+In a couple of places the honest answer was the second one.
+
+Explicit framing has since gone in, so anything pulled from an external source, a fetched page, a stored note, a document another agent wrote, gets tagged as data before it ever reaches the context the model reasons from.
+
+Authorization moved too. Any tool in the stack that can write, delete, or exfiltrate anything now checks identity and permission in a deterministic code path before the call executes, never by trusting the model's narration of whether the request looked legitimate.
+
+That was already partly true before AI1. It's fully true now, because the gaps got looked for instead of assumed away.
+
+One habit stuck harder than the rest. Before shipping anything that reads external content, I now sit down and try to break it myself, the same way the exam kept forcing me to.
+
+It isn't a formal red-team pass, just a deliberate attempt to make the system do something its own instructions never asked for. Most of the time nothing gives. Often enough, something does, and that's a cheap thing to find before shipping instead of halfway through an exam transcript.
+
+<Tip title="Uniform failure is a design choice">
+If two different layers in a pipeline reject a request for two different reasons, an external caller should see the same generic denial either way, while the logs on my side keep the specific reason. Distinct error strings handed back to an untrusted caller are a map of your defenses. Uniform ones aren't.
+</Tip>
+
+The [NIST AI Risk Management Framework's Generative AI Profile](https://www.nist.gov/itl/ai-risk-management-framework) has also earned a permanent spot in the review checklist. It isn't binding on anything running in a homelab, but it's the closest thing to an industry-standard reference for exactly this class of risk.
+
+The Veracode stat that stuck with me hardest: AI-generated code across [more than a hundred models](https://www.veracode.com/blog/genai-code-security-report/) introduced a known OWASP Top 10 vulnerability 45% of the time. Security performance stayed flat regardless of model size or how recent the model was. Bigger and newer did not mean safer.
+
+Code review before anything ships was already a habit. It has stopped being a formality done out of caution and started being treated as the actual control, not a backstop behind some other control that was being assumed into existence.
+
+## Why this does not stop
+
+AI1 gave me hard evidence for something I'd only had a vague sense of before, and the finding is more specific than "guardrails make me worse." Direct injection is where a guardrail actually stopped me cold. Indirect injection is where I was already struggling before any guardrail entered the picture, and where I still have work to do regardless of what's standing in the way.
+
+That distinction is now specific enough to train against instead of just something I feel uneasy about in the abstract.
+
+![AI1 AI Security certification from TryHackMe](/blog/tryhackme-ai1-ai-security-certification/ai1-certification.png)
+
+The certificate is dated August 1st, the same week this post went up. That timing isn't incidental.
+
+Writing the thing down forced a second pass through my own transcript, and that second pass is what turned a stack of feedback into four lessons I could actually act on.
+
+The exam includes a free retake. I'm going to use it, not to chase a cleaner average, but to see whether the gap between my best and worst sub-scores narrows once the failure-signal habit replaces the toolbox habit.
+
+If it does, the next post is the retake. If it doesn't, I'll write that one too.
