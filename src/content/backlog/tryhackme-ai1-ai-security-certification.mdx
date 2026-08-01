@@ -1,11 +1,11 @@
 ---
-title: "Passing AI1 While Missing Flags: An AI Security Exam That Grades How You Think"
+title: "Building With AI, Defending Against It: Why I Don't Get to Stop Learning"
 date: '2026-08-01'
 description: >-
-  I passed TryHackMe's AI1 AI Security certification without recovering every
-  flag, because the live scenarios weight reasoning four times heavier than
-  the answer key. Here's what the exam covers, how it's scored, and why the
-  feedback taught me more than the pass did.
+  I build with AI every day, and I help keep an enterprise secure while it
+  adopts AI as fast as it can. Both jobs punish stale knowledge, so I worked
+  through TryHackMe's AI Security path and sat the AI1 certification. Here is
+  what the exam actually tests and what carried back into my own code.
 tags:
   - Security
   - AI Security
@@ -14,7 +14,7 @@ tags:
   - Certification
   - OWASP
 author: Chris Johnson
-readingTime: 18 min read
+readingTime: 19 min read
 coverImage: /blog/tryhackme-ai1-ai-security-certification/infographic.png
 coverImageAlt: "How the AI1 exam scores its live scenarios: an AI grader reading your conversation transcript is worth 80% of the mark, and flag submission only 20%."
 series: Security Engineering
@@ -22,41 +22,49 @@ seriesOrder: 8
 schemaType: TechArticle
 ---
 
-## Passed, missing flags
+## Security knowledge has a shelf life
 
-I passed TryHackMe's AI1 AI Security certification without recovering every flag in the live scenarios. On the sections that mattered most, the flag was worth a fifth of the score. The reasoning I demonstrated along the way was worth the other four fifths.
+Everything I know about securing software has an expiration date. That has always been true. What is new is how quickly the date arrives for anything involving AI.
 
-I build AI agents for a living and for fun. I wanted to find out whether I actually understand how those systems fail, not just whether I can recite a vulnerability list from memory.
+The taxonomy moved under me while I was studying it. OWASP renumbered its LLM Top 10, then published a separate top ten for agentic applications, because agents had outgrown being a footnote on the LLM list. Attack classes that were conference talks two years ago now have CVE numbers attached to developer tools I have open right now.
 
-AI1 turned out to be a real test of that: live chatbot scenarios graded on technique and adaptability, not a quiz to pattern-match through.
+Attackers are not waiting for defenders to catch up, and they have access to the same AI tooling I do. That asymmetry resolves in exactly one direction. The people defending these systems have to learn faster than the attack surface grows, or the gap compounds quietly until something expensive happens.
 
-This post contains no exam answers. The value is in the reasoning, not in the flags found or missed along the way.
+Which is why I no longer think of security as a specialty that lives with a team down the hall. If you are a developer or an engineer building with AI, a meaningful share of your system's security posture gets decided by choices you make, in code, on an ordinary Tuesday, usually without anyone reviewing them through a security lens.
 
-## Why a developer bothered
+I am in that position twice over, and that is what sent me back to structured training.
 
-I did not sign up for AI1 out of general curiosity about security certifications. I signed up because of what I already had running.
+This post contains no exam answers, no scenario details, and no material lifted from behind TryHackMe's paywall. The value here is in the reasoning and in how the training is built, not in anything that would spoil it for the next person.
 
-Most days I'm inside Claude Code, wiring together automation, custom MCP servers, and multi-agent pipelines that hand tasks to each other with minimal supervision.
+## Two jobs, one problem
+
+Personally, I build with AI constantly. Most days I'm inside Claude Code, wiring together automation, custom MCP servers, and multi-agent pipelines that hand tasks to each other with minimal supervision.
 
 Behind that sits a homelab SIEM that pulls my home network's telemetry into a queryable store, and a RAG-shaped persistent memory system that recalls context from weeks earlier without me re-explaining anything.
 
 All of it is AI-native by design. The agents read data, write files, call APIs. Increasingly they decide what happens next without a human approving every step.
 
-That's precisely the class of system AI1 is built to attack. Once I noticed the overlap, the decision made itself.
+Professionally, I sit on the other side of the same problem. Part of my job is helping keep an enterprise secure while that enterprise adopts AI as quickly as it can, which is the right speed for the business and an uncomfortable speed for anyone who owns the risk. Slowing the innovation down is not the assignment. Understanding it well enough to secure it while it moves is.
 
-If I'm going to keep shipping agents that read untrusted content and act on it, I want to have personally tried to break one of the same shape. That meant doing it under exam conditions, against a grader that doesn't accept vague hand-waving as an answer.
+Those two roles ask the same question from opposite ends. As a builder, I want to know what my system does when someone feeds it something hostile. As a defender, I have to ask that about systems other people built, most of them assembled by engineers who were not thinking about hostile input at all, because they were thinking about shipping.
 
-There was a professional angle too, not just a personal one. The global cybersecurity workforce gap sits at 4.8 million people, up 19.1% year over year. More than a third of respondents in [ISC2's 2024 workforce study](https://www.isc2.org/insights/2024/10/isc2-2024-cybersecurity-workforce-study) named AI and automation skills as their team's biggest shortfall.
+Neither version of that question gets answered by reading a vendor datasheet or a vulnerability list. You answer it by having personally attacked something shaped like the thing you are worried about.
 
-Security engineering and AI system design are converging fast. Treating them as separate disciplines is starting to look like a mistake. Learning to attack the systems I build is the fastest way I know to learn how to defend them.
+The numbers back up how wide this gap has become. The global cybersecurity workforce gap sits at 4.8 million people, up 19.1% year over year, and more than a third of respondents in [ISC2's 2024 workforce study](https://www.isc2.org/insights/2024/10/isc2-2024-cybersecurity-workforce-study) named AI and automation skills as their team's single biggest shortfall.
 
-The adoption numbers explain why that gap keeps widening rather than closing: eighty-four percent of developers now use or plan to use AI tools, up from seventy-six percent the year before, and fifty-one percent of professional developers use them daily, according to [Stack Overflow's 2025 Developer Survey](https://survey.stackoverflow.co/2025/ai). Only 3.1% said they highly trust the accuracy of what those tools produce. Heavy daily reliance paired with almost no confidence in the output is not a stable combination. Closing that gap for myself, rather than living inside it, was worth a weekend of exam prep.
+Adoption is what keeps that gap widening rather than closing. Eighty-four percent of developers now use or plan to use AI tools, up from seventy-six percent the year before, and fifty-one percent of professional developers use them daily, according to [Stack Overflow's 2025 Developer Survey](https://survey.stackoverflow.co/2025/ai). Only 3.1% said they highly trust the accuracy of what those tools produce.
 
-## What the learning path is
+Heavy daily reliance paired with almost no confidence in the output is not a stable combination. Security engineering and AI system design are converging fast, and treating them as separate disciplines is starting to look like a mistake. I would rather close that gap deliberately than keep living inside it.
 
-AI1 sits on top of TryHackMe's AI Security learning path, which I finished after roughly nineteen hours and fifteen minutes of course time. Five modules, twenty-five hands-on labs, rated medium difficulty.
+## Choosing reps over reading
 
-The section names give away the shape of it: AI Fundamentals, Secure AI Systems, Prompt Security, AI Supply Chain Security, and Data Poisoning.
+I could have read papers. I have read plenty of papers. The problem with reading about prompt injection is that it makes you fluent in the vocabulary without making you any better at the thing.
+
+Knowing that indirect injection exists is not remotely the same skill as sitting in front of a chatbot that is actively refusing you and working out, in real time, why your third approach failed when your first one worked.
+
+So I went looking for training with a high ratio of doing to reading, and landed on TryHackMe's AI Security learning path. I finished it after roughly nineteen hours and fifteen minutes of course time. Five modules, twenty-five hands-on labs, rated medium difficulty.
+
+The module names give away the shape of it: AI Fundamentals, Secure AI Systems, Prompt Security, AI Supply Chain Security, and Data Poisoning.
 
 The path's own framing is to build a practical foundation in AI security by teaching how these systems are built, where they break, and how to defend them. In practice, that framing held up.
 
@@ -66,29 +74,21 @@ The path's own framing is to build a practical foundation in AI security by teac
 This post isn't sponsored by or affiliated with TryHackMe. I paid for the path and the exam like anyone else does, and everything here is my own account of the experience, not a promotional one.
 </Info>
 
-What made the material stick wasn't the reading. It was the ratio of doing to reading. Twenty-five labs against five modules means you're rarely more than a page away from a hands-on environment.
+What made the material stick was that ratio. Twenty-five labs against five modules means you are rarely more than a page away from a live environment.
 
-You break something yourself and watch what happens. I've done certification paths before where the labs feel bolted onto the theory as an afterthought. This one didn't feel that way.
+The written material sets up a concept, then the lab immediately makes you use it against a running target. You break something yourself and watch what happens. I have worked through certification paths where the labs feel bolted onto the theory as an afterthought, and this did not feel that way. The hands-on work is the strongest part of the platform, and it is some of the best in the business.
 
-The written material set up a concept. The lab immediately made you use it against a live target. That's the only way most of this actually lands for me.
+That distinction matters more than it sounds. Reading builds recognition. Labs build the reps. The exam is where you find out whether the reps took.
 
-Does a learning path matter if you already know the vocabulary? In my case, yes, because vocabulary was never the gap.
-
-Knowing that prompt injection exists is not the same as sitting in front of a chatbot that's actively refusing you. Figuring out, in real time, why your third approach failed when your first one worked is a different skill entirely.
-
-The path builds the reps for that. The exam is where you find out if the reps took.
-
-## How the exam is scored
+## Digging into the certification
 
 AI1 is thirteen hands-on scenarios spread across four sections, completed inside a 48-hour window: Threat Modelling, Prompt Injection and Jailbreaking, AI Supply Chain Security, and Data Poisoning.
 
 It costs $399, which includes a free retake, three months of premium, and the learning path itself.
 
-TryHackMe positions it as attack and defend in one exam rather than picking a side. It aligns the content to [OWASP](https://genai.owasp.org/llm-top-10/) and [MITRE ATLAS](https://atlas.mitre.org/).
+TryHackMe positions it as attack and defend in one exam rather than picking a side, and aligns the content to [OWASP](https://genai.owasp.org/llm-top-10/) and [MITRE ATLAS](https://atlas.mitre.org/). It is explicitly aimed at three audiences, one of which is people shipping AI-powered products. That is the bucket I fall into from both directions.
 
-It's explicitly aimed at three audiences, one of which is people shipping AI-powered products. That's the bucket I fall into.
-
-The scoring model is what makes this exam different from a checklist quiz.
+The scoring model is what makes this worth writing about, because it is the part that turns an exam into a learning instrument.
 
 Your score on a scenario is raw points divided by marks available. Your final result is the average across all thirteen. Seventy percent or above passes.
 
@@ -118,17 +118,21 @@ Full marks require every key concept present with specific technical reasoning. 
 Some responses zero out regardless of everything else you got right. One kind the grading explicitly watches for is claiming a confirmed-compromised artefact is safe. Get the reasoning right everywhere else in a scenario and say that, and the whole thing zeroes. It's a hard stop, not a deduction.
 </Warning>
 
-On the live scenarios, the flag you extract is worth a fifth of your grade.
+That 80/20 split is the detail I keep coming back to. On the live scenarios, the flag you extract is worth a fifth of your grade. The transcript of how you got there, or tried to, is worth the other four fifths.
 
-The transcript of how you got there, or tried to, is worth the other four fifths. That's why I could pass while missing several flags along the way.
+Which means you can pass while missing flags, and I did exactly that. I did not recover every flag in the live scenarios, and I still cleared the bar, because the reasoning I demonstrated on the way to the ones I missed was worth more than the extraction itself.
 
-The exam isn't asking whether you got lucky. It's asking whether you can reason under pressure against a system that's actively resisting you. It grades the reasoning directly instead of inferring it from whether you happened to land the extraction.
+That is the correct weighting, and I say that as someone it happened to favour. Capture-the-flag scoring rewards the moment the lock opens. Real defensive work almost never produces that moment. It produces a judgment call about whether a system is safe, made under time pressure, with incomplete information, that someone else has to be able to follow.
 
-## The lessons that transfer
+The exam isn't asking whether you got lucky. It's asking whether you can reason under pressure against a system that's actively resisting you, and it grades that reasoning directly instead of inferring it from whether you happened to land the extraction.
 
-I went in expecting to learn attack technique. What I actually walked out with was a sharper version of a question I already ask about my own systems.
+![AI1 AI Security certification from TryHackMe](/blog/tryhackme-ai1-ai-security-certification/ai1-certification.png)
 
-Where, specifically, is the line between data and instructions? Does my code enforce that line, or just hope the model respects it?
+## The four lessons that transferred
+
+I went in expecting to sharpen attack technique. What I actually walked out with was a sharper version of a question I already ask about my own systems, and now ask about everyone else's.
+
+Where, specifically, is the line between data and instructions? Does the code enforce that line, or does it just hope the model respects it?
 
 <AI1TrustBoundaryDiagram />
 
@@ -176,37 +180,31 @@ Provenance that's cryptographically bound to the content, rather than just strin
 
 [MITRE ATLAS](https://atlas.mitre.org/) catalogs the specific techniques underneath all four lessons, worth bookmarking as the attacker's-eye taxonomy next to OWASP's defender-side checklist.
 
-## The feedback is the real product
+## The feedback loop is the point
 
-Prompt Injection and Jailbreaking was my weakest section, and the section average turned out to be the least useful number on the page. Underneath it sat four separate sub-scores, one for each variant the section tests: direct injection, indirect injection, and each of those again with guardrails in the loop.
-
-The spread between them was enormous. That spread, not the average, is what told me where my skill stopped and my instinct started.
-
-I'm keeping my own numbers to myself, since they're specific to my transcript and not to the exam. What's worth writing down is the shape of them.
+Most certifications hand you a pass or a fail and leave you to guess what it meant. AI1 does something considerably more useful, and it is the reason I would recommend it to someone who cares about learning rather than about a line on a resume.
 
 <Info title="What the feedback actually looks like">
 The results page breaks a section score into per-scenario bars underneath it, and beneath each of those sits an AI-written panel with two parts: what worked, and what to improve. It's written against your specific transcript, referencing what you actually tried and how you adapted, rather than handing you generic advice.
 </Info>
 
-I'm not going to reproduce a word of that panel here. What I can tell you is what it meant, in my own words, because I've had a few days to sit with it.
+That feedback is specific to my own attempt, so I am not going to reproduce a word of it here. What I can share is what it told me, in my own words, because that part generalises.
 
-On direct injection I was good, and I mean that without hedging. I built a coherent multi-turn narrative and sustained it. Every small concession the model granted became leverage for the next request.
+Prompt Injection and Jailbreaking was my weakest section, and the section average turned out to be the least useful number on the page. Underneath it sat four separate sub-scores, one for each variant the section tests: direct injection, indirect injection, and each of those again with guardrails in the loop. The spread between them was enormous.
 
-That reads as strategy when it works, not guesswork. It was comfortably my strongest sub-score of the four, and it worked far more often than it didn't.
+That spread, not the average, is what told me where my skill stopped and my instinct started. I'm keeping the numbers themselves to myself, since they describe my transcript rather than the exam, but the shape of them is worth writing down.
 
-It's the version of me I'd want writing the authorization code I described two sections ago: deliberate, watching what the previous move bought, building on it.
+On direct injection I was good, and I mean that without hedging. I built a coherent multi-turn narrative and sustained it. Every small concession the model granted became leverage for the next request. That reads as strategy when it works, not guesswork, and it was comfortably my strongest sub-score of the four.
 
-Indirect injection is where I fell apart, and the reason stings a little, because it's a debugging failure, not a technique failure.
+It's the version of me I'd want writing the authorization code I described a section ago: deliberate, watching what the previous move bought, building on it.
 
-Against consistent refusals, I cycled through techniques instead of reading the failure signal and diagnosing which layer was actually blocking me.
+Indirect injection is where I fell apart, and the reason stings a little, because it's a debugging failure rather than a technique failure.
 
-I'd hit a wall, try a different angle, hit the same wall from a slightly different position. I kept rotating instead of stopping to ask which specific control was firing.
+Against consistent refusals, I cycled through techniques instead of reading the failure signal and diagnosing which layer was actually blocking me. I'd hit a wall, try a different angle, hit the same wall from a slightly different position. I kept rotating instead of stopping to ask which specific control was firing.
 
 My indirect attempts were also too explicit, too obviously constructed, to survive contact with an agent that was actually paying attention.
 
-Would I have caught that faster outside an exam clock? Maybe. But the clock isn't really the excuse.
-
-I know how to debug a system by isolating variables one at a time. I didn't do it here, not consistently, and my weakest sub-score of the four is the honest record of that.
+Would I have caught that faster outside an exam clock? Maybe. But the clock isn't really the excuse. I know how to debug a system by isolating variables one at a time. I didn't do it here, not consistently, and my weakest sub-score of the four is the honest record of that.
 
 The guardrail variants complicate that story instead of confirming it, and the honest version is more interesting than a clean pattern would have been. On direct injection, guardrails wrecked me. My strongest sub-score collapsed to nearly my weakest once a structural check entered the loop, which says the multi-turn narrative I was building does not survive contact with a guardrail. On indirect injection guardrails coincided with a marked improvement instead.
 
@@ -216,9 +214,9 @@ Even after that improvement, indirect-with-guardrails still landed well below wh
 My best sub-score and my worst are not two different skill levels. They are the same underlying skill, tested against a target that demanded diagnosis first and technique second. I kept reaching for technique.
 </Warning>
 
-That's a real skill gap, not a scoring quirk.
+That's a real skill gap, not a scoring quirk. The fix isn't a bigger toolbox. It's reading each failure signal for what layer it's actually reporting on, and aiming at that layer specifically instead of trying every tool I own against the same wall.
 
-The fix isn't a bigger toolbox. It's reading each failure signal for what layer it's actually reporting on, and aiming at that layer specifically instead of trying every tool I own against the same wall.
+No amount of reading would have surfaced that. It took a graded transcript of me doing the thing badly.
 
 ## What changed in how I build
 
@@ -242,24 +240,26 @@ It isn't a formal red-team pass, just a deliberate attempt to make the system do
 If two different layers in a pipeline reject a request for two different reasons, an external caller should see the same generic denial either way, while the logs on my side keep the specific reason. Distinct error strings handed back to an untrusted caller are a map of your defenses. Uniform ones aren't.
 </Tip>
 
-The [NIST AI Risk Management Framework's Generative AI Profile](https://www.nist.gov/itl/ai-risk-management-framework) has also earned a permanent spot in the review checklist. It isn't binding on anything running in a homelab, but it's the closest thing to an industry-standard reference for exactly this class of risk.
+The [NIST AI Risk Management Framework's Generative AI Profile](https://www.nist.gov/itl/ai-risk-management-framework) has also earned a permanent spot in the review checklist. It isn't binding on anything running in a homelab, but it's the closest thing to an industry-standard reference for exactly this class of risk, which makes it useful vocabulary on the professional side too.
 
 The Veracode stat that stuck with me hardest: AI-generated code across [more than a hundred models](https://www.veracode.com/blog/genai-code-security-report/) introduced a known OWASP Top 10 vulnerability 45% of the time. Security performance stayed flat regardless of model size or how recent the model was. Bigger and newer did not mean safer.
 
-Code review before anything ships was already a habit. It has stopped being a formality done out of caution and started being treated as the actual control, not a backstop behind some other control that was being assumed into existence.
+Sit with that one if you ship AI-assisted code. It is not a prediction about some future model generation. It is a measurement of the tools we are all using today, and it means the review step is the control, not a formality behind some other control that was quietly assumed into existence.
 
-## Why this does not stop
+## Why the learning does not stop
 
-AI1 gave me hard evidence for something I'd only had a vague sense of before, and the finding is more specific than "guardrails make me worse." Direct injection is where a guardrail actually stopped me cold. Indirect injection is where I was already struggling before any guardrail entered the picture, and where I still have work to do regardless of what's standing in the way.
+The honest conclusion from all of this is not that I now know AI security. It's that I have a current, tested map of what I know and what I don't, and that map has a short shelf life.
 
-That distinction is now specific enough to train against instead of just something I feel uneasy about in the abstract.
+The threat actors on the other side of this are getting better, and they are using the same acceleration everyone else is. Defenders do not get to match that pace; we have to beat it, because the attacker only needs the one path nobody thought to close.
 
-![AI1 AI Security certification from TryHackMe](/blog/tryhackme-ai1-ai-security-certification/ai1-certification.png)
+That is not a job title. It is a working condition, and it applies to anyone touching these systems.
 
-The certificate is dated August 1st, the same week this post went up. That timing isn't incidental.
+If you write code with AI assistance, you are making security decisions whether or not anyone labels them that way. If you deploy an agent that reads untrusted content and acts on it, you have taken on a risk that no scanner in your pipeline is currently looking for. Security stopped being a department's problem some time ago, and building with AI is what finally made that impossible to ignore.
 
-Writing the thing down forced a second pass through my own transcript, and that second pass is what turned a stack of feedback into four lessons I could actually act on.
+The training helped because it was adversarial and graded, not because it produced a certificate. I came away with four lessons I could apply to code I had already shipped, a documented weakness I would not have found on my own, and a much sharper sense of which questions to ask about systems I did not build.
+
+The certificate is dated August 1st, the same week this post went up. That timing isn't incidental. Writing this forced a second pass over my own transcript, and that second pass is what turned a stack of feedback into something I could actually act on.
 
 The exam includes a free retake. I'm going to use it, not to chase a cleaner average, but to see whether the gap between my best and worst sub-scores narrows once the failure-signal habit replaces the toolbox habit.
 
-If it does, the next post is the retake. If it doesn't, I'll write that one too.
+If it does, the next post is the retake. If it doesn't, I'll write that one too. Either way the next thing to learn is already queued, because that is the only version of this job that works.
