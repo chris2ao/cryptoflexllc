@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: x; src: local("Helvetica Neue"); }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1376px; height:768px; overflow:hidden; }
+  body {
+    background:
+      radial-gradient(1100px 520px at 12% -8%, rgba(45,212,191,.13), transparent 62%),
+      radial-gradient(900px 460px at 92% 108%, rgba(251,191,36,.09), transparent 60%),
+      #05080a;
+    color:#e9f2f2;
+    font-family:"Helvetica Neue",Inter,Arial,sans-serif;
+    padding:44px 52px 34px;
+    display:flex; flex-direction:column;
+    position:relative;
+  }
+  body::after{
+    content:""; position:absolute; inset:0;
+    background:none;
+    pointer-events:none;
+  }
+  .mono { font-family:"SF Mono",Menlo,Consolas,monospace; }
+
+  .chips { display:flex; gap:12px; align-items:center; }
+  .chip {
+    font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:600;
+    padding:9px 15px; border-radius:7px;
+  }
+  .chip.a { color:#2ee8d5; border:1px solid rgba(46,232,213,.42); background:rgba(46,232,213,.07); }
+  .chip.b { color:#8b9ba0; border:1px solid rgba(139,155,160,.26); }
+
+  .seclabel {
+    margin-top:30px; display:flex; align-items:center; gap:10px;
+    font-size:12.5px; letter-spacing:.19em; text-transform:uppercase; color:#93a5aa; font-weight:600;
+  }
+  .seclabel i { width:9px; height:9px; background:#2ee8d5; display:block; }
+
+  .panels { display:flex; gap:0; margin-top:14px; align-items:stretch; }
+  .panel { flex:1; border-radius:12px; padding:24px 26px 18px; min-height:300px; }
+  .panel.build  { border:1px solid rgba(46,232,213,.40); background:linear-gradient(160deg, rgba(46,232,213,.10), rgba(46,232,213,.02)); }
+  .panel.defend { border:1px solid rgba(251,191,36,.40); background:linear-gradient(160deg, rgba(251,191,36,.09), rgba(251,191,36,.02)); }
+
+  .ptag { font-size:11.5px; letter-spacing:.17em; text-transform:uppercase; font-weight:700; }
+  .build .ptag { color:#2ee8d5; }
+  .defend .ptag { color:#fbbf24; }
+  .ph { font-size:31px; font-weight:800; letter-spacing:-.018em; margin-top:9px; line-height:1.08; }
+  .rule { height:1px; margin:15px 0 14px; }
+  .build .rule { background:rgba(46,232,213,.28); }
+  .defend .rule { background:rgba(251,191,36,.28); }
+  .li { font-size:14.5px; color:#b9c9cd; line-height:1.62; }
+  .li b { color:#e9f2f2; font-weight:600; }
+  .close {
+    margin-top:16px; padding-top:12px; font-size:13px; line-height:1.55;
+    border-top:1px dashed rgba(255,255,255,.13); color:#8fa3a8;
+  }
+  .close b { font-weight:700; }
+  .build .close b { color:#2ee8d5; }
+  .defend .close b { color:#fbbf24; }
+
+  .divider { width:58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+  .divider .bar { width:1px; flex:1; background:linear-gradient(#2ee8d5, rgba(255,255,255,.10)); }
+  .divider .bar.b { background:linear-gradient(rgba(255,255,255,.10), #fbbf24); }
+  .divider .dot {
+    width:9px; height:9px; transform:rotate(45deg);
+    border:1px solid rgba(255,255,255,.34); background:#05080a;
+  }
+
+  .statement { margin-top:22px; }
+  .statement div { font-size:37px; font-weight:800; letter-spacing:-.022em; line-height:1.17; }
+  .statement .l3 { color:#2ee8d5; }
+
+  .strip {
+    margin-top:auto; padding-top:22px; display:flex; gap:26px; align-items:center;
+    font-size:12.5px; letter-spacing:.12em; text-transform:uppercase; color:#9fb0b5; font-weight:600;
+    padding-bottom:15px;
+  }
+  .strip span.dot { color:#3f5257; }
+
+  .foot {
+    border-top:1px solid rgba(255,255,255,.10); padding-top:14px;
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12px; letter-spacing:.13em; text-transform:uppercase; color:#7d8f94; font-weight:600;
+  }
+  .foot .brand { color:#cfe0e3; letter-spacing:.10em; }
+  .foot .brand em { color:#2ee8d5; font-style:normal; }
+</style>
+</head>
+<body>
+
+  <div class="chips">
+    <div class="chip a">TryHackMe AI1 Certification</div>
+    <div class="chip b">Independent, unaffiliated write-up</div>
+  </div>
+
+  <div class="seclabel"><i></i> The same question, asked from two sides</div>
+
+  <div class="panels">
+    <div class="panel build">
+      <div class="ptag">I build with it</div>
+      <div class="ph">Agents that read<br>and act on their own</div>
+      <div class="rule"></div>
+      <div class="li">
+        Custom <b>MCP servers</b>, multi-agent pipelines,<br>
+        a <b>RAG memory</b> store, a homelab SIEM.<br>
+        Increasingly deciding the next step<br>
+        without a human approving it.
+      </div>
+      <div class="close">
+        <b>Precisely the class of system</b> the exam is<br>
+        built to attack. Once I noticed the overlap,<br>
+        the decision made itself.
+      </div>
+    </div>
+
+    <div class="divider">
+      <div class="bar"></div>
+      <div class="dot"></div>
+      <div class="bar b"></div>
+    </div>
+
+    <div class="panel defend">
+      <div class="ptag">I defend against it</div>
+      <div class="ph">An enterprise adopting<br>AI as fast as it can</div>
+      <div class="rule"></div>
+      <div class="li">
+        Systems shipped by people thinking about<br>
+        delivery, not about hostile input.<br>
+        Slowing that down is not the assignment.<br>
+        <b>Securing it while it moves is.</b>
+      </div>
+      <div class="close">
+        <b>The same failure modes</b>, at organisational<br>
+        scale, in systems I did not write and cannot<br>
+        personally review line by line.
+      </div>
+    </div>
+  </div>
+
+  <div class="statement">
+    <div>Security knowledge has a shelf life.</div>
+    <div>The people attacking these systems are not waiting.</div>
+    <div class="l3">Which is why the learning does not stop.</div>
+  </div>
+
+  <div class="strip">
+    <div>19h 15m learning path</div><span class="dot">/</span>
+    <div>25 hands-on labs</div><span class="dot">/</span>
+    <div>13 exam scenarios</div><span class="dot">/</span>
+    <div>OWASP + MITRE ATLAS</div><span class="dot">/</span>
+    <div>4 lessons shipped to my own code</div>
+  </div>
+
+  <div class="foot">
+    <div class="brand">CRYPTO<em>FLEX</em> LLC // FROM THE WORKSHOP</div>
+    <div>Continuous learning &middot; AI security &middot; Prompt injection &middot; Supply chain</div>
+  </div>
+
+</body>
+</html>
