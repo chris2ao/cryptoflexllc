@@ -43,6 +43,14 @@ const nextConfig: NextConfig = {
         hostname: "cryptoflexllc.com",
       },
     ],
+    /*
+     * Published post images do not change once shipped, so cached
+     * transformations should be long-lived. Without this, entries expire
+     * early and the same image is transformed again, spending quota to
+     * reproduce a byte-identical result. 30 days is long enough to matter
+     * while still letting a replaced asset roll over on its own.
+     */
+    minimumCacheTTL: 2592000,
   },
   headers: async () => [
     {

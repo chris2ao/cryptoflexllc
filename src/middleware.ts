@@ -72,11 +72,20 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * Match all request paths except build output and static assets.
+     *
+     * Middleware runs on the Fluid runtime, so every invocation bills to
+     * Fluid Active CPU rather than to the Edge Middleware meter. It was
+     * therefore running, and charging, on every image, font, stylesheet and
+     * robots.txt request. Blog images in particular are served straight from
+     * public/ rather than through _next/image, so none of them were covered
+     * by the previous exclusion list.
+     *
+     * Nothing this middleware does is meaningful for a static asset: the
+     * garbage-path and probe blocks target extension-less paths, and the
+     * apex-to-www redirect is handled by Vercel's domain configuration (a 307
+     * issued before middleware runs) rather than by the 301 below.
      */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpe?g|gif|webp|avif|svg|ico|css|js|mjs|map|woff2?|ttf|otf|eot|pdf|m4a|mp3|mp4|txt|xml|webmanifest)$).*)",
   ],
 };

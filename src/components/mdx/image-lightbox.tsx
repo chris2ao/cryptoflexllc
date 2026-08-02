@@ -1,8 +1,26 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 
 const ZOOM_LEVELS = [1, 1.5, 2, 3];
+
+/**
+ * Declared intrinsic size for MDX images.
+ *
+ * next/image needs dimensions up front, and a bare MDX `![alt](src)` carries
+ * none. Nearly every image on this site is the 2752x1536 house standard, so
+ * that ratio is used as the reservation; CSS keeps the rendered box fluid, so
+ * a differently-shaped image still displays correctly and only costs a small
+ * layout shift once it loads.
+ */
+const DECLARED_W = 2752;
+const DECLARED_H = 1536;
+
+/** next/image only handles paths it can route through the optimizer. */
+function isOptimizable(src: unknown): src is string {
+  return typeof src === "string" && src.startsWith("/");
+}
 
 /**
  * Wraps an <img> tag with click-to-zoom lightbox functionality.
@@ -57,8 +75,20 @@ export function ImageLightbox(
             caption ? `Enlarge image: ${caption}` : "Enlarge image"
           }
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img {...props} alt={props.alt ?? ""} className="w-full h-auto rounded" />
+          {isOptimizable(props.src) ? (
+            <Image
+              src={props.src}
+              alt={props.alt ?? ""}
+              title={props.title}
+              width={DECLARED_W}
+              height={DECLARED_H}
+              sizes="(max-width: 768px) 100vw, 768px"
+              className="w-full h-auto rounded"
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img {...props} alt={props.alt ?? ""} className="w-full h-auto rounded" />
+          )}
           <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-md bg-zinc-800/80 px-2 py-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
             <svg
               width="12"
@@ -185,12 +215,26 @@ export function ImageLightbox(
               className="inline-block p-8 transition-transform duration-200 motion-reduce:transition-none origin-top-center"
               style={{ transform: `scale(${zoom})` }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={props.src}
-                alt={props.alt}
-                className="max-w-[90vw] max-h-[85vh] object-contain"
-              />
+              {isOptimizable(props.src) ? (
+                /* Zoom view: a wide variant so detail survives magnification,
+                   still served as WebP rather than the multi-megabyte PNG. */
+                <Image
+                  src={props.src}
+                  alt={props.alt ?? ""}
+                  width={DECLARED_W}
+                  height={DECLARED_H}
+                  sizes="90vw"
+                  quality={90}
+                  className="max-w-[90vw] max-h-[85vh] w-auto h-auto object-contain"
+                />
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={props.src}
+                  alt={props.alt}
+                  className="max-w-[90vw] max-h-[85vh] object-contain"
+                />
+              )}
             </div>
           </div>
         </div>

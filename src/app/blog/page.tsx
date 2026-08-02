@@ -1,33 +1,30 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { BlogList } from "@/components/blog-list";
 import { SubscribeForm } from "@/components/subscribe-form";
-import { CategoryFilter } from "@/components/blog/CategoryFilter";
-import { FeaturedPosts } from "@/components/blog/FeaturedPosts";
+import { BlogIndex } from "@/components/blog/blog-index";
 import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { getAllPosts, getAllTags } from "@/lib/blog";
 import { BASE_URL } from "@/lib/constants";
 
-type BlogSearchParams = Promise<{ tag?: string; category?: string; q?: string }>;
-
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: BlogSearchParams;
-}): Promise<Metadata> {
-  const sp = await searchParams;
-  const isFiltered = Boolean(sp.tag || sp.category || sp.q);
-  return {
-    title: "Blog",
-    description:
-      "Tech articles about cybersecurity, AI-assisted development with Claude Code, web infrastructure, Next.js, and hands-on engineering projects.",
-    alternates: {
-      canonical: `${BASE_URL}/blog`,
-    },
-    robots: isFiltered
-      ? { index: false, follow: true }
-      : { index: true, follow: true },
-    openGraph: {
+/**
+ * Static metadata.
+ *
+ * This previously read searchParams to emit robots noindex on filtered views,
+ * which forced the route to render dynamically. The canonical below already
+ * consolidates every ?tag=, ?category= and ?q= variant onto /blog, which is
+ * the mechanism that actually handles duplicate query-string URLs, and the
+ * category links themselves carry rel="nofollow" while none of these URLs
+ * appear in the sitemap.
+ */
+export const metadata: Metadata = {
+  title: "Blog",
+  description:
+    "Tech articles about cybersecurity, AI-assisted development with Claude Code, web infrastructure, Next.js, and hands-on engineering projects.",
+  alternates: {
+    canonical: `${BASE_URL}/blog`,
+  },
+  robots: { index: true, follow: true },
+  openGraph: {
       title: "Blog: CryptoFlex LLC",
       description:
         "Tech articles about cybersecurity, AI-assisted development, and hands-on engineering projects.",
@@ -40,10 +37,9 @@ export async function generateMetadata({
           height: 630,
           alt: "CryptoFlex LLC Blog",
         },
-      ],
-    },
-  };
-}
+    ],
+  },
+};
 
 /** The primary categories shown in the filter bar. Order matters. */
 const FEATURED_CATEGORIES = [
@@ -56,14 +52,7 @@ const FEATURED_CATEGORIES = [
   "OpenClaw",
 ];
 
-interface BlogPageProps {
-  searchParams: Promise<{ category?: string }>;
-}
-
-export default async function BlogPage({ searchParams }: BlogPageProps) {
-  const { category } = await searchParams;
-  const activeCategory = category ?? null;
-
+export default function BlogPage() {
   const posts = getAllPosts();
   const allTags = getAllTags();
 
@@ -78,18 +67,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     .sort();
   const categories = [...FEATURED_CATEGORIES, ...extraCategories];
 
-  // Server-side category filter (case-insensitive)
-  const filteredPosts =
-    activeCategory === null
-      ? posts
-      : posts.filter((post) =>
-          post.tags.some(
-            (tag) => tag.toLowerCase() === activeCategory.toLowerCase()
-          )
-        );
-
-  // Strip raw MDX content before passing to client component
-  const summaries = filteredPosts.map(({ content: _, ...rest }) => rest);
+  // Strip raw MDX content before passing to client components
+  const summaries = posts.map(({ content: _, ...rest }) => rest);
 
   // Featured posts (no category filter applied; always show top featured)
   const featuredSummaries = posts
@@ -108,11 +87,6 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       <section className="py-8 sm:py-12">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
 
-        {/* Featured posts (only shown when no category filter active) */}
-        {activeCategory === null && (
-          <FeaturedPosts posts={featuredSummaries} />
-        )}
-
         {posts.length === 0 ? (
           <p className="text-muted-foreground">
             No posts yet. Check back soon!
@@ -120,14 +94,13 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
         ) : (
           <>
             <Suspense>
-              <BlogList posts={summaries} allTags={allTags} />
+              <BlogIndex
+                posts={summaries}
+                featured={featuredSummaries}
+                categories={categories}
+                allTags={allTags}
+              />
             </Suspense>
-
-            {/* Category filter below posts for browsing by topic */}
-            <div className="mt-16 pt-12 border-t border-border/40">
-              <h2 className="font-heading text-lg font-semibold mb-4 text-muted-foreground">Browse by Topic</h2>
-              <CategoryFilter categories={categories} activeCategory={activeCategory} />
-            </div>
 
             {/* Subscribe form at the bottom */}
             <div className="mt-12 max-w-xl">
