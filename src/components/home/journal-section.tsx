@@ -1,23 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { BlogPost } from "@/lib/blog";
+import { formatPostDateShort } from "@/lib/post-date";
 
 type Props = {
   posts: BlogPost[];
   totalCount: number;
 };
 
-function formatDate(iso: string) {
-  try {
-    return new Date(iso).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
+const formatDate = formatPostDateShort;
 
 export function JournalSection({ posts, totalCount }: Props) {
   const [featured, ...rest] = posts;

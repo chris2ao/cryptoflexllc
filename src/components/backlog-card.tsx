@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { BlogPost } from "@/lib/blog";
+import { formatPostDate } from "@/lib/post-date";
 
 type BacklogCardPost = Omit<BlogPost, "content"> & { content?: string };
 
@@ -32,13 +33,7 @@ export function BacklogCard({ post }: { post: BacklogCardPost }) {
         <div className="mt-4 flex items-center gap-2 text-xs font-mono text-muted-foreground">
           {post.author && <span>{post.author}</span>}
           {post.author && <span>&middot;</span>}
-          <span>
-            {new Date(post.date + "T12:00:00").toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </span>
+          <span>{formatPostDate(post.date)}</span>
           {post.readingTime && <span>&middot;</span>}
           {post.readingTime && <span>{post.readingTime}</span>}
         </div>

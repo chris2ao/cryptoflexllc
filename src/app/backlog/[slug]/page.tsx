@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import { ArrowLeft } from "lucide-react";
 import { getAnalyticsCookieName, verifyAuthToken } from "@/lib/analytics-auth";
 import { getBacklogPostBySlug } from "@/lib/blog";
+import { formatPostDate } from "@/lib/post-date";
 import { isGitHubApiConfigured } from "@/lib/github-api";
 import { PostActionBar } from "../_components/post-action-bar";
 import {
@@ -152,13 +153,7 @@ export default async function BacklogPostPage({ params }: Props) {
           <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             {post.author && <span>{post.author}</span>}
             {post.author && <span>&middot;</span>}
-            <span>
-              {new Date(post.date).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </span>
+            <span>{formatPostDate(post.date)}</span>
             {post.readingTime && <span>&middot;</span>}
             {post.readingTime && <span>{post.readingTime}</span>}
           </div>

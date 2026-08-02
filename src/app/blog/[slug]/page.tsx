@@ -97,6 +97,7 @@ import {
   getRelatedPosts,
   getSeriesPosts,
 } from "@/lib/blog";
+import { formatPostDate, formatPostDateShort } from "@/lib/post-date";
 import { extractHeadings, slugify, getTextContent } from "@/lib/headings";
 import { ArticleJsonLd, BlogPostingJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
 import { SubscribeForm } from "@/components/subscribe-form";
@@ -151,11 +152,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return {};
 
   const postUrl = `${BASE_URL}/blog/${slug}`;
-  const dateStr = new Date(post.date).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const dateStr = formatPostDate(post.date);
 
   const ogParams = new URLSearchParams({
     title: post.title,
@@ -216,11 +213,7 @@ export default async function BlogPostPage({ params }: Props) {
   const relatedPosts = getRelatedPosts(slug, post.tags);
   const seriesPosts = post.series ? getSeriesPosts(post.series) : [];
 
-  const dateFormatted = new Date(post.date).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const dateFormatted = formatPostDateShort(post.date);
   const kicker = post.series ?? post.tags[0] ?? "Field notes";
 
   return (

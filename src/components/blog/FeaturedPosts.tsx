@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { BlogPost } from "@/lib/blog";
+import { formatPostDate } from "@/lib/post-date";
 
 const tagVarMap: Record<string, string> = {
   "Claude Code": "var(--color-tag-claude-code)",
@@ -68,13 +69,7 @@ function FeaturedCard({ post }: { post: FeaturedPost }) {
         <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
           {post.author && <span>{post.author}</span>}
           {post.author && <span>&middot;</span>}
-          <span>
-            {new Date(post.date + "T00:00:00").toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </span>
+          <span>{formatPostDate(post.date)}</span>
           {post.readingTime && <span>&middot;</span>}
           {post.readingTime && <span>{post.readingTime}</span>}
         </div>
