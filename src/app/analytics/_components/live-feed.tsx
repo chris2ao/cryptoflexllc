@@ -15,13 +15,47 @@ type LiveEvent = {
 const POLL_MS = 4200;
 const MAX_ROWS = 50;
 
+/**
+ * Stop polling after this much continuous live time and ask whether to keep
+ * going. A dashboard left open all day was generating far more traffic than
+ * the site itself: one poll every 4.2s costs a middleware invocation, a
+ * function invocation, and a database query.
+ */
+const IDLE_LIMIT_MS = 30 * 60 * 1000;
+
 export function LiveFeed() {
   const [events, setEvents] = useState<LiveEvent[]>([]);
   const [paused, setPaused] = useState<boolean>(false);
+  const [promptOpen, setPromptOpen] = useState<boolean>(false);
   const [rateLabel, setRateLabel] = useState<string>("—");
 
   const cursorRef = useRef<string | null>(null);
   const rateWindowRef = useRef<number[]>([]);
+  const deadlineRef = useRef<number>(0);
+
+  // Set on the client so the deadline is not baked in at render time.
+  if (deadlineRef.current === 0 && typeof window !== "undefined") {
+    deadlineRef.current = Date.now() + IDLE_LIMIT_MS;
+  }
+
+  const resume = () => {
+    deadlineRef.current = Date.now() + IDLE_LIMIT_MS;
+    setPromptOpen(false);
+    setPaused(false);
+  };
+
+  // A backgrounded tab should cost nothing, and coming back to it counts as
+  // activity, so the idle window restarts rather than firing immediately.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        deadlineRef.current = Date.now() + IDLE_LIMIT_MS;
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -30,6 +64,13 @@ export function LiveFeed() {
     const poll = async () => {
       const auto = document.body.dataset.axAuto !== "0";
       if (!auto || paused) return;
+      // Hidden tabs make no requests at all.
+      if (document.visibilityState === "hidden") return;
+      if (Date.now() >= deadlineRef.current) {
+        setPaused(true);
+        setPromptOpen(true);
+        return;
+      }
       const url = new URL("/api/analytics/live", window.location.origin);
       if (cursorRef.current) url.searchParams.set("cursor", cursorRef.current);
       url.searchParams.set("limit", "15");
@@ -87,13 +128,41 @@ export function LiveFeed() {
           <button
             type="button"
             className={`chip${paused ? " on" : ""}`}
-            onClick={() => setPaused((v) => !v)}
+            onClick={() => (paused ? resume() : setPaused(true))}
             aria-pressed={paused}
           >
             {paused ? "Paused" : "Pause"}
           </button>
         </div>
       </div>
+      {promptOpen && (
+        <div
+          className="ax-idle-prompt"
+          role="dialog"
+          aria-labelledby="ax-idle-title"
+        >
+          <div className="copy">
+            <div className="h" id="ax-idle-title">
+              Still watching?
+            </div>
+            <div className="s">
+              Paused after {IDLE_LIMIT_MS / 60000} minutes to stop burning function time.
+            </div>
+          </div>
+          <div className="actions">
+            <button type="button" className="chip" onClick={resume}>
+              Keep refreshing
+            </button>
+            <button
+              type="button"
+              className="chip on"
+              onClick={() => setPromptOpen(false)}
+            >
+              Stay paused
+            </button>
+          </div>
+        </div>
+      )}
       <div className="ax-feed" role="log" aria-live="polite" aria-label="Live event feed">
         {events.length === 0 ? (
           <div style={{ padding: 18, color: "var(--fg-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
@@ -112,7 +181,10 @@ export function LiveFeed() {
       </div>
       <div className="ax-panel-foot">
         <span>Rate <b>{rateLabel}</b></span>
-        <span>{paused ? "paused" : "live"} · polling every {POLL_MS / 1000}s</span>
+        <span>
+          {paused ? "paused" : "live"} · polling every {POLL_MS / 1000}s · auto-pauses after{" "}
+          {IDLE_LIMIT_MS / 60000}m idle
+        </span>
       </div>
     </div>
   );

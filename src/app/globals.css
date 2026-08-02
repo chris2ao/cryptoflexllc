@@ -3049,7 +3049,8 @@ button.ed-post-cover:hover {
 
 .ax-panel-head .actions { display: flex; gap: 4px; }
 
-.ax-panel-head .chip {
+.ax-panel-head .chip,
+.ax-idle-prompt .chip {
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--fg-3);
@@ -3062,16 +3063,46 @@ button.ed-post-cover:hover {
   background: transparent;
 }
 
-.ax-panel-head .chip:hover {
+.ax-panel-head .chip:hover,
+.ax-idle-prompt .chip:hover {
   color: var(--fg);
   border-color: var(--accent-line);
 }
 
-.ax-panel-head .chip.on {
+.ax-panel-head .chip.on,
+.ax-idle-prompt .chip.on {
   color: var(--primary);
   border-color: var(--accent-line);
   background: var(--accent-dim);
 }
+
+/* Idle auto-pause prompt in the live feed */
+.ax-idle-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-2);
+  background: var(--accent-dim);
+}
+
+.ax-idle-prompt .copy { flex: 1 1 260px; min-width: 0; }
+
+.ax-idle-prompt .copy .h {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 2px;
+}
+
+.ax-idle-prompt .copy .s {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+.ax-idle-prompt .actions { display: flex; gap: 8px; }
 
 .ax-panel-body { padding: 18px; }
 
