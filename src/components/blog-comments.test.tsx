@@ -147,6 +147,62 @@ describe("BlogComments", () => {
     ).toBeInTheDocument();
   });
 
+  // Regression: the fetch used to ignore non-ok responses and swallow thrown
+  // errors, so a 500 rendered the same "No comments yet" as an empty thread.
+  // The API returned 500 on every post for months without a visible symptom.
+  it("distinguishes a failed load from an empty thread", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "Failed to load comments." }),
+    });
+
+    render(<BlogComments slug="test-post" />);
+
+    expect(
+      await screen.findByText(/Comments could not be loaded right now/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No comments yet/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("surfaces a network failure rather than showing an empty thread", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("network down")
+    );
+
+    render(<BlogComments slug="test-post" />);
+
+    expect(
+      await screen.findByText(/Comments could not be loaded right now/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/No comments yet/i)).not.toBeInTheDocument();
+  });
+
+  it("recovers when the retry succeeds", async () => {
+    const fetchMock = global.fetch as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "Failed to load comments." }),
+    });
+
+    render(<BlogComments slug="test-post" />);
+    const retry = await screen.findByRole("button", { name: /try again/i });
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
+    });
+    fireEvent.click(retry);
+
+    expect(await screen.findByText("Great post!")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Comments could not be loaded right now/i)
+    ).not.toBeInTheDocument();
+  });
+
   it("masks email addresses correctly", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,

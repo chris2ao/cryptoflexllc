@@ -15,6 +15,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
   const [comments, setComments] = useState<CommentWithReplies[]>([]);
   const [thumbsUp, setThumbsUp] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // Form state
   const [comment, setComment] = useState("");
@@ -33,17 +34,27 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
   const [replyStatus, setReplyStatus] = useState<"idle" | "success" | "error">("idle");
   const [replyMessage, setReplyMessage] = useState("");
 
+  /**
+   * A failed fetch must not look like an empty thread.
+   *
+   * This previously ignored every non-ok response and swallowed thrown
+   * errors, so when the API started returning 500 the UI rendered "No
+   * comments yet" on every post. The endpoint was broken for months without
+   * a visible symptom, because a backend failure and a genuinely empty
+   * thread produced identical output.
+   */
   const fetchComments = useCallback(async () => {
     try {
       const res = await fetch(`/api/comments?slug=${encodeURIComponent(slug)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setComments(data.comments);
-        setThumbsUp(data.thumbsUp);
-        onThumbsUpCount?.(data.thumbsUp);
-      }
-    } catch {
-      // Silently fail — comments are non-critical
+      if (!res.ok) throw new Error(`Comments request failed: ${res.status}`);
+      const data = await res.json();
+      setComments(data.comments);
+      setThumbsUp(data.thumbsUp);
+      onThumbsUpCount?.(data.thumbsUp);
+      setLoadFailed(false);
+    } catch (error) {
+      console.error("Failed to load comments:", error);
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -201,6 +212,25 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
         <div className="flex items-center justify-center py-8 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
           Loading comments...
+        </div>
+      ) : loadFailed ? (
+        <div
+          role="status"
+          className="flex flex-col items-center gap-3 py-8 text-center"
+        >
+          <p className="text-sm text-muted-foreground">
+            Comments could not be loaded right now.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              fetchComments();
+            }}
+            className="inline-flex items-center rounded-md border border-border px-3 py-1 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          >
+            Try again
+          </button>
         </div>
       ) : comments.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground py-8">
