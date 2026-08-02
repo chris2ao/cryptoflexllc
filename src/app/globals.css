@@ -56,6 +56,9 @@
   /* Semantic success token */
   --color-success:          var(--success);
   --color-success-foreground: var(--success-foreground);
+  /* Semantic warning token, so diagrams can use a theme-aware amber */
+  --color-warning:          var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   /* LinkedIn brand token */
   --color-linkedin:         var(--linkedin);
   /* Blog card tag accent tokens */
