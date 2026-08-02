@@ -33,10 +33,12 @@ export function LiveFeed() {
   const rateWindowRef = useRef<number[]>([]);
   const deadlineRef = useRef<number>(0);
 
-  // Set on the client so the deadline is not baked in at render time.
-  if (deadlineRef.current === 0 && typeof window !== "undefined") {
+  // Set on the client so the deadline is not baked in at render time. This has
+  // to run before the polling effect below, which would otherwise read a
+  // deadline of 0 on its first poll and pause the feed immediately.
+  useEffect(() => {
     deadlineRef.current = Date.now() + IDLE_LIMIT_MS;
-  }
+  }, []);
 
   const resume = () => {
     deadlineRef.current = Date.now() + IDLE_LIMIT_MS;
