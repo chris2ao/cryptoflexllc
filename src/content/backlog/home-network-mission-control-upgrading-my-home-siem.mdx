@@ -1,0 +1,583 @@
+---
+title: >-
+  Home Network Mission Control: Upgrading My Home SIEM After a 4-Hour Outage
+  and a Dead Threat Feed
+date: '2026-08-02T10:00:00'
+description: >-
+  My home SIEM went dark for four hours when the Mac rebooted and the SIEM
+  didn't come back with it, because the watchdog built to catch exactly
+  that failure aborted seventeen times instead of using the relaunch
+  function it already had. The same stretch brought four alert-tuning
+  decisions, a security review that reproduced two blockers in my own code
+  before it shipped, and an investigation that ended with 545,586
+  threat-feed rows sharing one expired timestamp. Here is what running a
+  homelab SIEM actually looks like once the building is done.
+tags:
+  - Home Lab
+  - SIEM
+  - ClickHouse
+  - Vector
+  - Docker
+  - UniFi
+  - Threat Intelligence
+  - Security
+author: Chris Johnson
+readingTime: 28 min read
+series: Home Network Mission Control
+seriesOrder: 9
+coverImage: /blog/home-network-mission-control-upgrading-my-home-siem/infographic.png
+coverImageAlt: >-
+  Branded cover graphic for a home SIEM operations session. A 2x2 panel grid
+  shows four incidents: a 4-hour outage where Docker never auto-started and
+  the watchdog aborted 17 times, 4 alert-tuning decisions covering
+  suppression, firewall logging, a CDN allowlist, and a severity gate, 2
+  security-review blockers caught before shipping (trust-gap allowlist
+  entries and a broken severity gate), and 216,108 threat-feed rows restored
+  after 545,586 rows were found sharing one expired timestamp. The headline
+  reads "Every layer reported green. None of them was watching what broke."
+  above stats for 3.7 million events a day, 16 detection jobs, and 5 commits
+  shipped.
+schemaType: TechArticle
+published: false
+---
+
+My home SIEM was down for four hours because the Mac rebooted and the SIEM didn't come back with it. The watchdog script built to catch exactly that failure ran while the outage was happening and aborted every single time, seventeen times over, without ever using the relaunch logic it already had sitting in the same file.
+
+This was supposed to be a routine session, the kind where I sit down and ask whether everything on the home network SIEM still looks right, without expecting to find much.
+
+By the end of it I'd fixed that watchdog and made four alert-tuning decisions. A security review caught two real problems in my own code before any of it shipped, and I tracked down a threat-intel feed that had been silently dead for a full day while every health check stayed green.
+
+![Infographic of a home SIEM operations session: a four-hour reboot outage and the watchdog cold-start fix, four noise-tuning decisions, two security-review blockers caught by adversarial review, and the restore of a Hagezi threat-intel feed that had been silently dead for a day](/blog/home-network-mission-control-upgrading-my-home-siem/siem-upgrade-notebooklm-infographic.png)
+
+For anyone new to this series: I run a home network SIEM that combines Vector and ClickHouse in a log lake. It ingests about 3.7 million events a day from a UniFi UDM Pro (relayed through Pi-hole's rsyslog), Pi-hole FTL, the UniFi access points and switches, and the Mac's own `log stream`.
+
+A FastAPI backend, running under launchd rather than in Docker, executes sixteen APScheduler detection jobs against that data and writes findings to a ClickHouse table.
+
+A React dashboard sits on top. Prior sessions built all of that. This one was supposed to be maintenance.
+
+## Four Hours, One Reboot
+
+The Mac rebooted at 19:47 UTC, and the SIEM didn't fully come back with it. launchd brought the backend, the frontend, and the host-log shipper back on their own; they run as `KeepAlive` services and recovered the moment the machine finished booting. Docker Desktop is different. It doesn't auto-start at login, so Vector and ClickHouse, both running as containers, stayed down for roughly four hours after everything else was already back up.
+
+That gap matters more for a SIEM than it would for almost anything else. UDP syslog into a dead listener doesn't queue or retry, it just disappears. Every event the UDM Pro, the access points, and Pi-hole tried to ship during that window is gone. That four-hour stretch is now a permanent hole in the time-series data, not a delay.
+
+I do have a watchdog for exactly this kind of thing: `scripts/siem_remount_recover.sh`, triggered by a launchd `WatchPaths` entry on the external volume the containers' data lives on. It has a full Docker Desktop restart escalation ladder built in. What it actually did, for three hours, was nothing, and then for the next hour it did this, over and over:
+
+```bash
+[2026-08-01T22:41:52Z] ABORT: docker daemon unreachable; operator action required.
+```
+
+Two separate failures were stacked on top of each other here. The pre-check that decides whether to escalate said, verbatim, `echo "ABORT: docker daemon unreachable; operator action required."`, and then stopped, every single time, instead of calling the relaunch function the script already had sitting right there.
+
+So why hadn't it escalated any sooner than that? Because the watchdog hadn't fired at all for the first three hours of the outage. `WatchPaths` was its only trigger, and a fully dead stack doesn't generate filesystem events. Nothing was mounting or unmounting. There was nothing to watch.
+
+<Warning title="A watchdog that only wakes on filesystem events">
+`WatchPaths` fires on volume mount and unmount churn, which is the right trigger for the remount problem it was originally built for. It's the wrong trigger for "the whole stack is down," because a dead system produces no filesystem events at all. The watchdog had logic to fix this outage. It just never ran, because nothing woke it up.
+</Warning>
+
+## Fixing the Watchdog for the Reboot It Couldn't See
+
+The fix, commit `2d96662`, adds a cold-start path ahead of the existing escalation ladder. When `docker info` fails and no Docker Desktop process exists, the script now launches Docker Desktop itself and waits up to 120 seconds for the daemon to answer.
+
+Once it's up, the script brings ClickHouse and Vector back with `docker compose up -d` and kickstarts the backend to clear its stale `clickhouse-connect` connection pool. The whole thing is gated by the same 30-minute cooldown stamp the restart ladder already used, so a genuinely broken Docker install can't thrash itself with relaunch attempts.
+
+```bash
+if ! "$DOCKER" info >/dev/null 2>&1; then
+    if /usr/bin/pgrep -f "Docker Desktop" >/dev/null 2>&1; then
+        echo "[$(ts)] DEFER: Docker Desktop processes exist but daemon not up yet (mid-boot); retrying next invocation."
+        exit 0
+    fi
+    NOW_EPOCH=$(date +%s)
+    LAST_RESTART=$(cat "$DOCKER_RESTART_STAMP" 2>/dev/null || echo 0)
+    LAST_RESTART=${LAST_RESTART//[^0-9]/}
+    LAST_RESTART=${LAST_RESTART:-0}
+    if (( NOW_EPOCH - LAST_RESTART < DOCKER_RESTART_COOLDOWN_SECS )); then
+        echo "[$(ts)] OPERATOR-ACTION: Docker daemon unreachable and a launch was already attempted within the last $((DOCKER_RESTART_COOLDOWN_SECS / 60)) min; suppressing relaunch. Investigate Docker Desktop manually."
+        exit 0
+    fi
+    date +%s > "$DOCKER_RESTART_STAMP"
+    echo "[$(ts)] COLD-START: Docker daemon unreachable, no Docker Desktop processes; launching Docker Desktop."
+    /usr/bin/open -a Docker
+    if ! wait_for_docker_daemon; then
+        echo "[$(ts)] FATAL: Docker daemon did not come up in 120s after cold launch; operator action required."
+        exit 1
+    fi
+    echo "[$(ts)] COLD-START: docker compose up -d ${COMPOSE_SERVICES}"
+    "$DOCKER" compose up -d ${COMPOSE_SERVICES} 2>&1 || {
+        echo "[$(ts)] WARN: compose up failed after cold launch; next invocation retries via STAGE 1."
+    }
+    echo "[$(ts)] COLD-START: kickstart backend to clear stale CH client pool (drift #69)"
+    /bin/launchctl kickstart -k "gui/$(/usr/bin/id -u)/${BACKEND_LABEL}" 2>&1 || {
+        echo "[$(ts)] WARN: backend kickstart failed; manual restart may be needed."
+    }
+    echo "[$(ts)] siem_remount_recover.sh COMPLETE (cold Docker Desktop launch)"
+    exit 0
+fi
+```
+
+One detail in the process check is easy to get wrong. The pattern the script matches is `"Docker Desktop"`, not `"com.docker"`. `com.docker.vmnetd` is a `PrivilegedHelperTool` that keeps running even after Docker Desktop is fully quit, so matching on `com.docker` would have made the cold-start path think Docker was still around when it wasn't, and skip the launch entirely.
+
+The launchd plist also picked up two more triggers alongside `WatchPaths`: `StartInterval` at 300 seconds and `RunAtLoad`.
+
+```xml
+    <!-- Three triggers, each covering a hole the others leave:
+         WatchPaths fires on volume mount/unmount churn, the original
+         remount use case. StartInterval covers the 2026-08-01 reboot
+         incident, where a fully dead stack generated no fsevents and the
+         watchdog never fired for 3 hours. RunAtLoad closes the window
+         between login and the first interval tick; if the external volume
+         is not mounted yet at login, the script's mount pre-check defers
+         cleanly and WatchPaths fires when the volume appears. -->
+    <key>WatchPaths</key>
+    <array>
+        <string>/Volumes/MacExternal</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+```
+
+<Tip title="Redundant triggers, not a bigger hammer">
+Each trigger here covers a specific hole the other two leave open. `WatchPaths` still handles genuine remounts. `StartInterval` catches the case where nothing is generating events because nothing is running. `RunAtLoad` closes the gap between login and the first five-minute tick. None of the three substitutes for the others; the fix was recognizing that one trigger was never going to be enough.
+</Tip>
+
+<WatchdogColdStartDiagram />
+
+I tested this the only way that actually proves anything: I fully quit Docker Desktop on the production box and ran the script cold.
+
+```text
+COLD-START: Docker daemon unreachable, no Docker Desktop processes; launching Docker Desktop.
+DOCKER-WAIT: daemon answering after 2x2s
+```
+
+Two tries at two seconds apart. The daemon was back in four seconds, the containers came up healthy, and `doctor.sh` reported green. A future reboot now self-heals within about five minutes, whenever the next `StartInterval` tick lands.
+
+<Tip title="Only a cold test proves a cold-start path">
+A cold-start code path is exactly the kind of fix that looks correct on a read-through and is wrong in some detail you'd never catch without running it. Quitting Docker Desktop for real, on the production box, and watching the script find its own way back is the only test that actually validates it.
+</Tip>
+
+There was a smaller tail to this incident worth noting. The UDM Pro's relay stream came back about six minutes after everything else, because rsyslog on its side has its own retry cycle. And six of the detection jobs showed stale data in the dashboard until I forced a refresh.
+
+The `/api/refresh` endpoints are mutating and sit behind CSRF protection: a GET to pick up the `csrf_token` cookie, then a POST with that token echoed back in an `x-csrf-token` header. The same double-submit pattern protects every mutating endpoint in the backend, including `/api/suppressions`, which I used later that day. The docs runbook has the mechanics as a worked example against a different rule:
+
+```bash
+curl -s -c /tmp/hn.cookies http://127.0.0.1:8000/api/health > /dev/null
+TOKEN=$(awk '$6 == "csrf_token" {print $7}' /tmp/hn.cookies)
+
+curl -s -b /tmp/hn.cookies -H "x-csrf-token: $TOKEN" \
+  -H 'content-type: application/json' \
+  -X POST http://127.0.0.1:8000/api/suppressions \
+  -d '{"rule_id":"wifi_bruteforce","client_mac":"d8:d6:68:a9:2c:e4",
+       "reason":"stale saved password on a known device, tracked separately"}'
+```
+
+<Info title="Why a GET before every mutating POST">
+The CSRF middleware issues a session cookie and a token cookie on any safe request (GET, HEAD, OPTIONS). A mutating request has to echo that token back in a header. An attacker's page can get a browser to send cookies automatically, but it can't read them to forge the header, so the two-step dance is what actually stops the forgery.
+</Info>
+
+## Teaching the SIEM What Not to Say
+
+An earlier tuning pass, two days before this one, had already cut the daily digest from 10.7KB down to 3.7KB. Which of what was left was actually worth reading? This session kept going in the same direction, with four more decisions, all approved before anything shipped.
+
+The noise, before any of this: newly-observed-domain findings (`nod`) running about 105 a day, entropy-based DGA findings (`dga`) around 77 a day, and most of both were ordinary CDN infrastructure.
+
+URLhaus lists `github.com` and `gitlab.com` at the registrable level, so routine browsing kept tripping `feed_hit`.
+
+And Hagezi Pro's hits are vendor telemetry, Microsoft, Google, Apple phoning home, which is a privacy signal worth knowing about but not the same thing as malware, and it was being graded like malware anyway.
+
+### Suppressing the Obvious
+
+The simplest fix didn't need anything new. I used the suppression layer that already existed: it took `feed_hit` findings for `github.com` and `gitlab.com` out of the digest, logged under IDs 2 and 3 with the reason and the residual risk written into the audit trail.
+
+Suppression here doesn't mean silence. A non-suppressible push notification still fires the moment a suppressed rule creates a new finding, by design, so a real anomaly on one of those domains still reaches me.
+
+### Giving D-2 Eyes on Outbound Traffic
+
+The UDM Pro logs nothing about traffic a device successfully sends out by default, only inbound and blocked traffic, which left two detectors, `ip_feed_hit` and `fw_beacon`, effectively blind on the primary LAN.
+
+I widened an existing zone-based firewall policy, D-2, to log outbound traffic on the Default LAN for a specific set of ports. I used the spec-driven policy tool for it, the one that snapshots every existing rule before it applies anything:
+
+```yaml
+  - name: "D2 Allow Log Outbound Ports - Default"
+    action: ALLOW
+    enabled: true
+    index: 40000
+    protocol: all
+    ip_version: BOTH
+    logging: true
+    connection_states: [NEW, ESTABLISHED, RELATED]
+    source:
+      zone: Internal
+      networks:
+        - Default
+    destination:
+      zone: External
+      port: "23,25,445,3389,4444,5900,6667,9001"
+```
+
+Each port earns its place for a reason:
+
+```yaml
+# Port choices, one line each:
+#   23    telnet, IoT botnet staple, no legitimate outbound use here
+#   25    direct-to-MX SMTP, spam bots; legitimate mail submits on 587/465
+#   445   outbound SMB, worm and credential-relay behaviour
+#   3389  outbound RDP, lateral movement and exfil channel
+#   4444  metasploit default listener port
+#   5900  outbound VNC, remote-control malware
+#   6667  IRC, classic C2 rendezvous
+#   9001  Tor ORPort default
+#
+# Port 22 is deliberately EXCLUDED: this household does constant git-over-SSH
+# work, and IDE fetch loops against port 22 are a textbook periodic pattern
+# that would hand fw_beacon a guaranteed false positive.
+```
+
+Port 22 came out for a reason I recognized immediately. My own IDE fetches over SSH, on a schedule, constantly. That's precisely the regular-interval pattern `fw_beacon` looks for, and logging it would have handed the detector a false positive it would never stop finding.
+
+<Security title="Guardrails matter more than the policy itself">
+The tool snapshotted all 87 existing firewall policies before creating this one, and the controller clamped the requested index of 40000 down to 10002 on its own, a known quirk. That placement is safe here specifically because `connection_states` excludes `INVALID`, so the predefined "Block Invalid Traffic" rule still catches invalid-state traffic even though this ALLOW rule evaluates first.
+</Security>
+
+A live smoke test confirmed the wiring: `curl http://portquiz.net:4444/` from the LAN returned HTTP 200, and the row showed up in `firewall_events` as `accept/outbound_wan/dst_port 4444`, attributed to the new policy, within seconds. Commit `425ac42`.
+
+### A Background Agent Built the Rest
+
+The last two decisions, a CDN allowlist for the novelty and entropy detectors and a severity demotion for Hagezi-only feed hits, were built by a background agent rather than by hand. That made them the two decisions I trusted least going into review, and it turned out I was right to.
+
+## The Security Review Found Two Blockers in My Own Change
+
+The diff I got back from the heuristics-tuning agent added two things. `detections/cdn_allowlist.py` is a frozenset of registrable domains that H1 (novelty) and H3 (entropy) should skip because they carry someone else's traffic. Next to it sits a severity demotion that grades a `feed_hit` as `info` when only Hagezi tagged it, leaves URLhaus hits at medium, and leaves anything both feeds agree on at medium too.
+
+Then I pointed a security-reviewer agent at the uncommitted diff, and instead of just reading it, it reproduced both problems it found against the real code paths.
+
+<Info title="What eTLD+1 means here">
+An eTLD+1, effective top-level-domain-plus-one, is the registrable domain: `cloudfront.net`, `github.com`, `amazonaws.com`. Everything to the left of it, `d3k1a9x2b7qz.cloudfront.net` or `attacker-bucket.s3.amazonaws.com`, is a hostname someone provisioned under that registrable domain. The allowlist operates at the eTLD+1 level, so the question that matters is who controls what gets written to the left of it.
+</Info>
+
+The first blocker was in the allowlist itself. Six entries, `amazonaws.com`, `windows.net`, `googleapis.com`, `azureedge.net`, `azurefd.net`, and `trafficmanager.net`, broke the module's own entry criteria. The docstring is explicit about why a domain qualifies:
+
+```python
+"""Registrable domains that carry other parties' traffic (CDN, cloud, edge).
+...
+Entry criteria, applied to every domain here:
+
+  1. The registrable domain belongs to a major infrastructure provider and
+     exists to carry edge, CDN, or service-endpoint traffic.
+  2. Hostnames under it are generated by that platform rather than chosen as
+     memorable names by whoever is being reached.
+  3. The registrable domain itself cannot be obtained by an attacker.
+```
+
+Those six fail criterion 2. An S3 bucket, an Azure storage account, a GCS bucket, an Azure Front Door endpoint: all of them let anyone pick their own label for free. And all of them inherit the implicit trust of the registrable domain sitting behind that label.
+
+The module's `tldextract` call runs without the public suffix list's private-domain entries, so a full hostname like `attacker-payload-bucket.s3.amazonaws.com` normalizes straight down to `amazonaws.com`. Listing that domain would have blinded both the novelty and entropy detectors to exactly the first-stage payload hosts they exist to catch.
+
+```python
+  - Hyperscaler namespaces where the hostname label is customer-provisioned:
+    amazonaws.com (S3 buckets, ELBs), windows.net (Azure storage accounts),
+    googleapis.com (GCS buckets via storage.googleapis.com), azureedge.net,
+    azurefd.net, trafficmanager.net. These fail criterion 2: a free-tier
+    bucket or endpoint with an attacker-chosen name is one of the most
+    common malware staging techniques precisely because these domains carry
+    implicit trust, and normalize_etld1 collapses every private-suffix label
+    under them to the bare registrable domain (tldextract runs without PSL
+    private domains), so listing them would blind H1 and H3 to exactly the
+    first-stage payload traffic those rules exist to catch. Their FP noise
+    is the accepted cost.
+"""
+```
+
+I dropped all six, documented them as deliberately absent with the reasoning attached, and added a test that pins the exact failure case:
+
+```python
+@pytest.mark.parametrize(
+    ("hostname", "allowlisted"),
+    [
+        ("attacker-payload-bucket.s3.amazonaws.com", False),
+        ("myaccount.blob.core.windows.net", False),
+        ("evilstore.storage.googleapis.com", False),
+        ("d3k1a9x2b7qz.cloudfront.net", True),
+    ],
+)
+def test_full_hostname_through_normalize_etld1_end_to_end(hostname, allowlisted):
+    """Pin the real pipeline: normalize_etld1 first, then the allowlist."""
+    from homenet_dashboard.utils.domain import etld1 as normalize_etld1
+
+    assert is_infrastructure_etld1(normalize_etld1(hostname)) is allowlisted
+```
+
+<Security title="An allowlist is an attack surface">
+Every entry on a security allowlist is a place a real attacker gets to hide, permanently, by construction. The bar for adding one has to be "nobody choosing to reach here gets to pick the label," not "this domain generates a lot of noise." Six entries met the noise bar and failed the trust bar, and the review caught the difference before any of them shipped.
+</Security>
+
+The second blocker was in the severity demotion, and it was subtler. The original code keyed the demotion on `rules_fired[0]`:
+
+```python
+    severity = score_to_severity(score)
+    ...
+        rule_id=rules_fired[0] if rules_fired else candidate.rule,
+```
+
+Did `rules_fired` actually reflect what had fired on a given candidate? Its order came from `_RULE_RENDER_ORDER` instead:
+
+```python
+_RULE_RENDER_ORDER = ["feed_hit", "nod", "tunnel", "beacon", "dga", "burst"]
+```
+
+That's a display concern. It always puts `feed_hit` first whenever `feed_hit` fired at all, regardless of what else fired alongside it. A newly observed domain that also happens to embed a tracker, a common combination, aggregates as `rules_fired=["feed_hit", "nod"]`. The weights table scores that combination at 8, under a rule called `h1_nod_with_feed`, specifically because a brand-new domain that's also a known tracker deserves more attention than either signal alone:
+
+```yaml
+weights:
+  h1_nod_base: 6           # newly observed domain, no feed match
+  h1_nod_with_feed: 8      # NOD that also hit a feed (collapse rule)
+  h2_beacon: 7             # regular-interval beaconing (FQDN, CV < 0.15, n >= 8)
+  h3_dga: 0                # tune-mode (design promoted: 5)
+  h4_tunnel: 8             # TXT/NULL burst per (client_mac, FQDN) >= 5
+  h5_burst: 0              # tune-mode (design promoted: 4)
+  h6_feed_hit: 9           # in feed and answered `allowed`
+```
+
+Scores of 1 to 6 map to low severity, 7 to 14 map to medium, and 15 and above map to high. An 8 lands squarely in medium, well under the high-severity guard. The demotion function checked for high severity first and returned early if it found it, meaning anything under that guard, including this medium-severity compound finding, fell through to the demotion check.
+
+Since `rules_fired[0]` was `"feed_hit"`, and Hagezi was one of the feeds involved, the finding would have been silently demoted to `info`. The NOD signal that earned it the elevated weight in the first place would have vanished from the severity, even though the code computing the score knew about it the whole time.
+
+The fix replaces list-position with set membership:
+
+```python
+    rule_id = rules_fired[0] if rules_fired else candidate.rule
+    feed_tags = list(candidate.feed_tags or [])
+    severity = demote_informational_feed_hit(
+        score_to_severity(score), rules_fired or [rule_id], feed_tags
+    )
+```
+
+```python
+    if severity == "high":
+        return severity
+    weighted = {str(r).strip().lower() for r in rules_fired if str(r).strip()}
+    if weighted - _TUNE_MODE_RULES != {"feed_hit"}:
+        return severity
+    tags = {str(tag).strip().lower() for tag in feed_tags if str(tag).strip()}
+    if not tags or not tags <= _INFORMATIONAL_FEEDS:
+        return severity
+    return "info"
+```
+
+The gate now asks whether the set of weighted rules is exactly `{"feed_hit"}`, once the zero-weight tune-mode rules are excluded, rather than asking what happened to render first. The docstring says it plainly:
+
+> The gate is the RULE SET, not rules_fired[0]: aggregate_candidates orders rules_fired by _RULE_RENDER_ORDER, a display concern that always puts feed_hit first when it fired at all.
+
+A test pins the exact compound the bug would have erased, built through the real aggregation path rather than a hand-constructed dictionary:
+
+```python
+def test_feed_hit_hagezi_with_nod_stays_medium():
+    """A newly observed domain that is also a tracker keeps its nod severity.
+
+    Uses aggregate_candidates with the real weights table, not a hand-built
+    dict, because the bug this pins was in rule_id resolution: rules_fired is
+    ordered for display with feed_hit always first, and a demotion gate keyed
+    on rules_fired[0] erased the nod signal (h1_nod_with_feed = 8, medium) for
+    exactly this compound. The gate must key on the set of weighted rules.
+    """
+```
+
+<Warning title="A frontend ordering concern that leaked into a security decision">
+`_RULE_RENDER_ORDER` exists so the dashboard shows the most important rule first when a finding lists several. It was never meant to carry meaning about what actually contributed to a score. Reusing that same list as the input to a security gate is how a display decision quietly became a detection decision, and it would have kept doing that silently, because a demoted finding doesn't look broken. It just looks like an ordinary low-priority alert.
+</Warning>
+
+Backend tests went from 1922 to 1937 over the two fixes, commit `1dfe19e`. After deploying, I checked the live output: fresh `nod` and `dga` findings had zero allowlisted domains in them, and real novelty was still getting through, `duolingo.com` and `myshopify.com` both fired as expected.
+
+## 545,586 Rows, One Timestamp, Zero Real Data
+
+I wanted to see the severity demotion work end to end, not just pass its tests. So I generated a real DNS lookup for a hostname I knew was on the Hagezi Pro list, `dig array518.prod.do.dsp.mp.microsoft.com @pi-hole`, then a second one against `powerpoint-telemetry.officeapps.live.com`, and waited for an info-severity finding to show up.
+
+It never did.
+
+Was the query even landing where I expected? I checked ClickHouse directly and found both lookups there, one logged as `cached`, one as `allowed`. That distinction turned out to matter: the H6 feed-hit detector only counts queries Pi-hole actually forwarded and answered, `allowed`, not ones it served from cache. So the `allowed` query should have been enough on its own.
+
+Had the emit job even run? It had, on schedule, and it had written nothing for either key. The hostname itself was sitting in the feed cache, but its `expires_at` read `2026-08-01 04:17:59`, twenty hours in the past. The row existed and had already expired.
+
+That should have meant one stale row, easy enough to explain. Then every other Hagezi row turned up with the same problem: all 545,586 rows in the cache carried that exact same timestamp.
+
+I traced it to the upstream repository, `hagezi/dns-blocklists`: it had removed its flat `domains/` directory, and the URL this feed loader had always pointed at had been returning 404 since August 1st.
+
+The failure was even recorded correctly, `FeedResponseInvalidError: non-2xx status 404`, written into `feed_meta` with `status=error`. And the poll run that hit that 404 still finished green, because the failure got swallowed into the run's row-count summary as `hagezi_pro_failed:1` rather than surfacing anywhere a health check would look.
+
+The code already had a fallback for exactly this situation: keep the existing rows on a failed fetch rather than wiping the cache, documented as "better stale than empty." That fallback did its job.
+
+What it couldn't do anything about is that `match_feeds` filters candidates on `expires_at`, so once the TTL, 28 hours for Hagezi, ran out past the last successful fetch, the entire feed went dark anyway. The rows were still sitting in the table. They just couldn't match anything.
+
+The 404 had been sitting there the whole time, correctly logged as `status=error`, and it cost a full day of feed coverage before anything forced it into view.
+
+`doctor.sh` stayed green through all of it.
+
+<Info title="What expires_at is doing here">
+Each cached threat-feed row carries an `expires_at` timestamp set from the feed's TTL at load time. `match_feeds` only considers rows where that timestamp is still in the future, so a feed that stops refreshing doesn't serve arbitrarily old data forever, it goes quiet on its own once the TTL passes. That design is correct. The gap was that nothing watched the status alongside the rows.
+</Info>
+
+<Warning title="Green across every layer that was actually checked">
+Job liveness was green because the job completed. Row counts looked fine because 545,586 rows were still sitting in the cache. `feed_meta` correctly said `status=error`, but nothing consumed that field. Every individual check that existed was telling the truth. None of them was checking the thing that had actually broken.
+</Warning>
+
+## Three Layers, Each Assuming Someone Else Was Watching
+
+I landed the fix in commit `50a0ff5`, in three parts, one for each layer that had failed silently.
+
+I started by finding a URL that still worked. `hagezi/dns-blocklists` still publishes a wildcard-format file, `wildcard/pro-onlydomains.txt`, in a plain-hostname format rather than the old flat enumeration. Reloading it live pulled in 216,108 entries, down from the old file's roughly 545,000, and that gap isn't missing coverage, it's a format change.
+
+The old file listed every regional variant of a hostname individually, `euc-powerpoint-telemetry.officeapps.live.com` alongside dozens of siblings. The new file may list only the parent, `officeapps.live.com`, and expect matching logic to cover everything beneath it.
+
+`match_feeds` didn't do that before, so it gained a label-boundary suffix tier:
+
+```python
+def _middle_suffixes(domain: str, etld1_value: str) -> list[str]:
+    """Label-boundary suffixes of `domain` strictly between it and its eTLD+1.
+
+    For (a.b.c.example.com, example.com) returns [b.c.example.com,
+    c.example.com]. The endpoints are excluded because the caller already
+    looks up the full hostname (exact tier) and the registrable domain has
+    its own statement. Suffixes are cut on dots only, so this can never
+    produce the substring match that _is_ the lookalike an attacker registers.
+    """
+    suffix = "." + etld1_value
+    if not domain.endswith(suffix):
+        return []
+    prefix = domain[: -len(suffix)]
+    labels = prefix.split(".")
+    return [".".join(labels[i:]) + suffix for i in range(1, len(labels))]
+```
+
+The matching logic now works in three tiers:
+
+```python
+    A feed entry matches a candidate hostname when the entry equals the
+    hostname or any label-boundary suffix of it down to the registrable
+    domain:
+
+      exact        the entry names the hostname itself.
+      suffix       the entry names a parent between the hostname and its
+                   eTLD+1: officeapps.live.com covers its regional children
+                   like euc-powerpoint-telemetry.officeapps.live.com.
+      registrable  an entry listed at the registrable level (domain == etld1)
+                   also matches subdomains, so malware listed bare as
+                   evil.example still catches www.evil.example.
+
+    This is NOT the eTLD+1 rollup that caused the 2026-05 FP flood: a match
+    still requires the feed to explicitly list the suffix in question, so a
+    Hagezi listing for advertising.apple.com does not flag gdmf.apple.com.
+```
+
+This isn't a rollback to the eTLD+1 rollup bug from May, where anything sharing a registrable domain with a listed entry got flagged, sibling subdomains included. The suffix tier still requires the feed to have explicitly listed that exact suffix. `evilofficeapps.live.com` shares nothing with `officeapps.live.com` across a label boundary and can never inherit its match. A sibling test pins the distinction directly:
+
+```python
+async def test_hostname_entry_also_matches_its_children(app_and_db):
+    """Collapsed-format coverage: a listed parent covers unenumerated children."""
+    await _seed(("officeapps.live.com", "live.com", "hagezi_pro"))
+
+    matches = await _match(
+        ("euc-powerpoint-telemetry.officeapps.live.com", "live.com"),
+        ("deep.nested.officeapps.live.com", "live.com"),
+        ("chat.live.com", "live.com"),
+        ("live.com", "live.com"),
+    )
+
+    assert set(matches) == {
+        ("euc-powerpoint-telemetry.officeapps.live.com", "live.com"),
+        ("deep.nested.officeapps.live.com", "live.com"),
+    }
+```
+
+<Tip title="A listed parent, not a shared root">
+The failure mode this guards against sits between two bad extremes. Exact-only matching would silently lose every unenumerated child of a collapsed-format entry. Registrable-domain matching would flag every sibling under a shared root, which is the exact bug from May. The suffix tier that survives is narrower than either: it still requires the feed to have named that specific branch of the tree, just not every leaf on it.
+</Tip>
+
+<FeedSuffixMatchTiersDiagram />
+
+The second part addressed the layer that had quietly done nothing useful. `record_feed_failure` used to only mark status, leaving the cache rows untouched:
+
+```python
+async def record_feed_failure(session: AsyncSession, feed_name: str, error: str) -> None:
+    """Mark the feed status as `error` without touching cache rows.
+
+    Existing rows remain queryable. Better stale than empty: a feed glitch
+    must not silently zero the H6 detector.
+    """
+```
+
+That principle was right. It just wasn't enough on its own, because leaving `expires_at` untouched meant the rows expired on schedule regardless of whether the feed was healthy. The fix extends the expiry on every failed run:
+
+```python
+    if extend_ttl_hours is not None:
+        await session.execute(
+            update(ThreatIntelDomainCache)
+            .where(ThreatIntelDomainCache.feed_name == feed_name)
+            .values(expires_at=naive_utc_now() + timedelta(hours=extend_ttl_hours))
+        )
+```
+
+The new docstring puts it plainly: keeping the rows isn't enough on its own, because `match_feeds` filters on `expires_at`, so without an extension the cache goes dark one TTL after the last successful load anyway. `status=error` stays the actual repair signal. The data just doesn't vanish while nobody has looked at that signal yet.
+
+The third part closed the gap that let a dead feed hide behind a green job for a full day. `doctor.sh` now checks `/api/threat-intel/feed-status` directly and turns red on any feed that isn't reporting `ok`.
+
+```bash
+# Threat-intel feed health. Job liveness above cannot see this failure mode:
+# a feed loader whose fetch 404s still completes green (better stale than
+# empty keeps the rows), but feed_meta records status=error and, before the
+# expiry-extension fix, the cache went dark one TTL later with every check
+# here passing. 2026-08-01: Hagezi upstream moved its file, the loader
+# "completed" daily against a 404, and H6 silently lost all 545k rows.
+feed_resp=$(curl -sS --max-time 5 "${BACKEND_URL}/api/threat-intel/feed-status" 2>/dev/null || echo "")
+```
+
+```bash
+        while IFS= read -r line; do
+            red_check "Threat feed unhealthy: ${line}"
+        done <<< "$bad_feeds"
+```
+
+I closed the loop by hand afterward. The feed reloaded clean, 216,108 live rows, `feed_meta` reporting `ok`. I forced the emit job, and the same test lookup from before finally produced a finding: severity `info`, `feed_tags` of `['hagezi_pro']`, keyed to `feed_hit`, `live.com`, and my Mac's own MAC address.
+
+Another client's ongoing tracker traffic re-emitted at `info` in the same cycle, unprompted. Backend tests finished at 1937 passing, and `doctor.sh` came back fully green, including the new feed check that would have caught this a day earlier.
+
+## One More Silent Failure, Different Shape
+
+A fifth commit from the same stretch, `1f3b9b7`, is smaller but rhymes with everything above it. I'd renamed a switch in the UniFi console, `BedroomUS860WSwitch`, and it had been sending 124 events over seven days that nothing in the Vector pipeline parsed.
+
+The route that was supposed to catch UniFi devices matched only factory hostname prefixes, `U7-`, `USW-`, and a device I'd personally renamed no longer matched any of them. The only reason I noticed at all was that the unmatched-events sink made the gap visible.
+
+UniFi access points and switches also tag every syslog line with an `appname` field, `<12-hex-mac>,<model>-<version>`, that doesn't change when I rename the device in the console. Routing on that field instead of the hostname fixed it:
+
+```yaml
+      unifi_device: >-
+        match(string(.appname) ?? "", r'^[0-9a-fA-F]{12},') ||
+        starts_with(string(.hostname) ?? "", "U7-") ||
+        starts_with(string(.hostname) ?? "", "U7P") ||
+        starts_with(string(.hostname) ?? "", "USW-") ||
+```
+
+A regression test pins the renamed-device case directly:
+
+```yaml
+  - name: renamed_unifi_switch_does_not_reach_the_catch_all
+    inputs:
+      - insert_at: route_by_source
+        type: log
+        log_fields:
+          source_ip: "172.16.27.135"
+          hostname: "BedroomUS860WSwitch"
+          appname: "b4fbe4d038c2,US-8-60W-7.4.1+16850"
+          message: "udhcpc[879]: sending renew"
+    no_outputs_from: [classify_unmatched]
+```
+
+Vector's own test suite passed all 75 cases with the new route in place. Small fix, same shape as the reboot outage and the dead feed: something failed quietly, and only a place where the failure was forced to become visible, an unmatched-events sink instead of a health check, caught it.
+
+## Lessons Learned
+
+Four incidents in one sitting, and they all come back to the same failure mode wearing different clothes. A watchdog that only wakes on filesystem events can't see a system that stopped generating any. A job that swallows a fetch failure into its own return payload tells every health check built on top of it that everything is fine. A routing rule keyed on a hostname prefix goes quiet the moment someone renames a device, and nothing notices unless the unmatched events end up somewhere visible.
+
+The security review earned its keep the same way. Treating an allowlist as an attack surface rather than a convenience, and proving both blockers against the real code paths instead of arguing from the diff, caught two mistakes unit tests never would have. The tests I'd have written would have shared the same blind spots as the code they were testing. And the only reason the dead feed surfaced at all is that I checked a live result against a real query instead of trusting that green tests meant a working feature. Fixtures can't go stale the way a remote upstream repository can. That same instinct is what fixed the reboot problem too. Seventeen ABORTs became this instead: the watchdog script quits Docker Desktop, cold-starts it, and has the daemon answering again in four seconds.

@@ -119,6 +119,10 @@ export {
   CIPipelineInjectionDiagram,
   OWASPLLMTop10Diagram,
 } from "./diagrams-ai1-threats";
+export {
+  FeedSuffixMatchTiersDiagram,
+  WatchdogColdStartDiagram,
+} from "./diagrams-home-network-mission-control-upgrading-my-home-siem";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
