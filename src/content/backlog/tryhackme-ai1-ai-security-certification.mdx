@@ -142,6 +142,12 @@ If your agent concatenates that content into the same context window as its inst
 
 The current [OWASP LLM Top 10](https://genai.owasp.org/llm-top-10/) puts Prompt Injection at LLM01 for exactly this reason. My RAG memory system carries the same shape of risk, which is not a comfortable thing to notice mid-exam.
 
+That LLM01 label is worth pausing on, because the numbering is the shared vocabulary underneath everything that follows. Four lessons came out of this training, and between them they land on five of the ten categories.
+
+<OWASPLLMTop10Diagram />
+
+Worth noting what that map also shows: five categories I did not personally stress-test at all. Knowing the shape of your own coverage, rather than assuming it is even, is most of what training like this is actually for.
+
 <Security title="The lethal trifecta">
 Simon Willison's [lethal trifecta](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) framing names the three ingredients that make an agent dangerous: access to private data, exposure to untrusted content, and a way to communicate externally. Any two of those are usually fine on their own. All three together is the failure mode.
 </Security>
@@ -155,6 +161,12 @@ The instructions were hidden inside HTML comments, invisible in the rendered UI.
 The shape of the bug is the point: indirect prompt injection, against an AI coding agent, sitting inside CI/CD, on the exact tool I run automation through daily.
 
 A pair of chained flaws in Cursor's IDE that summer, [nicknamed DuneSlide](https://www.catonetworks.com/blog/duneslide-two-critical-rce-vulnerabilities/) and [tracked as CVE-2026-50548](https://www.tenable.com/cve/CVE-2026-50548), pushed the same bug class to full remote code execution via a poisoned MCP response. Prompt injection isn't a content-moderation problem. It's an RCE vector with a friendlier name.
+
+Drawn as a threat model, the CI/CD chain is short enough to fit on a single line, and that brevity is the alarming part. There is no exploit in it. Every step is something the pipeline was explicitly designed to do, executed in the order it was designed to do it.
+
+<CIPipelineInjectionDiagram />
+
+The only genuine defect is at stage three, where untrusted text and trusted instructions end up in one context window with nothing marking which is which. Everything downstream is the pipeline working correctly on a premise that was already false.
 
 The second lesson sits right next to the first: authorization has to live outside the model, never inside it. A model that's asked to be both the guard and the judge of its own gate can be talked into opening that gate. "Access granted" narrated by a language model isn't authorization. It's a sentence the model generated because the conversation made that sentence plausible.
 
@@ -190,17 +202,11 @@ The results page breaks a section score into per-scenario bars underneath it, an
 
 That feedback is specific to my own attempt, so I am not going to reproduce a word of it here. What I can share is what it told me, in my own words, because that part generalises.
 
-Prompt Injection and Jailbreaking was my weakest section, and the section average turned out to be the least useful number on the page. Underneath it sat four separate sub-scores, one for each variant the section tests: direct injection, indirect injection, and each of those again with guardrails in the loop. The spread between them was enormous.
+The per-variant breakdown was more useful than any section score. Each attack type is graded separately, direct and indirect injection, then each again with guardrails in the loop. The spread across mine was wide enough to be the finding. The numbers are mine rather than the exam's; the shape is what generalises.
 
-That spread, not the average, is what told me where my skill stopped and my instinct started. I'm keeping the numbers themselves to myself, since they describe my transcript rather than the exam, but the shape of them is worth writing down.
+Direct injection went well. I sustained a coherent multi-turn narrative, so every concession the model granted became leverage for the next request. Strategy rather than guesswork.
 
-On direct injection I was good, and I mean that without hedging. I built a coherent multi-turn narrative and sustained it. Every small concession the model granted became leverage for the next request. That reads as strategy when it works, not guesswork, and it was comfortably my strongest sub-score of the four.
-
-It's the version of me I'd want writing the authorization code I described a section ago: deliberate, watching what the previous move bought, building on it.
-
-Indirect injection is where I fell apart, and the reason stings a little, because it's a debugging failure rather than a technique failure.
-
-Against consistent refusals, I cycled through techniques instead of reading the failure signal and diagnosing which layer was actually blocking me. I'd hit a wall, try a different angle, hit the same wall from a slightly different position. I kept rotating instead of stopping to ask which specific control was firing.
+Indirect injection is where I fell apart, and the reason stings, because it was a debugging failure rather than a technique failure. Against consistent refusals I cycled through techniques instead of diagnosing which layer was blocking me. I kept rotating instead of asking which specific control was firing.
 
 My indirect attempts were also too explicit, too obviously constructed, to survive contact with an agent that was actually paying attention.
 

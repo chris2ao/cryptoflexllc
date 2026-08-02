@@ -115,6 +115,10 @@ export {
   AI1ScoringModelDiagram,
   AI1TrustBoundaryDiagram,
 } from "./diagrams-ai1-security";
+export {
+  CIPipelineInjectionDiagram,
+  OWASPLLMTop10Diagram,
+} from "./diagrams-ai1-threats";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
