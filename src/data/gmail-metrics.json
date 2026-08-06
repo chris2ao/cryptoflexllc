@@ -1,5 +1,23 @@
 [
   {
+    "run_id": "7443823c-1f77-44a7-90ca-5efc9f49e176",
+    "started_at": "2026-08-06T00:08:06.203498+00:00",
+    "ended_at": "2026-08-06T00:17:02.058302+00:00",
+    "status": "success",
+    "duration_seconds": 536,
+    "messages_scanned": 118,
+    "messages_trashed": 5,
+    "messages_archived": 9,
+    "messages_flagged": 2,
+    "filters_created": 0,
+    "unsubscribes_succeeded": 0,
+    "cost_usd": 0.0,
+    "circuit_breaker_tripped": false,
+    "agent_version": "0.1.0",
+    "attention_email_sent": true,
+    "error": null
+  },
+  {
     "run_id": "00fa3405-3219-49ae-b7b9-8c6a794b37e2",
     "started_at": "2026-08-05T12:08:05.841279+00:00",
     "ended_at": "2026-08-05T12:11:13.069549+00:00",
