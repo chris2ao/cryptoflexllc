@@ -1,0 +1,388 @@
+---
+title: 'Ledgerly: A Personal Finance App That Never Sends My Bank Data Anywhere'
+date: '2026-08-10'
+description: >-
+  I wanted a personal finance app that molds to how I actually track money,
+  not the other way around: any bank's CSV or Excel export, real
+  categorization, budgets and goals, and an AI I can ask questions of my own
+  spending. Ledgerly is what I built: local-first, one SQLite file on my
+  machine, no cloud, and AI that runs through the Claude CLI I already have
+  installed, no API key required. This is part one of the series, covering
+  the use case, the build, and two bugs a layman QA gate caught before I
+  started running v1 against my real money.
+tags:
+  - Claude Code
+  - AI
+  - SQLite
+  - Next.js
+  - Personal Finance
+  - Local-First
+  - Agents
+author: Chris Johnson
+readingTime: 21 min read
+series: Ledgerly
+seriesOrder: 1
+schemaType: TechArticle
+coverImage: /blog/building-ledgerly-v1/infographic.png
+coverImageAlt: >-
+  A dark teal cover graphic titled Ledgerly, Part 1, Local-First Personal
+  Finance. Four panels state the core facts: one SQLite file with no cloud
+  account, zero API keys because the AI runs through a local claude CLI on an
+  existing subscription, 760 tests across 46 files at 95 percent coverage
+  plus 41 Playwright specs, and a seven-rung categorization precedence
+  ladder where the first match wins. Below the panels, a headline reads "My
+  bank data lives in one file on my machine. The AI runs through a CLI I
+  already had installed," followed by a stat line noting four milestones,
+  twenty-five tasks, and a captain-led agent team.
+---
+
+Every personal finance app I've tried wants two things before it will categorize a single transaction: my bank login and a subscription.
+
+I built Ledgerly instead: local-first, its database sitting on my own machine, importing whatever CSV or Excel export my bank hands me, and doing its AI work through the `claude` CLI I already pay for, no API key required.
+
+## Why My Money Doesn't Live in Anyone Else's Database
+
+What I actually wanted was an app that would mold itself to how I track money, instead of asking me to adapt to whatever workflow a vendor decided was standard.
+
+Import any bank's CSV or Excel export. Categorize every transaction without me typing the same merchant name into a dropdown for the hundredth time.
+
+See spending as something visual, not a spreadsheet I have to squint at. Set budgets and goals, ask an AI questions about my own money, and export a report I can actually hand someone.
+
+Is any of that unusual? Not really. Plenty of apps do some of it.
+
+What none of them do is stay on my machine. Ledgerly is local-first: one SQLite database file, no cloud account, no vendor holding my transaction history in a warehouse I'll never see.
+
+The AI work runs through my existing Claude Code subscription, spawning the local `claude` CLI headless, so there's no separate API key sitting in a config file somewhere.
+
+<Info title="What does local-first mean here?">
+It means the app and its data live entirely on the computer running it. No sync service, no server I don't control, no account to create. If I delete the SQLite file, nothing else in the world remembers my spending.
+</Info>
+
+There was one more constraint that shaped almost everything downstream: the codebase itself had to stay shareable.
+
+I wanted to be able to hand Ledgerly to family or friends who might want to run their own copy, which meant the repository could never contain a trace of my actual bank data.
+
+That constraint sounds simple. It wasn't.
+
+## What Ledgerly Actually Tracks
+
+Open Ledgerly and the dashboard is the first thing I see. A spending donut for the month, a six-month trend line, budget bars per category, and whatever goals I've set up, like an emergency fund with its own progress bar.
+
+Every number in this post's screenshots is synthetic fixture data. None of it is my real spending, and I'll say that once here instead of caveating every image below.
+
+![Ledgerly dashboard for January 2026 showing a spending donut totaling $1,926.40, a six-month trend, budget bars including an over-budget housing category in red, an Emergency Fund goal, and top merchants](/blog/building-ledgerly-v1/dashboard.png)
+
+That January dashboard totals $1,926.40 in spending, with the housing budget bar rendered in red because it's over.
+
+Rendering the over-budget bar in red instead of just changing a number is a small decision, but it's the difference between a dashboard I actually look at and one I open once and ignore.
+
+Transactions get their own list, and transfers between my own accounts show up muted instead of counted as spending.
+
+Budgets and goals are separate tabs, each doing one job. Budgets track a category against a monthly ceiling; goals track a savings target against contributions over time.
+
+![Ledgerly Budgets tab showing the housing category over budget by $950.00](/blog/building-ledgerly-v1/budgets.png)
+
+![Ledgerly Goals tab showing an Emergency Fund goal with its contribution history](/blog/building-ledgerly-v1/goals.png)
+
+So why do those four screens agree with each other instead of quietly drifting apart over time? Because every aggregate in Ledgerly, whether it's feeding the dashboard, the chat, a report, or an export, filters through one shared module.
+
+Transactions must belong to a committed import batch, must not be excluded, and must not be categorized as a transfer. Spending figures additionally drop anything categorized as income.
+
+Expenses are stored as negative cents, so spending comes back as positive net spend, which nets refunds against charges automatically instead of me having to remember to subtract them somewhere.
+
+<AnalyticsSingleSource />
+
+<Tip title="One Predicate, Every Screen">
+Every screen that shows a number reads from the same aggregates module with the same filter. That's deliberate: the dashboard, the chat, the reports, and the exports can't disagree with each other, because there's only one place that computes the number in the first place.
+</Tip>
+
+## Turning the Numbers Into Something I Can Print
+
+Reports take the same aggregates and turn them into something I can hand to someone or file away. Pick a month, and Ledgerly builds a category breakdown, a total, and a short caption explaining what got excluded and why.
+
+![Ledgerly report preview for January 2026 showing an exclusion caption under the total and $950.00 over in the category table](/blog/building-ledgerly-v1/reports.png)
+
+Ask for a narrative summary and an AI writes a few paragraphs grounded in that same report data, plus a short list of suggestions.
+
+![Ledgerly AI-generated report narrative with grounded spending numbers and visible truncation ellipses on two long suggestion items](/blog/building-ledgerly-v1/reports-narrative.png)
+
+Two of those suggestion items end in an ellipsis, cut off mid-word. That's an honest v1 edge: the length clamp on the narrative doesn't check for a word boundary before it cuts.
+
+<Warning title="The Narrative Clips Mid-Word">
+The AI report narrative has a hard length ceiling, and the truncation that enforces it doesn't check for a word boundary. It's cosmetic, not a data problem, but it's the kind of thing a first pass through the feature won't catch until you actually read a long one.
+</Warning>
+
+Print gets its own dedicated view, stripped down to a plain page with the same numbers, because that's what actually becomes the PDF export.
+
+## Getting My Own Data In
+
+Every bank exports data differently, and none of them export it the way Ledgerly's schema expects.
+
+So how does the import pipeline close that gap without me hand-editing a spreadsheet first? By running every file through the same sequence of steps before anything reaches a table I actually query.
+
+A file comes in as CSV, parsed with papaparse, or as an Excel workbook, parsed with exceljs. Ledgerly computes a header signature from the column names and checks whether it's seen that signature before.
+
+If it hasn't, it asks the AI to propose a column mapping. From there every row gets normalized, which is also where a row can fail and land in an error list instead of silently disappearing.
+
+Accounts get resolved or created, duplicate rows get caught by exact hash and by a near-duplicate check, and then each row runs through categorization before landing in a staging table for review.
+
+<ImportPipelineFlow />
+
+### The AI Guesses the Columns
+
+The mapping screen shows the AI's proposed column assignments against live preview rows, including whether it read a column as an expense or a deposit.
+
+![Ledgerly AI column-mapping screen with live-mapped preview rows showing expense and deposit sign previews](/blog/building-ledgerly-v1/import-mapping.png)
+
+When I ran my actual Copilot Finance export through this screen for the first time, the AI mapped all thirteen columns correctly on the first try. It even figured out that the export stores expenses as positive numbers and needed negation to match Ledgerly's internal convention.
+
+I'd braced for a manual correction pass. I didn't need one.
+
+### Seven Rungs to a Category
+
+Categorization runs as a strict precedence ladder, first match wins:
+
+1. `source_map`: a category already present in the file
+2. `source_map_ai`: the AI resolves a file category name Ledgerly doesn't recognize
+3. `transfer_pattern`: a deterministic match against transfer description patterns
+4. `refund`: matched by account, merchant, and amount against an earlier charge
+5. `rule`: one of my own saved merchant rules
+6. `ai`: AI categorization by merchant, when nothing else matched
+7. `none`: uncategorized
+
+Ledgerly stores which rung actually resolved a row, per row, so I can see later whether a category came from the file itself or from a guess.
+
+The review screen makes that visible directly. File categories the AI matched to Ledgerly's own categories show up with a Remember checkbox next to them, and every transaction still gets a per-row dropdown in case the ladder got it wrong.
+
+![Ledgerly import review screen with category mappings from the file matched by AI, Remember checkboxes, and ten transactions with per-row category dropdowns](/blog/building-ledgerly-v1/import-review.png)
+
+<Tip title="Trust the File Before the Model">
+The ladder puts deterministic sources ahead of AI guesses on purpose. A category the bank already assigned, or a rule I saved myself, is more trustworthy than a model's best guess at a merchant name. The AI only gets a vote once everything more certain has already had a chance to answer.
+</Tip>
+
+## Four Milestones, One Agent Team
+
+Ledgerly came together across four milestones. M0 built the scaffold, the schema, and the AI adapter. M1 built the import pipeline and the transactions page. M2 added the dashboard, budgets, and goals. M3 added chat, reports, exports, and polish. Twenty-five tasks total, planned up front.
+
+I didn't write most of the implementation by hand. A captain session orchestrated a fresh implementer subagent and a fresh reviewer subagent per task, each briefed with a specialist role prompt depending on what the task touched: finance-expert, ux-designer, or db-engineer.
+
+Every task had to clear a spec-compliance gate and a quality-review gate, with fix loops between implementer and reviewer until the review came back clean.
+
+<AgentTeamTopology />
+
+<Info title="What's a Layman QA Gate?">
+Before each milestone could merge, a separate agent walked the running app the way someone with no engineering background would: clicking through screens, trying obvious things, and writing down anything confusing or wrong in plain language. It's a stand-in for the question every feature eventually gets asked by someone who didn't build it, whether it actually makes sense.
+</Info>
+
+That gate scored M1 at 5 out of 5. M2 came in at 4 out of 5 with no blockers. M3 scored 3 out of 5, with two reported blockers, which turned into the two war stories below.
+
+A final whole-branch review before merge found four more fixes, none of them critical.
+
+The stack underneath all of it is Next.js 16.3.0 and React 19.2.8, `better-sqlite3` and `drizzle-orm` for the database layer, and Tailwind v4 with shadcn for the interface.
+
+Recharts draws the charts, `papaparse` and `exceljs` handle imports, `zod` validates, and `vitest` and `@playwright/test` cover the two testing layers.
+
+`pnpm dev` runs on port 3210. `pnpm check` runs typecheck, lint, the full vitest suite with coverage, and the build, in that order, and it's what I run before anything gets called done. That vitest suite is 760 unit and integration tests across 46 files, landing at 95% statement coverage against a configured floor of 80% across lines, functions, branches, and statements, so it clears its own floor with room to spare. Playwright adds 41 specs on top of that: 37 in the main suite, plus 4 more in a separate no-AI suite that exercises what the UI does when the CLI isn't there.
+
+## The AI That Runs Through a CLI, Not an API Key
+
+Four features in Ledgerly touch AI: column mapping, categorization, chat, and the report narrative. All four funnel through one adapter module instead of each rolling its own integration.
+
+<AiAdapterSeam />
+
+The adapter is four files: `claude.ts`, `claude-stream.ts`, `cli-args.ts`, and `types.ts`, exporting `isAvailable()`, `runJson<T>()`, `runStream()`, and `errorMessage()`.
+
+Structured calls, the kind that need a typed result back, build an argv like this:
+
+```ts
+["-p", prompt, "--output-format", "json", "--json-schema", schema, "--max-turns", "1"]
+```
+
+Streaming calls, for chat, build a different one:
+
+```ts
+["-p", prompt, "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--max-turns", "1"]
+```
+
+<Security title="No API Key, No Standing Credential">
+Every AI call in Ledgerly spawns the local `claude` CLI as a subprocess and bills against my existing Claude Code subscription. There's no API key to generate, store, rotate, or accidentally commit. If the CLI isn't installed or isn't authenticated, `isAvailable()` reports that honestly instead of the app pretending it has a working connection.
+</Security>
+
+Why two separate environment variables instead of one? Because a test suite needs both a fake success path and a fake absence path, and one flag can't be both.
+
+`LEDGERLY_AI_MOCK=1` returns canned responses instead of calling the CLI. `LEDGERLY_AI_DISABLED=1` makes every AI feature report itself unavailable, which is what exercises the no-AI code paths in the UI.
+
+<Tip title="Two Escape Hatches, Never the Subscription">
+`LEDGERLY_AI_MOCK` and `LEDGERLY_AI_DISABLED` exist specifically so CI and the local test suite never touch the real CLI. One fakes success, the other fakes absence, and between them every AI-dependent code path gets exercised without spending anything real.
+</Tip>
+
+Building the adapter surfaced two bugs before either one reached a test suite. `z.toJSONSchema` emits a `$schema` key that the CLI rejects outright, caught with a regression test once I noticed the structured calls kept failing.
+
+The CLI also refuses a bare-array JSON schema, so the adapter wraps it before the call and unwraps it after.
+
+And a trivial schema-constrained call, nothing complicated, measured around twelve seconds of latency. That's not the CLI being slow for no reason; it's what spawning a full model turn costs, every time, and it's why the mock env var matters as much as it does.
+
+## The Chat That Was Certain the Data Wasn't There
+
+During the M3 layman QA pass, the reviewer typed a simple question into the chat: what did I spend the most on in January 2026? The assistant answered with total confidence that its records only covered July and August 2026.
+
+That was flatly wrong. The database held committed transactions from January 2026 through October 2026.
+
+I want to be precise about what this bug wasn't. It wasn't a database issue, a query bug, or anything wrong with the nine months of data actually sitting in the table. The database was fine the entire time.
+
+The chat's confidence was the only thing broken, and confidence is a strange thing to debug, because the model never once hedged. It stated the wrong date range the same way it would have stated the right one.
+
+The root cause turned out to be almost embarrassingly narrow. The chat's context was built from the current month and the prior month's summaries, nothing else. The prompt never told the model that what it was holding was a window rather than the whole picture.
+
+So the model did the only reasonable thing available to it: it read the absence of January data as evidence January data didn't exist.
+
+The first fix added a data-coverage line to the context, backed by a new `getActivityBounds()` helper that returns the earliest and latest committed month plus a row count.
+
+The prompt got a rule alongside it: never claim data doesn't exist beyond the loaded window, and point at Reports instead for anything outside it.
+
+One deliberate choice inside that helper: it counts excluded rows toward the bounds, because an excluded row is still evidence that records exist for that month. Coverage claims should over-include rather than under-include.
+
+Then the final whole-branch review caught the inversion I hadn't seen coming.
+
+A coverage span is just that, a span, so now the model could confidently claim records existed for any month inside it, including months in the middle of the range that actually had nothing recorded.
+
+Telling it not to under-claim had taught it to over-claim instead. The second fix softened the wording: records *may* exist for a given month inside the span, not that they definitely do.
+
+![Ledgerly chat conversation showing the pre-fix wrong answer that records only cover July and August 2026, followed by the same question asked again after the fix, where the assistant corrects itself out loud](/blog/building-ledgerly-v1/chat.png)
+
+That screenshot is the same conversation twice: the wrong answer, and then, after the fix, the same question landing a self-correction: "To correct what I said a moment ago: your imported history actually does span January 2026 through October 2026..."
+
+<Warning title="State the Window, Both Directions">
+Telling a model what it might be missing fixes one failure mode. It doesn't fix the mirror image, where the model now over-trusts anything technically inside the range you described. Both directions need to be stated explicitly, because the model will only guard against the one you warned it about.
+</Warning>
+
+For an AI feature built over personal data, the prompt has to say what the context window actually is, not just imply it through what's present.
+
+And it has to say it in both directions, because fixing the false negative without checking for a false positive just moves the wrong answer somewhere less obvious.
+
+## Chasing a Data-Loss Bug That Wasn't One
+
+The second blocker from that same M3 gate read like the worse bug of the two: a transaction with a missing amount had, in the reviewer's words, silently vanished during import.
+
+Silent data loss is the kind of report that should stop anyone building a finance app.
+
+So I did. Before dispatching a fix to anyone, I ground-truthed the pipeline myself.
+
+I wrote a one-off probe script, a throwaway `tsx` file I deleted right after, and pointed it at the staging table directly.
+
+It reported row count in, row count out, and the full text of whatever error the one flagged row actually carried. Three numbers and a string, and they settled it in under a minute.
+
+Nothing was lost. The missing-amount row was exactly the row the pipeline had already flagged as an error, at row index 4, with the message `Could not parse "" as a dollar amount`.
+
+The blank line the reviewer suspected had eaten a different row was dropped by design, the way blank lines are supposed to be dropped.
+
+What had actually gone wrong was attribution, not data loss. The review screen's error panel showed the error message and nothing else: no date, no description, nothing identifying which row it belonged to.
+
+A careful reader looking at a bare error sitting next to a blank line does the obvious thing and assumes the error belongs to the other row.
+
+Treat a report like that as gospel and dispatch a fix blind, and an implementer spends real time patching a pipeline that was never broken. The actual defect, a genuinely unhelpful error message, sits untouched the whole time.
+
+Would a better error message alone have prevented the false blocker? Probably, and that's the whole fix.
+
+`RowError` got extended with the row's date and raw description, threaded through normalize and the staging flow into `row-errors.tsx`. Every failed row now shows its source row number, its original date and description, and a plain-language reason.
+
+The empty-amount message itself got fixed at the source, in `money.ts`, to read "The amount is missing" instead of the cryptic parse failure it had been surfacing before.
+
+One limitation got accepted rather than chased: the row number counts data rows after blank lines are skipped, not literal spreadsheet line numbers.
+
+Two things stuck with me from this one. Ground-truth a bug report against the actual system before dispatching a fix, or you'll fix the wrong thing correctly and never know it.
+
+And an error message that doesn't identify its own subject will get blamed on whatever's sitting nearby, because a reader has to attribute it to something.
+
+## Everything Else That Almost Went Wrong
+
+Not every problem got its own gate. A few smaller ones turned up along the way, and they're worth a paragraph each rather than a section each.
+
+`playwright.config.ts` had `baseURL` and `webServer` both pointed at port 3210, the exact port my real-data dev server runs on, with `reuseExistingServer: true`.
+
+Any Playwright run started while that dev server happened to be up would have silently adopted it and driven every spec in the suite against my actual database instead of a test fixture. I caught it by reading the config, not because anything failed.
+
+It also turned out Next 16's dev-server lock is keyed to the project directory rather than the port. An interactive dev server and the E2E suite can't share one checkout no matter how carefully the ports are separated.
+
+The fix gave E2E its own port, 3211, and the no-AI suite 3212, both with `reuseExistingServer: false`.
+
+A 200-row staging request once returned success after 31.2 minutes, with two chunk timeouts logged along the way.
+
+The database that came out the other side had 13 accounts, zero batches, zero transactions, a 94KB file, an empty WAL, and a clean integrity check. The server had been killed externally about ten minutes after that success response went out.
+
+A SIGKILL reproduction against a 2.35MB uncheckpointed WAL recovered fully, which cleared the transaction layer of blame. `synchronous` was already at the compiled FULL default, and there was no nested transaction and no post-response logic that could explain what happened.
+
+The root cause was never formally proven. The fix was defense in depth anyway: a verify-readback before reporting success, a one-shot absolute-path log, and a guarded checkpoint. It hasn't recurred, including through the real 10,613-row import.
+
+SQLite's documentation says the bound-variable limit is 32766. The binary this app actually links said 2000.
+
+I only found out when the real import blew up a multi-row insert with `SqliteError: too many SQL variables`, because my fixtures topped out at 15 rows and never came close to the real ceiling.
+
+The fix measured the actual limit by binary search instead of trusting the documented number. That's the only reason it worked. My own first suggestion of 400-row chunks would also have failed against the real limit.
+
+It ships at 150 rows per chunk, which at roughly 13 columns comes to 1,950 bound variables, safely under 2000.
+
+The strangest one to track down: importing a value from a module that transitively imports `better-sqlite3` into a `"use client"` component 500s five routes at once.
+
+How do you catch a bug neither the type checker nor the linter can see coming? Only by actually running the app end to end, which is exactly what caught this one.
+
+The fix computed the value server-side and passed it down as a plain boolean prop, leaving the client component importing types only, never the value.
+
+## Keeping My Real Bank Data Out of a Public Repo
+
+The constraint I mentioned back at the start, that the codebase had to stay shareable with zero personal data in it, turned into its own small discipline.
+
+`data/` is gitignored, but with a tracked placeholder so the directory itself still exists in a fresh clone:
+
+```txt
+data/*
+!data/.gitkeep
+```
+
+That's `data/*` rather than `data/`, deliberately. Git can't re-include a file inside a directory that a directory-level pattern already excluded, so the wildcard form is what actually makes the negation work.
+
+All the test fixtures are synthetic, but they mimic my real export's structure closely: the same thirteen columns, the same shape.
+
+A privacy audit gate runs as part of the check suite and verifies three things: zero files under `data/` are tracked, the database itself is ignored, and no real-data traces have leaked into anything tracked.
+
+A fresh-clone drill, running the whole setup from a clean checkout instead of my working copy, found a real bug nothing else had caught.
+
+`pnpm db:migrate` crashed immediately on a clean clone, because the gitignored `data/` directory didn't exist yet, and drizzle-kit's `better-sqlite3` call failed with a directory-does-not-exist error.
+
+Why hadn't I seen this before? Because the running app creates its own data directory on startup, so my long-lived working copy had never once hit the code path a fresh clone hits first.
+
+The fix added a recursive mkdir to `drizzle.config.ts`, alongside the tracked `.gitkeep`.
+
+The real test of all of this was importing my actual Copilot Finance export, 10,613 transactions, through the app's own import flow into a local, gitignored database. It auto-created 13 accounts, stored 18 file-category mappings and 639 merchant rules, and staging took 33.8 minutes under instrumentation.
+
+The AI got the column mapping right on the first try, all thirteen columns, sign inference included. None of that data, or anything derived from it, ever touched a tracked file.
+
+## The Build on One Page
+
+After this post was drafted, I fed it to NotebookLM and asked for an infographic version of the story. Its first attempt misspelled three of the seven ladder rungs, which felt almost on theme for a post where the AI features needed guardrails stated in both directions.
+
+The second attempt, asked to use fewer words, got every number right.
+
+![NotebookLM-generated infographic summarizing the Ledgerly v1 build: 1 SQLite file, 0 API keys, 10,613 transactions imported, 760 tests, 95 percent coverage, 41 Playwright specs, QA gate scores of 5, 4, and 3 out of 5, and a five-step flow from import to reports](/blog/building-ledgerly-v1/nlm-infographic.png)
+
+It also produced an 11-slide deck. Five slides were genuinely good, and three invented things, including a terminal session for a CLI command that doesn't exist. The deck stays in my notebook; the infographic earned its spot here.
+
+## Where Ledgerly Goes From Here
+
+Ledgerly v1 is merged, and it's what I run against my real data now, not a demo build waiting for a green light.
+
+v2 is a locked backlog of functional fixes, most of them small on their own. An aborted chat needs a visible marker instead of just stopping.
+
+The chat's coverage claim should probably be per-month rather than a single span, since a span is exactly what caused the second half of the context-window bug in the first place.
+
+Import errors need real types instead of strings threaded through a handful of files. Component tests are thinner than the rest of the suite and need filling in.
+
+None of it is glamorous, and that's fine. It's the list of things a working app accumulates once you actually use it instead of just building it.
+
+Why split v2 and v3 apart instead of doing both at once? Because functional correctness and visual design pull in different directions when they're worked at the same time.
+
+v3 is reserved entirely for UX and UI design. Fixing a coverage bug and redesigning a dashboard don't share much except the same file, and sequencing them apart means each pass can actually finish instead of half-finishing both.
+
+This is part one of the Ledgerly series. Part two picks up the v2 backlog: the chat marker, the coverage rework, the typed import errors, and whatever else the next few weeks of actually using this app turn up.
+
+I don't know yet what that list looks like beyond what's already written down, and that's kind of the point of writing it as a separate post instead of predicting it here.

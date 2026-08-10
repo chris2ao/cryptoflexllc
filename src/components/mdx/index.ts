@@ -85,6 +85,12 @@ export {
   PiholeSessionAuthDiagram,
 } from "./diagrams-pihole-mcp";
 export {
+  ImportPipelineFlow,
+  AgentTeamTopology,
+  AiAdapterSeam,
+  AnalyticsSingleSource,
+} from "./diagrams-building-ledgerly-v1";
+export {
   DesignToCodePipelineDiagram,
   RedesignAgentTeamDiagram,
   EditorialPropagationDiagram,
