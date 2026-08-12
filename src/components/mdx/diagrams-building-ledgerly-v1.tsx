@@ -325,7 +325,7 @@ export function AgentTeamTopology({ caption }: DiagramProps) {
         <rect x="620" y="200" width="260" height="170" rx="8" className="fill-violet-500/10 stroke-violet-500" strokeWidth="1.5" />
         <text x="750" y="226" textAnchor="middle" className="fill-violet-300 text-[12px] font-semibold">Fresh Reviewer</text>
         <text x="750" y="246" textAnchor="middle" className="fill-muted-foreground text-[10px]">new session, task-scoped</text>
-        <text x="750" y="264" textAnchor="middle" className="fill-muted-foreground text-[10px]">no memory of the implementer's reasoning</text>
+        <text x="750" y="264" textAnchor="middle" className="fill-muted-foreground text-[10px]">no memory of the implementer&apos;s reasoning</text>
         <text x="750" y="282" textAnchor="middle" className="fill-muted-foreground text-[10px]">reviews the diff cold</text>
 
         {/* fix loop */}
