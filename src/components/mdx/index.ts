@@ -137,6 +137,14 @@ export {
   DesignSystemSharedRecordDiagram,
   AccessibleNameVsVisualDiagram,
 } from "./diagrams-ledgerly-cyber-editorial-rebuild";
+export {
+  ReviewPipelineDiagram,
+  FrontmatterEvalDiagram,
+  CriticalBlastRadiusDiagram,
+  SpoofedIdentityRateLimitDiagram,
+  SharedCounterBucketsDiagram,
+  SilentCSPFailureDiagram,
+} from "./diagrams-security-review-round-two";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
