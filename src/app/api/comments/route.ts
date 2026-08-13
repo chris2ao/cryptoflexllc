@@ -14,12 +14,14 @@ import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 // Rate limiter: 10 requests per IP per hour for POST comments
 const commentsPostRateLimiter = createRateLimiter({
+  name: "comments-post",
   windowMs: 60 * 60 * 1000,
   maxRequests: 10,
 });
 
 // Rate limiter: 60 requests per IP per minute for GET comments
 const commentsGetRateLimiter = createRateLimiter({
+  name: "comments-get",
   windowMs: 60 * 1000, // 1 minute
   maxRequests: 60,
 });

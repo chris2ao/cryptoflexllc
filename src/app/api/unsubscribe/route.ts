@@ -36,12 +36,16 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Verify HMAC token (timing-safe comparison)
+  // Verify HMAC token (timing-safe comparison). Compare buffer lengths first:
+  // timingSafeEqual throws a RangeError on differing lengths, which would return
+  // a 500 for a merely wrong-length (but valid-hex) token such as "ab". A
+  // wrong-length token is simply invalid, so short-circuit to the 403 below.
   const expected = makeUnsubscribeToken(email);
-  const valid = crypto.timingSafeEqual(
-    Buffer.from(token, "hex"),
-    Buffer.from(expected, "hex")
-  );
+  const tokenBuf = Buffer.from(token, "hex");
+  const expectedBuf = Buffer.from(expected, "hex");
+  const valid =
+    tokenBuf.length === expectedBuf.length &&
+    crypto.timingSafeEqual(tokenBuf, expectedBuf);
 
   if (!valid) {
     return new NextResponse(htmlPage("Invalid link", "The unsubscribe link is invalid or expired."), {

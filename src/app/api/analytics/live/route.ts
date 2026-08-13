@@ -29,6 +29,7 @@ import { getDb } from "@/lib/analytics";
 export const dynamic = "force-dynamic";
 
 const liveRateLimiter = createRateLimiter({
+  name: "live",
   windowMs: 60 * 1000,
   maxRequests: 60,
 });

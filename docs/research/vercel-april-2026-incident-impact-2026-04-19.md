@@ -4,7 +4,7 @@
 
 ## Executive Summary
 
-As of 2026-04-19, Vercel's bulletin describes "unauthorized access to certain internal Vercel systems" affecting "a limited subset of customers" that Vercel is "engaging with directly." The bulletin names no IOCs, no specific services, and no technical scope. There is no evidence in your Vercel project (`prj_GzzTg98SmOOBH0R5kSnpKL9N6E3m`, team `team_JiUaPP7MUxE4kCcL8RWr76v6`) of anomalous activity: all 20 most recent production deployments were triggered by `chris2ao@gmail.com` from `main` of the public `chris2ao/cryptoflexllc` GitHub repo. **You are most likely not in the impacted subset** (Vercel contacts those customers directly). However, because the bulletin explicitly recommends env var rotation and activity-log review as best practice, treat this as a precautionary rotation opportunity.
+As of 2026-04-19, Vercel's bulletin describes "unauthorized access to certain internal Vercel systems" affecting "a limited subset of customers" that Vercel is "engaging with directly." The bulletin names no IOCs, no specific services, and no technical scope. There is no evidence in your Vercel project (`prj_REDACTED`, team `team_REDACTED`) of anomalous activity: all 20 most recent production deployments were triggered by `<owner-personal-email>` from `main` of the public `chris2ao/cryptoflexllc` GitHub repo. **You are most likely not in the impacted subset** (Vercel contacts those customers directly). However, because the bulletin explicitly recommends env var rotation and activity-log review as best practice, treat this as a precautionary rotation opportunity.
 
 ## 1. Incident Scope (from the Vercel bulletin)
 
@@ -19,8 +19,8 @@ As of 2026-04-19, Vercel's bulletin describes "unauthorized access to certain in
 
 Findings from the Vercel MCP:
 
-- **Team**: `Chris Johnson's projects` (`team_JiUaPP7MUxE4kCcL8RWr76v6`)
-- **Project**: `cryptoflexllc` (`prj_GzzTg98SmOOBH0R5kSnpKL9N6E3m`)
+- **Team**: `Chris Johnson's projects` (`team_REDACTED`)
+- **Project**: `cryptoflexllc` (`prj_REDACTED`)
 - **Domains**: `cryptoflexllc.com`, `www.cryptoflexllc.com`, plus `*.vercel.app` aliases
 - **Framework**: Next.js 16.1.6 on Node 24.x, Turbopack bundler
 - **Cron jobs** (`vercel.json`): `/api/cron/weekly-digest` (Mon 13:00 UTC), `/api/cron/cleanup-rate-limits` (04:00 UTC daily)
@@ -29,9 +29,9 @@ Findings from the Vercel MCP:
 ### Deployment audit (last 20 production deploys)
 
 All deployments match these authenticity signals:
-- Creator: `chris2ao` / `chris2ao@gmail.com`
+- Creator: `chris2ao` / `<owner-personal-email>`
 - Source: GitHub `chris2ao/cryptoflexllc` (public), branch `main`
-- Commit author: `Chris Johnson <chris.johnson@cryptoflexllc.com>`
+- Commit author: `Chris Johnson <owner-corporate-email>`
 - Latest SHA `e3aa7a5c...` matches local `git log`
 
 No deployments from unknown actors, no rogue deploy hooks, no unexpected target environments.
@@ -65,7 +65,7 @@ No `.env*` files exist in the repo (confirmed), so all secrets live in Vercel en
 ## 5. Recommended Remediation
 
 ### Mandatory (do now)
-1. **Check your inbox** (chris2ao@gmail.com) for any direct notice from Vercel security. If one arrived, follow its specific instructions over this doc.
+1. **Check your inbox** (<owner-personal-email>) for any direct notice from Vercel security. If one arrived, follow its specific instructions over this doc.
 2. **Review the Vercel activity log**: [vercel.com/activity-log](https://vercel.com/activity-log). Look for logins, token creations, env var changes, or deploy hook usage that you did not perform.
 
 ### Recommended (precautionary, do this week)
@@ -93,7 +93,7 @@ If Vercel contacts you directly about this incident:
 1. [Vercel April 2026 security incident](https://vercel.com/kb/bulletin/vercel-april-2026-security-incident) - Primary Vercel KB bulletin (updated 2026-04-19).
 2. [Vercel activity log](https://vercel.com/activity-log) - Personal account activity.
 3. [Sensitive environment variables docs](https://vercel.com/docs/environment-variables/sensitive-environment-variables).
-4. Vercel MCP queries against team `team_JiUaPP7MUxE4kCcL8RWr76v6`, project `prj_GzzTg98SmOOBH0R5kSnpKL9N6E3m` (2026-04-19).
+4. Vercel MCP queries against team `team_REDACTED`, project `prj_REDACTED` (2026-04-19).
 5. Local repo `vercel.json`, `package.json`, and `src/**/*.ts` env var grep (2026-04-19).
 
 ## Methodology

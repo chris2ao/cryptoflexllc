@@ -4,11 +4,15 @@ import { type NextRequest } from "next/server";
 export const runtime = "edge";
 
 export async function GET(request: NextRequest) {
+  // Cap attacker-supplied inputs so a huge query string cannot amplify the
+  // Satori render cost (F-M12).
   const { searchParams } = request.nextUrl;
-  const title = searchParams.get("title") || "CryptoFlex LLC";
-  const author = searchParams.get("author") || "Chris Johnson";
-  const date = searchParams.get("date") || "";
-  const tags = searchParams.get("tags")?.split(",").slice(0, 3) || [];
+  const title = (searchParams.get("title") || "CryptoFlex LLC").slice(0, 200);
+  const author = (searchParams.get("author") || "Chris Johnson").slice(0, 100);
+  const date = (searchParams.get("date") || "").slice(0, 40);
+  const tags = (searchParams.get("tags")?.split(",").slice(0, 3) || []).map(
+    (tag) => tag.slice(0, 40)
+  );
 
   return new ImageResponse(
     (
@@ -117,6 +121,12 @@ export async function GET(request: NextRequest) {
     {
       width: 1200,
       height: 630,
+      headers: {
+        // Cache the rendered card so repeated social unfurls do not re-run
+        // Satori on every request (F-M12). Caching before throttling avoids
+        // breaking link-preview crawlers.
+        "Cache-Control": "public, max-age=86400, s-maxage=86400, immutable",
+      },
     }
   );
 }

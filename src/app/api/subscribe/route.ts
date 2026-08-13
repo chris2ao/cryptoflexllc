@@ -28,6 +28,7 @@ export const maxDuration = 30;
 
 // Rate limiter: 5 requests per IP per hour
 const subscribeRateLimiter = createRateLimiter({
+  name: "subscribe",
   windowMs: 60 * 60 * 1000,
   maxRequests: 5,
 });

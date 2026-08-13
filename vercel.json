@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/cleanup-rate-limits",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-page-views",
+      "schedule": "0 5 * * *"
     }
   ],
   "routes": [
@@ -30,7 +34,7 @@
       }
     },
     {
-      "src": "/api/(?!analytics|subscribe|unsubscribe|cron/weekly-digest|cron/cleanup-rate-limits|comments|subscribers|backlog|og|guestbook|contact)(.*)",
+      "src": "/api/(?!(?:analytics|subscribe|unsubscribe|cron/weekly-digest|cron/cleanup-rate-limits|cron/cleanup-page-views|comments|subscribers|backlog|og|guestbook|contact)(?:/|$)).*",
       "mitigate": {
         "action": "deny"
       }

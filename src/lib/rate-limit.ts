@@ -16,9 +16,18 @@ import { NextRequest } from "next/server";
 import type { NeonQueryFunction } from "@neondatabase/serverless";
 
 interface RateLimitOptions {
+  // Unique namespace for this limiter's keys. Without it, every limiter sharing
+  // a window size collided on the same (key, window_start) row, so the
+  // documented per-endpoint limits did not actually hold (F-M9).
+  name: string;
   windowMs: number;
   maxRequests: number;
 }
+
+// IPv6 max is 45 characters; anything longer is malformed or spoofed and would
+// bloat the rate_limits key column or overflow the analytics VARCHAR(45)
+// ip_address column, turning inserts into 500s (F-M15).
+const MAX_IP_LENGTH = 45;
 
 interface RateLimitResult {
   allowed: boolean;
@@ -36,7 +45,7 @@ interface RateLimiter {
  * Falls back to in-memory storage if DATABASE_URL is not set
  */
 export function createRateLimiter(options: RateLimitOptions): RateLimiter {
-  const { windowMs, maxRequests } = options;
+  const { name, windowMs, maxRequests } = options;
   const store = new Map<string, number[]>();
 
   /**
@@ -148,22 +157,26 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
    * Uses database if DATABASE_URL is set, otherwise falls back to in-memory
    */
   async function checkRateLimit(ip: string): Promise<RateLimitResult> {
+    // Namespace the key so this limiter cannot collide with another that shares
+    // a window size (F-M9).
+    const key = `${name}:${ip}`;
+
     // Check if database is available
     const hasDatabase = !!process.env.DATABASE_URL;
 
     if (!hasDatabase) {
       // Fallback to in-memory for development
-      return checkRateLimitMemory(ip);
+      return checkRateLimitMemory(key);
     }
 
     // Use database-backed rate limiting
     try {
       const { getDb } = await import("@/lib/analytics");
       const sql = getDb();
-      return await checkRateLimitDb(ip, sql);
+      return await checkRateLimitDb(key, sql);
     } catch (error) {
       console.error("Database rate limit error, falling back to memory:", error);
-      return checkRateLimitMemory(ip);
+      return checkRateLimitMemory(key);
     }
   }
 
@@ -174,9 +187,36 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
  * Extracts client IP from request headers
  * Consistent with existing pattern in subscribe/route.ts
  */
+/**
+ * Best-effort client IP for rate limiting.
+ *
+ * The left-most X-Forwarded-For entry is client-supplied and trivially spoofed
+ * (the platform appends rather than replaces), which previously let an attacker
+ * rotate a fake IP to defeat every per-IP limit and poison the auth audit log
+ * (F-H3). Prefer Vercel's trusted headers, then fall back to the right-most XFF
+ * hop (appended by the platform, not the client claim). The result is trimmed
+ * and length-capped so a malformed value cannot poison the rate_limits table or
+ * overflow the analytics ip_address column (F-M15).
+ *
+ * Deploy note: validate the real header chain at the origin (a live header dump)
+ * and roll out log-only before relying on this — see the remediation plan.
+ */
 export function getClientIp(request: NextRequest): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
+  const vercelForwarded = request.headers.get("x-vercel-forwarded-for");
+  if (vercelForwarded) return normalizeIp(vercelForwarded.split(",")[0]);
 
-  return forwardedFor ? forwardedFor.split(",")[0].trim() : realIp || "";
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return normalizeIp(realIp);
+
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const parts = forwardedFor.split(",");
+    return normalizeIp(parts[parts.length - 1]);
+  }
+
+  return "";
+}
+
+function normalizeIp(value: string): string {
+  return value.trim().slice(0, MAX_IP_LENGTH);
 }

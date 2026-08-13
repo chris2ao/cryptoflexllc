@@ -20,6 +20,7 @@ import {
   parseDeviceType,
 } from "@/lib/analytics";
 import { recordApiMetric } from "@/lib/api-timing";
+import { getClientIp } from "@/lib/rate-limit";
 
 // Zod schema for input validation
 const trackSchema = z.object({
@@ -38,6 +39,9 @@ export async function POST(request: NextRequest) {
         { status: 415 }
       );
     }
+
+    // ---- 1b. Resolve the trusted client IP (F-H3). ----
+    const ipAddress = getClientIp(request) || "127.0.0.1";
 
     // ---- 2. Parse and validate the request body ----
     let body;
@@ -76,14 +80,8 @@ export async function POST(request: NextRequest) {
       utmCampaign = searchParams.get("utm_campaign");
     }
 
-    // ---- 4. Extract IP address ----
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    const realIp = request.headers.get("x-real-ip");
-    const ipAddress = forwardedFor
-      ? forwardedFor.split(",")[0].trim()
-      : realIp || "127.0.0.1";
-
     // ---- 5. Extract User-Agent and parse it ----
+    // (ipAddress was resolved above via getClientIp for the rate-limit check.)
     const userAgent = request.headers.get("user-agent") || "";
     const browser = parseBrowser(userAgent);
     const os = parseOS(userAgent);

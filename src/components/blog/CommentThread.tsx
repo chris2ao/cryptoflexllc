@@ -127,6 +127,7 @@ function ReplyForm({
           value={replyComment}
           onChange={(e) => onReplyCommentChange(e.target.value)}
           placeholder="Write your reply..."
+          aria-label="Reply"
           rows={2}
           maxLength={2000}
           required
@@ -140,6 +141,8 @@ function ReplyForm({
             <button
               type="button"
               onClick={() => onReplyReactionChange("up")}
+              aria-pressed={replyReaction === "up"}
+              aria-label="React with thumbs up"
               className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 replyReaction === "up"
                   ? "bg-success/20 text-success ring-1 ring-success/40"
@@ -152,6 +155,8 @@ function ReplyForm({
             <button
               type="button"
               onClick={() => onReplyReactionChange("down")}
+              aria-pressed={replyReaction === "down"}
+              aria-label="React with thumbs down"
               className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 replyReaction === "down"
                   ? "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
@@ -171,6 +176,7 @@ function ReplyForm({
               value={replyEmail}
               onChange={(e) => onReplyEmailChange(e.target.value)}
               placeholder="your-subscriber@email.com"
+              aria-label="Your subscriber email"
               className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <button
