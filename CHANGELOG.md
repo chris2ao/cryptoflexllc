@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here.
 
+## 2026-08-13 - Security Review Round Two: Critical RCE Fix and Hardening Batch
+
+### What changed
+- **Fixed** a Critical RCE: gray-matter runs `eval()` on a language-tagged frontmatter fence (e.g. `---js`), so a content-only pull request could execute code; added `src/lib/frontmatter.ts` (`parseFrontmatter` guard rejecting language fences and disabling non-YAML engines), a CI fence-check script, and CODEOWNERS on `src/content/**`
+- **Fixed** 2 High findings: spoofable client IP derivation (switched from the left-most `X-Forwarded-For` to Vercel-trusted `x-vercel-forwarded-for`/`x-real-ip` with a length cap) and stale dependencies (Next.js/eslint-config-next to 16.3.0, mermaid to 11.16.1; npm audit high count 11 to 7)
+- **Fixed** a batch of Medium/Low/a11y findings: namespaced rate-limit keys (previously colliding across 11 endpoints), restored the CSP `frame-src` allowance for `youtube-nocookie.com` (video embeds were silently broken), added `object-src 'none'`, `upgrade-insecure-requests`, and COOP, boot-time env validation (warn-only), OG image route caching/length caps, JSON-LD escaping, contact-log email masking, 403-not-500 on malformed unsubscribe tokens, a 90-day page-view IP anonymization cron, CI least-privilege permissions plus a gitleaks secret scan, and accessible labels on comment/reply forms
+- **Verified** every fix with 812 tests, `tsc`, and a full production build, then deployed (PR #43)
+- **Published** a backlog post, "Round Two: The Security Review Where a Blog Draft Could Run Code" (Security Engineering #9), documenting the review at a lessons-learned level with 6 new diagram components and a cover infographic (PR #44)
+- **Gitignored** `docs/security/` so the local, sensitive review report and its HTML companion stay out of the public repo
+
+### What was learned
+- `src/content` is a code directory, not a data directory: gray-matter's `eval()` on a `js`-tagged frontmatter fence means a content-only PR can carry executable code through the build/render pipeline
+- A 5-lens security review (AppSec pentester captain, red teamer, researcher, threat-intel, security engineer) plus a customer-advocate agent representing the site owner, with every finding adversarially re-verified before acceptance, caught a Critical that the injection/XSS-focused lenses had all independently rated safe; the catch came from the red team's attack-chain lens
+- On Vercel, client IP must come from the platform-trusted `x-vercel-forwarded-for` header, not the spoofable left-most `X-Forwarded-For`; rate limiters need per-endpoint key namespacing or they silently share one counter; a CSP `frame-src` missing `youtube-nocookie.com` breaks embeds with an HTTP 200 and only a console error, invisible without validating the policy against real site behavior
+- A harness hook that blocks subagents from writing report files forced findings back through the message channel instead, which cost several round-trips before the review pipeline adapted
+
+---
+
 ## 2026-08-02 - AI1 Blog Launch, Vercel CPU Fixes, and a 5.5-Month Comments Outage
 
 ### What changed
