@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import matter from "gray-matter";
+import { parseFrontmatter } from "./frontmatter";
 
 export interface BlogPost {
   slug: string;
@@ -25,7 +25,7 @@ const backlogDir = path.join(process.cwd(), "src/content/backlog");
 
 function parsePost(slug: string, filePath: string): BlogPost {
   const fileContents = fs.readFileSync(filePath, "utf8");
-  const { data, content } = matter(fileContents);
+  const { data, content } = parseFrontmatter(fileContents);
 
   // gray-matter auto-parses YAML dates into Date objects; normalize to string
   const rawDate = data.date;

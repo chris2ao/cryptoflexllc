@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import matter from "gray-matter";
+import { parseFrontmatter } from "@/lib/frontmatter";
 import { verifyApiAuth } from "@/lib/analytics-auth";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import {
@@ -12,6 +13,7 @@ import {
 import { getBacklogPostBySlug, getPostBySlug } from "@/lib/blog";
 
 const rateLimiter = createRateLimiter({
+  name: "backlog-publish",
   windowMs: 60 * 60 * 1000, // 1 hour
   maxRequests: 10,
 });
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
     const fileSha = fileData.sha;
 
     // Step 8: Parse frontmatter and update date
-    const { data, content } = matter(fileContent);
+    const { data, content } = parseFrontmatter(fileContent);
     data.date = new Date().toISOString().split("T")[0]; // Today's date in YYYY-MM-DD
     const updatedContent = matter.stringify(content, data);
 
