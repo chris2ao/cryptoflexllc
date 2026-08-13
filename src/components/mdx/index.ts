@@ -133,6 +133,10 @@ export {
   ChatTurnArchitecture,
   McpHandshakeOrder,
 } from "./diagrams-ledgerly-mcp-tool-calling-chat";
+export {
+  DesignSystemSharedRecordDiagram,
+  AccessibleNameVsVisualDiagram,
+} from "./diagrams-ledgerly-cyber-editorial-rebuild";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
