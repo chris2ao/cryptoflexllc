@@ -18,6 +18,7 @@ const VALID_METRICS = new Set(["LCP", "INP", "CLS", "FCP", "TTFB"]);
 
 // Rate limiter: 30 requests per IP per minute
 const vitalsRateLimiter = createRateLimiter({
+  name: "vitals",
   windowMs: 60 * 1000,
   maxRequests: 30,
 });

@@ -19,6 +19,7 @@ import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 // Rate limiter: 10 errors per IP per minute
 const errorRateLimiter = createRateLimiter({
+  name: "errors",
   windowMs: 60 * 1000,
   maxRequests: 10,
 });

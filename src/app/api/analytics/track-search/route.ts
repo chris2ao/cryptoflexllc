@@ -23,6 +23,7 @@ const schema = z.object({
 
 // Rate limiter: 20 requests per IP per minute
 const searchRateLimiter = createRateLimiter({
+  name: "track-search",
   windowMs: 60 * 1000,
   maxRequests: 20,
 });

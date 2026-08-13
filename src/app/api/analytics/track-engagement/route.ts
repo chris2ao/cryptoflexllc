@@ -27,6 +27,7 @@ const schema = z.object({
 
 // Rate limiter: 30 requests per IP per minute
 const engagementRateLimiter = createRateLimiter({
+  name: "track-engagement",
   windowMs: 60 * 1000,
   maxRequests: 30,
 });

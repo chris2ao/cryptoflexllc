@@ -8,6 +8,7 @@ const entrySchema = z.object({
 });
 
 const rateLimiter = createRateLimiter({
+  name: "guestbook",
   windowMs: 60 * 60 * 1000,
   maxRequests: 5,
 });
@@ -39,9 +40,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
 
-  const { allowed, retryAfter } = await rateLimiter.checkRateLimit(
-    `guestbook:${ip}`
-  );
+  const { allowed, retryAfter } = await rateLimiter.checkRateLimit(ip);
   if (!allowed) {
     return NextResponse.json(
       { error: `Too many entries. Try again in ${retryAfter} seconds.` },

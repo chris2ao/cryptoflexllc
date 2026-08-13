@@ -6,12 +6,22 @@ on:
       - main
   pull_request:
 
+# Least-privilege token (F-L2). No job step writes to the repository; deploys
+# are handled by Vercel's own GitHub integration, not this workflow.
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
 
     env:
       DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+      # Dummy (non-secret) values so boot-time env validation
+      # (src/instrumentation.ts, F-M6) is satisfied in CI. Not real credentials.
+      ANALYTICS_SECRET: "ci-dummy-analytics-secret-000000000000"
+      SUBSCRIBER_SECRET: "ci-dummy-subscriber-secret-00000000000"
+      CRON_SECRET: "ci-dummy-cron-secret"
 
     steps:
       - name: Checkout
@@ -25,6 +35,18 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Frontmatter fence check (F-C1)
+        run: bash scripts/check-frontmatter-fences.sh
+
+      - name: Secret scan (gitleaks)
+        # Report-only on introduction so a misconfiguration cannot block CI.
+        # Flip continue-on-error to false once a clean run is confirmed.
+        continue-on-error: true
+        run: |
+          GITLEAKS_VERSION=8.21.2
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xzf - gitleaks
+          ./gitleaks dir . --no-banner --redact --exit-code 1
 
       - name: Type check
         run: npx tsc --noEmit

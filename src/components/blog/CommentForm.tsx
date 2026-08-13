@@ -34,6 +34,7 @@ export function CommentForm({
         value={comment}
         onChange={(e) => onCommentChange(e.target.value)}
         placeholder="Share your thoughts..."
+        aria-label="Comment"
         rows={3}
         maxLength={2000}
         required
@@ -47,6 +48,8 @@ export function CommentForm({
           <button
             type="button"
             onClick={() => onReactionChange("up")}
+            aria-pressed={reaction === "up"}
+            aria-label="React with thumbs up"
             className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               reaction === "up"
                 ? "bg-success/20 text-success ring-1 ring-success/40"
@@ -59,6 +62,8 @@ export function CommentForm({
           <button
             type="button"
             onClick={() => onReactionChange("down")}
+            aria-pressed={reaction === "down"}
+            aria-label="React with thumbs down"
             className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               reaction === "down"
                 ? "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
@@ -78,6 +83,7 @@ export function CommentForm({
             value={email}
             onChange={(e) => onEmailChange(e.target.value)}
             placeholder="your-subscriber@email.com"
+            aria-label="Your subscriber email"
             className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <button

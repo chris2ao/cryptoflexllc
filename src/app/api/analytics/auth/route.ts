@@ -20,6 +20,7 @@ import { getDb } from "@/lib/analytics";
 
 // Rate limiter: 5 attempts per 15 minutes
 const authRateLimiter = createRateLimiter({
+  name: "analytics-auth",
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 5,
 });

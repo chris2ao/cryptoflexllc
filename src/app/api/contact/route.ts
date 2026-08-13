@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Resend } from "resend";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
+import { maskEmail } from "@/lib/email-utils";
 
 const contactSchema = z.object({
   name: z.string().min(1).max(100),
@@ -11,6 +12,7 @@ const contactSchema = z.object({
 });
 
 const rateLimiter = createRateLimiter({
+  name: "contact",
   windowMs: 60 * 60 * 1000, // 1 hour
   maxRequests: 3,
 });
@@ -18,9 +20,7 @@ const rateLimiter = createRateLimiter({
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
 
-  const { allowed, retryAfter } = await rateLimiter.checkRateLimit(
-    `contact:${ip}`
-  );
+  const { allowed, retryAfter } = await rateLimiter.checkRateLimit(ip);
   if (!allowed) {
     return NextResponse.json(
       { error: `Too many messages. Try again in ${retryAfter} seconds.` },
@@ -89,7 +89,9 @@ export async function POST(request: NextRequest) {
       `,
     });
 
-    console.log(`[contact] Message from ${name} <${email}> sent via Resend`);
+    // Do not log raw PII (name / full email). Masked email is enough to
+    // correlate a delivery in logs (F-L9).
+    console.log(`[contact] Message from ${maskEmail(email)} sent via Resend`);
   } catch (error) {
     console.error("[contact] Email send failed:", error);
     return NextResponse.json(

@@ -1,6 +1,15 @@
 /** JSON-LD structured data components for SEO */
 import { BASE_URL } from "@/lib/constants";
 
+/**
+ * Serialize JSON-LD for embedding in a <script> tag. Escapes `<` so a value
+ * that happens to contain `</script>` cannot break out of the tag (F-L5).
+ * The data here is repo/frontmatter-sourced, so this is defense in depth.
+ */
+function safeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 interface WebsiteJsonLdProps {
   url: string;
   name: string;
@@ -49,7 +58,7 @@ export function WebsiteJsonLd({ url, name, description }: WebsiteJsonLdProps) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}
     />
   );
 }
@@ -88,7 +97,7 @@ export function PersonJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}
     />
   );
 }
@@ -151,7 +160,7 @@ export function ArticleJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}
     />
   );
 }
@@ -184,7 +193,7 @@ export function BreadcrumbJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}
     />
   );
 }

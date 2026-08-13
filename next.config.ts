@@ -81,6 +81,16 @@ const nextConfig: NextConfig = {
           value: "max-age=63072000; includeSubDomains; preload",
         },
         {
+          // Isolate the top-level browsing context. COEP `require-corp` was
+          // deliberately NOT added: it would break the YouTube, GA, and Vercel
+          // embeds. A global Cross-Origin-Resource-Policy was also omitted on
+          // purpose because `same-origin` would stop link unfurlers from loading
+          // the /api/og social images. Verify Vercel Analytics / Speed Insights
+          // still report after deploying this header.
+          key: "Cross-Origin-Opener-Policy",
+          value: "same-origin",
+        },
+        {
           key: "Content-Security-Policy",
           value: [
             "default-src 'self'",
@@ -89,10 +99,16 @@ const nextConfig: NextConfig = {
             "img-src 'self' data: https:",
             "font-src 'self'",
             "connect-src 'self' https://www.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com",
-            "frame-src 'self'",
+            // youtube-nocookie is required for the lazy YouTube embed (F-M7).
+            "frame-src 'self' https://www.youtube-nocookie.com",
             "frame-ancestors 'self'",
             "base-uri 'self'",
             "form-action 'self'",
+            // Free hardening (F-M2 rider). A nonce/hash CSP to drop
+            // 'unsafe-inline' was assessed and declined: it would force
+            // statically-generated routes into per-request rendering.
+            "object-src 'none'",
+            "upgrade-insecure-requests",
           ].join("; "),
         },
       ],

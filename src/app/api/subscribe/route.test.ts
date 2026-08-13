@@ -175,22 +175,23 @@ describe("POST /api/subscribe", () => {
     expect(data.error).toBe("Invalid input");
   });
 
-  it("should extract IP from x-forwarded-for header", async () => {
+  it("should extract the platform-appended (right-most) IP from x-forwarded-for", async () => {
     const request = new NextRequest("http://localhost/api/subscribe", {
       method: "POST",
       body: JSON.stringify({ email: "user@example.com" }),
       headers: {
         "content-type": "application/json",
+        // Left-most is the spoofable client claim; the right-most is the hop the
+        // platform appended and is what getClientIp trusts now (F-H3).
         "x-forwarded-for": "203.0.113.1, 198.51.100.1",
       },
     });
 
     await POST(request);
 
-    // Verify SQL was called with first IP from the list
     const sqlCall = mockSql.mock.calls[0];
     expect(sqlCall[1]).toBe("user@example.com");
-    expect(sqlCall[2]).toBe("203.0.113.1"); // First IP in the list
+    expect(sqlCall[2]).toBe("198.51.100.1"); // right-most, not the spoofable left
   });
 
   it("should fallback to x-real-ip if x-forwarded-for is missing", async () => {

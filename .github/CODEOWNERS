@@ -1,0 +1,14 @@
+# Require owner review for executable-by-the-build content and security-sensitive
+# config. Enforcement requires branch protection on `main` with "Require review
+# from Code Owners" enabled (see docs/security/security-review-2026-08-13.md).
+
+# MDX content is executed by the build/render pipeline (frontmatter + MDX compile).
+/src/content/           @chris2ao
+
+# Security-sensitive configuration.
+/next.config.ts         @chris2ao
+/vercel.json            @chris2ao
+/.github/               @chris2ao
+/src/lib/frontmatter.ts @chris2ao
+/src/lib/analytics-auth.ts @chris2ao
+/src/lib/rate-limit.ts  @chris2ao

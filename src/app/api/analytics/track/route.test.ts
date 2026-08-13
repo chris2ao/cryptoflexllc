@@ -56,15 +56,15 @@ describe("POST /api/analytics/track", () => {
 
     expect(mockSql).toHaveBeenCalledTimes(3);
 
-    // First call: rate limit check
+    // First call: dedup check. Uses the trusted (right-most) XFF hop (F-H3).
     const rateLimitCall = mockSql.mock.calls[0];
-    expect(rateLimitCall[1]).toBe("203.0.113.1");
+    expect(rateLimitCall[1]).toBe("198.51.100.1");
     expect(rateLimitCall[2]).toBe("/blog/test-post");
 
     // Second call: insert with all fields
     const insertCall = mockSql.mock.calls[1];
     expect(insertCall[1]).toBe("/blog/test-post");
-    expect(insertCall[2]).toBe("203.0.113.1");
+    expect(insertCall[2]).toBe("198.51.100.1");
     expect(insertCall[3]).toContain("Chrome"); // user_agent
     expect(insertCall[4]).toContain("Chrome"); // browser
     expect(insertCall[5]).toContain("Windows"); // os
@@ -139,7 +139,7 @@ describe("POST /api/analytics/track", () => {
     expect(data.error).toBe("Invalid input");
   });
 
-  it("should extract first IP from x-forwarded-for", async () => {
+  it("should use the platform-appended (right-most) IP from x-forwarded-for (F-H3)", async () => {
     mockSql.mockResolvedValueOnce([]);
     mockSql.mockResolvedValueOnce([]);
 
@@ -148,15 +148,15 @@ describe("POST /api/analytics/track", () => {
       body: JSON.stringify({ path: "/test" }),
       headers: {
         "content-type": "application/json",
+        // Left-most is the spoofable client claim; the right-most is trusted.
         "x-forwarded-for": "203.0.113.1, 198.51.100.1, 192.0.2.1",
       },
     });
 
     await POST(request);
 
-    // Verify first IP from x-forwarded-for is used
     const rateLimitCall = mockSql.mock.calls[0];
-    expect(rateLimitCall[1]).toBe("203.0.113.1");
+    expect(rateLimitCall[1]).toBe("192.0.2.1");
     expect(rateLimitCall[2]).toBe("/test");
   });
 

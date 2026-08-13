@@ -14,6 +14,7 @@ interface RouteContext {
 const slugRegex = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
 const rateLimiter = createRateLimiter({
+  name: "backlog-slug",
   windowMs: 60 * 60 * 1000, // 1 hour
   maxRequests: 10,
 });
