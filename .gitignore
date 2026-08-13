@@ -74,3 +74,6 @@ public/blog/**/slides/
 # Working research artifacts and raw source media (local-only)
 docs/research/
 docs/Snowflake\ Pics/
+
+# Security review artifacts (local-only; sensitive findings, keep out of the public repo)
+docs/security/
