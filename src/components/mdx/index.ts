@@ -129,6 +129,10 @@ export {
   FeedSuffixMatchTiersDiagram,
   WatchdogColdStartDiagram,
 } from "./diagrams-home-network-mission-control-upgrading-my-home-siem";
+export {
+  ChatTurnArchitecture,
+  McpHandshakeOrder,
+} from "./diagrams-ledgerly-mcp-tool-calling-chat";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
