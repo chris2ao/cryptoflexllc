@@ -4,28 +4,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PostMeta } from "@/components/blog/PostMeta";
 import type { BlogPost } from "@/lib/blog";
-
-const tagVarMap: Record<string, string> = {
-  "Claude Code": "var(--color-tag-claude-code)",
-  Security: "var(--color-tag-security)",
-  AI: "var(--color-tag-ai)",
-  "Next.js": "var(--color-tag-nextjs)",
-  DevOps: "var(--color-tag-general)",
-  Analytics: "var(--color-tag-general)",
-  Infrastructure: "var(--color-tag-infrastructure)",
-};
-
-function getTagVar(tags: string[]): string {
-  for (const tag of tags) {
-    if (tagVarMap[tag]) return tagVarMap[tag];
-  }
-  return "var(--color-tag-default)";
-}
+import { getTagAccentVar } from "@/lib/tag-accent";
 
 type BlogCardPost = Omit<BlogPost, "content"> & { content?: string };
 
 export function BlogCard({ post }: { post: BlogCardPost }) {
-  const accentVar = getTagVar(post.tags);
+  const accentVar = getTagAccentVar(post.tags);
 
   return (
     <Card className="group relative h-full overflow-hidden border border-border/40 bg-card transition-all duration-[250ms] hover:border-primary/30 hover:shadow-[0_0_24px_rgba(71,186,204,0.15)] hover:-translate-y-1">

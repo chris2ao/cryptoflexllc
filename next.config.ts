@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
+  /*
+   * Stop `next dev` from generating AGENTS.md / CLAUDE.md at the repo
+   * root. A generated CLAUDE.md would be auto-loaded as project
+   * instructions by Claude Code; this repo intentionally has neither.
+   */
+  agentRules: false,
   redirects: async () => [
     // Renamed blog post (old slug 404s in GSC)
     {

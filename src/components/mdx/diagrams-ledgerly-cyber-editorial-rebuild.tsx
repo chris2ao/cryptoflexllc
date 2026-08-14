@@ -1,6 +1,13 @@
-/** Ledgerly Cyber Editorial rebuild blog post diagrams: SVG-based, themed to site colors */
+/** Ledgerly Cyber Editorial rebuild blog post diagrams: editorial SVG, themed to site colors */
 
 import { DiagramLightbox } from "./diagram-lightbox";
+import {
+  EditorialFrame,
+  NodePanel,
+  FlowLine,
+  Chip,
+  SectionLabel,
+} from "./diagram-editorial";
 
 interface DiagramProps {
   caption?: string;
@@ -27,91 +34,92 @@ export function DesignSystemSharedRecordDiagram({ caption }: DiagramProps) {
         "One saved Claude Design record (six token sheets plus base.css, styles.css, and a bundle script) is referenced by path from both cryptoflexllc.com and Ledgerly's exported prototype, never copied into either."
       }
     >
-      <svg
-        viewBox="0 0 880 580"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full max-w-3xl mx-auto"
+      <EditorialFrame
+        id="lcer1"
+        w={920}
+        h={630}
+        eyebrow="One Design System Record, Referenced by Path"
+        chips={[
+          { label: "1 record", accent: "primary" },
+          { label: "3 consumers", accent: "muted" },
+        ]}
+        footerRight="One record, many consumers"
+        maxWidthClass="max-w-4xl"
       >
-        <defs>
-          <marker id="lcer-ds-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L8,3 L0,6 Z" className="fill-muted-foreground/60" />
-          </marker>
-        </defs>
+        {/* Shared record */}
+        <NodePanel x={60} y={70} w={800} h={222} accent="primary" emphasis terminal title="">
+          <text x={110} y={100} className="fill-primary font-heading font-semibold" style={{ fontSize: 16 }}>
+            Design System Record
+          </text>
+          <text x={110} y={118} className="fill-muted-foreground font-mono" style={{ fontSize: 11 }}>
+            _ds/cryptoflex-design-system-&lt;uuid&gt;/
+          </text>
+          <line x1={90} y1={132} x2={830} y2={132} className="stroke-foreground/25" strokeWidth={1} />
 
-        <text x="440" y="26" textAnchor="middle" className="fill-foreground text-[14px] font-semibold">
-          One Design System Record, Referenced by Path
-        </text>
+          {/* left column: six token sheets */}
+          <text x={100} y={152} className="fill-cyan-500 font-mono" style={{ fontSize: 11 }}>tokens/fonts.css</text>
+          <text x={100} y={169} className="fill-cyan-500 font-mono" style={{ fontSize: 11 }}>tokens/colors.css</text>
+          <text x={100} y={186} className="fill-cyan-500 font-mono" style={{ fontSize: 11 }}>tokens/typography.css</text>
+          <text x={100} y={203} className="fill-cyan-500 font-mono" style={{ fontSize: 11 }}>tokens/spacing.css</text>
+          <text x={100} y={220} className="fill-cyan-500 font-mono" style={{ fontSize: 11 }}>tokens/elevation.css</text>
+          <text x={100} y={237} className="fill-cyan-500 font-mono" style={{ fontSize: 11 }}>tokens/motion.css</text>
 
-        {/* THE RECORD */}
-        <rect x="170" y="50" width="540" height="236" rx="12" className="fill-primary/10 stroke-primary" strokeWidth="2" />
-        <text x="440" y="80" textAnchor="middle" className="fill-primary text-[13px] font-mono font-semibold">
-          _ds/cryptoflex-design-system-&lt;uuid&gt;/
-        </text>
-        <text x="440" y="98" textAnchor="middle" className="fill-muted-foreground text-[10px]">
-          one saved record inside Claude Design
-        </text>
+          {/* right column: compiled assets */}
+          <text x={480} y={152} className="fill-violet-500 font-mono" style={{ fontSize: 11 }}>tokens/base.css</text>
+          <text x={480} y={169} className="fill-violet-500 font-mono" style={{ fontSize: 11 }}>styles.css</text>
+          <text x={480} y={186} className="fill-violet-500 font-mono" style={{ fontSize: 11 }}>_ds_bundle.js</text>
+          <text x={480} y={206} className="fill-muted-foreground font-mono italic" style={{ fontSize: 10.5 }}>9 link/script tags,</text>
+          <text x={480} y={222} className="fill-muted-foreground font-mono italic" style={{ fontSize: 10.5 }}>one directory</text>
 
-        <line x1="190" y1="112" x2="690" y2="112" className="stroke-muted-foreground/20" strokeWidth="1" />
+          <text x={460} y={270} textAnchor="middle" className="fill-emerald-500 font-mono italic" style={{ fontSize: 11 }}>
+            referenced by path in &lt;head&gt;, never inlined
+          </text>
+        </NodePanel>
 
-        {/* left column: 6 token sheets */}
-        <text x="210" y="134" className="fill-cyan-400 text-[11px] font-mono font-semibold">6 TOKEN SHEETS</text>
-        <text x="210" y="154" className="fill-muted-foreground text-[10px] font-mono">tokens/fonts.css</text>
-        <text x="210" y="172" className="fill-muted-foreground text-[10px] font-mono">tokens/colors.css</text>
-        <text x="210" y="190" className="fill-muted-foreground text-[10px] font-mono">tokens/typography.css</text>
-        <text x="210" y="208" className="fill-muted-foreground text-[10px] font-mono">tokens/spacing.css</text>
-        <text x="210" y="226" className="fill-muted-foreground text-[10px] font-mono">tokens/elevation.css</text>
-        <text x="210" y="244" className="fill-muted-foreground text-[10px] font-mono">tokens/motion.css</text>
+        {/* Bus: record fans out to every consumer */}
+        <path d="M460,292 L460,340" fill="none" className="stroke-primary/50" strokeWidth={1.5} />
+        <path d="M185,340 L735,340" fill="none" className="stroke-primary/50" strokeWidth={1.5} />
+        <FlowLine id="lcer1" d="M185,340 L185,420" accent="cyan" />
+        <FlowLine id="lcer1" d="M460,340 L460,420" accent="amber" />
+        <FlowLine id="lcer1" d="M735,340 L735,420" accent="muted" />
 
-        {/* right column: plus base + compiled assets */}
-        <text x="540" y="134" className="fill-violet-400 text-[11px] font-mono font-semibold">PLUS</text>
-        <text x="540" y="154" className="fill-muted-foreground text-[10px] font-mono">tokens/base.css</text>
-        <text x="540" y="172" className="fill-muted-foreground text-[10px] font-mono">styles.css</text>
-        <text x="540" y="190" className="fill-muted-foreground text-[10px] font-mono">_ds_bundle.js</text>
-        <text x="540" y="216" className="fill-muted-foreground/70 text-[9px] italic">9 &lt;link&gt;/&lt;script&gt; tags,</text>
-        <text x="540" y="232" className="fill-muted-foreground/70 text-[9px] italic">one directory</text>
+        {/* Consumer 1: cryptoflexllc.com */}
+        <NodePanel
+          x={60}
+          y={420}
+          w={250}
+          h={140}
+          accent="cyan"
+          title="cryptoflexllc.com"
+          sub={["April 2026", "marketing + blog site", "links, doesn't copy"]}
+        />
 
-        <text x="440" y="270" textAnchor="middle" className="fill-emerald-400 text-[10px] font-semibold italic">
-          referenced by path in every &lt;head&gt;, never inlined
-        </text>
+        {/* Consumer 2: Ledgerly, this rebuild */}
+        <NodePanel
+          x={335}
+          y={420}
+          w={250}
+          h={140}
+          accent="amber"
+          emphasis
+          title="Ledgerly"
+          sub={["August 2026", "personal finance dashboard", "9 tags, one <head>"]}
+        >
+          <Chip x={575} y={430} label="THIS REBUILD" accent="amber" filled anchor="end" />
+        </NodePanel>
 
-        {/* fan-out to the projects that link to it */}
-        <line x1="440" y1="286" x2="440" y2="310" className="stroke-muted-foreground/60" strokeWidth="1.5" />
-        <line x1="165" y1="310" x2="715" y2="310" className="stroke-muted-foreground/60" strokeWidth="1.5" />
-        <line x1="165" y1="310" x2="165" y2="334" className="stroke-muted-foreground/60" strokeWidth="1.5" markerEnd="url(#lcer-ds-arrow)" />
-        <line x1="440" y1="310" x2="440" y2="334" className="stroke-muted-foreground/60" strokeWidth="1.5" markerEnd="url(#lcer-ds-arrow)" />
-        <line x1="715" y1="310" x2="715" y2="334" className="stroke-muted-foreground/60" strokeWidth="1.5" markerEnd="url(#lcer-ds-arrow)" />
-
-        {/* Project A: cryptoflexllc.com, April 2026 */}
-        <rect x="40" y="334" width="250" height="132" rx="10" className="fill-cyan-500/10 stroke-cyan-500" strokeWidth="1.5" />
-        <text x="165" y="362" textAnchor="middle" className="fill-cyan-300 text-[12px] font-semibold">cryptoflexllc.com</text>
-        <text x="165" y="382" textAnchor="middle" className="fill-muted-foreground text-[10px]">April 2026, first application</text>
-        <text x="165" y="406" textAnchor="middle" className="fill-muted-foreground text-[9px] font-mono">&lt;link href=&quot;…/tokens/colors.css&quot;&gt;</text>
-        <text x="165" y="424" textAnchor="middle" className="fill-muted-foreground text-[9px]">marketing + blog site</text>
-        <text x="165" y="448" textAnchor="middle" className="fill-cyan-400/80 text-[9px] italic">links, doesn&apos;t copy</text>
-
-        {/* Project B: Ledgerly, August 2026 (this post's subject) */}
-        <rect x="315" y="334" width="250" height="132" rx="10" className="fill-amber-500/12 stroke-amber-500" strokeWidth="2.5" />
-        <text x="440" y="362" textAnchor="middle" className="fill-amber-300 text-[12px] font-semibold">Ledgerly</text>
-        <text x="440" y="382" textAnchor="middle" className="fill-muted-foreground text-[10px]">August 2026, second application</text>
-        <text x="440" y="406" textAnchor="middle" className="fill-muted-foreground text-[9px] font-mono">&lt;link href=&quot;…/tokens/colors.css&quot;&gt;</text>
-        <text x="440" y="424" textAnchor="middle" className="fill-muted-foreground text-[9px]">personal finance dashboard</text>
-        <text x="440" y="448" textAnchor="middle" className="fill-amber-400/90 text-[9px] italic">9 tags, one &lt;head&gt;</text>
-
-        {/* Project C: whatever's next, dashed placeholder */}
-        <rect x="590" y="334" width="250" height="132" rx="10" className="fill-muted-foreground/5 stroke-muted-foreground/40" strokeWidth="1.5" strokeDasharray="4 3" />
-        <text x="715" y="362" textAnchor="middle" className="fill-muted-foreground text-[12px] font-semibold italic">next project</text>
-        <text x="715" y="382" textAnchor="middle" className="fill-muted-foreground/80 text-[10px] italic">whatever&apos;s next</text>
-        <text x="715" y="406" textAnchor="middle" className="fill-muted-foreground/70 text-[9px] font-mono italic">&lt;link href=&quot;…/tokens/…&quot;&gt;</text>
-        <text x="715" y="424" textAnchor="middle" className="fill-muted-foreground/70 text-[9px] italic">same six sheets, day one</text>
-
-        <text x="440" y="500" textAnchor="middle" className="fill-muted-foreground text-[11px] font-medium">
-          A marketing site and a personal finance dashboard, drawing from one token source.
-        </text>
-        <text x="440" y="518" textAnchor="middle" className="fill-muted-foreground text-[11px] font-medium">
-          Neither one had to relearn what &quot;on brand&quot; means here.
-        </text>
-      </svg>
+        {/* Consumer 3: next project, placeholder */}
+        <NodePanel
+          x={610}
+          y={420}
+          w={250}
+          h={140}
+          accent="muted"
+          variant="dashed"
+          title="next project"
+          sub={["whatever's next", "day one, same six sheets", "no rebuild required"]}
+        />
+      </EditorialFrame>
     </DiagramWrapper>
   );
 }
@@ -130,78 +138,120 @@ export function AccessibleNameVsVisualDiagram({ caption }: DiagramProps) {
         "The same nav item renders an aria-hidden decorative span and a literal sentence-case label span. CSS text-transform makes the screen read \"MY ACCOUNTS\"; the accessible name Playwright and screen readers read stays \"My accounts.\""
       }
     >
-      <svg
-        viewBox="0 0 820 610"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full max-w-3xl mx-auto"
+      <EditorialFrame
+        id="lcer2"
+        w={920}
+        h={730}
+        eyebrow="One Nav Item, Two Different Outputs"
+        chips={[
+          { label: "46 tests green", accent: "emerald" },
+          { label: "CSS only", accent: "amber" },
+        ]}
+        footerRight="Casing is presentation only"
+        maxWidthClass="max-w-4xl"
       >
-        <defs>
-          <marker id="lcer-name-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L8,3 L0,6 Z" className="fill-muted-foreground/60" />
-          </marker>
-          <marker id="lcer-name-arrow-cyan" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L8,3 L0,6 Z" className="fill-cyan-500/80" />
-          </marker>
-          <marker id="lcer-name-arrow-emerald" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L8,3 L0,6 Z" className="fill-emerald-500/80" />
-          </marker>
-        </defs>
+        {/* The DOM */}
+        <SectionLabel x={60} y={72} label="The DOM" accent="muted" />
+        <NodePanel x={60} y={88} w={800} h={152} accent="muted" title="">
+          <text x={460} y={112} textAnchor="middle" className="fill-muted-foreground font-mono italic" style={{ fontSize: 10.5 }}>
+            app-sidebar.tsx renders both spans for every nav item
+          </text>
+          <line x1={90} y1={124} x2={830} y2={124} className="stroke-foreground/25" strokeWidth={1} />
 
-        <text x="410" y="26" textAnchor="middle" className="fill-foreground text-[14px] font-semibold">
-          One Nav Item, Two Different Outputs
+          <text x={100} y={150} className="fill-red-500 font-mono" style={{ fontSize: 11.5 }}>
+            &lt;span aria-hidden=&quot;true&quot;&gt;»&lt;/span&gt;
+          </text>
+          <text x={100} y={168} className="fill-muted-foreground font-mono" style={{ fontSize: 10.5 }}>
+            decorative mark, excluded from the accessible name
+          </text>
+
+          <text x={100} y={196} className="fill-emerald-500 font-mono" style={{ fontSize: 11.5 }}>
+            &lt;span&gt;My accounts&lt;/span&gt;
+          </text>
+          <text x={100} y={214} className="fill-muted-foreground font-mono" style={{ fontSize: 10.5 }}>
+            literal label, sentence case, becomes the accessible name
+          </text>
+        </NodePanel>
+
+        <FlowLine id="lcer2" d="M460,240 L460,266" accent="muted" />
+
+        {/* The CSS rule */}
+        <SectionLabel x={60} y={284} label="The CSS Rule" accent="amber" />
+        <NodePanel x={300} y={300} w={320} h={90} accent="amber" emphasis title="">
+          <text x={460} y={332} textAnchor="middle" className="fill-amber-500 font-mono font-semibold" style={{ fontSize: 12 }}>
+            text-transform: uppercase;
+          </text>
+          <text x={460} y={352} textAnchor="middle" className="fill-muted-foreground font-mono" style={{ fontSize: 10.5 }}>
+            applied once, to the parent wrapper
+          </text>
+          <text x={460} y={370} textAnchor="middle" className="fill-muted-foreground font-mono italic" style={{ fontSize: 10.5 }}>
+            casing is presentation only
+          </text>
+        </NodePanel>
+
+        {/* Diverge: rendered pixels vs. accessible name */}
+        <path d="M460,390 L460,410" fill="none" className="stroke-amber-500/50" strokeWidth={1.5} />
+        <path d="M250,410 L670,410" fill="none" className="stroke-amber-500/50" strokeWidth={1.5} />
+        <FlowLine id="lcer2" d="M250,410 L250,436" accent="cyan" />
+        <FlowLine id="lcer2" d="M670,410 L670,436" accent="emerald" />
+        <text x={240} y={428} textAnchor="end" className="fill-cyan-500 font-mono" style={{ fontSize: 10.5 }}>renders</text>
+        <text x={680} y={428} textAnchor="start" className="fill-emerald-500 font-mono" style={{ fontSize: 10.5 }}>computes</text>
+
+        <SectionLabel x={60} y={422} label="The Outcome" accent="primary" />
+
+        {/* What the eye sees */}
+        <NodePanel x={60} y={436} w={380} h={190} accent="cyan" title="">
+          <text x={250} y={466} textAnchor="middle" className="fill-cyan-500 font-heading font-semibold" style={{ fontSize: 15 }}>
+            What the eye sees
+          </text>
+          <text x={250} y={484} textAnchor="middle" className="fill-muted-foreground font-mono" style={{ fontSize: 10.5 }}>
+            the rendered screen
+          </text>
+          <line x1={90} y1={498} x2={410} y2={498} className="stroke-foreground/25" strokeWidth={1} />
+          <text x={250} y={548} textAnchor="middle" className="fill-cyan-500 font-mono font-bold" style={{ fontSize: 20 }}>
+            MY ACCOUNTS
+          </text>
+          <text x={250} y={572} textAnchor="middle" className="fill-muted-foreground font-mono" style={{ fontSize: 10.5 }}>
+            mark + label, both rendered, both uppercase
+          </text>
+          <text x={250} y={590} textAnchor="middle" className="fill-cyan-500 font-mono italic" style={{ fontSize: 10.5 }}>
+            the visual layer changed completely
+          </text>
+          <text x={250} y={608} textAnchor="middle" className="fill-muted-foreground font-mono" style={{ fontSize: 10.5 }}>
+            old app: sentence case. new app: this.
+          </text>
+        </NodePanel>
+
+        {/* What the matcher sees */}
+        <NodePanel x={480} y={436} w={380} h={190} accent="emerald" emphasis title="">
+          <text x={670} y={466} textAnchor="middle" className="fill-emerald-500 font-heading font-semibold" style={{ fontSize: 15 }}>
+            What the matcher sees
+          </text>
+          <text x={670} y={484} textAnchor="middle" className="fill-muted-foreground font-mono" style={{ fontSize: 10.5 }}>
+            the accessible name
+          </text>
+          <line x1={510} y1={498} x2={830} y2={498} className="stroke-foreground/25" strokeWidth={1} />
+          <text x={670} y={548} textAnchor="middle" className="fill-emerald-500 font-mono font-bold" style={{ fontSize: 18 }}>
+            &quot;My accounts&quot;
+          </text>
+          <text x={670} y={572} textAnchor="middle" className="fill-muted-foreground font-mono" style={{ fontSize: 10.5 }}>
+            aria-hidden mark contributes nothing
+          </text>
+          <text x={670} y={590} textAnchor="middle" className="fill-emerald-500 font-mono italic" style={{ fontSize: 10.5 }}>
+            the assertion layer never moved
+          </text>
+          <text x={670} y={608} textAnchor="middle" className="fill-muted-foreground font-mono" style={{ fontSize: 10.5 }}>
+            getByRole(&apos;link&apos;, {`{ name: /my accounts/i }`})
+          </text>
+        </NodePanel>
+
+        <text x={460} y={656} textAnchor="middle" className="fill-foreground font-heading font-medium" style={{ fontSize: 12.5 }}>
+          CSS changes pixels. It never touches the accessible name.
         </text>
-
-        {/* THE DOM: two sibling spans */}
-        <rect x="150" y="48" width="520" height="170" rx="10" className="fill-zinc-500/8 stroke-zinc-500/60" strokeWidth="1.5" />
-        <text x="410" y="72" textAnchor="middle" className="fill-foreground text-[12px] font-semibold">The DOM: two sibling spans</text>
-        <text x="410" y="90" textAnchor="middle" className="fill-muted-foreground text-[10px]">app-sidebar.tsx renders both for every nav item</text>
-
-        <text x="175" y="118" className="fill-rose-300 text-[11px] font-mono">&lt;span aria-hidden=&quot;true&quot;&gt;»&lt;/span&gt;</text>
-        <text x="175" y="136" className="fill-muted-foreground text-[10px]">decorative mark, excluded from the accessible name</text>
-
-        <text x="175" y="166" className="fill-emerald-300 text-[11px] font-mono">&lt;span&gt;My accounts&lt;/span&gt;</text>
-        <text x="175" y="184" className="fill-muted-foreground text-[10px]">literal label, sentence case, becomes the accessible name</text>
-
-        <line x1="410" y1="218" x2="410" y2="250" className="stroke-muted-foreground/60" strokeWidth="1.5" markerEnd="url(#lcer-name-arrow)" />
-
-        {/* CSS transform applied to the parent */}
-        <rect x="260" y="250" width="300" height="80" rx="10" className="fill-amber-500/10 stroke-amber-500" strokeWidth="1.5" />
-        <text x="410" y="276" textAnchor="middle" className="fill-amber-300 text-[11px] font-mono font-semibold">text-transform: uppercase;</text>
-        <text x="410" y="296" textAnchor="middle" className="fill-muted-foreground text-[9px]">applied once, to the parent wrapper</text>
-        <text x="410" y="314" textAnchor="middle" className="fill-muted-foreground/70 text-[9px] italic">casing is presentation only</text>
-
-        {/* divergent branch */}
-        <line x1="350" y1="330" x2="230" y2="372" className="stroke-cyan-500/70" strokeWidth="1.5" markerEnd="url(#lcer-name-arrow-cyan)" />
-        <text x="270" y="352" className="fill-cyan-400 text-[9px] font-medium">renders</text>
-        <line x1="470" y1="330" x2="590" y2="372" className="stroke-emerald-500/70" strokeWidth="1.5" markerEnd="url(#lcer-name-arrow-emerald)" />
-        <text x="530" y="352" className="fill-emerald-400 text-[9px] font-medium">computes</text>
-
-        {/* LEFT: what the eye sees */}
-        <rect x="60" y="372" width="340" height="170" rx="10" className="fill-cyan-500/10 stroke-cyan-500" strokeWidth="1.5" />
-        <text x="230" y="398" textAnchor="middle" className="fill-cyan-300 text-[12px] font-semibold">What the eye sees</text>
-        <text x="230" y="416" textAnchor="middle" className="fill-muted-foreground text-[10px]">the rendered screen</text>
-        <text x="230" y="458" textAnchor="middle" className="fill-cyan-100 text-[20px] font-mono font-bold tracking-wide">MY ACCOUNTS</text>
-        <text x="230" y="486" textAnchor="middle" className="fill-muted-foreground text-[10px]">mark + label, both rendered, both uppercase</text>
-        <text x="230" y="506" textAnchor="middle" className="fill-cyan-400 text-[10px] italic font-medium">the visual layer changed completely</text>
-        <text x="230" y="524" textAnchor="middle" className="fill-muted-foreground/70 text-[9px]">old app: sentence case. new app: this.</text>
-
-        {/* RIGHT: what the matcher sees */}
-        <rect x="420" y="372" width="340" height="170" rx="10" className="fill-emerald-500/12 stroke-emerald-500" strokeWidth="2" />
-        <text x="590" y="398" textAnchor="middle" className="fill-emerald-300 text-[12px] font-semibold">What the matcher sees</text>
-        <text x="590" y="416" textAnchor="middle" className="fill-muted-foreground text-[10px]">the accessible name</text>
-        <text x="590" y="458" textAnchor="middle" className="fill-emerald-100 text-[18px] font-mono font-bold">&quot;My accounts&quot;</text>
-        <text x="590" y="486" textAnchor="middle" className="fill-muted-foreground text-[10px]">aria-hidden mark contributes nothing</text>
-        <text x="590" y="506" textAnchor="middle" className="fill-emerald-400 text-[10px] italic font-semibold">the assertion layer never moved</text>
-        <text x="590" y="524" textAnchor="middle" className="fill-muted-foreground/70 text-[9px] font-mono">getByRole(&apos;link&apos;, {`{ name: /my accounts/i }`})</text>
-
-        <text x="410" y="568" textAnchor="middle" className="fill-muted-foreground text-[11px] font-medium">
-          CSS casing and an aria-hidden span never touch the accessible name.
-        </text>
-        <text x="410" y="586" textAnchor="middle" className="fill-muted-foreground text-[11px] font-medium">
+        <text x={460} y={676} textAnchor="middle" className="fill-muted-foreground font-heading font-medium" style={{ fontSize: 12.5 }}>
           That&apos;s why a total visual rebuild still left 46 role-based tests green.
         </text>
-      </svg>
+      </EditorialFrame>
     </DiagramWrapper>
   );
 }

@@ -3,23 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { BlogPost } from "@/lib/blog";
 import { formatPostDate } from "@/lib/post-date";
-
-const tagVarMap: Record<string, string> = {
-  "Claude Code": "var(--color-tag-claude-code)",
-  Security: "var(--color-tag-security)",
-  AI: "var(--color-tag-ai)",
-  "Next.js": "var(--color-tag-nextjs)",
-  DevOps: "var(--color-tag-general)",
-  Analytics: "var(--color-tag-general)",
-  Infrastructure: "var(--color-tag-infrastructure)",
-};
-
-function getTagVar(tags: string[]): string {
-  for (const tag of tags) {
-    if (tagVarMap[tag]) return tagVarMap[tag];
-  }
-  return "var(--color-tag-default)";
-}
+import { getTagAccentVar } from "@/lib/tag-accent";
 
 type FeaturedPost = Omit<BlogPost, "content"> & { content?: string };
 
@@ -28,7 +12,7 @@ interface FeaturedPostsProps {
 }
 
 function FeaturedCard({ post }: { post: FeaturedPost }) {
-  const accentVar = getTagVar(post.tags);
+  const accentVar = getTagAccentVar(post.tags);
   const primaryTag = post.tags[0];
 
   return (
