@@ -114,7 +114,8 @@ import {
   getSeriesPosts,
 } from "@/lib/blog";
 import { formatPostDate, formatPostDateShort } from "@/lib/post-date";
-import { extractHeadings, slugify, getTextContent } from "@/lib/headings";
+import { extractHeadings } from "@/lib/headings";
+import { createHeading } from "@/components/blog/heading-anchor";
 import { ArticleJsonLd, BlogPostingJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
 import { SubscribeForm } from "@/components/subscribe-form";
 import { BlogPostThumbsUp } from "@/components/blog-post-engagement";
@@ -135,31 +136,6 @@ interface Props {
 export async function generateStaticParams() {
   const posts = getAllPosts();
   return posts.map((post) => ({ slug: post.slug }));
-}
-
-function createHeading(level: number) {
-  const Component = ({
-    children,
-    ...props
-  }: React.ComponentPropsWithoutRef<"h1">) => {
-    const text = getTextContent(children);
-    const id = slugify(text);
-    const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-    return (
-      <Tag id={id} className="group" {...props}>
-        {children}
-        <a
-          href={`#${id}`}
-          className="ml-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity no-underline"
-          aria-label="Link to section"
-        >
-          #
-        </a>
-      </Tag>
-    );
-  };
-  Component.displayName = `H${level}`;
-  return Component;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

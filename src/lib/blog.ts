@@ -59,7 +59,15 @@ function parsePost(slug: string, filePath: string): BlogPost {
   };
 }
 
+// Published posts are immutable within a deployment, so dynamic routes
+// (e.g. backlog draft previews) can reuse one parse instead of re-reading
+// every .mdx file per request. Dev stays uncached so edits show up.
+let allPostsCache: BlogPost[] | null = null;
+
 export function getAllPosts(): BlogPost[] {
+  if (process.env.NODE_ENV === "production" && allPostsCache) {
+    return allPostsCache;
+  }
   if (!fs.existsSync(contentDir)) return [];
 
   const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"));
@@ -71,9 +79,13 @@ export function getAllPosts(): BlogPost[] {
   });
 
   // Sort by date descending (newest first)
-  return posts.sort(
+  const sorted = posts.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+  if (process.env.NODE_ENV === "production") {
+    allPostsCache = sorted;
+  }
+  return sorted;
 }
 
 export function getBacklogPosts(): BlogPost[] {
