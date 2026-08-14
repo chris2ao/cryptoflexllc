@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here.
 
+## 2026-08-13 - Backlog/Blog Parity and the Editorial Diagram System
+
+### What changed
+- **Matched** backlog draft pages to the production blog: draft cards now show cover infographics and draft detail pages render the same hero/cover layout as published posts
+- **Redesigned** all 10 SVG diagrams across the three backlog drafts onto a new editorial diagram system, replacing plain outlined boxes and diagonal connector lines with the cover-infographic aesthetic
+- **Added** shared diagram primitives in `src/components/mdx/diagram-editorial.tsx` (EditorialFrame, NodePanel, FlowLine/elbowPath orthogonal connectors, Chip, SectionLabel, StepBadge, TerminalDots, DIAGRAM_ACCENTS) plus a quality contract, `docs/editorial-diagram-standards.md`, with a mandatory screenshot verification loop
+- **Updated** `blog-captain.md` and the `/blog-post` skill to require the editorial diagram standard and reject plain-box/diagonal-line diagrams
+- **Fixed** `--color-surface-1` through `--color-surface-4` missing from the `globals.css` `@theme` block, which had silently no-opped `bg-surface-2` on blog cards; registered the tokens so `fill-surface-*`/`bg-surface-*` utilities generate
+- **Fixed** a third drifting copy of the `tagVarMap` interpolated-class antipattern, found in `FeaturedPosts.tsx` by code review
+- **Added** a production-only module cache to the `getAllPosts()` loader
+- **Set** `agentRules: false` in `next.config.ts` so `next dev` stops generating `AGENTS.md`/`CLAUDE.md` at the repo root
+- **Merged and deployed** PR #45 (`dpl_G58PBFKxPGiiTwG2UeqWXDGgPQXf`, READY) after `tsc`, lint, 812 vitest tests, and a production build all passed
+
+### What was learned
+- Theme tokens must be registered in the `@theme` block before their Tailwind utilities generate at all; `bg-surface-2` compiled to nothing for months with no build error, only a visually flat card
+- Accent TEXT fills in SVG diagrams must route through theme-flipping tokens (`fill-success`, `fill-warning`, `fill-destructive`, `fill-primary`; cyan has no semantic slot so it uses the literal `fill-cyan-600`) or they wash out in light theme
+- Local preview of auth-gated backlog pages is broken out of the box: `.env.local` ships an empty `ANALYTICS_SECRET`, so the HMAC session cookie those pages require can't be minted locally. This session's workaround was a throwaway `ANALYTICS_SECRET=devtest-preview`, a restarted dev server, and a small localhost reverse proxy that injects the session cookie so headless Chrome can screenshot authenticated pages
+- The `tagVarMap` interpolated-class antipattern (see 2026-07-21 entry) has now recurred a third time in a different file; a proactive repo-wide grep before release would catch the next copy faster than waiting on code review
+
+---
+
 ## 2026-08-13 - Security Review Round Two: Critical RCE Fix and Hardening Batch
 
 ### What changed
