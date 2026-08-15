@@ -59,6 +59,24 @@ with swapped words reads as a template, not a piece about the post.
 5. **Report the concept.** The agent's report and the register entry
    name the concept, so the next cover can be checked against it.
 
+## Copy on the cover
+
+- **No metrics roll call.** A kicker, deck, stat line, or tile row made
+  of inventory numbers (post counts, tests passing, files changed, lines,
+  insertions, coverage percentages, version numbers presented as
+  achievements) is the AI-flourish framing the owner has rejected
+  ("91 POSTS · 812 TESTS PASSING · KNOWN VULNS 17→12 · NEXT.JS 16.3.0").
+  Every line of copy carries the story: what was found, what it means,
+  what changed. A number earns a place only when the argument turns on it
+  (1,054 rows wrongly excluded; 46 tests that stayed green through a
+  full rebuild), and it appears as a callout inside the concept, said in
+  words, not as one entry in a stacked list of counts.
+- The kicker under the header is a thesis or a contrast, in words.
+  Stack tags in the footer strip (NEXT.JS 16 · SQLITE · MCP) are the one
+  place a bare list of names belongs.
+- Cover copy follows the same voice profile as the post: no em dashes,
+  no hype labels, no telling the reader how to feel.
+
 ## Composition register
 
 Append one row per cover. Concept and dominant element are what the next
@@ -68,8 +86,8 @@ designer checks against.
 |---|---|---|
 | cramdex-open-source-sans-study-app | Feature stat tiles (origin of the retired pattern) | 2x2 stat tiles + punchline |
 | building-ledgerly-v1 | Feature stat tiles (retired pattern) | 2x2 stat tiles: import, dashboard, chat, reports |
-| home-network-mission-control-upgrading-my-home-siem | Stat tiles with stat line (retired pattern) | 2x2 stat tiles + stat line |
-| security-review-round-two | The vulnerability itself, side by side: a plain frontmatter fence that renders vs a labelled fence that would execute | Two terminal fences over a headline and six reviewer-lens chips |
+| home-network-mission-control-upgrading-my-home-siem | The status board that lied: four signals that reported green beside what was actually true and the commit that fixed each, with the one check that worked as the exception | Full-width terminal-style health-board table (Signal, What It Reported, What Was True, The Fix) with green and red tinted columns; punchline and a small green exception card below |
+| security-review-round-two | The vulnerability itself, side by side: a plain frontmatter fence that renders vs a labelled fence that would execute; deck line names where it hid and how it was caught | Two terminal fences over a headline, a one-line story deck, and six reviewer-lens chips |
 | tryhackme-ai1-ai-security-certification | Exam split: reasoning vs flag | Horizontal split bar with two segments and stat line |
 | ledgerly-mcp-tool-calling-chat | The chat turn as it happened: the question, two tool-call chips in call order, the answer with the excluded-mortgage sentence highlighted, and a pinned 1,054-rows callout | Terminal-style chat transcript panel (~60% width) with a right rail of five hops (browser, route, CLI, MCP stdio, SQLite) and a flags terminal block beneath |
 | ledgerly-cyber-editorial-rebuild | One design-system record fanning out over a two-trunk teal bus into eight agent lanes, with the 46 green tests as a rail | Left record card (file tree of the nine sheets) plus a 2x4 grid of lane cards fed by arrowed bus stubs; 46-square test rail and right-aligned punchline below |

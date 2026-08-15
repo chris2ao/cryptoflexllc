@@ -27,16 +27,39 @@ series: Home Network Mission Control
 seriesOrder: 9
 coverImage: /blog/home-network-mission-control-upgrading-my-home-siem/infographic.png
 coverImageAlt: >-
-  Branded cover graphic for a home SIEM operations session. A 2x2 panel grid
-  shows four incidents: a 4-hour outage where Docker never auto-started and
-  the watchdog aborted 17 times, 4 alert-tuning decisions covering
-  suppression, firewall logging, a CDN allowlist, and a severity gate, 2
-  security-review blockers caught before shipping (trust-gap allowlist
-  entries and a broken severity gate), and 216,108 threat-feed rows restored
-  after 545,586 rows were found sharing one expired timestamp. The headline
-  reads "Every layer reported green. None of them was watching what broke."
-  above stats for 3.7 million events a day, 16 detection jobs, and 5 commits
-  shipped.
+  Dark editorial cover for a home SIEM operations session, headed by a Home
+  Network Mission Control chip, a Part 9 SIEM Operations Session chip, and
+  the kicker one maintenance session, four silent failures. The dominant
+  element is a terminal-style health board titled siem, health board,
+  2026-08-01 with an ironic All Checks Green badge, laid out as a table with
+  four columns, Signal, What It Reported (green tinted), What Was True (red
+  tinted), and The Fix (teal). Four rows cover the four silent failures. The
+  Docker stack after the 19:47 UTC reboot reported OK because launchd
+  KeepAlive services came back, while Docker Desktop never auto-starts and
+  Vector and ClickHouse stayed down about four hours with that window of UDP
+  syslog gone for good, fixed by a watchdog cold-start path that launches
+  Docker Desktop, waits up to 120 seconds, and uses a 30-minute cooldown,
+  commit 2d96662. The watchdog siem_remount_recover.sh reported OK and kept
+  firing with a Docker restart ladder built in, while it aborted seventeen
+  times without reaching the relaunch it already had and WatchPaths saw no
+  filesystem events from a dead stack for the first three hours, fixed by
+  putting the cold-start path ahead of the escalation ladder in the same
+  commit. The Hagezi threat feed reported OK with job liveness green and
+  545,586 rows still counted in the cache, while every row had expired at
+  04:17:59, a 404 sat in feed_meta as status=error that nothing consumed, and
+  the feed was dead for a full day with zero real data, fixed by a new
+  wildcard URL, 216,108 rows reloaded, label-boundary suffix matching, and
+  doctor.sh reading feed-status, commit 50a0ff5. The renamed switch
+  BedroomUS860WSwitch reported no alert at all, while 124 events over seven
+  days went unparsed because the route matched only factory hostname
+  prefixes, fixed by routing on the syslog appname MAC tag instead of the
+  hostname, commit 1f3b9b7. Below the board, the punchline reads Every layer
+  reported green, none of them was watching what broke, beside a green card
+  labelled the one check that worked, noting that a security review
+  reproduced two blockers in the heuristics-tuning diff before it shipped,
+  six allowlist entries that broke the module's own entry criteria and a
+  broken severity gate. The footer strip reads Cryptoflex LLC, From the
+  Workshop, with the tags ClickHouse, Vector, APScheduler, Threat Intel.
 schemaType: TechArticle
 published: false
 ---

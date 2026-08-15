@@ -24,8 +24,8 @@ schemaType: TechArticle
 coverImage: /blog/ledgerly-cyber-editorial-rebuild/infographic.png
 coverImageAlt: >-
   A dark teal cover graphic titled Ledgerly, Part 3, One Design System,
-  Eight Agents, with the kicker seven screens redesigned, two new routes,
-  1,181 unit tests. On the left, a glowing teal card labelled one design
+  Eight Agents, with the kicker looked like stock shadcn, now wears the
+  same design system as this site. On the left, a glowing teal card labelled one design
   system record shows the path _ds/cryptoflex-design-system/ above a mono
   file tree of tokens/fonts.css, tokens/colors.css, tokens/typography.css,
   tokens/spacing.css, tokens/elevation.css, tokens/motion.css,
@@ -455,10 +455,8 @@ The design specified this screen against a type that already existed. The screen
 
 ## Where the Series Picks Up
 
-One commit landed all of it: 134 files, `7652d7d feat: rebuild UI to the Cyber Editorial design system`.
+One commit landed all of it, `7652d7d feat: rebuild UI to the Cyber Editorial design system`. Underneath the new paint sit the two migrations, the aggregate functions and schedule module the new screens needed, a review inbox with a real `reviewed` flag persisting to the database, and a sidebar that actually knows my account balances because I told it what they are.
 
-Two migrations, four new aggregate functions plus a pure schedule module, two new routes, a review inbox with a real `reviewed` flag persisting to the database, a sidebar that actually knows my account balances because I told it what they are.
-
-None of that got invented for this rebuild. It got reused from April, and it held up under a personal-finance dashboard as well as it held up under a blog.
+The design system itself is the one thing here that didn't get invented for this rebuild. It got reused from April, and it held up under a personal-finance dashboard as well as it held up under a blog.
 
 What's different now is what I actually open when I check my own spending: a screen that says something, instead of one that just sits there being correct.
