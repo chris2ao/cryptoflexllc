@@ -21,11 +21,92 @@ function DiagramWrapper({
 }
 
 /**
+ * Mono detail lines for the right-hand column of a two-column panel:
+ * title on the left, facts on the right, so wide panels stay filled and
+ * type can grow. `tone` recolors individual lines (index -> accent).
+ */
+function DetailLines({
+  x,
+  y,
+  lines,
+  size = 13,
+  tone = {},
+}: {
+  x: number;
+  y: number;
+  lines: string[];
+  size?: number;
+  tone?: Record<number, "amber" | "violet">;
+}) {
+  const gap = size + 4;
+  return (
+    <>
+      {lines.map((line, i) => {
+        const t = tone[i];
+        const cls =
+          t === "amber"
+            ? "fill-warning font-mono font-semibold"
+            : t === "violet"
+              ? "fill-violet-500 font-heading font-semibold"
+              : "fill-muted-foreground font-mono";
+        return (
+          <text key={line} x={x} y={y + i * gap} className={cls} style={{ fontSize: size }}>
+            {line}
+          </text>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * First baseline for a details column so it lines up with the panel's
+ * title/sub block: mirrors NodePanel's vertical centering math, then
+ * offsets so an n-line details block shares the title block's center.
+ */
+function detailsBaseline(
+  y: number,
+  h: number,
+  opts: { terminal?: boolean; titleSize: number; subSize: number; subCount: number; lines: number }
+): number {
+  const contentTop = opts.terminal ? y + 34 : y;
+  const gap = opts.subSize + 4;
+  const blockH = opts.titleSize + 6 + opts.subCount * gap;
+  const titleBaseline = contentTop + (h - (contentTop - y) - blockH) / 2 + opts.titleSize;
+  return titleBaseline + ((1 + opts.subCount - opts.lines) * gap) / 2;
+}
+
+/**
  * Per-turn architecture: browser through the Next.js route, the claude CLI,
  * a stdio MCP server, and into SQLite, with the app's own long-lived WAL
- * connection to that same database file shown as a second, parallel edge.
+ * connection to that same database file shown beside SQLite on the last row.
+ *
+ * Layout: one 740-wide column centered in a 900 frame, each panel split
+ * into a title column (left) and a details column (right); the request
+ * path runs down the left lane and the NDJSON return path runs up the
+ * right lane between the same panels, so nothing hangs off one side.
  */
 export function ChatTurnArchitecture({ caption }: DiagramProps) {
+  const W = 900;
+  const PX = 80; // panel left
+  const PW = 740; // panel width
+  const PR = PX + PW; // panel right (820)
+  const DX = 372; // details column x
+  const LANE_DOWN = 160; // request lane x
+  const LANE_UP = 740; // return lane x
+  const GAP = 48; // vertical gap between rows
+
+  // Row geometry (y, h)
+  const r1 = { y: 72, h: 90 }; // Browser
+  const r2 = { y: r1.y + r1.h + GAP, h: 96 }; // Next.js route
+  const r3 = { y: r2.y + r2.h + GAP, h: 112 }; // claude CLI (terminal)
+  const r4 = { y: r3.y + r3.h + GAP, h: 122 }; // MCP stdio server (terminal)
+  const r5 = { y: r4.y + r4.h + GAP, h: 100 }; // SQLite + next dev server
+  const noteY = r5.y + r5.h + 34;
+  const H = noteY + 22 + 52;
+
+  const mid = (a: { y: number; h: number }, b: { y: number }) => (a.y + a.h + b.y) / 2;
+
   return (
     <DiagramWrapper
       caption={
@@ -35,8 +116,8 @@ export function ChatTurnArchitecture({ caption }: DiagramProps) {
     >
       <EditorialFrame
         id="lmtc1"
-        w={920}
-        h={1030}
+        w={W}
+        h={H}
         eyebrow="Chat Turn Architecture"
         eyebrowAccent="cyan"
         chips={[
@@ -45,162 +126,219 @@ export function ChatTurnArchitecture({ caption }: DiagramProps) {
         ]}
         footerRight="Stdio MCP · WAL side-car"
       >
-        {/* BROWSER */}
+        {/* ROW 1: BROWSER */}
         <NodePanel
-          x={180}
-          y={70}
-          w={560}
-          h={110}
+          x={PX}
+          y={r1.y}
+          w={PW}
+          h={r1.h}
           accent="cyan"
+          align="left"
+          titleSize={18}
+          subSize={13}
           title="Browser"
-          sub={["chat UI", "sends the question", "receives SSE: answer text + tool chips"]}
-        />
-        <FlowLine id="lmtc1" d="M260,180 L260,210" accent="cyan" />
-        <text x={272} y={198} className="fill-cyan-500 font-mono" style={{ fontSize: 10.5 }}>
-          SSE
+          sub={["chat UI"]}
+        >
+          <DetailLines
+            x={DX}
+            y={detailsBaseline(r1.y, r1.h, { titleSize: 18, subSize: 13, subCount: 1, lines: 2 })}
+            lines={["sends the question", "receives SSE: answer text + tool chips"]}
+          />
+        </NodePanel>
+        <FlowLine id="lmtc1" d={`M${LANE_DOWN},${r1.y + r1.h} L${LANE_DOWN},${r2.y}`} accent="cyan" />
+        <text
+          x={LANE_DOWN + 12}
+          y={mid(r1, r2) + 4.5}
+          className="fill-cyan-600 font-mono"
+          style={{ fontSize: 12.5 }}
+        >
+          question
         </text>
 
-        {/* NEXT.JS ROUTE */}
+        {/* ROW 2: NEXT.JS ROUTE */}
         <NodePanel
-          x={180}
-          y={210}
-          w={560}
-          h={150}
+          x={PX}
+          y={r2.y}
+          w={PW}
+          h={r2.h}
           accent="cyan"
+          align="left"
+          titleSize={18}
+          subSize={13}
           title="Next.js route"
-          sub={["/api/chat", "builds the prompt + inline --mcp-config", "spawns the CLI as an argv array"]}
+          sub={["/api/chat"]}
         >
-          <Chip x={696} y={326} label="no shell" accent="amber" anchor="end" />
+          <DetailLines
+            x={DX}
+            y={detailsBaseline(r2.y, r2.h, { titleSize: 18, subSize: 13, subCount: 1, lines: 2 })}
+            lines={["builds the prompt + inline --mcp-config", "spawns the CLI as an argv array"]}
+          />
+          <Chip x={PR - 14} y={r2.y + r2.h / 2 - 11} label="no shell" accent="amber" anchor="end" />
         </NodePanel>
-        <FlowLine id="lmtc1" d="M260,360 L260,390" accent="cyan" />
-        <text x={272} y={378} className="fill-cyan-500 font-mono" style={{ fontSize: 10.5 }}>
+        <FlowLine id="lmtc1" d={`M${LANE_DOWN},${r2.y + r2.h} L${LANE_DOWN},${r3.y}`} accent="cyan" />
+        <text
+          x={LANE_DOWN + 12}
+          y={mid(r2, r3) + 4.5}
+          className="fill-cyan-600 font-mono"
+          style={{ fontSize: 12.5 }}
+        >
           argv array
         </text>
+        {/* NDJSON return path, up the right lane from the CLI to the route */}
+        <FlowLine
+          id="lmtc1"
+          d={`M${LANE_UP},${r3.y} L${LANE_UP},${r2.y + r2.h}`}
+          accent="violet"
+          dashed
+        />
+        <text
+          x={LANE_UP - 12}
+          y={mid(r2, r3) + 4.5}
+          textAnchor="end"
+          className="fill-violet-500 font-mono"
+          style={{ fontSize: 12.5 }}
+        >
+          NDJSON on stdout
+        </text>
 
-        {/* CLAUDE CLI */}
+        {/* ROW 3: CLAUDE CLI */}
         <NodePanel
-          x={180}
-          y={390}
-          w={560}
-          h={190}
+          x={PX}
+          y={r3.y}
+          w={PW}
+          h={r3.h}
           accent="violet"
           emphasis
           terminal
+          align="left"
+          titleSize={18}
+          subSize={13}
           title="claude CLI"
-          sub={["v2.1.228", "headless · --max-turns 12"]}
+          sub={["v2.1.228"]}
         >
-          <text
-            x={460}
-            y={550}
-            textAnchor="middle"
-            className="fill-violet-500 font-heading font-semibold"
-            style={{ fontSize: 12 }}
-          >
-            decides which tools to call
-          </text>
+          <DetailLines
+            x={DX}
+            y={detailsBaseline(r3.y, r3.h, {
+              terminal: true,
+              titleSize: 18,
+              subSize: 13,
+              subCount: 1,
+              lines: 2,
+            })}
+            lines={["headless · --max-turns 12", "decides which tools to call"]}
+            tone={{ 1: "violet" }}
+          />
         </NodePanel>
-        <FlowLine id="lmtc1" d="M260,580 L260,610" accent="emerald" />
-        <text x={272} y={598} className="fill-emerald-500 font-mono" style={{ fontSize: 10.5 }}>
+        <FlowLine id="lmtc1" d={`M${LANE_DOWN},${r3.y + r3.h} L${LANE_DOWN},${r4.y}`} accent="emerald" />
+        <text
+          x={LANE_DOWN + 12}
+          y={mid(r3, r4) + 4.5}
+          className="fill-success font-mono"
+          style={{ fontSize: 12.5 }}
+        >
           stdio
         </text>
 
-        {/* NDJSON return path, up the right side back to the route */}
-        <FlowLine
-          id="lmtc1"
-          d="M740,485 L780,485 L780,285 L740,285"
-          accent="violet"
-          dashed
-        />
-        <text x={786} y={382} className="fill-violet-500 font-mono" style={{ fontSize: 10.5 }}>
-          NDJSON
-        </text>
-        <text x={786} y={396} className="fill-violet-500 font-mono" style={{ fontSize: 10.5 }}>
-          on stdout
-        </text>
-
-        {/* MCP STDIO SERVER */}
+        {/* ROW 4: MCP STDIO SERVER */}
         <NodePanel
-          x={180}
-          y={610}
-          w={560}
-          h={190}
+          x={PX}
+          y={r4.y}
+          w={PW}
+          h={r4.h}
           accent="emerald"
           terminal
+          align="left"
+          titleSize={18}
+          subSize={13}
           title="MCP stdio server"
-          sub={["scripts/mcp-server.ts", "JSON-RPC 2.0 over stdio"]}
+          sub={["scripts/mcp-server.ts"]}
         >
-          <text
-            x={460}
-            y={760}
-            textAnchor="middle"
-            className="fill-amber-500 font-mono font-semibold"
-            style={{ fontSize: 10.5 }}
-          >
-            stdout is protocol-only
-          </text>
-          <text
-            x={460}
-            y={776}
-            textAnchor="middle"
-            className="fill-amber-500 font-mono font-semibold"
-            style={{ fontSize: 10.5 }}
-          >
-            diagnostics go to stderr
-          </text>
+          <DetailLines
+            x={DX}
+            y={detailsBaseline(r4.y, r4.h, {
+              terminal: true,
+              titleSize: 18,
+              subSize: 13,
+              subCount: 1,
+              lines: 3,
+            })}
+            lines={["JSON-RPC 2.0 over stdio", "stdout is protocol-only", "diagnostics go to stderr"]}
+            tone={{ 1: "amber", 2: "amber" }}
+          />
         </NodePanel>
-        <FlowLine id="lmtc1" d="M260,800 L260,830" accent="amber" />
-        <text x={272} y={818} className="fill-amber-500 font-mono" style={{ fontSize: 10.5 }}>
+        <FlowLine id="lmtc1" d={`M${LANE_DOWN},${r4.y + r4.h} L${LANE_DOWN},${r5.y}`} accent="amber" />
+        <text
+          x={LANE_DOWN + 12}
+          y={mid(r4, r5) + 4.5}
+          className="fill-warning font-mono"
+          style={{ fontSize: 12.5 }}
+        >
           query_only = ON
         </text>
 
-        {/* SQLITE */}
+        {/* ROW 5: SQLITE + the app's own WAL connection */}
         <NodePanel
-          x={180}
-          y={830}
-          w={560}
-          h={110}
+          x={PX}
+          y={r5.y}
+          w={500}
+          h={r5.h}
           accent="muted"
+          align="left"
+          titleSize={18}
+          subSize={13}
           title="SQLite"
-          sub={["local ledger file", "MCP opens a short-lived connection per call"]}
-        />
-
-        {/* WAL side-car: next dev server holds its own connection to SQLite */}
+          sub={["local ledger file"]}
+        >
+          <DetailLines
+            x={DX}
+            y={detailsBaseline(r5.y, r5.h, { titleSize: 18, subSize: 13, subCount: 1, lines: 2 })}
+            lines={["MCP opens a short-lived", "connection per call"]}
+          />
+        </NodePanel>
         <NodePanel
-          x={750}
-          y={680}
-          w={145}
-          h={120}
+          x={PX + 550}
+          y={r5.y}
+          w={190}
+          h={r5.h}
           accent="red"
           variant="dashed"
-          titleSize={12.5}
+          align="left"
+          titleSize={15}
+          subSize={12.5}
           title="next dev server"
-          sub={["same process,", "separate WAL conn.", "two open connections"]}
+          sub={["same process,", "separate WAL conn.,", "two open connections"]}
         />
         <FlowLine
           id="lmtc1"
-          d="M823,800 L823,885 L740,885"
+          d={`M${PX + 550},${r5.y + r5.h / 2} L${PX + 500},${r5.y + r5.h / 2}`}
           accent="red"
           dashed
         />
-        <text x={827} y={846} className="fill-red-500 font-mono font-semibold" style={{ fontSize: 10.5 }}>
+        <text
+          x={PX + 525}
+          y={r5.y + r5.h / 2 - 9}
+          textAnchor="middle"
+          className="fill-destructive font-mono font-semibold"
+          style={{ fontSize: 12.5 }}
+        >
           WAL
         </text>
 
         <text
-          x={460}
-          y={964}
+          x={W / 2}
+          y={noteY}
           textAnchor="middle"
           className="fill-muted-foreground font-heading"
-          style={{ fontSize: 11.5 }}
+          style={{ fontSize: 13 }}
         >
           Two processes touch one file: the app&apos;s long-lived WAL connection
         </text>
         <text
-          x={460}
-          y={980}
+          x={W / 2}
+          y={noteY + 19}
           textAnchor="middle"
           className="fill-muted-foreground font-heading"
-          style={{ fontSize: 11.5 }}
+          style={{ fontSize: 13 }}
         >
           and the MCP server&apos;s short-lived, query_only connection.
         </text>
@@ -213,9 +351,32 @@ export function ChatTurnArchitecture({ caption }: DiagramProps) {
  * The five JSON-RPC calls the real claude CLI makes to the MCP server, in
  * the order a de-risking spike captured them, with the undocumented
  * server/discover call styled as the odd one out and tools/call shown as
- * loopable across a multi-turn conversation.
+ * loopable across a multi-turn conversation. Each row reads call on the
+ * left, what comes back on the right, so the wide panels stay filled.
  */
 export function McpHandshakeOrder({ caption }: DiagramProps) {
+  const W = 900;
+  const SPINE = 60;
+  const PX = 100;
+  const PW = 760;
+  const PR = PX + PW;
+  const TITLE = 17;
+  const SUB = 13;
+  const GAP = 22;
+
+  const r1 = { y: 92, h: 112 };
+  const r2 = { y: r1.y + r1.h + GAP, h: 78 };
+  const r3 = { y: r2.y + r2.h + GAP, h: 78 };
+  const r4 = { y: r3.y + r3.h + GAP, h: 78 };
+  const r5 = { y: r4.y + r4.h + GAP, h: 100 };
+  const loopY = r5.y + r5.h + 42;
+  const noteY = loopY + 52;
+  const H = noteY + 56;
+
+  const cy = (r: { y: number; h: number }) => r.y + r.h / 2;
+  const responseY = (r: { y: number; h: number }) =>
+    detailsBaseline(r.y, r.h, { titleSize: TITLE, subSize: SUB, subCount: 1, lines: 1 });
+
   return (
     <DiagramWrapper
       caption={
@@ -225,8 +386,8 @@ export function McpHandshakeOrder({ caption }: DiagramProps) {
     >
       <EditorialFrame
         id="lmtc2"
-        w={920}
-        h={860}
+        w={W}
+        h={H}
         eyebrow="MCP Handshake Order"
         eyebrowAccent="cyan"
         chips={[
@@ -235,120 +396,193 @@ export function McpHandshakeOrder({ caption }: DiagramProps) {
         ]}
         footerRight="Captured against the real CLI"
       >
+        {/* column headers */}
+        <text
+          x={PX + 14}
+          y={76}
+          className="fill-muted-foreground font-mono font-semibold uppercase"
+          style={{ fontSize: 10.5, letterSpacing: "0.14em" }}
+        >
+          call from the CLI
+        </text>
+        <text
+          x={PR - 14}
+          y={76}
+          textAnchor="end"
+          className="fill-muted-foreground font-mono font-semibold uppercase"
+          style={{ fontSize: 10.5, letterSpacing: "0.14em" }}
+        >
+          what comes back
+        </text>
+
         {/* spine */}
-        <FlowLine id="lmtc2" d="M60,135 L60,618" accent="muted" arrow={false} />
+        <FlowLine id="lmtc2" d={`M${SPINE},${cy(r1)} L${SPINE},${cy(r5)}`} accent="muted" arrow={false} />
 
         {/* STEP 1: server/discover (the odd one out) */}
-        <FlowLine id="lmtc2" d="M73,135 L100,135" accent="amber" />
-        <StepBadge cx={60} cy={135} n={1} accent="amber" />
+        <FlowLine id="lmtc2" d={`M${SPINE + 13},${cy(r1)} L${PX},${cy(r1)}`} accent="amber" />
+        <StepBadge cx={SPINE} cy={cy(r1)} n={1} accent="amber" />
         <NodePanel
-          x={100}
-          y={70}
-          w={780}
-          h={130}
+          x={PX}
+          y={r1.y}
+          w={PW}
+          h={r1.h}
           accent="amber"
           emphasis
           align="left"
-          titleSize={14}
+          titleSize={TITLE}
+          subSize={SUB}
           title="server/discover"
-          sub={["-32601 method not found", "arrives before initialize · must not throw"]}
+          sub={["arrives before initialize · must not throw"]}
         >
-          <Chip x={866} y={82} label="undocumented" accent="amber" filled anchor="end" />
+          <Chip x={PR - 14} y={r1.y + 12} label="undocumented" accent="amber" filled anchor="end" />
           <text
-            x={114}
-            y={184}
-            className="fill-amber-500 font-mono font-semibold"
-            style={{ fontSize: 10.5 }}
+            x={PR - 14}
+            y={responseY(r1)}
+            textAnchor="end"
+            className="fill-warning font-mono font-semibold"
+            style={{ fontSize: SUB }}
+          >
+            -32601 method not found
+          </text>
+          <text
+            x={PX + 14}
+            y={r1.y + r1.h - 16}
+            className="fill-warning font-mono font-semibold"
+            style={{ fontSize: SUB }}
           >
             a server that throws or exits here never reaches the handshake
           </text>
         </NodePanel>
 
         {/* STEP 2: initialize */}
-        <FlowLine id="lmtc2" d="M73,267 L100,267" accent="cyan" />
-        <StepBadge cx={60} cy={267} n={2} accent="cyan" />
+        <FlowLine id="lmtc2" d={`M${SPINE + 13},${cy(r2)} L${PX},${cy(r2)}`} accent="cyan" />
+        <StepBadge cx={SPINE} cy={cy(r2)} n={2} accent="cyan" />
         <NodePanel
-          x={100}
-          y={222}
-          w={780}
-          h={90}
+          x={PX}
+          y={r2.y}
+          w={PW}
+          h={r2.h}
           accent="cyan"
           align="left"
-          titleSize={14}
+          titleSize={TITLE}
+          subSize={SUB}
           title="initialize"
-          sub={["protocol version negotiated · 2025-06-18"]}
-        />
+          sub={["negotiates a protocol version"]}
+        >
+          <text
+            x={PR - 14}
+            y={responseY(r2)}
+            textAnchor="end"
+            className="fill-cyan-600 font-mono font-semibold"
+            style={{ fontSize: SUB }}
+          >
+            2025-06-18
+          </text>
+        </NodePanel>
 
         {/* STEP 3: notifications/initialized (no response) */}
-        <FlowLine id="lmtc2" d="M73,379 L100,379" accent="muted" />
-        <StepBadge cx={60} cy={379} n={3} accent="muted" />
+        <FlowLine id="lmtc2" d={`M${SPINE + 13},${cy(r3)} L${PX},${cy(r3)}`} accent="muted" />
+        <StepBadge cx={SPINE} cy={cy(r3)} n={3} accent="muted" />
         <NodePanel
-          x={100}
-          y={334}
-          w={780}
-          h={90}
+          x={PX}
+          y={r3.y}
+          w={PW}
+          h={r3.h}
           accent="muted"
           variant="dashed"
           align="left"
-          titleSize={14}
+          titleSize={TITLE}
+          subSize={SUB}
           title="notifications/initialized"
-          sub={["a notification · no response"]}
-        />
+          sub={["a notification, not a request"]}
+        >
+          <text
+            x={PR - 14}
+            y={responseY(r3)}
+            textAnchor="end"
+            className="fill-muted-foreground font-mono"
+            style={{ fontSize: SUB }}
+          >
+            no response
+          </text>
+        </NodePanel>
 
         {/* STEP 4: tools/list */}
-        <FlowLine id="lmtc2" d="M73,491 L100,491" accent="cyan" />
-        <StepBadge cx={60} cy={491} n={4} accent="cyan" />
+        <FlowLine id="lmtc2" d={`M${SPINE + 13},${cy(r4)} L${PX},${cy(r4)}`} accent="cyan" />
+        <StepBadge cx={SPINE} cy={cy(r4)} n={4} accent="cyan" />
         <NodePanel
-          x={100}
-          y={446}
-          w={780}
-          h={90}
+          x={PX}
+          y={r4.y}
+          w={PW}
+          h={r4.h}
           accent="cyan"
           align="left"
-          titleSize={14}
+          titleSize={TITLE}
+          subSize={SUB}
           title="tools/list"
-          sub={["returns the 10 read-only tools"]}
-        />
+          sub={["advertises what is available"]}
+        >
+          <text
+            x={PR - 14}
+            y={responseY(r4)}
+            textAnchor="end"
+            className="fill-cyan-600 font-mono font-semibold"
+            style={{ fontSize: SUB }}
+          >
+            the 10 read-only tools
+          </text>
+        </NodePanel>
 
         {/* STEP 5: tools/call (loopable) */}
-        <FlowLine id="lmtc2" d="M73,618 L100,618" accent="emerald" />
-        <StepBadge cx={60} cy={618} n={5} accent="emerald" />
+        <FlowLine id="lmtc2" d={`M${SPINE + 13},${cy(r5)} L${PX},${cy(r5)}`} accent="emerald" />
+        <StepBadge cx={SPINE} cy={cy(r5)} n={5} accent="emerald" />
         <NodePanel
-          x={100}
-          y={558}
-          w={780}
-          h={120}
+          x={PX}
+          y={r5.y}
+          w={PW}
+          h={r5.h}
           accent="emerald"
           emphasis
           align="left"
-          titleSize={14}
+          titleSize={TITLE}
+          subSize={SUB}
           title="tools/call"
-          sub={["repeatable up to the turn limit"]}
-        />
+          sub={["runs one tool and returns its result"]}
+        >
+          <text
+            x={PR - 14}
+            y={responseY(r5)}
+            textAnchor="end"
+            className="fill-success font-mono font-semibold"
+            style={{ fontSize: SUB }}
+          >
+            repeatable up to the turn limit
+          </text>
+        </NodePanel>
 
         {/* self-loop back into step 5 */}
         <FlowLine
           id="lmtc2"
-          d="M300,678 L300,730 L600,730 L600,678"
+          d={`M300,${r5.y + r5.h} L300,${loopY} L600,${loopY} L600,${r5.y + r5.h}`}
           accent="emerald"
           dashed
         />
         <text
           x={450}
-          y={748}
+          y={loopY + 20}
           textAnchor="middle"
-          className="fill-emerald-500 font-mono font-semibold"
-          style={{ fontSize: 10.5 }}
+          className="fill-success font-mono font-semibold"
+          style={{ fontSize: SUB }}
         >
           loop per turn · --max-turns 12
         </text>
 
         <text
-          x={460}
-          y={786}
+          x={W / 2}
+          y={noteY}
           textAnchor="middle"
           className="fill-muted-foreground font-heading"
-          style={{ fontSize: 11.5 }}
+          style={{ fontSize: 13 }}
         >
           Repeats until the model has enough to answer, or --max-turns 12 is reached.
         </text>

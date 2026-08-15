@@ -249,6 +249,8 @@ interface NodePanelProps {
   emphasis?: boolean;
   align?: "center" | "left";
   titleSize?: number;
+  /** Mono subline font size; line spacing follows it (subSize + 4). */
+  subSize?: number;
   terminal?: boolean;
   children?: React.ReactNode;
 }
@@ -257,6 +259,8 @@ interface NodePanelProps {
  * The standard diagram node: surface-toned panel, accent border, heading
  * title, mono sublines. `emphasis` adds a stronger border and corner
  * ticks; `terminal` adds traffic-light dots; `ghost` is a placeholder.
+ * `subSize` scales the sublines (default 11, the legacy size); pass 12.5
+ * or more when the frame renders at article width so mono stays legible.
  */
 export function NodePanel({
   x,
@@ -270,14 +274,16 @@ export function NodePanel({
   emphasis = false,
   align = "center",
   titleSize = 15,
+  subSize = 11,
   terminal = false,
   children,
 }: NodePanelProps) {
   const a = DIAGRAM_ACCENTS[accent];
+  const subGap = subSize + 4;
   const tx = align === "center" ? x + w / 2 : x + 14;
   const anchor = align === "center" ? "middle" : "start";
   const contentTop = terminal ? y + 34 : y;
-  const textBlockH = titleSize + 6 + sub.length * 15;
+  const textBlockH = titleSize + 6 + sub.length * subGap;
   const ty = contentTop + (h - (contentTop - y) - textBlockH) / 2 + titleSize;
   const titleFill = accent === "muted" ? "fill-foreground" : a.text;
   return (
@@ -323,10 +329,10 @@ export function NodePanel({
         <text
           key={line}
           x={tx}
-          y={ty + 17 + i * 15}
+          y={ty + subGap + 2 + i * subGap}
           textAnchor={anchor}
           className="fill-muted-foreground font-mono"
-          style={{ fontSize: 11 }}
+          style={{ fontSize: subSize }}
         >
           {line}
         </text>

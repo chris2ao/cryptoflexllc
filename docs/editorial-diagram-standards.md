@@ -28,6 +28,12 @@ diagram component in `src/components/mdx/diagrams-*.tsx`.
   (it namespaces markers, patterns, and gradients).
 - Content stays inside `y = 58 .. h - 44`. Width 880 to 960; height
   whatever the layout needs. Tall beats cramped.
+- **Design for the rendered size, not the viewBox.** The frame scales
+  into a container that is at most 768 px wide (`max-w-3xl`), so a
+  920-unit frame renders at about 0.83x and a 960-unit frame at 0.8x.
+  An 11 px mono subline becomes 9 px on screen. Do the multiplication
+  before picking sizes, and prefer the narrow end of the width range
+  when the layout allows.
 
 ## Composition
 
@@ -42,6 +48,16 @@ diagram component in `src/components/mdx/diagrams-*.tsx`.
   `StepBadge` for numbered sequences. `Chip` for statuses and one-line
   claims ("holds real secrets", "undocumented").
 - One idea per diagram. If a layout needs more than ~12 panels, split it.
+- **Balance the mass, not just the geometry.** A centered main column
+  with every side element (return paths, side-cars, annotations) on one
+  side reads as off-center. Balance side elements against each other
+  (return path on the left rail, side-car on the right rail) or shift the
+  column so the composition's optical center sits at the frame center.
+- **Fill the panels.** A 560-wide panel holding two short centered lines
+  is mostly empty. Size panels to their content, use the width (title
+  left, details right, or a chip on the right edge), or narrow the
+  panel; do not leave more than about 40 px of empty interior around
+  short text. Enlarge type before adding height.
 
 ## Color and type
 
@@ -61,9 +77,13 @@ diagram component in `src/components/mdx/diagrams-*.tsx`.
   `fill-muted-foreground`, accent fills). No `dark:` variants; the
   semantic tokens already adapt to both themes.
 - Titles use `font-heading`, labels and code use `font-mono` via
-  `style={{ fontSize: N }}`. Minimums at frame width 960: titles 14,
-  mono 10.5. If text will not fit at minimum size, restructure the
-  layout instead of shrinking type.
+  `style={{ fontSize: N }}`. Targets at frame width 880 to 920: titles
+  17 to 18, mono sublines and edge labels 12.5 or larger. Hard floor at
+  any width: titles 14, mono 10.5, and only for a single dense label,
+  never for the diagram's main copy. If text will not fit, restructure
+  the layout instead of shrinking type. `NodePanel` sublines default to
+  the legacy 11 px; pass `subSize={12.5}` (or larger) and `titleSize`
+  on every new panel so the defaults stop deciding the type scale.
 - No em dashes in any string.
 
 ## Verification loop (mandatory)
@@ -79,6 +99,14 @@ diagram component in `src/components/mdx/diagrams-*.tsx`.
 3. Read the PNG and inspect: no text escaping panels, no collisions,
    arrows land on panel edges, chips clear of the eyebrow, footer strip
    intact, smallest text still legible.
+3a. **Art director pass** on the same screenshot, pass/fail on each:
+   the composition's optical center is at the frame center (side
+   elements balanced, no dead gutter on one side); one focal point and a
+   clear hierarchy; a common grid with consistent gutters; every panel
+   filled by its content rather than mostly empty; type comfortably
+   legible at the rendered 760 px width without zooming; accents carry
+   meaning rather than coloring every panel differently. A diagram that
+   is technically correct but fails this pass is not done.
 4. Check the light theme: temporarily wrap the diagram in
    `<div className="light bg-background">` on the gallery route and
    screenshot again (headless Chrome only renders the dark default).

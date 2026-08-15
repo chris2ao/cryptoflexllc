@@ -27,18 +27,27 @@ seriesOrder: 2
 schemaType: TechArticle
 coverImage: /blog/ledgerly-mcp-tool-calling-chat/infographic.png
 coverImageAlt: >-
-  A dark teal cover graphic titled Ledgerly, Part 2, A Chat That Can Query
-  Its Own Database, with the kicker ten read-only tools, twelve turns, the
-  same SQLite file. Four panels describe the build: MCP Server, roughly 250
-  lines of hand-rolled JSON-RPC over stdio with no SDK, newline-delimited
-  JSON-RPC 2.0 across 4 files; 10 Tools, read-only wrappers for summaries,
-  trends, budgets, and merchants, each one wrapping a query function that
-  already existed; Zero Shell, confined with --strict-mcp-config and empty
-  --tools and --setting-sources flags, no shell, no built-in tools, one
-  allowed tool; and 1,054 Rows, wrongly excluded transactions restored
-  after the chat noticed them while answering an unrelated question. Below
-  the panels, a tagline reads "Ten tools. Twelve turns. A database it can
-  query. It found 1,054 real transactions nobody asked about."
+  A dark teal cover graphic for Ledgerly, Part 2, A Chat That Can Query Its
+  Own Database, with the kicker ten read-only tools, twelve turns, the same
+  SQLite file. The dominant element is a terminal-style chat transcript
+  panel titled ledgerly, chat, turn 3 of 12 with an SSE live indicator. In
+  it the user asks "list my recurring expenses" and the assistant turn shows
+  two green tool-call chips in order, get_recurring_merchants then
+  query_transactions, labelled tools/call over stdio, followed by a serif
+  answer whose second sentence is highlighted in amber, "One thing worth
+  flagging, your recurring mortgage payment is marked excluded in your
+  ledger." An amber callout beneath it reads 1,054 rows, Nobody Asked,
+  wrongly excluded since the first import, restored, 3,056 excluded rows
+  audited with a dry run first. A narrower right rail titled Every Turn,
+  On The Wire, 5 hops, 1 file, stacks five numbered hops joined by dashed
+  arrows, Browser, Next.js /api/chat spawning the CLI as an argv array with
+  no shell, claude CLI v2.1.228 headless with --max-turns 12 picking tools,
+  a hand-rolled MCP stdio server of about 250 lines with no SDK exposing 10
+  tools, and SQLite opened with query_only on, read only. Below the rail a
+  flags block reads Confined By Flags, $0.5715 to $0.0438 per turn, with
+  --tools empty, --setting-sources empty, and --strict-mcp-config. A
+  bottom line reads "Ten tools. Twelve turns. It found 1,054 transactions
+  nobody asked about."
 ---
 
 Part one's chat answered every question from two months of category totals stuffed into a single-turn prompt, and it couldn't run one query against the database sitting right there.
