@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here.
 
+## 2026-08-15 - Bespoke Covers, Composition Standards, and Retiring the Metrics Roll-Call
+
+### What changed
+- **Replaced** the Ledgerly Part 2 and Part 3 backlog covers, both clones of the same 2x2 stat-tile template, with bespoke compositions: Part 2 a terminal-style chat transcript with a five-hop rail and a flags block, Part 3 a design-system record card fanning over a teal bus into eight agent lane cards with a 46-square Playwright test rail
+- **Rebalanced** the `ChatTurnArchitecture` and `McpHandshakeOrder` inline diagrams (centered request/return lanes, WAL side-car placement, call/response rows with column headers); added an optional `subSize` prop to `NodePanel` (default 11 keeps legacy spacing)
+- **Added** `docs/cover-graphics-standards.md` (branding constants, a cover uniqueness rule, a composition register, an art-director QA checklist, verification loop) and extended `docs/editorial-diagram-standards.md` with rendered-scale sizing, balance/fill rules, and type targets
+- **Removed** metrics roll-call framing (stacked inventory numbers: post counts, tests passing, files changed, commits shipped) from backlog covers and drafts: the Security Review Round Two stat line, the SIEM upgrade cover (redesigned as a health board), Ledgerly Part 3's closing, and the blog-post v2 lead; encoded the pattern as de-slop tell #11 in the blog voice profile, writer, captain, and brand-graphics agents; published posts and covers were left untouched, per the user
+- **Corrected** the Security Review: Round Two draft's unsupported claim that round one was audited "by hand"; reframed the contrast on what is verifiably new in round two (whole-site scope, six lenses including the advocate, the consensus rule) without asserting round one's mechanics
+
+### What was learned
+- A repeated cover layout with swapped words reads as a template, not a piece about the post; concept-first composition (state the dominant visual depicting the post's central mechanism) plus an art-director QA pass after every render catches this before it ships
+- Diagrams render at roughly 0.83x of their viewBox (920 units into a 768px container), so 11px mono type becomes 9px on screen; a geometrically centered column with every side element on one side reads as lopsided even when technically centered
+- Test counts, post counts, files changed, and version numbers are inventory, not story; a model reaches for them because they sound like achievement, but they belong in a sentence only when the argument turns on the number
+- Comparison framing between two pieces of work should stick to what is verifiable about the newer one; asserting unstated mechanics of the older one ("audited by hand") is a claim the source material does not support
+- A stale `.next/dev/types/validator.ts`, left behind by a fork-run `next dev` gallery route, breaks `tsc` until removed
+- A Google Fonts 404 (`fonts.gstatic.com` JetBrains Mono woff2) caused a transient CI build failure that passed on rerun; not a code issue
+
+---
+
 ## 2026-08-13 - Backlog/Blog Parity and the Editorial Diagram System
 
 ### What changed
