@@ -12,7 +12,7 @@ coverImage: "/blog/security-review-round-two/infographic.png"
 coverImageAlt: "Dark editorial cover for Security Review: Round Two, part 9 of the Security Engineering series. Two chips read Security Engineering and Part 9, Biannual Site Review, above a kicker reading 6 Agents, 1 Rule, Nothing Ships Without Consensus. Below, two side-by-side terminal-style code panels contrast a safe frontmatter fence against a dangerous one: the left, green-bordered panel labelled Data, Renders Fine shows a plain --- fence with an ordinary title and date, captioned Plain frontmatter fence, always just data; the right, red-bordered panel labelled Code, Would Execute shows a ---js fence with its payload marked omitted, captioned One labelled fence, now rejected before parsing, every push. Beneath the panels, the title reads Security Review: Round Two, with Round Two in teal. A mono deck line beneath the title reads The worst finding was hiding in the content folder, caught by consensus, not a scanner. A row of six chips names the review team: AppSec Pentester (Captain, Audit Lens), Red Teamer (Exploit Lens), Sec. Researcher (Novel Bugs), Threat Intel (OSINT and CVEs), Sec. Engineer (Fix Design), and an amber-accented Advocate chip (Cost vs. Risk Veto). An italic closing line reads Five lenses find it, the advocate weighs what it's worth to fix. The footer shows the Cryptoflex LLC, From the Workshop brand strip and the text Fixed and Deployed, Round Three in 6 Months."
 ---
 
-One of my own blog drafts could have run as a program on my servers. Six months ago I audited [round one](/blog/security-hardening-analytics-dashboard) by hand and found 19 issues. This time a team of agents ran the review, and the worst thing they found was hiding in the content folder, invisible to the usual checks.
+One of my own blog drafts could have run as a program on my servers. Six months ago, [round one](/blog/security-hardening-analytics-dashboard) went through the analytics dashboard and whatever this site gave away in public, and found 19 issues. This round put six agents on the whole site, with a rule that nothing counted until they agreed, and the worst thing they found was hiding in the content folder, invisible to the usual checks.
 
 ## Why Review Again, Six Months Later
 
@@ -24,7 +24,7 @@ So what's actually still true from February, and what's quietly moved since? Tha
 
 ## Six Agents, One Rule: Nothing Ships Without Consensus
 
-Round one was me, alone, working through the code by hand. Round two was six agents working the same site from six different angles, in parallel, against the same code.
+Round one had one target, the analytics dashboard plus what the site leaked publicly, and its findings went straight into a fix list. Round two was six agents working the whole site from six different angles, in parallel, against the same code, and nothing counted as a finding until they agreed on it.
 
 Five ran security lenses: a senior AppSec pentester acting as captain, a red teamer, a security researcher, a threat-intelligence analyst, and a security engineer. Each one probes for a different kind of failure, the pentester thinking like an auditor building a report, the red teamer thinking like someone who just wants in.
 
