@@ -44,7 +44,7 @@ function Section({
             <tr className="bg-muted/50 text-left">
               {TABLE_HEADERS.map((header, i) => (
                 <th key={i} className="px-4 py-3 font-medium">
-                  {header}
+                  {header === "" ? <span className="sr-only">Actions</span> : header}
                 </th>
               ))}
             </tr>

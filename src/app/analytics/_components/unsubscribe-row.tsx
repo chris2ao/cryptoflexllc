@@ -23,6 +23,9 @@ function statusBadge(decision: "approve" | "deny" | null) {
 
 function silenceLabel(attempt: UnsubscribeAttemptSummary | null): string {
   if (!attempt) return "No attempts yet";
+  // A failed attempt was never sent, so there is nothing to measure silence
+  // against: show Failed rather than leaving the row stuck on Measuring.
+  if (!attempt.succeeded) return "Failed";
   if (attempt.silent_14d === null) return "Measuring";
   return attempt.silent_14d ? "Silent" : "Still sending";
 }

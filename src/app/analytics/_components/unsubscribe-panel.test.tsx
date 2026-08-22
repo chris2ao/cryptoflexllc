@@ -168,6 +168,12 @@ describe("UnsubscribePanel", () => {
     expect(screen.getByLabelText("Approved: 0")).toBeTruthy();
   });
 
+  it("gives the empty actions column header a visually-hidden accessible label", () => {
+    const data = panelData([row({ sender_email: "pending@example.com", decision: null })]);
+    render(<UnsubscribePanel initial={data} />);
+    expect(screen.getAllByText("Actions").length).toBeGreaterThan(0);
+  });
+
   it("renders a setup banner and no table when initial is null", () => {
     render(<UnsubscribePanel initial={null} />);
     expect(screen.getByText(/\/api\/analytics\/setup/)).toBeTruthy();
