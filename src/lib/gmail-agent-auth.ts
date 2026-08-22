@@ -8,7 +8,11 @@
  * env file is ever exposed.
  */
 
-import { timingSafeEqual } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
+
+function sha256(value: string): Buffer {
+  return createHash("sha256").update(value).digest();
+}
 
 export function verifyGmailAgentAuth(
   request: Request
@@ -24,12 +28,13 @@ export function verifyGmailAgentAuth(
   }
   const token = authHeader.slice(7);
 
-  try {
-    if (timingSafeEqual(Buffer.from(token), Buffer.from(expectedToken))) {
-      return { ok: true };
-    }
-  } catch {
-    // Length mismatch: not authenticated.
+  // Hash both sides to a fixed 32-byte digest before comparing. This makes
+  // timingSafeEqual's inputs always equal length, so it never throws, and
+  // makes the wrong-length and wrong-value rejection paths indistinguishable
+  // in timing (a raw comparison would otherwise be measurably faster to
+  // reject a wrong-length token, a real if minor side channel).
+  if (timingSafeEqual(sha256(token), sha256(expectedToken))) {
+    return { ok: true };
   }
 
   return { ok: false, status: 401 };
@@ -48,7 +53,7 @@ export function agentAuthErrorBody(
   return {
     status,
     body: {
-      error: status === 503 ? "Gmail agent authentication not configured" : "Unauthorized",
+      error: status === 503 ? "Agent API not configured" : "Unauthorized",
     },
   };
 }

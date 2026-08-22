@@ -69,7 +69,7 @@ export const candidatesBodySchema = z.object({
 export const attemptSchema = z.object({
   sender_email: senderEmailSchema,
   attempted_at: isoDateSchema,
-  status_code: z.number().int().nullable(),
+  status_code: z.number().int().min(100).max(599).nullable(),
   succeeded: z.boolean(),
   silent_14d: z.boolean().nullable().optional(),
   silence_measured_at: isoDateSchema.nullable().optional(),

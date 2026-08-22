@@ -66,7 +66,7 @@ describe("agentAuthErrorBody", () => {
   it("builds a 503 not-configured body", () => {
     expect(agentAuthErrorBody(503)).toEqual({
       status: 503,
-      body: { error: "Gmail agent authentication not configured" },
+      body: { error: "Agent API not configured" },
     });
   });
 });

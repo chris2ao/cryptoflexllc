@@ -94,6 +94,18 @@ describe("GET /api/gmail/unsubscribe/panel", () => {
     expect(typeof data.generated_at).toBe("string");
   });
 
+  it("sets Cache-Control: no-store on success", async () => {
+    mockSql
+      .mockResolvedValueOnce([]) // candidates
+      .mockResolvedValueOnce([]) // decisions
+      .mockResolvedValueOnce([]); // attempts
+
+    const { GET } = await import("./route");
+    const response = await GET(makeRequest());
+
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+  });
+
   it("returns 500 when the loader throws an unexpected error", async () => {
     mockSql.mockRejectedValueOnce(new Error("connection reset"));
 

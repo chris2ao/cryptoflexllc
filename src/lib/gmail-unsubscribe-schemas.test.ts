@@ -155,6 +155,14 @@ describe("attemptSchema", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("rejects a status_code outside the valid HTTP range", () => {
+    const result = attemptSchema.safeParse({
+      ...validAttempt(),
+      status_code: 999,
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("attemptsBodySchema", () => {

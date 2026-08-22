@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(panel);
+    return NextResponse.json(panel, { headers: { "Cache-Control": "no-store" } });
   } catch {
     console.error("gmail/unsubscribe/panel: db error");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

@@ -62,7 +62,7 @@ describe("POST /api/gmail/unsubscribe/candidates", () => {
     const data = await response.json();
 
     expect(response.status).toBe(503);
-    expect(data.error).toBe("Gmail agent authentication not configured");
+    expect(data.error).toBe("Agent API not configured");
     expect(mockSql).not.toHaveBeenCalled();
   });
 

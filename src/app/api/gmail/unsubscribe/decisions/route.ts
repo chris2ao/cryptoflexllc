@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
       const rows = (await sql`
         SELECT * FROM gmail_unsubscribe_decisions
         ORDER BY decided_at DESC, id DESC
+        LIMIT 5000
       `) as unknown as UnsubscribeDecisionDbRow[];
 
       // Captured after the query completes, not before, so it reflects when
@@ -74,12 +75,15 @@ export async function GET(request: NextRequest) {
         .sort((a, b) => a.sender_email.localeCompare(b.sender_email))
         .map(shapeDecision);
 
-      return NextResponse.json({
-        ok: true,
-        generated_at: generatedAt,
-        decisions,
-        ledger: rows.map(shapeDecision),
-      });
+      return NextResponse.json(
+        {
+          ok: true,
+          generated_at: generatedAt,
+          decisions,
+          ledger: rows.map(shapeDecision),
+        },
+        { headers: { "Cache-Control": "no-store" } }
+      );
     }
 
     const rows = (await sql`
@@ -90,11 +94,14 @@ export async function GET(request: NextRequest) {
 
     const generatedAt = new Date().toISOString();
 
-    return NextResponse.json({
-      ok: true,
-      generated_at: generatedAt,
-      decisions: rows.map(shapeDecision),
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+        generated_at: generatedAt,
+        decisions: rows.map(shapeDecision),
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch {
     console.error("gmail/unsubscribe/decisions GET: db error");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

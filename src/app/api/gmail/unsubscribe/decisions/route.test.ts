@@ -79,7 +79,7 @@ describe("/api/gmail/unsubscribe/decisions", () => {
       const data = await response.json();
 
       expect(response.status).toBe(503);
-      expect(data.error).toBe("Gmail agent authentication not configured");
+      expect(data.error).toBe("Agent API not configured");
     });
 
     it("returns 429 when the rate limiter denies", async () => {
@@ -140,6 +140,25 @@ describe("/api/gmail/unsubscribe/decisions", () => {
       ]);
       expect(data.ledger).toBeUndefined();
       expect(mockSql).toHaveBeenCalledTimes(1);
+    });
+
+    it("sets Cache-Control: no-store on success", async () => {
+      mockSql.mockResolvedValueOnce([]);
+
+      const { GET } = await import("./route");
+      const response = await GET(makeGetRequest());
+
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+    });
+
+    it("bounds the full ledger query to the newest 5000 rows", async () => {
+      mockSql.mockResolvedValueOnce([]);
+
+      const { GET } = await import("./route");
+      await GET(makeGetRequest("?full=1"));
+
+      const [strings] = mockSql.mock.calls[0];
+      expect((strings as string[]).join("")).toContain("LIMIT 5000");
     });
 
     it("adds the ledger when ?full=1, keeping only the latest per sender in decisions", async () => {
