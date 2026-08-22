@@ -15,6 +15,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -33,6 +34,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -51,6 +53,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -69,6 +72,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -87,6 +91,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -105,6 +110,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -123,6 +129,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -141,6 +148,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -159,6 +167,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -177,6 +186,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -195,6 +205,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -213,6 +224,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -231,6 +243,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -249,6 +262,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -267,6 +281,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -285,6 +300,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -303,6 +319,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -321,6 +338,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -339,6 +357,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -357,6 +376,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -375,6 +395,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -393,6 +414,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -411,6 +433,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -429,6 +452,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -447,6 +471,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -465,6 +490,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -483,6 +509,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -501,6 +528,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -519,6 +547,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -537,6 +566,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -555,6 +585,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -573,6 +604,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -591,6 +623,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -609,6 +642,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -627,6 +661,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -645,6 +680,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -663,6 +699,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -681,6 +718,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -699,6 +737,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -717,6 +756,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -735,6 +775,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -753,6 +794,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -771,6 +813,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -789,6 +832,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -807,6 +851,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -825,6 +870,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -843,6 +889,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -861,6 +908,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -879,6 +927,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -897,6 +946,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -915,6 +965,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -933,6 +984,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -951,6 +1003,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -969,6 +1022,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -987,6 +1041,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1005,6 +1060,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1023,6 +1079,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1041,6 +1098,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1059,6 +1117,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1077,6 +1136,7 @@
     "circuit_breaker_tripped": true,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1095,6 +1155,7 @@
     "circuit_breaker_tripped": true,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1113,6 +1174,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1131,6 +1193,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1149,6 +1212,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1167,6 +1231,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1185,6 +1250,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1203,6 +1269,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1221,6 +1288,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1239,6 +1307,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1257,6 +1326,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1275,6 +1345,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1293,6 +1364,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1311,6 +1383,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1329,6 +1402,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1347,6 +1421,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1365,6 +1440,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1383,6 +1459,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1401,6 +1478,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1419,6 +1497,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1437,6 +1516,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1455,6 +1535,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1473,6 +1554,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1491,6 +1573,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1509,6 +1592,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1527,6 +1611,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": "RuntimeError"
   },
   {
@@ -1545,6 +1630,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": "RuntimeError"
   },
   {
@@ -1563,6 +1649,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": "RuntimeError"
   },
   {
@@ -1581,6 +1668,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": "RuntimeError"
   },
   {
@@ -1599,6 +1687,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": "RuntimeError"
   },
   {
@@ -1617,6 +1706,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": "RuntimeError"
   },
   {
@@ -1635,6 +1725,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": "RuntimeError"
   },
   {
@@ -1653,6 +1744,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1671,6 +1763,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1689,6 +1782,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1707,6 +1801,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1725,6 +1820,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1743,6 +1839,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1761,6 +1858,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1779,6 +1877,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1797,6 +1896,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1815,6 +1915,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1833,6 +1934,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1851,6 +1953,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1869,6 +1972,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1887,6 +1991,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1905,6 +2010,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1923,6 +2029,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1941,6 +2048,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1959,6 +2067,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1977,6 +2086,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -1995,6 +2105,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2013,6 +2124,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2031,6 +2143,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2049,6 +2162,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2067,6 +2181,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2085,6 +2200,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2103,6 +2219,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2121,6 +2238,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2139,6 +2257,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2157,6 +2276,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2175,6 +2295,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2193,6 +2314,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2211,6 +2333,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2229,6 +2352,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2247,6 +2371,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2265,6 +2390,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2283,6 +2409,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2301,6 +2428,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2319,6 +2447,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": true,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2337,6 +2466,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2355,6 +2485,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2373,6 +2504,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2391,6 +2523,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2409,6 +2542,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2427,6 +2561,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2445,6 +2580,7 @@
     "circuit_breaker_tripped": true,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2463,6 +2599,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   },
   {
@@ -2481,6 +2618,7 @@
     "circuit_breaker_tripped": false,
     "agent_version": "0.1.0",
     "attention_email_sent": false,
+    "attention_suppressed": false,
     "error": null
   }
 ]
