@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { RefreshCw, Loader2 } from "lucide-react";
 import type { UnsubscribePanelData, UnsubscribePanelRow } from "@/lib/analytics-types";
 import { UnsubscribeRow } from "./unsubscribe-row";
+import { recountSummary } from "./unsubscribe-summary";
 
 interface UnsubscribePanelProps {
   initial: UnsubscribePanelData | null;
@@ -92,6 +93,10 @@ export function UnsubscribePanel({ initial }: UnsubscribePanelProps) {
   const [expandedSender, setExpandedSender] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Mirrors actingSender synchronously so a second click landing before the
+  // first render flushes still sees a decision is in flight. State alone is
+  // not enough: two synchronous clicks can both read the same stale value.
+  const actingSenderRef = useRef<string | null>(null);
 
   function toggleHistory(senderEmail: string) {
     setExpandedSender((prev) => (prev === senderEmail ? null : senderEmail));
@@ -117,6 +122,9 @@ export function UnsubscribePanel({ initial }: UnsubscribePanelProps) {
 
   async function decide(senderEmail: string, decision: "approve" | "deny") {
     if (!data) return;
+    // Guard against a second click landing before the first decision settles
+    // (or before React has re-rendered the acting row as disabled).
+    if (actingSenderRef.current !== null) return;
 
     const previous = data;
     const decidedAt = new Date().toISOString();
@@ -132,7 +140,8 @@ export function UnsubscribePanel({ initial }: UnsubscribePanelProps) {
         : row
     );
 
-    setData({ ...data, rows: nextRows });
+    actingSenderRef.current = senderEmail;
+    setData({ ...data, rows: nextRows, summary: recountSummary(data.summary, nextRows) });
     setActingSender(senderEmail);
     setError(null);
 
@@ -144,13 +153,14 @@ export function UnsubscribePanel({ initial }: UnsubscribePanelProps) {
       });
 
       if (!res.ok) {
-        setData(previous);
+        setData({ ...previous, summary: recountSummary(previous.summary, previous.rows) });
         setError("Could not save the decision. Try again.");
       }
     } catch {
-      setData(previous);
+      setData({ ...previous, summary: recountSummary(previous.summary, previous.rows) });
       setError("Could not save the decision. Try again.");
     } finally {
+      actingSenderRef.current = null;
       setActingSender(null);
     }
   }

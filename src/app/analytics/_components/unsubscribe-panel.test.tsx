@@ -134,6 +134,10 @@ describe("UnsubscribePanel", () => {
 
     fireEvent.click(within(approvedSection).getByLabelText(/show history/i));
     expect(within(approvedSection).getAllByRole("listitem")).toHaveLength(1);
+
+    // Regression: the summary strip used to go stale until the next Refresh.
+    expect(screen.getByLabelText("Pending: 0")).toBeTruthy();
+    expect(screen.getByLabelText("Approved: 1")).toBeTruthy();
   });
 
   it("restores the row and shows an error banner when the POST fails", async () => {
@@ -158,6 +162,10 @@ describe("UnsubscribePanel", () => {
     const pendingHeading = screen.getByRole("heading", { name: "Awaiting review" });
     const pendingSection = pendingHeading.closest("div") as HTMLElement;
     expect(within(pendingSection).getByText("pending@example.com")).toBeTruthy();
+
+    // Regression: the summary strip must revert along with the row.
+    expect(screen.getByLabelText("Pending: 1")).toBeTruthy();
+    expect(screen.getByLabelText("Approved: 0")).toBeTruthy();
   });
 
   it("renders a setup banner and no table when initial is null", () => {
@@ -198,5 +206,45 @@ describe("UnsubscribePanel", () => {
 
     expect(screen.getByText("new@example.com")).toBeTruthy();
     expect(screen.queryByText("old@example.com")).toBeNull();
+  });
+
+  it("ignores a second click while a decision is in flight", async () => {
+    const data = panelData([
+      row({ sender_email: "pending@example.com", method: "rfc8058-post", decision: null }),
+    ]);
+    let resolveFetch: (value: unknown) => void = () => {};
+    const fetchMock = vi.fn().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<UnsubscribePanel initial={data} />);
+    const approveButton = screen.getByRole("button", { name: /approve/i });
+
+    act(() => {
+      fireEvent.click(approveButton);
+      fireEvent.click(approveButton);
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveFetch({
+        ok: true,
+        json: async () => ({
+          ok: true,
+          decision: {
+            id: 1,
+            sender_email: "pending@example.com",
+            decision: "approve",
+            decided_at: "2026-08-21T00:00:00.000Z",
+            note: null,
+          },
+        }),
+      });
+    });
   });
 });
