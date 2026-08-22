@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   containsForbidden,
+  findForbiddenItemIndex,
   candidateSchema,
   candidatesBodySchema,
   attemptSchema,
@@ -43,6 +44,33 @@ describe("containsForbidden", () => {
 
   it("allows a plain email address", () => {
     expect(containsForbidden("deals@example.com")).toBe(false);
+  });
+});
+
+describe("findForbiddenItemIndex", () => {
+  it("finds the index of the offending item in a well-formed items array", () => {
+    const rawText = JSON.stringify({
+      items: [
+        { sender_email: "a@example.com" },
+        { sender_email: "b@example.com", sender_domain: "https://evil.example" },
+      ],
+    });
+
+    expect(findForbiddenItemIndex(rawText)).toBe(1);
+  });
+
+  it("returns null when the JSON cannot be parsed", () => {
+    expect(findForbiddenItemIndex("not json at all https://evil.example")).toBeNull();
+  });
+
+  it("returns null when the body has no items array", () => {
+    expect(findForbiddenItemIndex(JSON.stringify({ note: "https://evil.example" }))).toBeNull();
+  });
+
+  it("returns null when no single item accounts for the match", () => {
+    const rawText = JSON.stringify({ items: [{ a: 1 }], extra: "https://evil.example" });
+
+    expect(findForbiddenItemIndex(rawText)).toBeNull();
   });
 });
 

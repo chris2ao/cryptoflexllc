@@ -8,7 +8,12 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/analytics");
 vi.mock("@/lib/analytics-auth");
-vi.mock("@/lib/gmail-agent-auth");
+// Partial mock: only verifyGmailAgentAuth is stubbed per test. agentAuthErrorBody
+// is pure (no I/O) and stays real so tests assert the actual response text.
+vi.mock("@/lib/gmail-agent-auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/gmail-agent-auth")>();
+  return { ...actual, verifyGmailAgentAuth: vi.fn() };
+});
 vi.mock("@/lib/rate-limit");
 
 function makeGetRequest(query = "") {
@@ -58,8 +63,10 @@ describe("/api/gmail/unsubscribe/decisions", () => {
 
       const { GET } = await import("./route");
       const response = await GET(makeGetRequest());
+      const data = await response.json();
 
       expect(response.status).toBe(401);
+      expect(data.error).toBe("Unauthorized");
       expect(mockSql).not.toHaveBeenCalled();
     });
 
@@ -69,8 +76,10 @@ describe("/api/gmail/unsubscribe/decisions", () => {
 
       const { GET } = await import("./route");
       const response = await GET(makeGetRequest());
+      const data = await response.json();
 
       expect(response.status).toBe(503);
+      expect(data.error).toBe("Gmail agent authentication not configured");
     });
 
     it("returns 429 when the rate limiter denies", async () => {
@@ -177,6 +186,30 @@ describe("/api/gmail/unsubscribe/decisions", () => {
       expect(response.status).toBe(401);
       expect(data.error).toBe("Unauthorized");
       expect(mockSql).not.toHaveBeenCalled();
+    });
+
+    it("returns 429 when the rate limiter denies, using the POST-specific limiter (30/min vs 60/min for GET)", async () => {
+      const { createRateLimiter } = await import("@/lib/rate-limit");
+      vi.mocked(createRateLimiter).mockReturnValue({
+        checkRateLimit: vi
+          .fn()
+          .mockResolvedValue({ allowed: false, remaining: 0, retryAfter: 11 }),
+        store: new Map(),
+      });
+
+      const { POST } = await import("./route");
+      const response = await POST(
+        makePostRequest({ sender_email: "a@example.com", decision: "approve" })
+      );
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Retry-After")).toBe("11");
+      expect(createRateLimiter).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "gmail-unsub-decisions-get", maxRequests: 60 })
+      );
+      expect(createRateLimiter).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "gmail-unsub-decisions-post", maxRequests: 30 })
+      );
     });
 
     it("returns 400 on a bad body", async () => {

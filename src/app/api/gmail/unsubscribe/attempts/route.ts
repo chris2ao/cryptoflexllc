@@ -9,9 +9,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/analytics";
-import { verifyGmailAgentAuth } from "@/lib/gmail-agent-auth";
+import { verifyGmailAgentAuth, agentAuthErrorBody } from "@/lib/gmail-agent-auth";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
-import { containsForbidden, attemptsBodySchema } from "@/lib/gmail-unsubscribe-schemas";
+import {
+  containsForbidden,
+  findForbiddenItemIndex,
+  attemptsBodySchema,
+  type AttemptInput,
+} from "@/lib/gmail-unsubscribe-schemas";
+
+// Guards against an oversized push before it is even read into memory.
+const MAX_BODY_BYTES = 1_048_576; // 1 MB
 
 const attemptsRateLimiter = createRateLimiter({
   name: "gmail-unsub-attempts",
@@ -20,31 +28,24 @@ const attemptsRateLimiter = createRateLimiter({
 });
 
 /**
- * Best-effort lookup of which item in a raw `{ items: [...] }` body tripped
- * the forbidden-content check, for a more useful log line. Returns null if
- * the raw text cannot be parsed or no single item accounts for the match.
+ * Postgres rejects an ON CONFLICT ... DO UPDATE batch that targets the same
+ * conflict key twice in one statement (SQLSTATE 21000). Collapse by the
+ * (sender_email, attempted_at) conflict key before the SQL runs; the last
+ * occurrence in the array wins.
  */
-function findForbiddenItemIndex(rawText: string): number | null {
-  try {
-    const parsed = JSON.parse(rawText) as { items?: unknown[] };
-    if (!Array.isArray(parsed.items)) return null;
-    const index = parsed.items.findIndex((item) => containsForbidden(JSON.stringify(item)));
-    return index === -1 ? null : index;
-  } catch {
-    return null;
+function dedupeByAttemptKey(items: AttemptInput[]): AttemptInput[] {
+  const byKey = new Map<string, AttemptInput>();
+  for (const item of items) {
+    byKey.set(`${item.sender_email}::${item.attempted_at}`, item);
   }
+  return Array.from(byKey.values());
 }
 
 export async function POST(request: NextRequest) {
   const auth = verifyGmailAgentAuth(request);
   if (!auth.ok) {
-    return NextResponse.json(
-      {
-        error:
-          auth.status === 503 ? "Gmail agent authentication not configured" : "Unauthorized",
-      },
-      { status: auth.status }
-    );
+    const { status, body } = agentAuthErrorBody(auth.status);
+    return NextResponse.json(body, { status });
   }
 
   const ip = getClientIp(request);
@@ -56,12 +57,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const contentLength = Number(request.headers.get("content-length"));
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+
   const rawText = await request.text();
   if (containsForbidden(rawText)) {
     const index = findForbiddenItemIndex(rawText);
-    if (index !== null) {
-      console.error(`gmail/unsubscribe/attempts: forbidden content at item ${index}`);
-    }
+    console.error(
+      index !== null
+        ? `gmail/unsubscribe/attempts: forbidden content at item ${index}`
+        : "gmail/unsubscribe/attempts: forbidden content, item unknown"
+    );
     return NextResponse.json(
       { error: "Payload contains forbidden content" },
       { status: 400 }
@@ -80,7 +88,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const items = parsed.data.items;
+  const items = dedupeByAttemptKey(parsed.data.items);
 
   try {
     const sql = getDb();

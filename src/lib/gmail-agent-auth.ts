@@ -34,3 +34,21 @@ export function verifyGmailAgentAuth(
 
   return { ok: false, status: 401 };
 }
+
+/**
+ * Shared response body for a failed verifyGmailAgentAuth() check, so the
+ * three agent-bearer routes (candidates, attempts, decisions GET) render
+ * identical error text instead of hand-rolling the same conditional three
+ * times. Returns a plain { status, body } pair (not a NextResponse) so this
+ * lib stays framework-response-free; each route wraps it in NextResponse.json.
+ */
+export function agentAuthErrorBody(
+  status: 401 | 503
+): { status: 401 | 503; body: { error: string } } {
+  return {
+    status,
+    body: {
+      error: status === 503 ? "Gmail agent authentication not configured" : "Unauthorized",
+    },
+  };
+}

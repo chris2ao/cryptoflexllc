@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/analytics";
 import { verifyApiAuth } from "@/lib/analytics-auth";
-import { verifyGmailAgentAuth } from "@/lib/gmail-agent-auth";
+import { verifyGmailAgentAuth, agentAuthErrorBody } from "@/lib/gmail-agent-auth";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import { decisionBodySchema } from "@/lib/gmail-unsubscribe-schemas";
 import { latestDecisions, type UnsubscribeDecisionDbRow } from "@/lib/gmail-unsubscribe";
@@ -42,13 +42,8 @@ function shapeDecision(row: UnsubscribeDecisionDbRow): UnsubscribeDecision {
 export async function GET(request: NextRequest) {
   const auth = verifyGmailAgentAuth(request);
   if (!auth.ok) {
-    return NextResponse.json(
-      {
-        error:
-          auth.status === 503 ? "Gmail agent authentication not configured" : "Unauthorized",
-      },
-      { status: auth.status }
-    );
+    const { status, body } = agentAuthErrorBody(auth.status);
+    return NextResponse.json(body, { status });
   }
 
   const ip = getClientIp(request);
@@ -61,7 +56,6 @@ export async function GET(request: NextRequest) {
   }
 
   const full = request.nextUrl.searchParams.get("full") === "1";
-  const generatedAt = new Date().toISOString();
 
   try {
     const sql = getDb();
@@ -71,6 +65,10 @@ export async function GET(request: NextRequest) {
         SELECT * FROM gmail_unsubscribe_decisions
         ORDER BY decided_at DESC, id DESC
       `) as unknown as UnsubscribeDecisionDbRow[];
+
+      // Captured after the query completes, not before, so it reflects when
+      // the data was actually read rather than when the request arrived.
+      const generatedAt = new Date().toISOString();
 
       const decisions = Array.from(latestDecisions(rows).values())
         .sort((a, b) => a.sender_email.localeCompare(b.sender_email))
@@ -89,6 +87,8 @@ export async function GET(request: NextRequest) {
       FROM gmail_unsubscribe_decisions
       ORDER BY sender_email, decided_at DESC, id DESC
     `) as unknown as UnsubscribeDecisionDbRow[];
+
+    const generatedAt = new Date().toISOString();
 
     return NextResponse.json({
       ok: true,

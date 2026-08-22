@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { verifyGmailAgentAuth } from "./gmail-agent-auth";
+import { verifyGmailAgentAuth, agentAuthErrorBody } from "./gmail-agent-auth";
 
 const TOKEN = "a".repeat(40);
 
@@ -52,5 +52,21 @@ describe("verifyGmailAgentAuth", () => {
     });
 
     expect(verifyGmailAgentAuth(request)).toEqual({ ok: true });
+  });
+});
+
+describe("agentAuthErrorBody", () => {
+  it("builds a 401 Unauthorized body", () => {
+    expect(agentAuthErrorBody(401)).toEqual({
+      status: 401,
+      body: { error: "Unauthorized" },
+    });
+  });
+
+  it("builds a 503 not-configured body", () => {
+    expect(agentAuthErrorBody(503)).toEqual({
+      status: 503,
+      body: { error: "Gmail agent authentication not configured" },
+    });
   });
 });

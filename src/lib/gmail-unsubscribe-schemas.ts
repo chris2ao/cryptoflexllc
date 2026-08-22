@@ -17,6 +17,23 @@ export function containsForbidden(text: string): boolean {
   return FORBIDDEN.test(text);
 }
 
+/**
+ * Best-effort lookup of which item in a raw `{ items: [...] }` body tripped
+ * the forbidden-content check, for a more useful log line. Returns null if
+ * the raw text cannot be parsed, has no `items` array, or no single item
+ * accounts for the match (the forbidden text sits elsewhere in the body).
+ */
+export function findForbiddenItemIndex(rawText: string): number | null {
+  try {
+    const parsed = JSON.parse(rawText) as { items?: unknown[] };
+    if (!Array.isArray(parsed.items)) return null;
+    const index = parsed.items.findIndex((item) => containsForbidden(JSON.stringify(item)));
+    return index === -1 ? null : index;
+  } catch {
+    return null;
+  }
+}
+
 const FORBIDDEN_MESSAGE = "Text may not contain a URL, mailto link, or HTML tag";
 
 const noForbidden = z
