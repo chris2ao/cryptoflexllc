@@ -15,6 +15,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_GA_ID: z.string().optional(),
   ANALYTICS_SETUP_ENABLED: z.string().optional(),
   GITHUB_TOKEN: z.string().min(1).optional(),
+  GMAIL_AGENT_API_TOKEN: z.string().min(32).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
