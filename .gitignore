@@ -77,3 +77,7 @@ docs/Snowflake\ Pics/
 
 # Security review artifacts (local-only; sensitive findings, keep out of the public repo)
 docs/security/
+
+# Local agent scratch (never commit)
+.superpowers/
+.worktrees/
