@@ -84,6 +84,8 @@ import { SearchQueriesPanel } from "./_components/search-queries-panel";
 import { ClientErrorsPanel } from "./_components/client-errors-panel";
 import { RecentVisitsTable } from "./_components/recent-visits-table";
 import { GmailRunsPanel } from "./_components/gmail-runs-panel";
+import { UnsubscribePanel } from "./_components/unsubscribe-panel";
+import { loadUnsubscribePanel } from "@/lib/gmail-unsubscribe";
 import { SessionArchivePanel } from "./_components/session-archive-panel";
 import { AnalyticsShell, DEFAULT_TABS } from "./_components/analytics-shell";
 import { LiveClock } from "./_components/live-clock";
@@ -1159,9 +1161,10 @@ async function NewsletterSection({ days: _days }: { days: number }) {
   );
 }
 
-function ClaudeAutomationSection() {
+async function ClaudeAutomationSection() {
   const gmailRuns = gmailMetricsRaw as unknown as GmailRun[];
   const sessions = sessionArchiveRaw as unknown as SessionEntry[];
+  const unsub = await loadUnsubscribePanel(getDb()).catch(() => null);
 
   const totalRuns = gmailRuns.length;
   const totalProcessed = gmailRuns.reduce((s, r) => s + r.messages_scanned, 0);
@@ -1209,6 +1212,12 @@ function ClaudeAutomationSection() {
       </div>
 
       <KpiStrip items={automationKpis} />
+
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Unsubscribe review" kicker={`${unsub?.summary.pending ?? 0} AWAITING`}>
+          <UnsubscribePanel initial={unsub} />
+        </AxPanel>
+      </div>
 
       <div style={{ marginBottom: 20 }}>
         <AxPanel title="Emails processed per run" kicker="LAST 30 RUNS">

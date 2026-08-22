@@ -331,6 +331,47 @@ export async function GET(request: NextRequest) {
         ON search_queries (ip_address, query)
     `;
 
+    // Gmail unsubscribe review panel tables
+    await sql`
+      CREATE TABLE IF NOT EXISTS gmail_unsubscribe_candidates (
+        sender_email      VARCHAR(320) PRIMARY KEY,
+        sender_domain     VARCHAR(255) NOT NULL DEFAULT '',
+        method            VARCHAR(20)  NOT NULL,
+        trashed_count_14d INTEGER      NOT NULL DEFAULT 0,
+        first_seen        TIMESTAMPTZ  NOT NULL,
+        last_seen         TIMESTAMPTZ  NOT NULL,
+        last_pushed_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+      )
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS gmail_unsubscribe_decisions (
+        id           SERIAL PRIMARY KEY,
+        sender_email VARCHAR(320) NOT NULL,
+        decision     VARCHAR(10)  NOT NULL,
+        decided_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+        note         VARCHAR(280)
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_gmail_unsub_decisions_sender
+        ON gmail_unsubscribe_decisions (sender_email, decided_at DESC)
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS gmail_unsubscribe_attempts (
+        id                  SERIAL PRIMARY KEY,
+        sender_email        VARCHAR(320) NOT NULL,
+        attempted_at        TIMESTAMPTZ  NOT NULL,
+        status_code         SMALLINT,
+        succeeded           BOOLEAN      NOT NULL DEFAULT FALSE,
+        silent_14d          BOOLEAN,
+        silence_measured_at TIMESTAMPTZ,
+        UNIQUE (sender_email, attempted_at)
+      )
+    `;
+
     return NextResponse.json({
       success: true,
       message: "Tables created successfully. Your analytics tracking is now ready.",

@@ -378,3 +378,71 @@ export interface SessionEntry {
   sizeBytes: number;
   sizeMB: string;
 }
+
+// ---- Gmail unsubscribe review panel types ----
+
+/** Unsubscribe delivery mechanism detected for a candidate sender */
+export type UnsubscribeMethod = "rfc8058-post" | "http-get" | "mailto";
+
+/** A sender the gmail-agent has flagged as an unsubscribe candidate */
+export interface UnsubscribeCandidateRow {
+  sender_email: string;
+  sender_domain: string;
+  method: UnsubscribeMethod;
+  trashed_count_14d: number;
+  first_seen: string;
+  last_seen: string;
+}
+
+/** One operator decision (approve/deny) for a candidate sender */
+export interface UnsubscribeDecision {
+  id: number;
+  sender_email: string;
+  decision: "approve" | "deny";
+  decided_at: string;
+  note: string | null;
+}
+
+/** Summary of the most recent unsubscribe attempt for a sender */
+export interface UnsubscribeAttemptSummary {
+  attempted_at: string;
+  status_code: number | null;
+  succeeded: boolean;
+  silent_14d: boolean | null;
+  silence_measured_at: string | null;
+}
+
+/** A candidate row shaped for the review panel, joined with decision and attempt state */
+export interface UnsubscribePanelRow extends UnsubscribeCandidateRow {
+  last_pushed_at: string;
+  decision: "approve" | "deny" | null;
+  decided_at: string | null;
+  note: string | null;
+  last_attempt: UnsubscribeAttemptSummary | null;
+  attempts_since_decision: number;
+  history: Array<{
+    decision: "approve" | "deny";
+    decided_at: string;
+    note: string | null;
+  }>;
+}
+
+/** Aggregate counts and silence rate shown in the panel's summary strip */
+export interface UnsubscribePanelSummary {
+  pending: number;
+  approved: number;
+  allowed: number;
+  unsubscribed_7d: number;
+  silence_measured: number;
+  silence_silent: number;
+  silence_rate: number | null;
+  target: 0.8;
+}
+
+/** GET /api/gmail/unsubscribe/panel response body */
+export interface UnsubscribePanelData {
+  ok: true;
+  generated_at: string;
+  summary: UnsubscribePanelSummary;
+  rows: UnsubscribePanelRow[];
+}
