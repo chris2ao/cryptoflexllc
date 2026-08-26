@@ -1,0 +1,232 @@
+---
+title: 'Round Two: The Security Review Where a Blog Draft Could Run Code'
+date: '2026-08-26'
+description: >-
+  A team of six agents, five security specialists plus an advocate representing
+  the site owner, ran a consensus-driven security review of cryptoflexllc.com.
+  The standout finding: an ordinary-looking blog draft that could have been
+  parsed as executable code instead of data.
+tags:
+  - Security
+  - Claude Code
+  - Next.js
+  - OWASP
+  - Agents
+  - AppSec
+author: Chris Johnson
+readingTime: 16 min read
+series: Security Engineering
+seriesOrder: 9
+schemaType: TechArticle
+coverImage: /blog/security-review-round-two/infographic.png
+coverImageAlt: >-
+  Dark editorial cover for Security Review: Round Two, part 9 of the Security
+  Engineering series. Two chips read Security Engineering and Part 9, Biannual
+  Site Review, above a kicker reading 6 Agents, 1 Rule, Nothing Ships Without
+  Consensus. Below, two side-by-side terminal-style code panels contrast a safe
+  frontmatter fence against a dangerous one: the left, green-bordered panel
+  labelled Data, Renders Fine shows a plain --- fence with an ordinary title and
+  date, captioned Plain frontmatter fence, always just data; the right,
+  red-bordered panel labelled Code, Would Execute shows a ---js fence with its
+  payload marked omitted, captioned One labelled fence, now rejected before
+  parsing, every push. Beneath the panels, the title reads Security Review:
+  Round Two, with Round Two in teal. A mono deck line beneath the title reads
+  The worst finding was hiding in the content folder, caught by consensus, not a
+  scanner. A row of six chips names the review team: AppSec Pentester (Captain,
+  Audit Lens), Red Teamer (Exploit Lens), Sec. Researcher (Novel Bugs), Threat
+  Intel (OSINT and CVEs), Sec. Engineer (Fix Design), and an amber-accented
+  Advocate chip (Cost vs. Risk Veto). An italic closing line reads Five lenses
+  find it, the advocate weighs what it's worth to fix. The footer shows the
+  Cryptoflex LLC, From the Workshop brand strip and the text Fixed and Deployed,
+  Round Three in 6 Months.
+---
+
+One of my own blog drafts could have run as a program on my servers. Six months ago, [round one](/blog/security-hardening-analytics-dashboard) went through the analytics dashboard and whatever this site gave away in public, and found 19 issues. This round put six agents on the whole site, with a rule that nothing counted until they agreed, and the worst thing they found was hiding in the content folder, invisible to the usual checks.
+
+## Why Review Again, Six Months Later
+
+Build-in-public means this site never really stops changing. Ninety-one posts now, a live analytics dashboard, comments, a guestbook, and a publish pipeline that pushes a new post from a pull request straight to production. Round one hardened whatever existed back in February. None of that code stayed frozen afterward.
+
+Every feature I've shipped since then is new attack surface, whether I was thinking about it that way while I built it or not. The comment system didn't exist six months ago. Neither did half of the current publish pipeline. A security review that only re-checks what it checked last time isn't really a review, it's a rerun with a new timestamp.
+
+So what's actually still true from February, and what's quietly moved since? That's the honest question a biannual review has to answer, and you don't get to assume the answer is "still fine" just because it was fine once. Assume nothing secured six months ago is still secure, and go find out. Some of it held. Some of it didn't. A review's job is half confirmation and half discovery, and you don't know the split going in.
+
+## Six Agents, One Rule: Nothing Ships Without Consensus
+
+Round one had one target, the analytics dashboard plus what the site leaked publicly, and its findings went straight into a fix list. Round two was six agents working the whole site from six different angles, in parallel, against the same code, and nothing counted as a finding until they agreed on it.
+
+Five ran security lenses: a senior AppSec pentester acting as captain, a red teamer, a security researcher, a threat-intelligence analyst, and a security engineer. Each one probes for a different kind of failure, the pentester thinking like an auditor building a report, the red teamer thinking like someone who just wants in.
+
+A sixth agent sat outside the security team entirely: a senior-developer "customer advocate" representing me, the site's owner. Its job wasn't to find bugs. It was to ask whether a proposed fix was worth what it would cost.
+
+<ReviewPipelineDiagram />
+
+<Info title="What is a Red Team?">
+A red team plays the attacker on purpose. Instead of checking a list of known issues, it asks "how would I actually break this?" and tries. The other lenses ask what's wrong; the red team asks what's exploitable.
+</Info>
+
+The rule that made the whole thing work: every recommendation had to reach consensus between the security team and the advocate before it counted as a finding. The advocate weighed accessibility, implementation complexity, user experience, and CI/CD impact against whatever severity the security side assigned. When the two genuinely disagreed, instead of the security case winning by default, the call came up to me as an owner decision.
+
+Findings also had to survive being attacked. Each one got challenged by a separate pass that tried to refute it: is this actually exploitable, or does it just look bad on paper? A plausible-but-wrong finding usually dies during that step, before it ever reaches a fix.
+
+<Info title="What is Adversarial Verification?">
+Instead of trusting a finding because an agent flagged it, a second pass actively tries to prove the finding wrong. Only what survives that attempt gets treated as real. It's the same instinct as a code review, aimed at the review itself.
+</Info>
+
+Two calls from the review show the consensus rule at work. The security lens wanted a full nonce-based rewrite of the site's Content-Security-Policy, the header that controls what a page is allowed to load. The advocate ran the numbers and found it would push every cached blog page into slower, per-request rendering, for a security gain that was real but small against our actual threat model. We took the cheap hardening wins instead and consciously accepted the leftover risk.
+
+The second call went the other way. A proposal to lock down all cross-origin resources would have broken the YouTube embeds sitting in several posts, including some in this same review, plus the analytics dashboard itself. The advocate rejected it outright, no owner escalation needed; the tradeoff wasn't close.
+
+A single automated scanner gives you a flat list sorted by severity. Consensus plus adversarial verification gives you a ranked list where the fixes that make it through don't quietly break the site, lock out screen readers, or bolt on complexity nobody asked for.
+
+## The Blog Post That Was Secretly a Program
+
+Every post on this site starts the same way: a little settings block at the top, title, date, tags, before the actual writing begins. Markdown calls this the frontmatter, and it's supposed to be pure data. No logic, nothing that runs, just fields a template reads.
+
+<Info title="What is Frontmatter?">
+Frontmatter is the settings block at the top of a Markdown file, usually fenced off between two `---` lines. It holds metadata like the title and date so the page template knows what to display, separate from the actual content underneath.
+</Info>
+
+The library that reads that block for this site is called gray-matter. It's a widely used library, and for the overwhelming majority of what it does, it's a fine one. But it has a mode most people writing frontmatter never touch: if you label that opening fence as JavaScript instead of the plain format everyone actually uses, gray-matter doesn't try to read the block as data. It runs it. As code. On whatever machine is parsing the file.
+
+That's the whole bug: a file that looks, in a pull-request diff, exactly like every other draft on this site can instead be a program waiting for something to execute it.
+
+<Security title="What is Remote Code Execution (RCE)?">
+RCE is the worst class of bug there is: an attacker gets to run their own program on a machine that isn't theirs. Once code executes, it can read your files or reach out to other systems, doing whatever the process it's running inside is allowed to do.
+</Security>
+
+<FrontmatterEvalDiagram />
+
+The difference between an ordinary post and a hostile one comes down to a few characters on the opening line:
+
+```md
+---
+title: "An Ordinary Draft"
+date: "2026-08-01"
+---
+```
+
+versus:
+
+```md
+---js
+title: (a few characters of code, omitted)
+---
+```
+
+Nothing else about the file changes. It's still an `.mdx` file, still sitting in the same folder as every other post, still passing every visual glance a reviewer might give it. The `js` on that one line is the entire difference between a document and a program.
+
+## Where That Bug Could Actually Run
+
+This site's repository is public and accepts content contributions, meaning a pull request that only touches a file under the blog content folder is a normal, expected kind of change here. That's exactly the surface this bug sits on. A post that looked like an ordinary draft could run its payload in three different places: the regular page build, the preview build the hosting platform generates for every pull request, or, if it slipped past review, the live site itself.
+
+<CriticalBlastRadiusDiagram />
+
+Of the three, the preview build is the one that matters most if you run anything like this yourself. It exists to let you see a change before it ships, which means it runs with real production credentials, not test ones, so the preview actually behaves like production. Code execution during a preview build isn't code execution somewhere sandboxed and harmless. It's code execution where the passwords are.
+
+Every one of the injection-focused lenses on the team, the ones built to catch cross-site scripting and content-injection bugs, looked directly at this content pipeline and called it safe. They weren't wrong. The MDX rendering itself really is locked down; nothing a reader submits through a comment or a guestbook entry gets interpreted as code, and that part of the pipeline held up under all six agents' scrutiny.
+
+What none of the injection lenses asked was a different question: what if the content file itself, before rendering ever starts, is the attack? That's a red-team question, not an injection question, and it took the red-team lens specifically to ask it. Everyone else was checking whether the front door was locked. The red team checked whether the walls were load-bearing.
+
+That reframe is the case for five differently-angled lenses over one thorough scan. A single scanner, however good, asks the questions it was built to ask. It doesn't spontaneously ask a different one.
+
+The content folder is a code directory, not a data directory, whatever it looks like from the outside. Anything a build server reads is an input an attacker can shape, and "it's just markdown" was never actually true here.
+
+## Closing the Parser Hole
+
+The fix has three layers, and I built all of them to hold even if one fails.
+
+The first is a single shared parser guard: a small wrapper around gray-matter that refuses to parse any frontmatter fence labelled with a language and disables the code-executing engine entirely, no matter what label shows up. Both places that read post files, the normal page build and the live publish path that pushes new posts to production, call the same guard. One choke point instead of two separate implementations that could quietly drift apart.
+
+```ts
+import matter from "gray-matter";
+
+// Frontmatter is data. It never gets to be a program.
+// Overriding `engines` this way strips out gray-matter's default
+// JavaScript and CoffeeScript engines, leaving only plain YAML.
+const { data, content } = matter(raw, {
+  engines: {
+    yaml: (input) => YAML.parse(input, { schema: "core" }),
+  },
+});
+```
+
+That's the shape of it, not the production code, but it's enough to see the idea: don't try to detect malicious frontmatter, just remove the capability that makes any frontmatter dangerous in the first place.
+
+The second layer is a CI check that runs on every push and rejects any frontmatter fence that isn't the plain, unlabeled kind. I ran it against all 91 existing posts before merging it, expecting to spend an afternoon chasing false positives. Zero. Every post on this site had always been ordinary YAML frontmatter; the check just makes sure it stays that way.
+
+The third layer is process, not code: the content folder now requires code-owner review on every pull request, the same gate the actual application code gets.
+
+<Security title="How We Proved It's Fixed">
+Two checks, not one. First, I ran the exploit against the new guard in a sandbox and confirmed the payload no longer executes; it gets rejected before parsing ever reaches the point where code could run. Second, I rebuilt all 91 posts through the new guard end to end and diffed the output. Every post renders identically to before. The fix closes the hole without changing a single word anyone's already published.
+</Security>
+
+I don't love that this one was mine to find. But I'd rather find it in a review than in a build log, and the second one doesn't come with the courtesy of a warning first.
+
+## Faking Your ID to Dodge the Bouncer
+
+The admin login on this site is rate-limited: too many attempts from one visitor in an hour and it locks them out. That login guards the key that can publish straight to the site's code repository, so it's one of the higher-value doors on the property.
+
+The rate limiter decided who counted as "one visitor" using a header called X-Forwarded-For, which exists to tell a server the real address behind a chain of proxies. The problem: a visitor can write anything they want into that header before it ever reaches the server. On the serverless host this site runs on, the platform appends the real address rather than replacing what's already there, so the left-most value in that header is still whatever the visitor put there first.
+
+<Security title="What is X-Forwarded-For?">
+X-Forwarded-For is a header that records the chain of addresses a request passed through. Trusted proxies are supposed to append to it, never replace it, which is exactly what makes the left-most entry forgeable: it's whatever the very first hop wrote, and the first hop can be the attacker.
+</Security>
+
+<SpoofedIdentityRateLimitDiagram />
+
+Send a login attempt with a made-up identity in that header, and to the rate limiter, you're someone brand new. Do it again with a different made-up identity, and you're someone else brand new. It's a fake ID at a bar with a one-drink-per-person rule, except the bouncer never checks it against the last five people who walked in, so a fresh fake ID every time means the limit never actually fires.
+
+The fix trusts a different signal instead: the header the hosting platform itself sets, which a visitor can't forge because it never passes through anything the visitor controls. I also capped its length, so a request stuffed with a giant fake value can't bloat the rate-limit store. Both are covered by unit tests now: one for header precedence, one for the length cap.
+
+## Every Speed Limit Sharing One Speedometer
+
+Thirteen endpoints on this site are rate-limited: comments, the contact form, admin login, and ten others, each with its own documented limit. Comments get one number, contact gets a stricter one, admin login gets the strictest of all. Reasonable design, on paper.
+
+In practice, eleven of those thirteen limiters wrote to the exact same counter. The limits weren't wrong on paper, they just weren't real: every one of those eleven endpoints was actually enforcing a single blended budget shared across all of them, whatever the individual numbers claimed.
+
+<SharedCounterBucketsDiagram />
+
+It's every speed limit on a stretch of road secretly sharing one speedometer. Post a comment or submit the contact form a couple of times, and you'd been quietly spending down the same budget that governed attempts against the admin login, without any of those actions looking anything like an attack.
+
+<Tip title="The Key Is the Isolation">
+When several rate limiters share one backing store, the key is what separates them. A bare per-visitor key with no endpoint name means every "separate" limit is secretly the same limit. Namespacing the key is what makes thirteen limits actually thirteen.
+</Tip>
+
+The fix was mechanical once we saw it: give each of the thirteen limiters its own namespaced counter, so a comment and a login attempt can never share a bucket again. The rate-limit test suite got updated to assert on that isolation directly, and it's green.
+
+## Our Own Security Rule Unplugged Our Videos
+
+Content-Security-Policy is a browser-enforced allowlist: a header that tells the browser exactly which outside sources a page is allowed to load anything from. Ours never listed youtube-nocookie.com, the privacy-friendly YouTube domain I'd deliberately chosen for every video embed on this site instead of the regular one.
+
+<Info title="What is a Content-Security-Policy?">
+A Content-Security-Policy is a header a server sends that tells the browser which external sources a page may load scripts, frames, or media from. Anything not on the list gets silently blocked by the browser itself, no matter what the page's own code tries to do.
+</Info>
+
+The result had been sitting in production for months: every embedded video on the site loaded its thumbnail fine, because the thumbnail is a plain image with no policy violation. Click play, though, and nothing happened. No error banner, no broken-image icon, just a dead black box where a video should have been. The page still returned a clean HTTP 200. The only trace was a blocked-by-CSP line in the browser console that no visitor was ever going to open.
+
+<SilentCSPFailureDiagram />
+
+Nobody attacked anything here. I broke this myself, writing a security header without checking it against a feature I'd shipped around the same time, and it stayed broken until an agent whose job was checking security behavior happened to also click play on a video. A security policy has to be tested against how the site actually behaves, not just against a hardening checklist. A failure that looks identical to success can hide for months.
+
+The fix was one line: add the domain to the policy. I took a couple of free hardening wins alongside it while I was in there, blocking plugin content outright and forcing HTTPS on every subresource the page loads.
+
+## What Already Held Up
+
+The review's other job is confirming what already works, and most of it did. Parameterized database queries are used everywhere; nobody found a SQL-injection path, because there isn't a raw query left to find one in. Login checks run in constant time and set secure, HTTP-only cookies.
+
+Three independent guards stop anything from writing outside the content folder, so even a bug elsewhere in the pipeline has three separate walls to get through before it reaches a file it shouldn't. Comments and guestbook entries render as plain, auto-escaped text and sit behind moderation before anyone else sees them.
+
+Every destructive admin endpoint checks authentication before it does anything, no access-control gaps anywhere the team looked. The hosting platform's bot challenge actively blocks automated scanners on its own.
+
+The one real gap was a stale dependency: the framework was a few security patches behind, an image-optimization denial-of-service issue and a couple of middleware advisories, the single High of the whole review. I upgraded the framework and its lint config together, in lockstep, to 16.3.0.
+
+## The Draft That Could Have Been a Program
+
+Everything the team rated Critical or High is fixed and deployed. The framework is current at 16.3.0, the known-vulnerability count is down from 17 to 12, and the new frontmatter fence check runs against every post on the site, including the ones written before any of this review started.
+
+The numbers are the easy part to report. The real payoff was the process, and I'd rather say that plainly than dress it up: consensus between five security lenses and one advocate representing my actual priorities, backed by adversarial verification, caught the one Critical that every injection-focused check on the team looked past, because it was, correctly, checking something else.
+
+I started this post with the fact that one of my own blog drafts could have run as a program on my servers. It's a strange sentence to have earned the right to write in past tense, but I have: the guard is live, the CI check runs on every push, and the file that looks like a draft in a pull-request diff is, once again, just a draft.
+
+There's already a round three penciled in for six months out. What will it find? I don't know yet, and that's kind of the point of running this on a cadence instead of once and calling the site done.
