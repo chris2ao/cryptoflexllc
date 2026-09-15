@@ -92,6 +92,8 @@ designer checks against.
 | ledgerly-mcp-tool-calling-chat | The chat turn as it happened: the question, two tool-call chips in call order, the answer with the excluded-mortgage sentence highlighted, and a pinned 1,054-rows callout | Terminal-style chat transcript panel (~60% width) with a right rail of five hops (browser, route, CLI, MCP stdio, SQLite) and a flags terminal block beneath |
 | ledgerly-cyber-editorial-rebuild | One design-system record fanning out over a two-trunk teal bus into eight agent lanes, with the 46 green tests as a rail | Left record card (file tree of the nine sheets) plus a 2x4 grid of lane cards fed by arrowed bus stubs; 46-square test rail and right-aligned punchline below |
 
+| astra-home-remodel-3d | The remodel as an editable object: architectural references pass through ChatGPT Work and Astra into a kitchen the owner can inspect and correct | Dominant isolated kitchen model on the right; large headline and vertical references-to-model sequence on the left |
+
 ## Art director review (mandatory after every render)
 
 Open the PNG and critique it as a graphic designer before touching the

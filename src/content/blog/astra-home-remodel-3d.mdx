@@ -1,0 +1,184 @@
+---
+title: "I Used Astra to Build a 3D Model of My Home Remodel"
+date: "2026-09-14T22:06:30-04:00"
+description: "How I used Astra in ChatGPT Work to turn architectural plans, photos, and changing kitchen renders into an interactive home model, with plenty of cabinet corrections along the way."
+tags: ["Astra", "ChatGPT Work", "3D Modeling", "Home Remodel"]
+author: "Chris Johnson"
+readingTime: "14 min read"
+featured: false
+schemaType: Article
+coverImage: /blog/astra-home-remodel-3d/infographic.png
+coverImageAlt: "An isolated kitchen model fills the right side of the cover. The title and a flow from plans and photos through Astra to an editable model appear on the left."
+---
+
+“It's still not right” turned out to be a fairly important prompt in this project. Astra had built a kitchen I could rotate in my browser, but the cabinets still weren't following the reference render. I could see the problem. Now I needed to explain which part of the kitchen I was looking at.
+
+I'd started with a kitchen and laundry remodel, a collection of drawings, and photos that didn't all describe the same version of the house. I wanted to bring them together in a fully rendered 3D model I could explore and change through code.
+
+I used **Astra in ChatGPT Work** to build it. The conversation covered the house layout, cabinetry, appliance placement, laundry alternatives, and eventually touch controls so I could use the model on my phone. Some requests became working features. Others became another conversation about the cabinets.
+
+![Elevated view of the modeled kitchen, with the peninsula, cabinetry, and adjacent renovation space visible](/blog/astra-home-remodel-3d/kitchen-overview.png)
+
+*A cropped view of the actual renovation model. The geometry represents the proposed layout; this is a browser rendering, not a photograph of a finished kitchen.*
+
+## I Already Had the References, Just Not One Consistent Picture
+
+The kitchen and laundry were under construction. Existing photos showed what had been there, while the design renders showed what might be there next. The architectural drawings supplied the structure, but they didn't answer every question about cabinetry or the rooms beyond the remodel.
+
+That distinction mattered immediately. A convincing render can show an appliance I've already decided against. An older photo can accurately show a wall while being completely wrong about the cabinets attached to it. Giving Astra both doesn't automatically tell it which detail to believe.
+
+These were the main sources I brought into the conversation:
+
+| Source | What it helped establish | What still needed interpretation |
+| --- | --- | --- |
+| Architectural and demolition plans | Walls, openings, dimensions, and the relationship between existing and proposed work | Interior details outside the drawing's scope |
+| Cabinet drawings | Cabinet runs and the intended organization of storage | Changes made after the drawing was produced |
+| September 2025 design renders | The future kitchen's appearance, peninsula, column, and cabinetry | Conflicting versions and appliances I wasn't installing |
+| Existing and construction photos | What was actually in the rooms, including details missing from the plans | Exact dimensions and the intended finished state |
+| My own sketch | A room relationship that the first model had missed | Measurements that the sketch didn't contain |
+| A later survey and elevation document | Another reference for exterior geometry and site context | Differences between documents and the modeled footprint |
+
+The dates on the renders helped narrow things down. I asked Astra to use the latest September versions and align them with the plans, then spelled out the corrections that still applied. “Use this render” wasn't sufficient when that render itself needed changes.
+
+Photos also helped answer questions that the drawings didn't resolve. When the model missed bathroom partitions, I supplied more context and eventually drew over a screenshot. The sketch communicated the shape of the adjoining room much more directly than another paragraph of directions would have.
+
+<Warning title="Photos aren't measured drawings">
+A photo can establish that a doorway or cabinet exists without establishing its exact size. Perspective and lens distortion make apparent proportions unreliable. Dimensions inferred from photos remain estimates until they're checked against a drawing or a measurement.
+</Warning>
+
+## Asking for Something I Could Keep Editing
+
+My initial request went beyond generating a picture. I wanted a self-contained model where we could add or change things through code, while I interacted with the result in a browser.
+
+That requirement shaped the artifact. The project has a `model.json` file containing the room and object data, with dimensions expressed in inches. An `app.js` viewer turns that data into the visible scene. A build step bundles the data, viewer, and rendering library into a single HTML file.
+
+The rendering library is [Three.js](https://threejs.org/), which draws the scene in the browser. Cabinets, walls, appliances, and furniture are objects the code can place and size. Changing the arrangement means changing that underlying data and rebuilding the view.
+
+<Info title="What rendered means here">
+This model uses simplified 3D geometry, materials, and lighting. You can move the camera around it and walk through it. It isn't photorealistic, and it isn't a substitute for construction drawings or field verification.
+</Info>
+
+ChatGPT Work was where I supplied the references, described changes, and reviewed the results. [Astra](https://developers.openai.com/api/docs/models/gpt-6-astra) was the model doing the reasoning and coding within that workflow. The resulting house viewer is its own browser application; it doesn't need an AI response every time I rotate the camera.
+
+That separation is useful. I can open the saved HTML and inspect the current design without restarting the conversation. When I want something changed, I can return to the project and give a specific instruction about the geometry or behavior.
+
+The code-backed approach also gives corrections somewhere to live. Moving a cabinet changes its position in the model. It doesn't depend on hoping that a new generated picture will preserve every other detail from the last one.
+
+## The Kitchen Needed More Than “Make It Look Like This”
+
+The cabinet corrections took several rounds because I was asking the model to reconcile three different things: the room's geometry, the design render, and my changes to that design.
+
+The appliance wall was a good example. The reference showed a wall oven beside the refrigerator. I wasn't installing that oven. I wanted storage in that area, but describing it as “square cabinets” left room for a different interpretation of the doors and proportions.
+
+Astra asked whether I meant stacked square doors or upper and lower cabinets separated by an open countertop. I clarified that I meant stacked doors. That helped, but it still didn't completely describe the arrangement I had in mind.
+
+I then supplied a close-up of the reference. I wanted the double-door pantry on the right, a long upper cabinet over the adjacent section, and two roughly wall-oven-sized cabinet fronts below it extending down toward the floor. I also said the refrigerator might need to shift left to make the composition work.
+
+The reference still contained the oven. My instruction explained which parts to retain and what should replace it. Without that distinction, copying the picture accurately would have produced the wrong kitchen.
+
+Other corrections were about how the room would be used. The microwave belonged to the left of the dishwasher near the sink. The sink needed to sit in front of the window. The cooking appliance was a slide-in gas stove and oven, with a free-hanging hood, rather than a separate countertop cooktop.
+
+![Kitchen model viewed from near counter height, showing the relationship between the cooking area and cabinetry](/blog/astra-home-remodel-3d/kitchen-eye-level.png)
+
+*A closer view of the modeled kitchen. Looking from within the space made cabinet faces and countertop relationships easier to review than the overhead view alone.*
+
+The peninsula generated another set of corrections. I wanted the seats on the dining-room side, where they could tuck beneath the counter. I wanted waterfall granite at the exposed ends. I wanted more usable counter opposite the stove, and I wanted the cabinet and counter fronts aligned instead of projecting farther into the kitchen.
+
+“Left of the stove” gets surprisingly ambiguous when you're rotating a room on a screen. I ended up describing the viewpoint too: looking into the kitchen, or standing in the kitchen looking out toward the dining room. Those phrases supplied the missing frame of reference.
+
+The wall beside the laundry room needed the same attention. I pointed Astra back to the galley render that showed that cabinet run most clearly, asked for the cabinets and countertop to continue toward the laundry entry, and asked it to fully render the column in the peninsula. An isolated cabinet could look reasonable while the run as a whole was still wrong.
+
+Doors were part of the correction process as well. The exterior opening called for double French doors, not a sliding glass door, and the laundry door needed to swing into the laundry room. Those aren't decorative differences when you're trying to understand how a small space works.
+
+![Animated rotation around the cropped kitchen model, revealing the peninsula and cabinetry from several angles](/blog/astra-home-remodel-3d/kitchen-orbit.gif)
+
+*A rotation of the actual model, cropped to the renovation area. Changing the viewpoint helps expose relationships that a single render can hide.*
+
+The model wasn't consistently right on the first attempt. It did give me something concrete to correct, and the corrections got more useful as I stopped assuming that the picture, the plans, and my intended changes all said the same thing.
+
+## The Prompts Became More Specific as the Model Improved
+
+Looking back through the conversation, my prompts moved from describing the artifact to identifying individual constraints. I didn't need elaborate instructions for every turn. Often I needed to point at the wrong thing more precisely.
+
+These are shortened paraphrases of the requests I used, rather than a transcript:
+
+> Build a self-contained 3D model from the plans, drawings, photos, and renders. I want to interact with it and change it through code.
+
+> Use the latest September renders, aligned to the plans. Keep the design, but apply my appliance and cabinet corrections.
+
+> Standing in the kitchen and looking toward the dining room, make the cabinet and countertop faces beside the stove flush.
+
+> Keep the water heater where it is. Show what we could do with the laundry room if the washer and dryer were stacked.
+
+Each request supplied a different kind of information. The first defined the deliverable. The next established which references governed the future layout. The viewpoint instruction removed a spatial ambiguity. The laundry request introduced an alternative while holding an existing condition fixed.
+
+I also asked for an interior designer persona when exploring storage and furniture arrangements. That changed the questions I wanted help with: where we'd fold laundry, hang clothes, store supplies, or sit together to watch TV. It didn't establish whether a proposed installation met appliance instructions or building requirements.
+
+<Tip title="Mark the exact change">
+On a screenshot, outline the cabinet face, wall edge, or opening that needs to change. Add a short note about what should move and what should stay. That gives the correction a visible boundary instead of asking the model to reinterpret the whole room.
+</Tip>
+
+## The Laundry Room Became a Comparison Tool
+
+For the laundry room, I initially confirmed side-by-side front-loading machines without pedestals and a water heater that would remain in place. That gave the design a starting point. The next question was what storage and work surface could fit around those fixed elements.
+
+I asked about cabinets, a countertop or tabletop, places to hang things, and storage for laundry supplies. Then I asked what would change if the machines were stacked.
+
+The viewer gained separate laundry options so I could compare those ideas in the same room:
+
+| Modeled option | What I could evaluate |
+| --- | --- |
+| Side-by-side with storage | An opposite-wall folding counter, sorting baskets below, and a hanging rail, shelf, and supply cabinet above |
+| Machines only | The room with just the side-by-side machines and existing water heater |
+| Stacked with storage | A tall utility cupboard in the space released beside the machines |
+| Stacked with a sink | Whether a utility sink was an alternative worth investigating |
+
+The machines-only option came from a separate request. I wanted to see the room without the added cabinetry too. It's easy to keep adding useful-looking objects until the original space disappears under them.
+
+![Animation comparing the laundry room's modeled arrangements while keeping the room and water heater consistent](/blog/astra-home-remodel-3d/laundry-options.gif)
+
+*Proposed laundry alternatives in the actual viewer. These compare arrangements; they don't establish appliance compatibility, service clearances, or a final installation design.*
+
+Stacking freed floor width beside the machine tower in the model. I could inspect how the alternatives used that space for a utility cupboard or sink, while retaining the opposite-wall folding station, then switch back to the side-by-side arrangement to compare.
+
+That isn't a decision to buy stackable machines or add plumbing. It gives me a more concrete set of options to discuss and measure. Vent routing, maintenance access, and the requirements of the actual appliances still need to be checked before a layout becomes an installation plan.
+
+![Laundry model showing the backs of the side-by-side machines and an opposite-wall folding counter with sorting baskets below and a hanging rail above](/blog/astra-home-remodel-3d/laundry-storage.png)
+
+*The proposed folding counter sits opposite the side-by-side machines, with sorting baskets below and a hanging rail above. The existing water heater remains part of the space being planned around.*
+
+## I Wanted to Use It Away From My Desk
+
+Once I could inspect the rooms, I wanted direct tabs for them. Jumping to the kitchen or laundry room is simpler than finding the same camera angle every time. I also asked for separate views of other rooms as the house model expanded.
+
+Then came the phone request. A desktop walkthrough that expects a keyboard doesn't help much on an iPhone. I asked for pinch-to-zoom, touch navigation, and a way to use the walk-inside feature on mobile.
+
+The viewer gained touch gestures and on-screen walking controls. That made the interactive part of the project something I could actually use from a phone, rather than just a feature that existed on the desktop.
+
+To access the model on another device, we served it from my computer on the local network. The phone could then open it in a browser on the same Wi-Fi. The computer has to remain available while serving it; saving a self-contained HTML file and hosting that file for other devices are separate tasks.
+
+## More Documents Didn't Automatically Mean More Certainty
+
+Later, I supplied a recent survey and elevation document and asked for the model's measurements to be updated. That added exterior evidence, but it also exposed differences between the documents and the footprint already in the model.
+
+Those differences couldn't be resolved by making every interior room stretch until the outside matched. The interior model was based on its own references. A discrepancy needed to remain visible as something to reconcile, rather than disappear into a more confident-looking drawing.
+
+The same principle applied to the photos and my sketch. Each source could answer a question, but it didn't become authoritative about everything just because it was the newest upload. A survey and a cabinet render serve very different purposes.
+
+## Sharing the Build Without Sharing the House
+
+The source material contains information I don't want attached to a public blog post. Signed documents, personal photos, and a complete house layout are useful project references. They don't need to become downloadable supporting material for this story.
+
+The images here are fresh captures of cropped renovation views. I'm leaving out the original photos and documents, identifying labels, and the full house model. That still lets me show the cabinet layout and laundry comparisons without publishing the entire private project.
+
+<Security title="Check the exported artifact">
+Privacy review includes filenames, image metadata, captions, and anything embedded inside a downloadable page. Hiding an address visually wouldn't help if the page still contained the original drawing or complete model data.
+</Security>
+
+## Lessons Learned
+
+The most useful corrections came from knowing my own house and being specific about the intended remodel. Astra could build and revise the scene, but I had to resolve which cabinet design I meant and identify details the references contradicted or omitted. A model that looked plausible still needed that review.
+
+I'd keep the editable model structure and the saved alternatives if I started again. I'd also establish the reference order earlier, before asking several versions of a kitchen to become one kitchen. That would've made some of my cabinet instructions less circular.
+
+For now, I can open the laundry tab, switch between the storage proposal and the machines-only arrangement, and look at the space each one leaves. That's the comparison I wanted to be able to make before adding more cabinets to the real room.
