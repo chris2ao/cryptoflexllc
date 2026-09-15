@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -9,6 +9,13 @@ interface GuestbookEntry {
   name: string;
   message: string;
   created_at: string;
+}
+
+async function loadEntries(): Promise<GuestbookEntry[] | null> {
+  const res = await fetch("/api/guestbook");
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.entries ?? [];
 }
 
 export function GuestbookEntries() {
@@ -22,23 +29,22 @@ export function GuestbookEntries() {
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const fetchEntries = useCallback(async () => {
-    try {
-      const res = await fetch("/api/guestbook");
-      if (res.ok) {
-        const data = await res.json();
-        setEntries(data.entries ?? []);
-      }
-    } catch {
-      // Silently fail on fetch errors
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
+    let ignore = false;
+    void loadEntries()
+      .then((data) => {
+        if (!ignore && data) setEntries(data);
+      })
+      .catch(() => {
+        // Keep the current entries if the request fails.
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

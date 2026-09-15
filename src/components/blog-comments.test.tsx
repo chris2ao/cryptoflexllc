@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { BlogComments } from "./blog-comments";
 
 const mockCommentsThreaded = [
@@ -53,6 +53,44 @@ describe("BlogComments", () => {
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/comments?slug=test-post"
     );
+  });
+
+  it("ignores a delayed response after changing posts", async () => {
+    let resolveFirst!: (response: unknown) => void;
+    (global.fetch as ReturnType<typeof vi.fn>)
+      .mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [], thumbsUp: 7 }),
+      });
+    const onCount = vi.fn();
+    const { rerender } = render(<BlogComments slug="first-post" onThumbsUpCount={onCount} />);
+    rerender(<BlogComments slug="next-post" onThumbsUpCount={onCount} />);
+    await waitFor(() => expect(onCount).toHaveBeenCalledWith(7));
+
+    await act(async () => {
+      resolveFirst({
+        ok: true,
+        json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
+      });
+    });
+
+    expect(screen.queryByText("Great post!")).not.toBeInTheDocument();
+    expect(onCount).not.toHaveBeenCalledWith(1);
+  });
+
+  it("does not notify the parent after unmounting", async () => {
+    let resolveRequest!: (response: unknown) => void;
+    (global.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+      new Promise((resolve) => { resolveRequest = resolve; })
+    );
+    const onCount = vi.fn();
+    const { unmount } = render(<BlogComments slug="test-post" onThumbsUpCount={onCount} />);
+    unmount();
+    await act(async () => {
+      resolveRequest({ ok: true, json: async () => ({ comments: [], thumbsUp: 1 }) });
+    });
+    expect(onCount).not.toHaveBeenCalled();
   });
 
   it("displays replies indented below parent comments", async () => {

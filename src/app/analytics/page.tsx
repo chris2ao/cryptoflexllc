@@ -853,6 +853,34 @@ async function TelemetrySection({ days }: { days: number }) {
   );
 }
 
+async function loadVercelFirewall(days: number) {
+  let vercelFirewallConfig: VercelFirewallConfig | null = null;
+  let vercelAttackStatus: VercelAttackStatus | null = null;
+  let vercelFirewallEvents: VercelFirewallEvents | null = null;
+
+  if (isVercelApiConfigured()) {
+    const now = Date.now();
+    const sinceTs = now - days * 24 * 60 * 60 * 1000;
+
+    const [fwConfig, atkStatus, fwEvents] = await Promise.allSettled([
+      fetchFirewallConfig(),
+      fetchAttackStatus(days),
+      fetchFirewallEvents(sinceTs, now),
+    ]);
+
+    if (fwConfig.status === "fulfilled") vercelFirewallConfig = fwConfig.value;
+    else console.error("Vercel firewall config error:", fwConfig.reason);
+
+    if (atkStatus.status === "fulfilled") vercelAttackStatus = atkStatus.value;
+    else console.error("Vercel attack status error:", atkStatus.reason);
+
+    if (fwEvents.status === "fulfilled") vercelFirewallEvents = fwEvents.value;
+    else console.error("Vercel firewall events error:", fwEvents.reason);
+  }
+
+  return { vercelFirewallConfig, vercelAttackStatus, vercelFirewallEvents };
+}
+
 async function SecuritySection({ days }: { days: number }) {
   const sql = getDb();
 
@@ -913,29 +941,8 @@ async function SecuritySection({ days }: { days: number }) {
     (clientErrorCount as unknown as { total: number }[])[0] || { total: 0 }
   ).total;
 
-  let vercelFirewallConfig: VercelFirewallConfig | null = null;
-  let vercelAttackStatus: VercelAttackStatus | null = null;
-  let vercelFirewallEvents: VercelFirewallEvents | null = null;
-
-  if (isVercelApiConfigured()) {
-    const now = Date.now();
-    const sinceTs = now - days * 24 * 60 * 60 * 1000;
-
-    const [fwConfig, atkStatus, fwEvents] = await Promise.allSettled([
-      fetchFirewallConfig(),
-      fetchAttackStatus(days),
-      fetchFirewallEvents(sinceTs, now),
-    ]);
-
-    if (fwConfig.status === "fulfilled") vercelFirewallConfig = fwConfig.value;
-    else console.error("Vercel firewall config error:", fwConfig.reason);
-
-    if (atkStatus.status === "fulfilled") vercelAttackStatus = atkStatus.value;
-    else console.error("Vercel attack status error:", atkStatus.reason);
-
-    if (fwEvents.status === "fulfilled") vercelFirewallEvents = fwEvents.value;
-    else console.error("Vercel firewall events error:", fwEvents.reason);
-  }
+  const { vercelFirewallConfig, vercelAttackStatus, vercelFirewallEvents } =
+    await loadVercelFirewall(days);
 
   const totalBot = typedBotTrend.reduce((s, r) => s + (r.bot_count ?? 0), 0);
   const totalAuthFail = typedAuthAttempts.reduce(
@@ -1398,6 +1405,26 @@ interface AnalyticsPageProps {
   searchParams: Promise<{ days?: string }>;
 }
 
+async function loadLiveSummary() {
+  const queryStart = Date.now();
+  // Best-effort count of distinct visitors in the last 5 minutes for the live pill.
+  let activeSessions = 0;
+  try {
+    const sql = getDb();
+    const rows = (await sql`
+      SELECT COUNT(DISTINCT ip_address)::int AS active
+      FROM page_views
+      WHERE visited_at > NOW() - INTERVAL '5 minutes'
+    `) as Array<{ active: number }>;
+    activeSessions = rows[0]?.active ?? 0;
+  } catch {
+    activeSessions = 0;
+  }
+
+  const queryTimeMs = Date.now() - queryStart;
+  return { activeSessions, generatedAt: new Date(), queryTimeMs };
+}
+
 export default async function AnalyticsPage({
   searchParams,
 }: AnalyticsPageProps) {
@@ -1415,25 +1442,9 @@ export default async function AnalyticsPage({
   const parsedDays = params.days ? parseInt(params.days, 10) : 30;
   const days = Math.max(1, Math.min(365, isNaN(parsedDays) ? 30 : parsedDays));
 
-  // Best-effort count of distinct visitors in the last 5 minutes for the live pill.
-  let activeSessions = 0;
-  try {
-    const sql = getDb();
-    const rows = (await sql`
-      SELECT COUNT(DISTINCT ip_address)::int AS active
-      FROM page_views
-      WHERE visited_at > NOW() - INTERVAL '5 minutes'
-    `) as Array<{ active: number }>;
-    activeSessions = rows[0]?.active ?? 0;
-  } catch {
-    activeSessions = 0;
-  }
-
-  const renderStart = Date.now();
-  const generatedAt = new Date();
+  const { activeSessions, generatedAt, queryTimeMs } = await loadLiveSummary();
   const generatedStr =
     generatedAt.toISOString().slice(0, 19).replace("T", " ") + "Z";
-  const queryTimeMs = Date.now() - renderStart;
   const issueNum = String(
     Math.floor(
       (generatedAt.getTime() - new Date("2024-01-01").getTime()) /

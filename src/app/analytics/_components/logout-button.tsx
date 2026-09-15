@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function LogoutButton({ className = "" }: { className?: string }) {
   const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
   const onClick = async () => {
     if (busy) return;
@@ -16,7 +18,8 @@ export function LogoutButton({ className = "" }: { className?: string }) {
     } catch {
       // best-effort — still redirect
     }
-    window.location.href = "/analytics/login";
+    router.replace("/analytics/login");
+    router.refresh();
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { sendGAEvent } from "@next/third-parties/google";
 import { ThumbsUp, Loader2, MessageSquare } from "lucide-react";
 import { CommentForm, type CommentFormState } from "@/components/blog/CommentForm";
@@ -9,6 +9,15 @@ import { CommentThread, type CommentWithReplies, type ReplyFormState } from "@/c
 interface BlogCommentsProps {
   slug: string;
   onThumbsUpCount?: (count: number) => void;
+}
+
+async function loadComments(slug: string): Promise<{
+  comments: CommentWithReplies[];
+  thumbsUp: number;
+}> {
+  const res = await fetch(`/api/comments?slug=${encodeURIComponent(slug)}`);
+  if (!res.ok) throw new Error(`Comments request failed: ${res.status}`);
+  return res.json();
 }
 
 export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
@@ -43,25 +52,34 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
    * a visible symptom, because a backend failure and a genuinely empty
    * thread produced identical output.
    */
-  const fetchComments = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/comments?slug=${encodeURIComponent(slug)}`);
-      if (!res.ok) throw new Error(`Comments request failed: ${res.status}`);
-      const data = await res.json();
-      setComments(data.comments);
-      setThumbsUp(data.thumbsUp);
-      onThumbsUpCount?.(data.thumbsUp);
-      setLoadFailed(false);
-    } catch (error) {
-      console.error("Failed to load comments:", error);
-      setLoadFailed(true);
-    } finally {
-      setLoading(false);
-    }
+  const latestRequest = useRef<object | null>(null);
+  const fetchComments = useCallback(() => {
+    const request = {};
+    latestRequest.current = request;
+    return loadComments(slug)
+      .then((data) => {
+        if (request !== latestRequest.current) return;
+        setComments(data.comments);
+        setThumbsUp(data.thumbsUp);
+        onThumbsUpCount?.(data.thumbsUp);
+        setLoadFailed(false);
+      })
+      .catch((error) => {
+        if (request !== latestRequest.current) return;
+        console.error("Failed to load comments:", error);
+        setLoadFailed(true);
+      })
+      .finally(() => {
+        if (request === latestRequest.current) setLoading(false);
+      });
   }, [slug, onThumbsUpCount]);
 
   useEffect(() => {
-    fetchComments();
+    void fetchComments();
+    return () => {
+      // Ignore responses from a previous post, refresh, or unmounted thread.
+      latestRequest.current = null;
+    };
   }, [fetchComments]);
 
   async function handleSubmit(e: React.FormEvent) {
