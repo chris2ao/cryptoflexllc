@@ -21,7 +21,7 @@ readingTime: 19 min read
 series: Claude Code Workflow
 seriesOrder: 19
 coverImage: >-
-  /blog/the-squash-vs-granular-trap-reconciling-an-unmergeable-branch/infographic.png
+  /blog/the-squash-vs-granular-trap-reconciling-an-unmergeable-branch/infographic.jpg
 coverImageAlt: >-
   Squash-vs-granular merge trap, branded NotebookLM infographic. Top panel is
   the ancestry gap, with main carrying the cutover as one squash commit
@@ -38,7 +38,7 @@ GitHub showed PR #22 in red: CONFLICTING, 105 files. I had expected a clean merg
 
 Landing it did not take a rebase of 174 commits or a hand-merge of all 105 files. It took a categorization pass, four lines of bash that cleared 94 of the conflicts in one loop, and about an hour of reading the other 11 carefully. The result on `main`: 85 files changed, +12,118 / -32, almost entirely additive, CI green, all 174 granular commits preserved as parents of one merge commit. Here is how it went, in order.
 
-![Squash-vs-granular merge trap infographic. Top section is the ancestry gap: main carrying the cutover as one squash commit (14a0661) and the integration branch (siem-loglake) carrying the same cutover as 161 granular commits plus 13 more on top, both descended from the pre-cutover base a965def. A callout explains why git fails to merge: 1 squash commit vs 161 granular commits creates overlapping content with no shared modern ancestor, which is why 105 files conflicted. Middle section is the categorization donut: 94 mechanical files resolved by bulk `git checkout --ours` and 11 careful files split into 5 main supersets and 6 spliced or in-place edits. Bottom section is the resolution playbook in numbered git commands and the final outcome: 85 files changed (+12,118/-32) with all 174 granular commits preserved as parents of the merge.](/blog/the-squash-vs-granular-trap-reconciling-an-unmergeable-branch/infographic.png)
+![Squash-vs-granular merge trap infographic. Top section is the ancestry gap: main carrying the cutover as one squash commit (14a0661) and the integration branch (siem-loglake) carrying the same cutover as 161 granular commits plus 13 more on top, both descended from the pre-cutover base a965def. A callout explains why git fails to merge: 1 squash commit vs 161 granular commits creates overlapping content with no shared modern ancestor, which is why 105 files conflicted. Middle section is the categorization donut: 94 mechanical files resolved by bulk `git checkout --ours` and 11 careful files split into 5 main supersets and 6 spliced or in-place edits. Bottom section is the resolution playbook in numbered git commands and the final outcome: 85 files changed (+12,118/-32) with all 174 granular commits preserved as parents of the merge.](/blog/the-squash-vs-granular-trap-reconciling-an-unmergeable-branch/infographic.jpg)
 
 ## The Setup: Two Months, Two Histories
 
@@ -241,7 +241,7 @@ git commit -m "Merge origin/main into siem-loglake (reconcile squash-vs-granular
 
 That commit becomes `3264e63`. The reconcile branch's HEAD now contains the content of both histories, no conflict markers, and the merge graph records both parents.
 
-If you'd rather read this as slides, the deck version is here: [Squash-vs-Granular Reconcile Playbook slide deck (PDF)](/blog/the-squash-vs-granular-trap-reconciling-an-unmergeable-branch/slides.pdf). Same arc as the post, fewer words per page.
+If you'd rather read this as slides, the deck version is here: [Squash-vs-Granular Reconcile Playbook slide deck (PDF)](https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/blog/the-squash-vs-granular-trap-reconciling-an-unmergeable-branch/slides.pdf). Same arc as the post, fewer words per page.
 
 ## The Skipped Cleanup: How It Surfaced
 

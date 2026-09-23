@@ -16,7 +16,7 @@ author: Chris Johnson
 readingTime: 12 min read
 series: Claude Code Workflow
 seriesOrder: 16
-coverImage: /images/blog/deep-research-infographic.png
+coverImage: /images/blog/deep-research-infographic.jpg
 coverImageAlt: The three-tier research stack, wrapper script pattern, and deep-research workflow
 ---
 
@@ -46,7 +46,7 @@ For the kind of research I wanted to do (investigating AI memory architectures a
 WebSearch returns keyword results without date or domain filtering. WebFetch returns raw HTML without JavaScript rendering. If your research target is a modern web app, a LinkedIn post, or anything behind bot detection, these tools return nothing useful.
 </Warning>
 
-![WebSearch and WebFetch limitations visualized](/images/blog/slides-deep-research/slide-1.png)
+![WebSearch and WebFetch limitations visualized](/images/blog/slides-deep-research/slide-1.webp)
 
 ## The Solution: A Three-Tier Tool Stack
 
@@ -169,7 +169,7 @@ If your Claude Code config syncs to any repository (public or private), putting 
 
 ### Attempt Three: Wrapper Scripts (The Fix)
 
-![Process isolation via wrapper scripts: the problem and the blueprint](/images/blog/slides-deep-research/slide-4.png)
+![Process isolation via wrapper scripts: the problem and the blueprint](/images/blog/slides-deep-research/slide-4.webp)
 
 The solution was wrapper scripts that source the secrets file before launching the MCP server. Two files, each about four lines:
 
@@ -241,7 +241,7 @@ The quality rules are simple: every claim needs a source, prefer recent sources 
 Each sub-question runs as its own haiku agent. A 5-question research session that would take 15 minutes sequentially finishes in about 4 minutes with parallel execution. The cost difference is negligible since haiku is the cheapest model.
 </Tip>
 
-![The deep-research skill workflow: 6 phases from question to cited report](/images/blog/slides-deep-research/slide-5.png)
+![The deep-research skill workflow: 6 phases from question to cited report](/images/blog/slides-deep-research/slide-5.webp)
 
 ## The Smoke Test
 
@@ -274,7 +274,7 @@ During testing, I discovered that `crawling_exa` expects the `urls` parameter as
 The `urls` parameter for `crawling_exa` must be an array, even for a single URL. Passing a string instead of an array produces a silent failure with no error message.
 </Warning>
 
-![The three-tier research stack, wrapper script pattern, and deep-research workflow](/images/blog/deep-research-infographic.png)
+![The three-tier research stack, wrapper script pattern, and deep-research workflow](/images/blog/deep-research-infographic.jpg)
 
 ## What Changed
 

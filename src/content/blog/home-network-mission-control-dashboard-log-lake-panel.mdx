@@ -31,7 +31,7 @@ author: Chris Johnson
 readingTime: 24 min read
 series: Home Network Mission Control
 seriesOrder: 7
-coverImage: /blog/home-network-mission-control-dashboard-log-lake-panel/infographic.png
+coverImage: /blog/home-network-mission-control-dashboard-log-lake-panel/infographic.jpg
 coverImageAlt: >-
   LOG LAKE panel build, branded NotebookLM infographic. Two halves. Top half is
   the clean architecture (ingestion-health strip, GUI query builder,
@@ -74,7 +74,7 @@ The brainstorm started with a single line from me to the planner: "I want it to 
 
 The internal name on the tab is LOG LAKE. The user-facing label is "Logs". The first label is for me, in the codebase. The second label is for me, in front of the dashboard.
 
-![LOG LAKE infographic. Top half is the clean architecture: ingestion-health strip with source freshness, parse health, and amber-not-red on reboot; the GUI firewall query builder with field/operator/value panels; the identifier-allowlist compiler; the parameterized ClickHouse SQL it emits. Bottom half is the five-bug deploy gauntlet, one panel per bug. Bug 1: readonly-pool 500 (server readonly profile rejects client-set settings; drop connect-time settings). Bug 2: poll crash loop (offset-naive minus offset-aware TypeError; normalize to naive UTC). Bug 3: 20-day Pi-hole data gap (Pi-hole v6 log path move on the sender plus Docker Desktop macOS rewriting UDP source IPs to the VM gateway; repoint forwarder, route by hostname). Bug 4: stale Vector config (bind-mount cache held a truncated copy; force-recreate the container). Bug 5: UDM doubled-hostname frame (zoneless BSD timestamps, lost netfilter tag; .ts = .time_received, optional tag regex, descr fallback in migration 0017). Closes with the meta-lesson: one SELECT count() revealed 100% of 159,909 rows were DNAT, vetoing the complex bytes-codec rewrite in favor of a four-line MV recreation.](/blog/home-network-mission-control-dashboard-log-lake-panel/infographic.png)
+![LOG LAKE infographic. Top half is the clean architecture: ingestion-health strip with source freshness, parse health, and amber-not-red on reboot; the GUI firewall query builder with field/operator/value panels; the identifier-allowlist compiler; the parameterized ClickHouse SQL it emits. Bottom half is the five-bug deploy gauntlet, one panel per bug. Bug 1: readonly-pool 500 (server readonly profile rejects client-set settings; drop connect-time settings). Bug 2: poll crash loop (offset-naive minus offset-aware TypeError; normalize to naive UTC). Bug 3: 20-day Pi-hole data gap (Pi-hole v6 log path move on the sender plus Docker Desktop macOS rewriting UDP source IPs to the VM gateway; repoint forwarder, route by hostname). Bug 4: stale Vector config (bind-mount cache held a truncated copy; force-recreate the container). Bug 5: UDM doubled-hostname frame (zoneless BSD timestamps, lost netfilter tag; .ts = .time_received, optional tag regex, descr fallback in migration 0017). Closes with the meta-lesson: one SELECT count() revealed 100% of 159,909 rows were DNAT, vetoing the complex bytes-codec rewrite in favor of a four-line MV recreation.](/blog/home-network-mission-control-dashboard-log-lake-panel/infographic.jpg)
 
 ## The Brainstorm That Pinned the Design
 
@@ -401,7 +401,7 @@ The shape of the LOG LAKE pipeline, with all five bug fixes applied, looks like 
 
 <SiemLoglakeIngestionDiagram caption="LOG LAKE ingestion pipeline as deployed. Lane 1 (syslog) covers UDM Pro and Pi-hole, with the post-deploy fixes: hostname-based routing in Vector, .ts = .time_received for BSD timestamp normalization, optional [TAG] in the UDM parser, descr fallback in firewall_events. Lane 2 (REST poll) covers UniFi and Pi-hole API snapshots. Lane 3 (operator and Claude Code) covers SQLite reference writes." />
 
-If you'd rather read this as slides, the deck version is here: [LOG LAKE Panel slide deck (PDF)](/blog/home-network-mission-control-dashboard-log-lake-panel/slides.pdf). Same arc as the post, fewer words per page.
+If you'd rather read this as slides, the deck version is here: [LOG LAKE Panel slide deck (PDF)](https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/blog/home-network-mission-control-dashboard-log-lake-panel/slides.pdf). Same arc as the post, fewer words per page.
 
 ## Lessons Learned
 

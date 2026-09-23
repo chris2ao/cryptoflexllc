@@ -41,7 +41,7 @@ export function AuthorCard() {
       <div className="flex flex-col sm:flex-row items-start gap-5 rounded-lg bg-card border border-border/40 p-6">
         <div className="shrink-0">
           <Image
-            src="/hero-portrait.png"
+            src="/hero-portrait.webp"
             alt={AUTHOR.name}
             width={80}
             height={80}

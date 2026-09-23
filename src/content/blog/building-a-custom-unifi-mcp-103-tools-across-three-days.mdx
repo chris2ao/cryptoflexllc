@@ -14,7 +14,7 @@ tags:
 series: Building in Public
 seriesOrder: 7
 featured: true
-coverImage: /blog/unifi-mcp-infographic.png
+coverImage: /blog/unifi-mcp-infographic.jpg
 coverImageAlt: "UniFi MCP: 103 tools, 208 tests, three days"
 ---
 
@@ -35,7 +35,7 @@ That's what it took to build a custom UniFi MCP server for Claude Code, release 
 
 This post is the story of how it got there. Two open-source servers existed. Neither quite did what I wanted. So I composed a third server from the patterns that worked in both, discovered that half the endpoints I planned to call didn't exist on my firmware, and learned to read HTTP status codes as a navigation system. The punch line is a FastMCP closure trick that every MCP author will eventually want.
 
-![Visual summary of the UniFi MCP build: composing two servers into 103 tools across Network and Protect](/blog/unifi-mcp-infographic.png)
+![Visual summary of the UniFi MCP build: composing two servers into 103 tools across Network and Protect](/blog/unifi-mcp-infographic.jpg)
 
 <Info title="What is MCP?">
 MCP stands for Model Context Protocol. Think of it as "USB for AI assistants." An MCP server is a small program that exposes tools (read a file, query a database, call an API) through a standard protocol. When Claude Code launches, it starts those servers as child processes and registers their tools. The tools become available inside your session alongside the built-in ones. A single MCP server can expose dozens or hundreds of capabilities to any MCP-compatible client.
@@ -64,7 +64,7 @@ I kicked off a survey of existing UniFi MCP servers. Two real contenders came ba
 
 Both were good. Neither was enough on its own.
 
-![Slide comparing sirkirby and enuno UniFi MCP servers across license, coverage, auth pattern, and strengths. Verdict: both excellent, neither complete alone; a fork inherits technical debt, a fresh architecture composes their best patterns.](/blog/unifi-mcp/slide-sirkirby-vs-enuno.png)
+![Slide comparing sirkirby and enuno UniFi MCP servers across license, coverage, auth pattern, and strengths. Verdict: both excellent, neither complete alone; a fork inherits technical debt, a fresh architecture composes their best patterns.](/blog/unifi-mcp/slide-sirkirby-vs-enuno.webp)
 
 <Warning title="The gap between the two">
 sirkirby had Protect and Access but missed the modern Network 9.x additions like Zone-Based Firewall. enuno nailed the firewall and topology surface but had no Protect at all. And both defaulted to cookie authentication patterns that date from the pre-API-key era.
@@ -109,7 +109,7 @@ UniFi exposes two different kinds of API keys. The one at unifi.ui.com (the Site
 
 Day two morning. The MVP compiled, the tests passed, but I hadn't verified the tools against the live console yet. So I wrote a discovery sweep at `/tmp/unifi_full_audit.py` that called every read-only tool and collected the response or error. Three blockers surfaced in the first ten minutes.
 
-![Slide titled 'The Live Hardware Audit Exposes Three Critical Blockers'. Three cards: Pydantic Serialization Crash (FastMCP cannot serialize UnifiClient), Multi-Tenant Proxy Trap (HTML landing page crashes JSON parser), Legacy Endpoint Drift (Protect probe 500 because legacy API requires cookie auth).](/blog/unifi-mcp/slide-three-blockers.png)
+![Slide titled 'The Live Hardware Audit Exposes Three Critical Blockers'. Three cards: Pydantic Serialization Crash (FastMCP cannot serialize UnifiClient), Multi-Tenant Proxy Trap (HTML landing page crashes JSON parser), Legacy Endpoint Drift (Protect probe 500 because legacy API requires cookie auth).](/blog/unifi-mcp/slide-three-blockers.webp)
 
 ### Blocker 1: FastMCP cannot serialize UnifiClient
 
@@ -184,7 +184,7 @@ The 405 was the giveaway. The endpoint existed; it just wanted POST with an empt
 404 means "nothing here, try another path." 405 means "right path, wrong method." 400 means "right path, probably wrong args." 401 means "right path, bad auth." Every non-200 status code is directional information. Ignoring them and re-curling the same URL in hope is the search-engine equivalent of trying the same door over and over.
 </Tip>
 
-![Slide titled 'Navigating Undocumented APIs via Endpoint Archaeology'. An API Probe box points at three outcomes: 404 Endpoint Gone (path is completely dead), 405 Wrong Method (endpoint exists, requires POST with specific query params), 400 AJV_PARSE_ERROR (blueprint found; strict schema validation rejects payload but exposes the exact expected fields).](/blog/unifi-mcp/slide-endpoint-archaeology.png)
+![Slide titled 'Navigating Undocumented APIs via Endpoint Archaeology'. An API Probe box points at three outcomes: 404 Endpoint Gone (path is completely dead), 405 Wrong Method (endpoint exists, requires POST with specific query params), 400 AJV_PARSE_ERROR (blueprint found; strict schema validation rejects payload but exposes the exact expected fields).](/blog/unifi-mcp/slide-endpoint-archaeology.webp)
 
 <ProbeDecisionFlowDiagram />
 
@@ -451,7 +451,7 @@ Tool surface at the finish line: 5 utility + 86 Network + 12 Protect = 103 tools
 
 Twelve patterns came out of this build. These are the ones I expect to reuse.
 
-![Slide titled 'A 12-Pattern Framework for Agentic Integrations' showing four quadrants: Architecture and Design (compose over clone, lazy async resolvers), API Integration (probe by status code, AJV negative-space mapping, fail at the boundary on non-JSON), Security and Privacy (empty env: {} for secret passthrough, systematic identifier scrubbing), UX and Tooling (FastMCP closure dependency injection, register stubs over fake data, marketplace of one, live captures over invented fixtures, parallelize docs via subagents).](/blog/unifi-mcp/slide-12-patterns.png)
+![Slide titled 'A 12-Pattern Framework for Agentic Integrations' showing four quadrants: Architecture and Design (compose over clone, lazy async resolvers), API Integration (probe by status code, AJV negative-space mapping, fail at the boundary on non-JSON), Security and Privacy (empty env: {} for secret passthrough, systematic identifier scrubbing), UX and Tooling (FastMCP closure dependency injection, register stubs over fake data, marketplace of one, live captures over invented fixtures, parallelize docs via subagents).](/blog/unifi-mcp/slide-12-patterns.webp)
 
 
 1. **Compose, do not clone.** Two good servers existed. The answer was combining their strengths with a fresh architecture, not forking either.

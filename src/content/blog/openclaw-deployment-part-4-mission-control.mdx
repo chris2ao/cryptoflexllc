@@ -16,7 +16,7 @@ author: Chris Johnson
 readingTime: 22 min read
 series: OpenClaw Deployment
 seriesOrder: 4
-coverImage: /images/blog/mission-control-soc-hero.png
+coverImage: /images/blog/mission-control-soc-hero.jpg
 coverImageAlt: "Mission Control: pixel-art SOC dashboard hero view"
 ---
 
@@ -26,7 +26,7 @@ The OpenClaw TUI is great for chatting with a single agent. It is not great for 
 
 This is Mission Control.
 
-![This is Mission Control.](/images/blog/mission-control-soc-hero.png)
+![This is Mission Control.](/images/blog/mission-control-soc-hero.jpg)
 
 By the end of this post, you will understand how the dashboard is architected, what every panel does, how the Team page pulls agent personas from workspace files, and why building custom CSS pixel sprites for seven AI agents at 2am is a completely reasonable use of your time.
 
@@ -166,7 +166,7 @@ The sprites animate on hover with a CSS keyframe that shifts the whole shadow st
 
 The main dashboard view is a single-page layout with six panels arranged in a responsive CSS grid. Here is what you see when you open Mission Control:
 
-![Mission Control main dashboard: System Health panel with CPU/Memory/Disk pixel bars, Gateway connected status, 7-agent Crew Roster with pixel sprites, and Agent Fleet status grid](/images/blog/mission-control-dashboard.png)
+![Mission Control main dashboard: System Health panel with CPU/Memory/Disk pixel bars, Gateway connected status, 7-agent Crew Roster with pixel sprites, and Agent Fleet status grid](/images/blog/mission-control-dashboard.webp)
 
 The six panels, left-to-right, top-to-bottom:
 

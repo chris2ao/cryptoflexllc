@@ -19,7 +19,7 @@ series: Building in Public
 seriesOrder: 8
 featured: false
 coverImage: >-
-  /blog/from-bug-report-to-release-maintaining-an-open-source-mcp/infographic.png
+  /blog/from-bug-report-to-release-maintaining-an-open-source-mcp/infographic.jpg
 coverImageAlt: >-
   Infographic of the issue-to-release journey for unifi-mcp: issue #5 reports
   two port-forward bugs (empty fwd_ip and a silent no-op partial PUT), the fix
@@ -34,7 +34,7 @@ Someone I have never met filed a bug against my open-source project, and one of 
 
 That was issue #5 against [unifi-mcp](https://github.com/chris2ao/unifi-mcp), the unified UniFi Network and Protect MCP server I [built over three days](/blog/building-a-custom-unifi-mcp-103-tools-across-three-days) and have been [dogfooding](/blog/dogfooding-the-unifi-mcp-homenet-document-and-the-bug-it-found) ever since. Two real port-forward bugs, a couple of edits to fix, and then the longer tail: turning a merged fix into a release a stranger can actually install.
 
-![Infographic of the issue-to-release journey for unifi-mcp: issue #5 reports two port-forward bugs, the fix flows into PR #6 with Resolves #5, a squash-merge to main, a SemVer patch bump to v0.4.1, a Keep-a-Changelog entry, a git tag plus published GitHub Release marked Latest, and the issue closed with an explanatory note.](/blog/from-bug-report-to-release-maintaining-an-open-source-mcp/infographic.png)
+![Infographic of the issue-to-release journey for unifi-mcp: issue #5 reports two port-forward bugs, the fix flows into PR #6 with Resolves #5, a squash-merge to main, a SemVer patch bump to v0.4.1, a Keep-a-Changelog entry, a git tag plus published GitHub Release marked Latest, and the issue closed with an explanatory note.](/blog/from-bug-report-to-release-maintaining-an-open-source-mcp/infographic.jpg)
 
 <Info title="What is an MCP server?">
 MCP stands for Model Context Protocol. An MCP server is a small program that exposes tools (read a file, call an API) through a standard protocol, so Claude Code can use them inside a session. This one ships as a Claude Code plugin, which matters later: a plugin user installs the published release, not the merged commit. That distinction is the whole point of this post.
@@ -122,9 +122,9 @@ The extras: `update_port_forward` now accepts the forward target as either `fwd`
 
 The same story in two slides: the two bugs first, then the write-path fix that turns a silent no-op into an honest failure.
 
-![Slide showing the two bugs in issue #5. Bug one: list_port_forwards returns an empty fwd_ip because the controller renamed the forward-target field to fwd on Network 9.x, so a configured rule reads as empty. Bug two: update_port_forward sends a partial PUT body, the controller returns rc ok and HTTP 200 with an empty data array, and persists nothing, a silent no-op reported as success.](/blog/from-bug-report-to-release-maintaining-an-open-source-mcp/slide-two-bugs.png)
+![Slide showing the two bugs in issue #5. Bug one: list_port_forwards returns an empty fwd_ip because the controller renamed the forward-target field to fwd on Network 9.x, so a configured rule reads as empty. Bug two: update_port_forward sends a partial PUT body, the controller returns rc ok and HTTP 200 with an empty data array, and persists nothing, a silent no-op reported as success.](/blog/from-bug-report-to-release-maintaining-an-open-source-mcp/slide-two-bugs.webp)
 
-![Slide showing the write-path fix for update_port_forward. Step one: GET the full existing rule. Step two: merge the requested updates onto the complete object. Step three: PUT the complete object so the controller respects it. Step four: inspect the response and treat an empty data array as executed false with an explanatory error instead of a silent success.](/blog/from-bug-report-to-release-maintaining-an-open-source-mcp/slide-write-path-fix.png)
+![Slide showing the write-path fix for update_port_forward. Step one: GET the full existing rule. Step two: merge the requested updates onto the complete object. Step three: PUT the complete object so the controller respects it. Step four: inspect the response and treat an empty data array as executed false with an explanatory error instead of a silent success.](/blog/from-bug-report-to-release-maintaining-an-open-source-mcp/slide-write-path-fix.webp)
 
 ## Merging Is Not Releasing
 
@@ -224,7 +224,7 @@ Even when an auto-close fires, leave a human comment: what was wrong, what fixed
 
 That whole chain, from a fix branch to a published release to an issue closed with a note, is what turns a merge into something a stranger can install. Here it is end to end:
 
-![Slide of the release hygiene chain. Create a fix branch, open a PR with Resolves #5 in the body, squash-merge to main after CI passes, bump the SemVer patch version in three files, add a Keep-a-Changelog entry, create a git tag and publish a GitHub Release so it shows as Latest, then close the issue with an explanatory note mapping each bug to its fix.](/blog/from-bug-report-to-release-maintaining-an-open-source-mcp/slide-release-hygiene.png)
+![Slide of the release hygiene chain. Create a fix branch, open a PR with Resolves #5 in the body, squash-merge to main after CI passes, bump the SemVer patch version in three files, add a Keep-a-Changelog entry, create a git tag and publish a GitHub Release so it shows as Latest, then close the issue with an explanatory note mapping each bug to its fix.](/blog/from-bug-report-to-release-maintaining-an-open-source-mcp/slide-release-hygiene.webp)
 
 ## Lessons Learned
 

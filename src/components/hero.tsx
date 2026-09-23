@@ -51,7 +51,7 @@ export function Hero() {
           {/* Portrait */}
           <div className="shrink-0">
             <Image
-              src="/hero-portrait.png"
+              src="/hero-portrait.webp"
               alt="Chris Johnson"
               width={320}
               height={320}

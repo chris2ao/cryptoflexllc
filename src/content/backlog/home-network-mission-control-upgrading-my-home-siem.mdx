@@ -25,7 +25,7 @@ author: Chris Johnson
 readingTime: 28 min read
 series: Home Network Mission Control
 seriesOrder: 9
-coverImage: /blog/home-network-mission-control-upgrading-my-home-siem/infographic.png
+coverImage: /blog/home-network-mission-control-upgrading-my-home-siem/infographic.jpg
 coverImageAlt: >-
   Dark editorial cover for a home SIEM operations session, headed by a Home
   Network Mission Control chip, a Part 9 SIEM Operations Session chip, and
@@ -70,7 +70,7 @@ This was supposed to be a routine session, the kind where I sit down and ask whe
 
 By the end of it I'd fixed that watchdog and made four alert-tuning decisions. A security review caught two real problems in my own code before any of it shipped, and I tracked down a threat-intel feed that had been silently dead for a full day while every health check stayed green.
 
-![Infographic of a home SIEM operations session: a four-hour reboot outage and the watchdog cold-start fix, four noise-tuning decisions, two security-review blockers caught by adversarial review, and the restore of a Hagezi threat-intel feed that had been silently dead for a day](/blog/home-network-mission-control-upgrading-my-home-siem/siem-upgrade-notebooklm-infographic.png)
+![Infographic of a home SIEM operations session: a four-hour reboot outage and the watchdog cold-start fix, four noise-tuning decisions, two security-review blockers caught by adversarial review, and the restore of a Hagezi threat-intel feed that had been silently dead for a day](/blog/home-network-mission-control-upgrading-my-home-siem/siem-upgrade-notebooklm-infographic.webp)
 
 For anyone new to this series: I run a home network SIEM that combines Vector and ClickHouse in a log lake. It ingests about 3.7 million events a day from a UniFi UDM Pro (relayed through Pi-hole's rsyslog), Pi-hole FTL, the UniFi access points and switches, and the Mac's own `log stream`.
 

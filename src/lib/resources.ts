@@ -19,7 +19,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Security", "UniFi", "DNS", "Pi-hole", "ZBF", "MCP", "Infographic"],
     date: "2026-04-28",
-    downloadPath: "/blog/dns-bypass/zbf-policy-chain.png",
+    downloadPath: "/blog/dns-bypass/zbf-policy-chain.webp",
     downloadLabel: "Download Infographic",
   },
   {
@@ -30,7 +30,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Security", "UniFi", "DNS", "Pi-hole", "ZBF", "MCP", "Slides"],
     date: "2026-04-28",
-    downloadPath: "/resources/closing-the-dns-bypass-finding-slides.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/closing-the-dns-bypass-finding-slides.pdf",
     downloadLabel: "Download Slide Deck",
   },
   {
@@ -41,7 +41,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Security", "Incident Response", "Vercel", "Supply Chain", "Claude Code", "Infographic"],
     date: "2026-04-21",
-    downloadPath: "/blog/vercel-breach-incident-response/infographic.png",
+    downloadPath: "/blog/vercel-breach-incident-response/infographic.jpg",
     downloadLabel: "Download Infographic",
   },
   {
@@ -52,7 +52,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Security", "Incident Response", "Vercel", "Supply Chain", "Claude Code", "Slides"],
     date: "2026-04-21",
-    downloadPath: "/resources/vercel-breach-slides.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/vercel-breach-slides.pdf",
     downloadLabel: "Download Slide Deck",
   },
   {
@@ -63,7 +63,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Claude Code", "MCP", "Pi-hole", "Home Lab", "Open Source", "Infographic"],
     date: "2026-04-18",
-    downloadPath: "/blog/pihole-mcp/infographic.png",
+    downloadPath: "/blog/pihole-mcp/infographic.jpg",
     downloadLabel: "Download Infographic",
   },
   {
@@ -74,7 +74,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Claude Code", "MCP", "Pi-hole", "Home Lab", "Open Source", "Slides"],
     date: "2026-04-18",
-    downloadPath: "/resources/pihole-mcp-slides.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/pihole-mcp-slides.pdf",
     downloadLabel: "Download Slide Deck",
   },
   {
@@ -85,7 +85,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Claude Code", "MCP", "UniFi", "Home Lab", "Infographic"],
     date: "2026-04-17",
-    downloadPath: "/blog/unifi-mcp-infographic.png",
+    downloadPath: "/blog/unifi-mcp-infographic.jpg",
     downloadLabel: "Download Infographic",
   },
   {
@@ -96,7 +96,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Claude Code", "MCP", "UniFi", "Home Lab", "Slides"],
     date: "2026-04-17",
-    downloadPath: "/resources/unifi-mcp-slides.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/unifi-mcp-slides.pdf",
     downloadLabel: "Download Slide Deck",
   },
   {
@@ -107,7 +107,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Claude Code", "UI/UX", "Design Systems", "Agent Teams", "Infographic"],
     date: "2026-04-12",
-    downloadPath: "/blog/ui-ux-skill-system-infographic.png",
+    downloadPath: "/blog/ui-ux-skill-system-infographic.webp",
     downloadLabel: "Download Infographic",
   },
   {
@@ -118,7 +118,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Claude Code", "UI/UX", "Design Systems", "Agent Teams", "Slides"],
     date: "2026-04-12",
-    downloadPath: "/resources/ui-ux-skill-system-slides.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/ui-ux-skill-system-slides.pdf",
     downloadLabel: "Download Slide Deck",
   },
   {
@@ -129,7 +129,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Claude Code", "Research", "Exa", "Firecrawl", "Slides"],
     date: "2026-04-06",
-    downloadPath: "/resources/deep-research-slides.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/deep-research-slides.pdf",
     downloadLabel: "Download Slide Deck",
   },
   {
@@ -140,7 +140,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Claude Code", "Memory", "Architecture", "Research", "Slides"],
     date: "2026-04-06",
-    downloadPath: "/resources/memory-comparison-slides.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/memory-comparison-slides.pdf",
     downloadLabel: "Download Slide Deck",
   },
   {
@@ -151,7 +151,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["NotebookLM", "Content Creation", "Automation", "Infographic"],
     date: "2026-04-02",
-    downloadPath: "/images/blog/notebooklm-pipeline/infographic.png",
+    downloadPath: "/images/blog/notebooklm-pipeline/infographic.jpg",
     downloadLabel: "Download Infographic",
   },
   {
@@ -162,7 +162,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["NotebookLM", "Content Creation", "Automation", "Slides"],
     date: "2026-04-02",
-    downloadPath: "/resources/notebooklm-content-pipeline-slides.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/notebooklm-content-pipeline-slides.pdf",
     downloadLabel: "Download Slide Deck",
   },
   {
@@ -173,7 +173,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Mac Mini", "OpenClaw", "AI Agents", "Self-Hosted", "Infrastructure"],
     date: "2026-03-15",
-    downloadPath: "/resources/hardened-mac-mini-ai-servers.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/hardened-mac-mini-ai-servers.pdf",
   },
   {
     slug: "headless-mac-mini-infographic",
@@ -183,7 +183,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Mac Mini", "OpenClaw", "AI Agents", "Infographic"],
     date: "2026-03-15",
-    downloadPath: "/images/blog/headless-mac-mini-infographic.png",
+    downloadPath: "/images/blog/headless-mac-mini-infographic.jpg",
     downloadLabel: "Download Infographic",
   },
   {
@@ -194,7 +194,7 @@ const resources: Resource[] = [
     type: "audio",
     tags: ["Security", "MCP", "Claude Code", "Audio"],
     date: "2026-03-10",
-    downloadPath: "/resources/mcp-security-risks-audio-briefing.m4a",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/mcp-security-risks-audio-briefing.m4a",
     downloadLabel: "Download Audio Briefing",
   },
   {
@@ -205,7 +205,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Security", "MCP", "Claude Code", "Google"],
     date: "2026-03-10",
-    downloadPath: "/resources/mcp-security-trap.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/mcp-security-trap.pdf",
   },
   {
     slug: "claude-code-persistent-memory",
@@ -215,7 +215,7 @@ const resources: Resource[] = [
     type: "document",
     tags: ["Claude Code", "Memory", "MCP", "Vector Search"],
     date: "2026-03-10",
-    downloadPath: "/resources/claude-code-persistent-memory.pdf",
+    downloadPath: "https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/claude-code-persistent-memory.pdf",
   },
   {
     slug: "architecture-diagram",

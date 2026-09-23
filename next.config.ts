@@ -104,9 +104,13 @@ const nextConfig: NextConfig = {
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https:",
             "font-src 'self'",
+            // Large media (slide PDFs, audio briefings) lives in Vercel Blob
+            // so it is not copied into every deployment.
+            "media-src 'self' https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com",
             "connect-src 'self' https://www.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com",
-            // youtube-nocookie is required for the lazy YouTube embed (F-M7).
-            "frame-src 'self' https://www.youtube-nocookie.com",
+            // youtube-nocookie is required for the lazy YouTube embed (F-M7);
+            // the Blob origin serves the inline PDF previews on /resources.
+            "frame-src 'self' https://www.youtube-nocookie.com https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com",
             "frame-ancestors 'self'",
             "base-uri 'self'",
             "form-action 'self'",

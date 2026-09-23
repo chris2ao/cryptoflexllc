@@ -15,7 +15,7 @@ author: Chris Johnson
 readingTime: 14 min read
 series: Claude Code Workflow
 seriesOrder: 6
-coverImage: /images/blog/persistent-memory-two-tier-architecture.png
+coverImage: /images/blog/persistent-memory-two-tier-architecture.jpg
 coverImageAlt: "Two-tier persistent memory architecture for Claude Code: global memory rule, MCP server with hybrid search, 30-day temporal decay, and local embedding"
 ---
 
@@ -24,7 +24,7 @@ Every Claude Code session starts fresh. No memory of what you built last week, n
 There's a better way. This post covers the four approaches I evaluated, the two-tier solution I settled on, and the specific gotchas that would have burned me if I hadn't thought through the design carefully first.
 
 <Info title="Want the Reference Version?">
-This post is the narrative walkthrough. If you want a condensed, printable reference covering the full architecture, configuration, and troubleshooting, download the [Claude Code Persistent Memory PDF](/resources/claude-code-persistent-memory.pdf).
+This post is the narrative walkthrough. If you want a condensed, printable reference covering the full architecture, configuration, and troubleshooting, download the [Claude Code Persistent Memory PDF](https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/claude-code-persistent-memory.pdf).
 </Info>
 
 ## The Problem With "Just Use Hooks"
@@ -41,7 +41,7 @@ If you close the terminal, kill the process, or lose connection mid-session, you
 
 This is why the architecture matters. The solution cannot be "save at the end." It has to be "save continuously throughout."
 
-![Infographic showing the two-tier persistent memory architecture for Claude Code: Tier 1 global memory rule driving automatic saves, Tier 2 MCP server with hybrid search, 30-day temporal decay, and local embedding](/images/blog/persistent-memory-two-tier-architecture.png)
+![Infographic showing the two-tier persistent memory architecture for Claude Code: Tier 1 global memory rule driving automatic saves, Tier 2 MCP server with hybrid search, 30-day temporal decay, and local embedding](/images/blog/persistent-memory-two-tier-architecture.jpg)
 
 ## Evaluating Four Approaches
 
@@ -453,6 +453,6 @@ The result: development context now persists across sessions automatically, with
 
 If you want to see the exact configuration files, the full documentation, and the MCP server setup:
 
-- [Claude Code Persistent Memory (PDF)](/resources/claude-code-persistent-memory.pdf): a reference guide covering the full two-tier architecture, installation steps, configuration files, and troubleshooting
+- [Claude Code Persistent Memory (PDF)](https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/resources/claude-code-persistent-memory.pdf): a reference guide covering the full two-tier architecture, installation steps, configuration files, and troubleshooting
 - [Vector Memory System Documentation](https://github.com/chris2ao/claude-code-config/blob/master/docs/vector-memory-system.md): comprehensive reference covering architecture, all tool parameters, search modes, quality tiers, and the knowledge graph
 - [MCP Server Configuration](https://github.com/chris2ao/claude-code-config/blob/master/mcp-servers/README.md): the MCP server definitions including vector-memory, knowledge graph, and other servers used in this setup

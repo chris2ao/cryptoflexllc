@@ -5,6 +5,7 @@ import { getAllResources, getResourceBySlug } from "@/lib/resources";
 import { SlideCarousel } from "@/components/slide-carousel";
 import { weekOneSlides } from "@/components/slides/week-one-slides";
 import { BASE_URL } from "@/lib/constants";
+import { toDownloadHref } from "@/lib/asset-url";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -111,7 +112,7 @@ export default async function ResourceDetailPage({ params }: Props) {
             ) : null}
             <div className="flex justify-center">
               <a
-                href={resource.downloadPath}
+                href={toDownloadHref(resource.downloadPath)}
                 download
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
@@ -147,7 +148,7 @@ export default async function ResourceDetailPage({ params }: Props) {
               Your browser does not support the audio element.
             </audio>
             <a
-              href={resource.downloadPath}
+              href={toDownloadHref(resource.downloadPath)}
               download
               className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >

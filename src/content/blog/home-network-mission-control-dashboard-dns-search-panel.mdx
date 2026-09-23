@@ -26,7 +26,7 @@ author: Chris Johnson
 readingTime: 21 min read
 series: Home Network Mission Control
 seriesOrder: 6
-coverImage: /blog/home-network-mission-control-dashboard-dns-search-panel/infographic.png
+coverImage: /blog/home-network-mission-control-dashboard-dns-search-panel/infographic.jpg
 coverImageAlt: >-
   Engineering a Searchable SIEM Dashboard, branded NotebookLM infographic
   summarizing the DNS Search Panel build session
@@ -39,7 +39,7 @@ That sentence is also where this post came from. The SIEM cutover from [Phase 1.
 
 That's the build report. The interesting part of this post is everything else: the diagnosis, the brainstorming workflow that pinned down five contested design choices before any code got written, the parallel persona reviews that caught a third-scan query and a PII gate divergence, the FastAPI int-Literal trap that doesn't appear in the docs, and what "a SIEM you can actually search" means when the only operator on the network is the guy who built it.
 
-![Visual summary of the DNS Search Panel session: the SIEM cutover gap that triggered it, the five contested design decisions (aggregation grain, status display, forensic columns, PII default, time visualization), the five-wave persona dispatch, the four reviewer findings (sort-key full scan, third-scan waste, PII gate divergence, raw-error echo), the FastAPI int-Literal gotcha, and the live smoke result with the 454 = 454 sparkline invariant holding.](/blog/home-network-mission-control-dashboard-dns-search-panel/infographic.png)
+![Visual summary of the DNS Search Panel session: the SIEM cutover gap that triggered it, the five contested design decisions (aggregation grain, status display, forensic columns, PII default, time visualization), the five-wave persona dispatch, the four reviewer findings (sort-key full scan, third-scan waste, PII gate divergence, raw-error echo), the FastAPI int-Literal gotcha, and the live smoke result with the 454 = 454 sparkline invariant holding.](/blog/home-network-mission-control-dashboard-dns-search-panel/infographic.jpg)
 
 <Info title="Series Context">
 This is part 6 of the [Home Network Mission Control](/blog/series/home-network-mission-control) series. Direct prerequisites:
@@ -349,7 +349,7 @@ The session closed Saturday night at:
 - **Short-circuit your own queries.** `total_matched` going from a third full scan to `len(rows)` for the common case is the kind of one-line optimization that costs nothing and saves a query per request. The CH cost on a single dev's home LAN is rounding error; the principle is the same on a fleet.
 - **`Literal[int, ...]` on a Query parameter does not coerce URL strings.** New project memory. Will save someone an hour next time they reach for it. Either type as `int` and guard manually, or use a Pydantic model with a validator. The Literal-only path silently 422s.
 
-If you'd rather read this as slides, the deck version is here: [DNS Search Panel slide deck (PDF)](/blog/home-network-mission-control-dashboard-dns-search-panel/slides.pdf). Same arc as the post, fewer words per page.
+If you'd rather read this as slides, the deck version is here: [DNS Search Panel slide deck (PDF)](https://u6qcxb8rfplaydjl.public.blob.vercel-storage.com/blog/home-network-mission-control-dashboard-dns-search-panel/slides.pdf). Same arc as the post, fewer words per page.
 
 ## What's Next
 
