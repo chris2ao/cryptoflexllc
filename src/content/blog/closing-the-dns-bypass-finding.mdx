@@ -121,7 +121,7 @@ So I added two BLOCK rules at index 10001:
 
 Index 10001 sits *below* the index-10000 ALLOW rules. A query to Pi-hole still matches the ALLOW first. Anything else, Quad9, Cloudflare, Google, AdGuard, you name it, doesn't get out.
 
-![Diagnostic deep-dive infographic: 0.667 bypass score from 17 of 26 active clients, two root causes (Default subnet public fallback, isolated VLANs blocked from Pi-hole), the ZBF policy chain at indices 10000 ALLOW, 10001 BLOCK, and 30000 Isolated Networks, plus the Traffic Rules pivot story and v0.4.0 release summary.](/blog/dns-bypass/zbf-policy-chain.png)
+![Diagnostic deep-dive infographic: 0.667 bypass score from 17 of 26 active clients, two root causes (Default subnet public fallback, isolated VLANs blocked from Pi-hole), the ZBF policy chain at indices 10000 ALLOW, 10001 BLOCK, and 30000 Isolated Networks, plus the Traffic Rules pivot story and v0.4.0 release summary.](/blog/dns-bypass/zbf-policy-chain.webp)
 
 The full evaluation chain on those two VLANs now looks like this:
 

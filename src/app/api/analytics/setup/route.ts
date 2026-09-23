@@ -372,6 +372,17 @@ export async function GET(request: NextRequest) {
       )
     `;
 
+    // Automation snapshots: gmail-agent run metrics + Claude session-archive
+    // listing, pushed by POST /api/gmail/metrics instead of being committed
+    // as JSON files (deployment-storage-reduction-plan.md, section C).
+    await sql`
+      CREATE TABLE IF NOT EXISTS automation_snapshots (
+        name       TEXT        PRIMARY KEY,
+        payload    JSONB       NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+
     return NextResponse.json({
       success: true,
       message: "Tables created successfully. Your analytics tracking is now ready.",

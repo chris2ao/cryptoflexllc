@@ -19,7 +19,7 @@ tags:
 series: Claude Code Workflow
 seriesOrder: 18
 featured: false
-coverImage: /blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/infographic.png
+coverImage: /blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/infographic.jpg
 coverImageAlt: >-
   Infographic summarizing the stale MCP story: a re-auth banner reveals the gap
   from 0.5.25 to 0.7.2, listing security hardening and auth fixes missed, then
@@ -31,7 +31,7 @@ import {} from '@/components/mdx';
 
 I was two minor versions behind on `notebooklm-mcp-cli` and didn't know it until a re-auth banner interrupted a session. The gap was 0.5.25 to 0.7.2, two minor releases of fixes and features that had shipped without my noticing any of it.
 
-![Infographic summarizing the stale MCP story: a re-auth banner reveals the 0.5.25 to 0.7.2 version gap, the security hardening and auth reliability fixes that were missed, and the three-step upgrade process of upgrading the package, reconnecting the running server, and updating agents and skills](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/infographic.png)
+![Infographic summarizing the stale MCP story: a re-auth banner reveals the 0.5.25 to 0.7.2 version gap, the security hardening and auth reliability fixes that were missed, and the three-step upgrade process of upgrading the package, reconnecting the running server, and updating agents and skills](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/infographic.jpg)
 
 ## How I Caught It
 
@@ -78,7 +78,7 @@ The TOCTOU window on credential files isn't theoretical. On any multi-user syste
 
 Here is everything those two minor versions added, in one frame:
 
-![What two minor versions added: security hardening including TOCTOU-safe 0600 credential files, external-bind guard, and SHA-pinned CI actions, plus auth-reliability fixes for the semi-stale cookie problem and the unified auth gate, and new features including source labels, cinematic video format, and the ChatGPT bridge](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/slide-whats-new.png)
+![What two minor versions added: security hardening including TOCTOU-safe 0600 credential files, external-bind guard, and SHA-pinned CI actions, plus auth-reliability fixes for the semi-stale cookie problem and the unified auth gate, and new features including source labels, cinematic video format, and the ChatGPT bridge](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/slide-whats-new.webp)
 
 ## The Upgrade Itself
 
@@ -134,7 +134,7 @@ In NotebookLM MCP: `tag` is for notebooks, `label` is for sources inside a noteb
 
 The whole upgrade, end to end, is three steps. Most people do the first one and stop:
 
-![The three-step upgrade: step 1 upgrade the package with uv tool upgrade notebooklm-mcp-cli, step 2 reconnect the running MCP server via /mcp in Claude Code because the running process still holds old code in memory, step 3 update every agent and skill that calls the MCP to the new tool surface (fix tool names like source_add and studio_revise, remove hardcoded tool counts, and add the tag versus label distinction and the auth_status model)](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/slide-three-step-upgrade.png)
+![The three-step upgrade: step 1 upgrade the package with uv tool upgrade notebooklm-mcp-cli, step 2 reconnect the running MCP server via /mcp in Claude Code because the running process still holds old code in memory, step 3 update every agent and skill that calls the MCP to the new tool surface (fix tool names like source_add and studio_revise, remove hardcoded tool counts, and add the tag versus label distinction and the auth_status model)](/blog/keep-your-mcps-updated-the-notebooklm-cli-upgrade/slide-three-step-upgrade.webp)
 
 ## Why This Matters Beyond NotebookLM
 

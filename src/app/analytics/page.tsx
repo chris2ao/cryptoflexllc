@@ -30,8 +30,7 @@ import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import { getDb } from "@/lib/analytics";
 import { getAnalyticsCookieName, verifyAuthToken } from "@/lib/analytics-auth";
-import gmailMetricsRaw from "@/data/gmail-metrics.json";
-import sessionArchiveRaw from "@/data/session-archive.json";
+import { loadGmailMetricsSnapshots } from "@/lib/automation-snapshots";
 import type {
   DailyViews,
   MapLocation,
@@ -63,8 +62,6 @@ import type {
   SubscriberGrowthRow,
   ConvertingPageRow,
   SearchQueryRow,
-  GmailRun,
-  SessionEntry,
 } from "@/lib/analytics-types";
 import {
   isVercelApiConfigured,
@@ -1169,9 +1166,9 @@ async function NewsletterSection({ days: _days }: { days: number }) {
 }
 
 async function ClaudeAutomationSection() {
-  const gmailRuns = gmailMetricsRaw as unknown as GmailRun[];
-  const sessions = sessionArchiveRaw as unknown as SessionEntry[];
-  const unsub = await loadUnsubscribePanel(getDb()).catch(() => null);
+  const sql = getDb();
+  const { gmailRuns, sessions } = await loadGmailMetricsSnapshots(sql);
+  const unsub = await loadUnsubscribePanel(sql).catch(() => null);
 
   const totalRuns = gmailRuns.length;
   const totalProcessed = gmailRuns.reduce((s, r) => s + r.messages_scanned, 0);

@@ -27,7 +27,7 @@ author: Chris Johnson
 readingTime: 19 min read
 series: Home Network Mission Control
 seriesOrder: 8
-coverImage: /blog/home-network-mission-control-dashboard-client-traffic/infographic.png
+coverImage: /blog/home-network-mission-control-dashboard-client-traffic/infographic.jpg
 coverImageAlt: >-
   Per-client traffic build infographic. Left column shows the investigation arc:
   the Clients page "- -" traffic totals and "DPI not available" Top Applications
@@ -46,7 +46,7 @@ published: false
 
 The Clients page showed two hyphens where the Traffic 24h and 7d totals should have been, on every one of the 61 clients online, with a banner underneath each that read "DPI not available for this device." No error card, no zeros, just nothing, sixty-one times over. Given the logs and the tooling already built for this project, could I get real traffic numbers onto that page, and if DPI was genuinely out, what would a Top Applications breakdown even mean?
 
-![The cyber-themed Overview tab showing N//C MISSION CONTROL with 61 clients online, 189,503 DNS queries, 50,410 blocked, active noisy endpoint list, WAN probe, and threat vector heat strip. This is the dashboard's primary state as of the session that preceded the client traffic build.](/blog/home-network-mission-control-dashboard-client-traffic/overview.png)
+![The cyber-themed Overview tab showing N//C MISSION CONTROL with 61 clients online, 189,503 DNS queries, 50,410 blocked, active noisy endpoint list, WAN probe, and threat vector heat strip. This is the dashboard's primary state as of the session that preceded the client traffic build.](/blog/home-network-mission-control-dashboard-client-traffic/overview.webp)
 
 <Info title="Series Context">
 This is part 8 of the [Home Network Mission Control](/blog/series/home-network-mission-control) series. Direct prerequisites:
@@ -144,7 +144,7 @@ One commit: `e07a8ac feat(clients): real per-client traffic totals + DNS-inferre
 
 After the build deployed, I opened the Clients page and clicked into the 2025MainDesktop entry. That machine runs qBittorrent and backs up to Backblaze constantly. It also has a 2.5GbE port. The traffic row read: 559.2 GB (24h) / 1.1 TB (7d) / 4.4 TB (30d), with a sparkline showing the expected sawtooth of nightly heavy-download periods. Top Domains: `microsoft.com`, `backblaze.com`. DNS-inferred Top Apps: Microsoft, Backblaze, Steam.
 
-![2025MainDesktop client detail after the traffic build. Traffic Totals show 559.2 GB (24h), 1.1 TB (7d), 4.4 TB (30d) with a sparkline. Top Domains list microsoft.com and backblaze.com. DNS-inferred Top Applications bars show Microsoft, Backblaze, and Steam in descending order.](/blog/home-network-mission-control-dashboard-client-traffic/client-desktop.png)
+![2025MainDesktop client detail after the traffic build. Traffic Totals show 559.2 GB (24h), 1.1 TB (7d), 4.4 TB (30d) with a sparkline. Top Domains list microsoft.com and backblaze.com. DNS-inferred Top Applications bars show Microsoft, Backblaze, and Steam in descending order.](/blog/home-network-mission-control-dashboard-client-traffic/client-desktop.webp)
 
 Coherent with what the machine does. I moved to the next device.
 
@@ -174,7 +174,7 @@ My wife's always-on streaming box reporting 16 TB/day is, honestly, the kind of 
 
 The Mac mini itself (the machine running the dashboard) read 7 / 27.6 / 128.1 GB. Top Domains: `api.anthropic.com`. DNS-inferred Top Apps: anthropic.com, Cloudflare DNS, Apple, chatgpt.com, iCloud. The machine that builds and runs the AI tooling for this project is, by DNS evidence, the biggest consumer of AI APIs on the network. That checks out.
 
-![Branded infographic of the per-client traffic investigation arc. It opens on the Clients page showing "--" for traffic and "DPI not available for this device," then traces the deep-research fan-out across DPI-extraction candidates: on-box MongoDB on port 27117, conntrack accounting, NetFlow/IPFIX export, a Zeek/ntopng sidecar, and nDPI host lists for the domain map. The middle band shows the live MCP probe, with get_dpi_by_app returning empty and a PRODUCT_UNAVAILABLE error on flow data while get_client_history returns real per-client hourly byte buckets. That exposes the wrong-source bug, the dashboard reading an empty dpi_snapshot table instead of the populated hourly.user report. The resolution band shows accumulation in ClickHouse (client_traffic_hourly migration 0018, client_traffic_daily 0019) plus DNS-inferred Top Applications from a 304-entry domain-to-service map. The closing band shows the UniFi over-reporting twist, a Fire TV reporting 16 TB/day on a 100 Mbps link, resolved by a physical-plausibility cap at POLL_CLIENT_TRAFFIC_MAX_GBPS 2.5 and a POLL_CLIENT_TRAFFIC_EXCLUDE_MACS exclusion list, ending on the 2025MainDesktop row at 559.2 GB / 1.1 TB / 4.4 TB.](/blog/home-network-mission-control-dashboard-client-traffic/infographic.png)
+![Branded infographic of the per-client traffic investigation arc. It opens on the Clients page showing "--" for traffic and "DPI not available for this device," then traces the deep-research fan-out across DPI-extraction candidates: on-box MongoDB on port 27117, conntrack accounting, NetFlow/IPFIX export, a Zeek/ntopng sidecar, and nDPI host lists for the domain map. The middle band shows the live MCP probe, with get_dpi_by_app returning empty and a PRODUCT_UNAVAILABLE error on flow data while get_client_history returns real per-client hourly byte buckets. That exposes the wrong-source bug, the dashboard reading an empty dpi_snapshot table instead of the populated hourly.user report. The resolution band shows accumulation in ClickHouse (client_traffic_hourly migration 0018, client_traffic_daily 0019) plus DNS-inferred Top Applications from a 304-entry domain-to-service map. The closing band shows the UniFi over-reporting twist, a Fire TV reporting 16 TB/day on a 100 Mbps link, resolved by a physical-plausibility cap at POLL_CLIENT_TRAFFIC_MAX_GBPS 2.5 and a POLL_CLIENT_TRAFFIC_EXCLUDE_MACS exclusion list, ending on the 2025MainDesktop row at 559.2 GB / 1.1 TB / 4.4 TB.](/blog/home-network-mission-control-dashboard-client-traffic/infographic.jpg)
 
 ## What the Afternoon Actually Proved
 

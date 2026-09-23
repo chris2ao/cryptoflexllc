@@ -54,7 +54,7 @@ export function HeroIdentity() {
             <div className="ed-hero-portrait">
               <div className="ed-hero-portrait-frame">
                 <Image
-                  src="/hero-portrait.png"
+                  src="/hero-portrait.webp"
                   alt="Chris Johnson"
                   width={300}
                   height={400}

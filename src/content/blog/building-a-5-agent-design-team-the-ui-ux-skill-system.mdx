@@ -29,7 +29,7 @@ Here is the full story: what was missing, what I found, what I threw away, and w
 This is the second post in the [Under the Hood](/blog/series/under-the-hood) series, covering the internal infrastructure that makes Claude Code work better over time. The first post covered [the Homunculus Evolution Layer](/blog/homunculus-evolution-layer-when-your-ai-learns-to-upgrade-itself), which synthesizes behavioral patterns into reusable tools. This one builds a design team from scratch.
 </Info>
 
-![The /ui-ux Skill System: Building a High-Performance 5-Agent Design Team](/blog/ui-ux-skill-system-infographic.png)
+![The /ui-ux Skill System: Building a High-Performance 5-Agent Design Team](/blog/ui-ux-skill-system-infographic.webp)
 
 ## The Gap
 
@@ -50,7 +50,7 @@ I spent the first half of the day evaluating every community-built UI/UX skill I
 
 <UIUXResearchPipelineDiagram />
 
-![12 evaluated skills funneled through three tiers into data, philosophy, and rules](/images/blog/slides-ui-ux-skill/slide-4.png)
+![12 evaluated skills funneled through three tiers into data, philosophy, and rules](/images/blog/slides-ui-ux-skill/slide-4.webp)
 
 ### Tier 1: Foundation Skills
 
@@ -110,7 +110,7 @@ With the research synthesized into four knowledge base files, the next step was 
 
 <UIUXAgentOrchestrationDiagram />
 
-![The 5-agent architecture: Design Lead orchestrating User Researcher, Visual Designer, Interaction Architect, and Prototype Engineer](/images/blog/slides-ui-ux-skill/slide-1.png)
+![The 5-agent architecture: Design Lead orchestrating User Researcher, Visual Designer, Interaction Architect, and Prototype Engineer](/images/blog/slides-ui-ux-skill/slide-1.webp)
 
 ### The Director
 
@@ -164,7 +164,7 @@ The `ui-ux-reviewer.md` agent (Sonnet) is the quality gate. It runs four evaluat
 
 The quality gate has clear thresholds: heuristic average of 3.5 or above, TASTE average of 3.0 or above, and no critical rule violations. Results are PASS, CONDITIONAL PASS (minor issues to address), or FAIL. Maximum 2 revision cycles before the director escalates.
 
-![The parallel quality gate: Performance Reviewer checks bundle size, FCP, and client component ratio while UX Reviewer runs heuristic evaluation and Playwright visual QA across 5 viewports](/images/blog/slides-ui-ux-skill/slide-10.png)
+![The parallel quality gate: Performance Reviewer checks bundle size, FCP, and client component ratio while UX Reviewer runs heuristic evaluation and Playwright visual QA across 5 viewports](/images/blog/slides-ui-ux-skill/slide-10.webp)
 
 <Info title="Why Two Reviewers?">
 Performance and UX review are independent concerns. The Performance Reviewer checks technical constraints (bundle size, render timing, fetch patterns). The UX Reviewer checks experiential quality (usability, aesthetics, accessibility). Neither can substitute for the other. Running them in parallel saves time without losing coverage.
@@ -310,7 +310,7 @@ A design system gives you consistent, semantic building blocks. But swapping tok
 
 ## Lessons Learned
 
-![Engineering takeaways: cherry-pick over cloning, map pipeline topology to dependency graph, enforce strict states for all interactive elements](/images/blog/slides-ui-ux-skill/slide-14.png)
+![Engineering takeaways: cherry-pick over cloning, map pipeline topology to dependency graph, enforce strict states for all interactive elements](/images/blog/slides-ui-ux-skill/slide-14.webp)
 
 <Tip title="Cherry-Pick, Don't Clone">
 No single community skill had everything I needed. The value was in synthesis: taking the best ideas from 12 sources and combining them into a coherent system. Clone a skill and you inherit its assumptions, its limitations, and its security risks. Cherry-pick the knowledge and build your own structure.
