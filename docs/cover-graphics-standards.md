@@ -93,6 +93,7 @@ designer checks against.
 | ledgerly-cyber-editorial-rebuild | One design-system record fanning out over a two-trunk teal bus into eight agent lanes, with the 46 green tests as a rail | Left record card (file tree of the nine sheets) plus a 2x4 grid of lane cards fed by arrowed bus stubs; 46-square test rail and right-aligned punchline below |
 
 | astra-home-remodel-3d | The remodel as an editable object: architectural references pass through ChatGPT Work and Astra into a kitchen the owner can inspect and correct | Dominant isolated kitchen model on the right; large headline and vertical references-to-model sequence on the left |
+| replacing-the-default-nextjs-favicon | The favicon slot itself, blown up to browser-chrome scale: a dim before tab carrying the generic triangle-in-circle sits beside a bright active tab carrying the real CryptoFlex shield, with a small tuned 16px pixel-render of the shipped icon as a secondary motif | Full-width macOS-style browser chrome mock (traffic-light titlebar, two tabs, address bar) with a real 16px favicon frame in a bottom callout card beside a single commit-count callout |
 
 ## Art director review (mandatory after every render)
 
