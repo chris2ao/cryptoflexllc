@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here.
 
+## 2026-09-27 - Favicon Refresh and the Captain-to-Workflow Rebuild
+
+### What changed
+- **Replaced** the default Next.js favicon with the CryptoFlex shield icon (commit 5caaff5) and added a Quick Tips Part 2 backlog draft documenting the swap (commit 4cfd589)
+- **Repointed** `docs/cover-graphics-standards.md` at the Assets stage of the new `blog-pipeline` workflow, replacing the retired blog-captain reference
+- **Rebuilt** `/blog-post` and four other orchestrators (game, ui-ux, refine, sync/evolve, wrap-up) as saved Workflows (`~/.claude/workflows/blog-pipeline.js`, `team-pipeline.js`) backed by registered (`name:` frontmatter) agents, retiring the blog-captain/director-style agents they replaced
+- **Fixed** `validate-mdx.sh`, whose `while read` loop silently skipped a file's unterminated last line; all 90 published posts still pass after the fix
+
+### What was learned
+- With `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, spawning a named Agent from the main conversation makes it an in-process teammate, and that teammate's own subagents then fail `SubagentHandback`; this was the root cause of a slow `/blog-post` run and cost roughly 12 of the 46 captain minutes. Fix: never pass `name` on orchestrator spawns
+- 37 of 38 agent definition files were missing `name:` frontmatter, so their `model` and `tools` settings were silently ignored; registering the name is what makes that frontmatter take effect
+- Agent definitions are per-session snapshots: a new file registers mid-session only after a delay, and edits to an existing file need a fresh session to take effect
+- Frontmatter PostToolUse hooks still fire under a Workflow agentType, but a hook that exits 0 silently leaves no transcript trace, so an absent effect does not prove the hook never ran
+- A tools allowlist drops MCP tools; `disallowedTools: [Agent]` is the workaround when an agent still needs Playwright or context7, and `omitClaudeMd` works for workflow subagents
+
+---
+
 ## 2026-08-15 - Bespoke Covers, Composition Standards, and Retiring the Metrics Roll-Call
 
 ### What changed

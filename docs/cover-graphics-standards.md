@@ -4,8 +4,8 @@ Every post on cryptoflexllc.com gets a cover infographic: hand-authored
 HTML rendered to PNG with headless Chrome. This document is the contract
 for those covers, the counterpart of `editorial-diagram-standards.md` for
 inline diagrams. The pipeline agent is `~/.claude/agents/brand-graphics.md`
-(invoked by `/brand-graphics` and by the blog captain's Cover Graphic
-phase); this file is the repo-side source of truth it reads first.
+(invoked by `/brand-graphics` and by the Assets stage of the
+`blog-pipeline` workflow behind `/blog-post`); this file is the repo-side source of truth it reads first.
 
 ## The contract
 
