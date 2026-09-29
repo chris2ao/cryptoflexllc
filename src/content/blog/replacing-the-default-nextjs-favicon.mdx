@@ -1,0 +1,182 @@
+---
+title: 'Replacing the Default Next.js Favicon: Two Bugs Hiding in Plain Sight'
+date: '2026-09-29'
+author: Chris Johnson
+readingTime: 6 min read
+description: >-
+  My tab strip still showed the stock Next.js triangle because nobody had
+  replaced the scaffold favicon.ico, and my web manifest pointed at a logo that
+  wasn't even square. Fixing both took a Pillow crop, per-frame tuning at 16
+  pixels, and a maskable safe zone.
+tags:
+  - Next.js
+  - Favicon
+  - PWA
+  - Claude Code
+  - Quick Tips
+series: Quick Tips
+seriesOrder: 2
+schemaType: TechArticle
+coverImage: /blog/replacing-the-default-nextjs-favicon/infographic.png
+coverImageAlt: >-
+  A dark browser chrome mockup fills most of the cover: a titlebar with three
+  traffic-light dots sits above two tabs. The dim left tab reads Cry next to a
+  plain white triangle in a black circle, the generic Next.js placeholder
+  favicon. The bright active tab beside it, outlined in teal, reads CryptoFlex
+  LLC next to the real teal circuit-shield icon, with an address bar below
+  reading cryptoflexllc.com. Small captions under the tabs read scaffold
+  triangle, since February and real shield, shipped this week. Below, the
+  headline Replacing the Default Favicon (Favicon in teal) is followed by a
+  line: Two bugs were hiding in plain sight, a scaffold icon nobody ever
+  replaced, and a manifest icon that wasn't even square. Two callout cards sit
+  at the bottom: one shows the real 16px favicon frame blown up pixel by pixel
+  next to the text Tuned Per Frame, Not Per Master describing the alpha and
+  brightness boost; the other shows the number 773 next to Commits, One
+  Untouched File. A Quick Tips series chip and a Part 2, Favicon & PWA Icons
+  chip sit in the header, and the footer reads Cryptoflex LLC, From The Workshop
+  with Next.js, Favicon, PWA stack tags.
+---
+
+My tab strip still showed the stock Next.js triangle after 773 commits. That wasn't a regression from last week, either. The icon had been wrong since the Create Next App scaffold commit in February, and in all that time, nobody, including me, had looked at it twice.
+
+I grabbed a screenshot of the tab strip and asked Claude Code to fix it:
+
+> "Ok I want to change the icon for the link render in chrome tabs or on iphone. It shows the default vercel Icon but I want it to be the cryptoflex icon."
+
+## The Two Triangles in My Tab Strip
+
+![Chrome tab strip showing two tabs, each with a plain white triangle inside a black circle where a site icon should be](/blog/replacing-the-default-nextjs-favicon/tab-strip-before.png)
+
+Two tabs, "Cry" and "Ana," each truncated to a title and a generic white triangle in a black circle. It's the placeholder Next.js ships with every new project, and it had survived an editorial redesign and an analytics rebuild without anyone noticing.
+
+That sent us looking for the actual file instead of guessing at a fix.
+
+## The File Nobody Touched
+
+`ls src/app` turned up `favicon.ico` next to `layout.tsx`, `manifest.ts`, `robots.ts`, and `sitemap.ts`. Running `file` on it confirmed the default: an MS Windows icon resource, four frames at 16x16 and 32x32, 25,931 bytes.
+
+The real tell was `git log --oneline -- src/app/favicon.ico`: one commit, `28c6cbe Initial commit from Create Next App`, never touched again across 773 commits of everything else changing around it.
+
+Why was the scaffold icon still the one being served? `layout.tsx` answered it: its `metadata` object has no `icons` field, so nothing was overriding the file-based default.
+
+<Info title="App Router icon conventions">
+A file literally named `favicon.ico`, `icon.*`, or `apple-icon.*` inside `app/` gets picked up automatically and rendered as a `<link>` tag in the page head. You don't need `metadata.icons` at all unless you want to override that convention.
+</Info>
+
+## The Wordmark Wasn't a Square Either
+
+Claude Code found a second bug while it was in there. `src/app/manifest.ts` declared one PWA icon entry pointing at `/CFLogo.png`, sized `512x512`, purpose `any`. The actual file, `public/CFLogo.png`, is 993x314, a wide wordmark with the shield on the left and "CryptoFlex" spelled out on the right.
+
+Nothing in the build had caught it.
+
+<Warning title="Manifests don't validate dimensions">
+Neither the Next.js build nor `tsc --noEmit` checks that a declared icon size matches the file behind it. A manifest happily accepts `"sizes": "512x512"` next to a file that isn't square at all. The only way to catch it is to open the file yourself, with something like `sips -g pixelWidth -g pixelHeight` or `file`.
+</Warning>
+
+## Building the Shield From the Wordmark
+
+![The CryptoFlex wordmark on a dark background with an amber crop box drawn around just the shield mark](/blog/replacing-the-default-nextjs-favicon/shield-crop-from-wordmark.png)
+
+We needed a square icon, and the wordmark only had a shield-shaped piece worth keeping.
+
+A tight alpha bounding box came back almost the entire left panel, since faint sparkle specks around the shield counted as content too. Claude Code settled on a hand-picked 280x280 crop instead, centered on the shield.
+
+The shield itself is mostly transparent strokes: teal outlines, circuit traces, a center chip. Left alone, it would just sit directly on whatever color the browser's tab strip happened to be. So we composited each tile onto a dark rounded square in `#0f0f12` instead, the same value the manifest already used for `theme_color` and the site background, so the shield reads the same on light and dark tab strips.
+
+```python
+BG = (15, 15, 18, 255)  # matches manifest theme_color #0f0f12
+
+def boost(img, alpha_gain, bright):
+    r, g, b, a = img.split()
+    a = a.point(lambda v: min(255, int(v * alpha_gain)))
+    rgb = ImageEnhance.Brightness(Image.merge("RGB", (r, g, b))).enhance(bright)
+    return Image.merge("RGBA", (*rgb.split(), a))
+
+def tile(size, radius_frac, pad_frac, alpha_gain=1.0, bright=1.0):
+    big = 1024
+    t = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    mask = Image.new("L", (big, big), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, big - 1, big - 1), radius=int(big * radius_frac), fill=255)
+    t.paste(Image.new("RGBA", (big, big), BG), (0, 0), mask)
+    inner = int(big * (1 - 2 * pad_frac))
+    s = boost(shield, alpha_gain, bright).resize((inner, inner), Image.LANCZOS)
+    t.alpha_composite(s, (int(big * pad_frac), int(big * pad_frac)))
+    return t.resize((size, size), Image.LANCZOS)
+```
+
+Everything renders at 1024px first and downscales once with `Image.LANCZOS`, so the smaller sizes come from one clean source instead of stacked resize artifacts.
+
+<Tip title="No ImageMagick? Pillow works fine">
+This Mac has `sips` and `rsvg-convert` but neither `magick` nor `convert`. Python's Pillow (11.3.0 here) handled the crop, the alpha math, and the ICO export without needing anything else installed.
+</Tip>
+
+## The 16 Pixel Problem
+
+The tile function above has `alpha_gain` and `bright` arguments for a reason we didn't expect until we previewed the actual sizes.
+
+Why did the shield hold up at 64px and 32px but fall apart at 16px? Upscaled with nearest-neighbor so we could actually see the pixels, the smallest frame was dim and muddy. The thin strokes were just averaging into the dark background and disappearing.
+
+![Side by side 16 pixel favicon tiles on light and dark strips, the left set dim and muddy, the right set boosted and legible](/blog/replacing-the-default-nextjs-favicon/16px-default-vs-boosted.png)
+
+The fix was per-frame tuning instead of one setting for every size. Both the 16px and 32px frames got an alpha gain of 1.8 and a brightness boost of 1.35, with padding cut from 6% to 3% so the shield had more room to read at that scale.
+
+The 48px frame needed a much lighter touch, 1.4 and 1.2, since it wasn't struggling in the first place. We checked both against a light gray strip and a dark strip before trusting either one.
+
+That meant building the ICO from three separately tuned tiles rather than downscaling one master image three times:
+
+```python
+ico16 = tile(16, 0.22, 0.03, 1.8, 1.35)
+ico32 = tile(32, 0.22, 0.03, 1.8, 1.35)
+ico48 = tile(48, 0.22, 0.04, 1.4, 1.2)
+ico48.save("src/app/favicon.ico", format="ICO",
+           sizes=[(16, 16), (32, 32), (48, 48)],
+           append_images=[ico16, ico32])
+```
+
+![Three favicon frames extracted from the shipped ICO file at 16, 32, and 48 pixels, each upscaled for clarity](/blog/replacing-the-default-nextjs-favicon/favicon-ico-frames.png)
+
+Claude Code reopened the saved file and pulled each frame back out to confirm the sizes and the tuning actually stuck: `(16, 16)`, `(32, 32)`, `(48, 48)`, each one legible.
+
+The new `favicon.ico` came out to 9,800 bytes, well under the 25,931-byte scaffold default.
+
+## Opaque for iOS, Maskable for Android
+
+The favicon wasn't the only icon this site needed. `apple-icon.png` had to be 180x180, RGB with no alpha channel, square corners, 8% padding.
+
+iOS applies its own rounded-corner mask to touch icons, so the source image ships with square corners and full-bleed content instead of trying to round it yourself.
+
+<Warning title="iOS turns transparency black">
+iOS renders any transparency underneath its mask as solid black. Flatten `apple-icon.png` to RGB with no alpha channel before shipping it.
+</Warning>
+
+The manifest needed two more shapes beyond its old single entry. `icon-192.png` and `icon-512.png` use purpose `any`, a rounded tile at 6% padding, matching the favicon's look.
+
+`icon-maskable-512.png` uses purpose `maskable`: full-bleed, square, 16% padding so the shield sits inside the safe zone Android actually crops to, a centered circle whose radius is 40% of the icon's width.
+
+![Two square PWA icons side by side, one rounded for standard use and one full bleed for maskable use, with an amber circle marking the safe zone](/blog/replacing-the-default-nextjs-favicon/any-vs-maskable-safe-zone.png)
+
+`manifest.ts` went from one icon entry to three: 192 any, 512 any, 512 maskable, with `theme_color` staying at `#0f0f12` since that part was already right.
+
+## What curl Actually Showed
+
+I had Claude Code run `npx next dev -p 3917`, curl the homepage, and grep the head for the icon tags:
+
+```html
+<link rel="manifest" href="/manifest.webmanifest"/>
+<link rel="icon" href="/favicon.ico?favicon.3iu3qa3e1n2-c.ico" sizes="48x48" type="image/x-icon"/>
+<link rel="apple-touch-icon" href="/apple-icon.png?apple-icon.26qbfd5e2znh1.png" sizes="180x180" type="image/png"/>
+```
+
+All six routes came back 200 with the right content types, the md5 of the served favicon matched the file on disk, and `tsc --noEmit` stayed clean.
+
+That query string on the href isn't a bug: Next.js appends a hash so browsers that honor it bust cache on redeploy. `middleware.ts` already excluded static assets and the manifest, so nothing there needed to change either.
+
+Shipping it doesn't mean everyone sees it instantly, though.
+
+<Tip title="Still seeing the triangle?">
+Chrome caches favicons hard enough that an already-open tab can keep showing the old one until you restart the browser or visit `/favicon.ico` directly. On iPhone, delete the existing home-screen bookmark and re-add it to pick up the new icon.
+</Tip>
+
+An iMessage link preview mostly won't change either: those pull from the page's `og:image` instead, served here by `/api/og`, not the favicon.
+
+The same `git log --oneline -- src/app/favicon.ico` that started this now prints two lines: `5caaff5 fix: replace default Next.js favicon with CryptoFlex shield icon` above `28c6cbe Initial commit from Create Next App`.
