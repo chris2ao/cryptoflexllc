@@ -79,7 +79,7 @@ export function LanBoundaryDiagram({ caption }: DiagramProps) {
           h={88}
           accent="muted"
           title="Phone / laptop"
-          sub={["your own devices", "same Wi-Fi"]}
+          sub={["your own devices", "Wi-Fi or VPN"]}
           titleSize={17}
           subSize={12.5}
         />

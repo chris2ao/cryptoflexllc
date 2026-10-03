@@ -19,7 +19,7 @@ That's the part I can't get over. When an existing product gets you most of the 
 
 ## The Itch
 
-I have video files spread across the drives of a Windows PC. I also have an always-on Mac Mini that sits there doing very little. The goal was one Netflix-style place to watch from the iPhone, the iPad, and the Macs in the house, with no hauling files around by hand.
+I have video files spread across the drives of a Windows PC. I also have an always-on Mac Mini that sits there doing very little. The goal was one Netflix-style place to watch from the iPhone, the iPad, and the Macs in the house, with no hauling files around by hand. When I travel, those same devices connect back to my home network over my UniFi VPN, so home is wherever the VPN is.
 
 The setup shaped everything that followed. The Mac Mini is an M4 with 24 GB of RAM and about 40 GB free on its internal disk, so almost everything it does lives on an external drive that stays plugged in. The PC is the opposite: lots of storage, but it isn't always on. That's why the app lives on the Mini.
 
@@ -59,7 +59,7 @@ For this build, though, it missed in five ways:
 - **The rules are Plex's to change.** Remote streaming of personal video stopped being free on 2025-04-29, a change [Plex announced](https://www.plex.tv/blog/important-2025-plex-updates/) that March. You now need a Plex Pass or a Remote Watch Pass ($2.99/month or $29.99/year on [Plex's plans page](https://www.plex.tv/plans/)). It reaches me as a guest, too: watching a friend's server from my house is free [only if that friend has a Plex Pass](https://support.plex.tv/articles/requirements-for-remote-playback-of-personal-media/). Hardware-accelerated transcoding [requires an active Plex Pass](https://support.plex.tv/articles/transcoder/) for the server owner. The remote rules don't touch a LAN-only app, but the transcoding one does. Either way, someone else's pricing page decides what the server can do.
 - **The account is a target.** Plex asked users to reset their passwords after security incidents in [August 2022](https://forums.plex.tv/t/important-notice-of-a-potential-data-breach-24th-of-august-2022/806518) and [September 2025](https://forums.plex.tv/t/important-notice-of-security-incident/930523), though the passwords were stored hashed both times. CryptoFlix's one password lives on the Mac Mini, not in someone else's user database.
 
-None of that makes Plex bad. A company has to pay for a cloud account system somehow, and if you want to share a library with friends, Plex is still the easy answer. But the target here was a single-user app on a LAN that nothing outside the house can reach. It does make outbound HTTPS calls, to TMDb and the cloud storage API, but sign-in stays local. A server that signs you in to someone else's service by default is the wrong starting point for that.
+None of that makes Plex bad. A company has to pay for a cloud account system somehow, and if you want to share a library with friends, Plex is still the easy answer. But the target here was a single-user app that nothing on the internet can reach: my own devices get to it from the LAN at home, or over my VPN into the LAN when I'm away. It does make outbound HTTPS calls, to TMDb and the cloud storage API, but sign-in stays local. A server that signs you in to someone else's service by default is the wrong starting point for that.
 
 ### What Jellyfin gets right, and where it missed me
 
@@ -169,7 +169,7 @@ Once linked, the account gets this card in Settings.
 
 ![The Settings card for Cloud storage, connected to a demo account. It checks every 10 minutes, and cloud videos play even while the PC is off.](/blog/plex-jellyfin-or-build-it-yourself-cryptoflix/cloud-settings-card.png)
 
-Why list the whole account every time? A LAN-only server can't receive webhooks, and the provider's change feed reports new files but never renames or deletions. So CryptoFlix lists everything at connect, every 10 minutes while connected, and on Sync now. A listing error, a 429 or one of CryptoFlix's own caps marks a sync incomplete, and only a complete sync may mark a file missing.
+Why list the whole account every time? A server the internet can't reach can't receive webhooks, and the provider's change feed reports new files but never renames or deletions. So CryptoFlix lists everything at connect, every 10 minutes while connected, and on Sync now. A listing error, a 429 or one of CryptoFlix's own caps marks a sync incomplete, and only a complete sync may mark a file missing.
 
 All API calls share one rate limit, 2 requests a second with bursts of 10, because the provider publishes no fixed numbers. A 429 pauses every caller, queued ones included.
 
@@ -349,7 +349,7 @@ Jellyfin's API broke in 12.0, so CryptoFlix runs a pinned 12.1.x. Any bump is an
 
 The cloud half is a dependency I can't pin at all. Two of Thursday's bugs came from undocumented API behavior that only a live account could show: a pagination cursor longer than the plan allowed, and a refusal to convert a file that was already browser-ready.
 
-It's also not a Plex or Jellyfin replacement for anyone else. CryptoFlix is LAN-only, single-user, and plain HTTP on purpose, which is a documented choice and also a decision I'm going to be asked about. That's the next post: *"It's Only on My Home Network" Is Not a Threat Model*. One bug in it is a status route that returned 200 with no session because the guard checked the raw URL while the router matched the decoded one.
+It's also not a Plex or Jellyfin replacement for anyone else. CryptoFlix is single-user, plain HTTP, and reachable only from my LAN (in person or over my VPN) on purpose, which is a documented choice and also a decision I'm going to be asked about. That's the next post: *"It's Only on My Home Network" Is Not a Threat Model*. One bug in it is a status route that returned 200 with no session because the guard checked the raw URL while the router matched the decoded one.
 
 After that comes *The Folder Name That Gave Orders: Prompt Injection From Home Lab to Enterprise*, about a command whose "ask me first" rule lived only in prose, and *What 202 Subagents Taught Me About Code Review*, on the method behind the controller. For an earlier "just build it" story, about this website instead of a home app, see [7 Days, 117 Commits](/blog/7-days-117-commits-building-a-production-site-with-ai).
 

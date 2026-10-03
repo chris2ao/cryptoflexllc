@@ -68,7 +68,7 @@ export function CryptoFlixArchitectureDiagram({ caption }: DiagramProps) {
     <DiagramWrapper
       caption={
         caption ??
-        "The app is reachable only on the LAN, but it calls out over HTTPS to TMDb and to the cloud storage provider's API. CryptoFlix owns the catalog, sign-in, and every playback session, and proxies cloud segments so no token reaches a browser. Jellyfin hides on localhost and only converts video the browser cannot play."
+        "Nothing on the internet can reach the app: my devices connect from the LAN at home, or over my VPN into the LAN when I travel. It calls out over HTTPS to TMDb and to the cloud storage provider's API. CryptoFlix owns the catalog, sign-in, and every playback session, and proxies cloud segments so no token reaches a browser. Jellyfin hides on localhost and only converts video the browser cannot play."
       }
     >
       <EditorialFrame
@@ -77,7 +77,7 @@ export function CryptoFlixArchitectureDiagram({ caption }: DiagramProps) {
         h={714}
         eyebrow="CryptoFlix Architecture"
         chips={[
-          { label: "inbound: LAN only", accent: "amber" },
+          { label: "inbound: LAN + VPN", accent: "amber" },
           { label: "1 user", accent: "cyan" },
         ]}
         footerRight="Mac Mini · hidden Jellyfin · PC + cloud"
@@ -129,7 +129,7 @@ export function CryptoFlixArchitectureDiagram({ caption }: DiagramProps) {
         ))}
         <path d="M154,146 L726,146" fill="none" className="stroke-cyan-500/50" strokeWidth="1.5" />
         <FlowLine id={id} d="M440,146 L440,184" accent="cyan" />
-        <Chip x={428} y={153} label="LAN only" accent="amber" filled anchor="end" fontSize={11} />
+        <Chip x={428} y={153} label="LAN or VPN" accent="amber" filled anchor="end" fontSize={11} />
         <Chip x={452} y={153} label="plain HTTP" accent="amber" filled fontSize={11} />
 
         {/* Mac Mini container */}

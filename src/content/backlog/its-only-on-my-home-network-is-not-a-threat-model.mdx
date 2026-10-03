@@ -15,7 +15,7 @@ coverImageAlt: "Dark branded cover titled 'It's only on my home network' is not 
 
 `GET /%61pi/status` came back 200, with the PC's status in the body and no login. `GET /api/status` returned 401, as it should. Same route spelled two ways, and my authentication guard only recognized one of them.
 
-This was CryptoFlix, a self-hosted video app I built for exactly one user: me. It runs on a Mac, reads a watched folder on a Windows PC, and plays in a browser on my home network. No public DNS record, no port forward. If any app gets to say "it's only on my home network," this one does. The security reviews found things to fix anyway.
+This was CryptoFlix, a self-hosted video app I built for exactly one user: me. It runs on a Mac, reads a watched folder on a Windows PC, and plays in a browser on my home network. No public DNS record, no port forward. When I travel, my devices reach it by joining that network over my UniFi VPN. If any app gets to say "it's only on my home network," this one does. The security reviews found things to fix anyway.
 
 ## The Request That Should Have Returned 401
 
@@ -64,6 +64,7 @@ That's a real threat model, and I'm not embarrassed by it. The trouble is the se
 | One user, one login | Held as design. Until first-run setup is finished, any LAN device can claim the account. I accepted that and wrote it down. |
 | A simple login is enough | Mostly. Argon2id password hashing, 5 attempts a minute, an httpOnly `SameSite=Strict` session cookie. Then the `/%61pi` bypass walked around all of it. |
 | Plain HTTP on the LAN is fine | Accepted risk. A device on the same Wi-Fi could read the login and the cookie. |
+| Remote access only through the VPN | Held as design. Away from home, my devices join the LAN over my UniFi VPN, so the app is never exposed to the internet and the plain-HTTP traffic crosses the internet inside the encrypted tunnel. The flip side: every device on the VPN is inside the boundary, so a lost laptop with a working VPN profile is a LAN device. |
 | Only my devices send input | Did not hold. |
 
 The plain HTTP call was deliberate, and the coordinating agent argued against it. It recommended HTTPS with a local certificate authority (mkcert). I chose plain HTTP at a local DNS name, with HTTPS kept as a config switch, because a private `.home` name has no path to a trusted certificate unless you install a CA on every device that will visit. For one household that was more machinery than the risk justified. It's still on the accepted-risk list, next to the physical route to the external drive and the fact that I log in with a password rather than a second factor.
@@ -335,6 +336,7 @@ This is what I'd run against any app you build for yourself, mapped to what fail
 - If a shell command is built from untrusted text, escape for the real tokenizer, lookalike quotes included.
 - Find your `innerHTML` sinks and test sanitizers through the real parser. Make browser tests fail on any CSP violation.
 - Keep third-party tokens on the server, hand the browser opaque ids, and fail closed.
+- If you need it away from home, come in over a VPN, never a port forward, and treat every VPN client as a LAN device.
 - Run the service under a least-privilege account with no interactive sign-in, and check who else can write what it runs at login.
 - Seal secrets, bind each to its purpose, and keep them out of logs and child processes.
 - Write down accepted risks, then get a separate security review that proves bugs live and re-reviews the fix.
