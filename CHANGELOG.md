@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here.
 
+## 2026-10-03 - Mobile and Tablet Usability Pass
+
+### What changed
+- **Fixed** the masthead CSS overriding Tailwind's hidden classes, which made every page 605px wide on iPhones and pushed the Menu button off-screen (commit 6e9387e, 49 files, +1620/-159)
+- **Fixed** about 30 other mobile issues in parallel, including tap sizes gated with `[@media(pointer:coarse)]` so desktop stays pixel-identical
+- **Added** a shared `MobileDiagramScroll` wrapper and `diagrams-mobile.css` for diagrams, with a coverage test
+- **Fixed** a pre-existing header overflow at 901-1039px desktop widths and a NewsletterPopup bug where the cancel listener never attached, so desktop Escape never saved the dismissal
+- **Verified** with Playwright at 320/390/393/820/1024/1280px on production; scrollWidth equals viewport on every page. CI passed (type check, lint, 1040 tests, build)
+- **Documented** the approach in `docs/plans/mobile-ux-plan.md`
+
+### What was learned
+- Unlayered `globals.css` rules beat Tailwind v4 utilities, so responsive display rules belong in CSS after the base rule
+- Local `next start` QA needs an `x-forwarded-proto` header plus CSP stripping
+
+---
+
 ## 2026-10-03 - Backlog Draft Corrections and Config Sync
 
 ### What changed
