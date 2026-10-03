@@ -9,6 +9,9 @@ import {
   SectionLabel,
   StepBadge,
   elbowPath,
+  monoWidth,
+  DIAGRAM_ACCENTS,
+  type DiagramAccent,
 } from "./diagram-editorial";
 
 interface DiagramProps {
@@ -1326,5 +1329,543 @@ export function TwoSourcesOneCatalogDiagram({ caption }: DiagramProps) {
         />
       </EditorialFrame>
     </DiagramWrapper>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* 8. The shopping trip scorecard                                      */
+/* ------------------------------------------------------------------ */
+
+type Fit = "fits" | "caveats" | "missed" | "untested";
+
+interface ScoreCell {
+  fit: Fit;
+  verdict: string;
+  details: string[];
+  /** Screen-reader text, for cells whose details wrap one phrase across lines. */
+  sr?: string;
+}
+
+interface ScoreRow {
+  label: string;
+  mustHave?: boolean;
+  cells: [ScoreCell, ScoreCell, ScoreCell];
+}
+
+interface ScoreColumn {
+  name: string;
+  maker: string;
+  basis: string;
+  accent: DiagramAccent;
+}
+
+const SCORE_COLUMNS: ScoreColumn[] = [
+  { name: "Plex", maker: "Plex, the company", basis: "used it", accent: "muted" },
+  { name: "Jellyfin", maker: "open-source project", basis: "tested", accent: "violet" },
+  { name: "CryptoFlix", maker: "me, with Claude Code", basis: "built it", accent: "primary" },
+];
+
+const SCORE_ROWS: ScoreRow[] = [
+  {
+    label: "Sign-in",
+    cells: [
+      {
+        fit: "caveats",
+        verdict: "Plex account sign-in",
+        details: ["on by default once claimed", "LAN too; advanced bypass"],
+        sr: "Plex account sign-in, on by default once a server is claimed, LAN too; an advanced bypass exists",
+      },
+      { fit: "fits", verdict: "No cloud account", details: ["local server users"] },
+      { fit: "fits", verdict: "One local password", details: ["one user"] },
+    ],
+  },
+  {
+    label: "Cost",
+    cells: [
+      {
+        fit: "caveats",
+        verdict: "Free at home",
+        details: ["Pass $6.99/mo, $69.99/yr", "or $749.99 lifetime", "remote paid since 2025-04-29"],
+        sr: "Free at home; Plex Pass $6.99/mo, $69.99/yr, or $749.99 lifetime; remote streaming paid since 2025-04-29",
+      },
+      { fit: "fits", verdict: "Free", details: ["open source, GPL"] },
+      {
+        fit: "caveats",
+        verdict: "No license fee",
+        details: ["TMDb free, non-commercial", "costs time and upkeep"],
+      },
+    ],
+  },
+  {
+    label: "Look and feel",
+    cells: [
+      {
+        fit: "missed",
+        verdict: "Plex's own apps",
+        details: ["the look is Plex's", "beside its ad-supported TV"],
+      },
+      { fit: "missed", verdict: "Jellyfin's own look", details: ["as shipped"] },
+      { fit: "fits", verdict: "Fully custom", details: ["two designs"] },
+    ],
+  },
+  {
+    label: "Codec handling",
+    cells: [
+      { fit: "caveats", verdict: "Server transcodes", details: ["hardware accel: Plex Pass"] },
+      { fit: "fits", verdict: "FFmpeg transcoding", details: ["free hardware acceleration"] },
+      {
+        fit: "fits",
+        verdict: "Direct play first",
+        details: ["when the browser can decode", "else hidden Jellyfin to HLS", "on Apple's VideoToolbox"],
+        sr: "Direct play when the browser can decode it, else hidden Jellyfin to HLS on Apple's VideoToolbox",
+      },
+    ],
+  },
+  {
+    label: "Whole-PC file access",
+    mustHave: true,
+    cells: [
+      { fit: "missed", verdict: "Library folders only", details: ["no whole-drive browser"] },
+      { fit: "missed", verdict: "Library folders only", details: ["no whole-drive browser"] },
+      { fit: "fits", verdict: "Every PC drive", details: ["read-only file browser"] },
+    ],
+  },
+  {
+    label: "When the PC is off",
+    mustHave: true,
+    cells: [
+      { fit: "untested", verdict: "Not tested here", details: ["no head-to-head test"] },
+      {
+        fit: "caveats",
+        verdict: "Keeps items offline",
+        details: ["if its library roots are", "deep enough (spike result)"],
+        sr: "Keeps items offline if its library roots are deep enough (spike result)",
+      },
+      {
+        fit: "fits",
+        verdict: "Badged offline, no hangs",
+        details: ["about 45 s worst case", "cloud copies keep playing"],
+      },
+    ],
+  },
+];
+
+const SCORE_FIT: Record<Fit, { label: string; bar: string }> = {
+  fits: { label: "fits what I wanted", bar: "fill-emerald-500" },
+  caveats: { label: "with caveats", bar: "fill-amber-500" },
+  missed: { label: "doesn't fit", bar: "fill-foreground/25" },
+  untested: { label: "not tested here", bar: "fill-foreground/15" },
+};
+
+/** Shape and color both carry the fit, so it reads without color too. */
+function FitMark({ cx, cy, fit }: { cx: number; cy: number; fit: Fit }) {
+  const r = 8.5;
+  if (fit === "fits") {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={r} className="fill-emerald-500/15 stroke-emerald-500" strokeWidth="1.5" />
+        <path
+          d={`M${cx - 4},${cy + 0.5} L${cx - 1},${cy + 3.5} L${cx + 4.5},${cy - 3}`}
+          fill="none"
+          className="stroke-emerald-500"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    );
+  }
+  if (fit === "caveats") {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={r} className="fill-amber-500/10 stroke-amber-500" strokeWidth="1.5" />
+        <path d={`M${cx},${cy - r} A${r},${r} 0 0,0 ${cx},${cy + r} Z`} className="fill-amber-500" />
+      </g>
+    );
+  }
+  if (fit === "missed") {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={r} className="stroke-foreground/35" strokeWidth="1.5" />
+        <path
+          d={`M${cx - 4},${cy} L${cx + 4},${cy}`}
+          className="stroke-foreground/45"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </g>
+    );
+  }
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={r} className="stroke-foreground/35" strokeWidth="1.5" strokeDasharray="2.5 2.5" />
+      <text
+        x={cx}
+        y={cy + 4}
+        textAnchor="middle"
+        className="fill-muted-foreground font-mono font-semibold"
+        style={{ fontSize: 11 }}
+      >
+        ?
+      </text>
+    </g>
+  );
+}
+
+/** Column names on their own: muted reads as plain foreground. */
+function scoreNameFill(col: ScoreColumn): string {
+  return col.accent === "muted" ? "fill-foreground" : DIAGRAM_ACCENTS[col.accent].text;
+}
+
+/** Cell height for a verdict line plus `n` mono detail lines `step` apart. */
+function scoreCellHeight(n: number, step = 17): number {
+  return n === 0 ? 40 : 40 + n * step;
+}
+
+/**
+ * One scorecard cell. With `column`, the product name sits in a left
+ * gutter, for the phone layout where the cells stack instead of lining
+ * up under column headers.
+ */
+function ScoreCellPanel({
+  x,
+  y,
+  w,
+  h,
+  cell,
+  column,
+  emphasis = false,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  cell: ScoreCell;
+  column?: ScoreColumn;
+  emphasis?: boolean;
+}) {
+  const textX = column ? x + 104 : x + 18;
+  const detailSize = column ? 13.5 : 12.5;
+  const step = column ? 18 : 17;
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={w}
+        height={h}
+        rx={8}
+        className={`fill-surface-2/80 ${emphasis ? "stroke-primary/45" : "stroke-foreground/15"}`}
+        strokeWidth="1"
+      />
+      {column && (
+        <text
+          x={x + 18}
+          y={y + 25}
+          className={`${scoreNameFill(column)} font-heading font-semibold`}
+          style={{ fontSize: 13.5 }}
+        >
+          {column.name}
+        </text>
+      )}
+      <rect x={x + 5} y={y + 9} width={3} height={h - 18} rx={1.5} className={SCORE_FIT[cell.fit].bar} />
+      <text
+        x={textX}
+        y={y + 25}
+        className="fill-foreground font-heading font-semibold"
+        style={{ fontSize: 16 }}
+      >
+        {cell.verdict}
+      </text>
+      {cell.details.map((line, i) => (
+        <text
+          key={line}
+          x={textX}
+          y={y + 44 + i * step}
+          className="fill-muted-foreground font-mono"
+          style={{ fontSize: detailSize }}
+        >
+          {line}
+        </text>
+      ))}
+      <FitMark cx={x + w - 20} cy={y + 20} fit={cell.fit} />
+    </g>
+  );
+}
+
+/** Legend entries laid out left to right, `perLine` to a line. */
+function scoreLegend(perLine: number, colStep: number | null) {
+  const fits = Object.keys(SCORE_FIT) as Fit[];
+  return fits.reduce<{ fit: Fit; x: number; line: number }[]>((acc, fit, i) => {
+    const prev = acc[acc.length - 1];
+    const line = Math.floor(i / perLine);
+    const first = i % perLine === 0;
+    const x = first
+      ? 16 + (perLine > 2 ? 8 : 0)
+      : colStep !== null
+        ? prev.x + colStep
+        : prev.x + 24 + monoWidth(SCORE_FIT[prev.fit].label, 12.5) + 28;
+    return [...acc, { fit, x, line }];
+  }, []);
+}
+
+/**
+ * The phone layout: each question's three cells stack, product names in
+ * a left gutter, so text stays near article size on a narrow screen
+ * instead of shrinking with a 900-wide frame.
+ */
+function ScorecardPhoneFrame() {
+  const id = "cfx8p";
+  const x = 16;
+  const w = 348;
+  const keyTop = 62;
+  const rowStart = keyTop + SCORE_COLUMNS.length * 26 + 14;
+  const layout = SCORE_ROWS.reduce<{ row: ScoreRow; top: number; cellTops: number[]; end: number }[]>(
+    (acc, row) => {
+      const prev = acc[acc.length - 1];
+      const top = prev ? prev.end + 6 : rowStart;
+      const cellTops = row.cells.reduce<number[]>((tops, _, i) => {
+        if (i === 0) return [top + 34];
+        const before = row.cells[i - 1];
+        return [...tops, tops[i - 1] + scoreCellHeight(before.details.length, 18) + 8];
+      }, []);
+      const lastCell = row.cells[row.cells.length - 1];
+      const end = cellTops[cellTops.length - 1] + scoreCellHeight(lastCell.details.length, 18);
+      return [...acc, { row, top, cellTops, end }];
+    },
+    []
+  );
+  const legendY = layout[layout.length - 1].end + 30;
+  const legend = scoreLegend(2, 180);
+  const h = legendY + 24 + 62;
+
+  return (
+    <EditorialFrame
+      id={id}
+      w={380}
+      h={h}
+      eyebrow="The shopping trip"
+      chips={[{ label: "Prices 2026-10-03", accent: "amber" }]}
+      maxWidthClass="max-w-md"
+    >
+      {/* Product key */}
+      {SCORE_COLUMNS.map((col, i) => {
+        const y = keyTop + 20 + i * 26;
+        return (
+          <g key={col.name}>
+            <text
+              x={x}
+              y={y}
+              className={`${scoreNameFill(col)} font-heading font-semibold`}
+              style={{ fontSize: 14 }}
+            >
+              {col.name}
+            </text>
+            <Mono x={x + 88} y={y} anchor="start">
+              {col.maker}
+            </Mono>
+            <Chip
+              x={x + w}
+              y={y - 15}
+              label={col.basis}
+              accent={col.accent}
+              filled={i === 2}
+              fontSize={10.5}
+              anchor="end"
+            />
+          </g>
+        );
+      })}
+
+      {/* Rows */}
+      {layout.map(({ row, top, cellTops }) => {
+        const labelY = top + 24;
+        const labelW = row.label.length * 12 * 0.76;
+        return (
+          <g key={row.label}>
+            <SectionLabel x={x} y={labelY} label={row.label} accent={row.mustHave ? "primary" : "muted"} />
+            {row.mustHave && (
+              <Chip x={x + 16 + labelW + 10} y={labelY - 15} label="must-have" accent="primary" filled />
+            )}
+            {row.cells.map((cell, i) => (
+              <ScoreCellPanel
+                key={i}
+                x={x}
+                y={cellTops[i]}
+                w={w}
+                h={scoreCellHeight(cell.details.length, 18)}
+                cell={cell}
+                column={SCORE_COLUMNS[i]}
+                emphasis={i === 2}
+              />
+            ))}
+          </g>
+        );
+      })}
+
+      {/* Legend */}
+      {legend.map(({ fit, x: lx, line }) => (
+        <g key={fit}>
+          <FitMark cx={lx + 9} cy={legendY + line * 24 - 4} fit={fit} />
+          <Mono x={lx + 24} y={legendY + line * 24} anchor="start">
+            {SCORE_FIT[fit].label}
+          </Mono>
+        </g>
+      ))}
+    </EditorialFrame>
+  );
+}
+
+/**
+ * The shopping trip as a scorecard: Plex, Jellyfin and CryptoFlix down
+ * three columns, one row per question, each cell marked by how well it
+ * fit a one-user LAN app. The two must-have rows are flagged. A
+ * screen-reader table carries the same data, since the SVG is an image.
+ */
+export function ShoppingTripScorecardDiagram({ caption }: DiagramProps) {
+  const id = "cfx8";
+  const colX = [24, 313, 602];
+  const colW = 274;
+  const rowStart = 140;
+  const layout = SCORE_ROWS.reduce<{ row: ScoreRow; top: number; h: number }[]>((acc, row) => {
+    const prev = acc[acc.length - 1];
+    const top = prev ? prev.top + 34 + prev.h + 6 : rowStart;
+    const h = Math.max(...row.cells.map((c) => scoreCellHeight(c.details.length)));
+    return [...acc, { row, top, h }];
+  }, []);
+  const last = layout[layout.length - 1];
+  const contentBottom = last.top + 34 + last.h;
+  const legendY = contentBottom + 30;
+  const h = legendY + 62;
+  const legend = scoreLegend(4, null);
+  const fullCaption =
+    caption ??
+    "How the three stacked up for one user on a home LAN. Each mark is fit for what I wanted, not a verdict on the product. Prices are from the vendors' own pages on 2026-10-03.";
+
+  return (
+    <>
+      <div className="md:hidden">
+        <DiagramWrapper caption={fullCaption}>
+          <ScorecardPhoneFrame />
+        </DiagramWrapper>
+      </div>
+      <div className="hidden md:block">
+        <DiagramWrapper caption={fullCaption}>
+          <EditorialFrame
+            id={id}
+            w={900}
+            h={h}
+            eyebrow="Plex vs. Jellyfin vs. CryptoFlix"
+            chips={[{ label: "Prices checked 2026-10-03", accent: "amber" }]}
+            footerRight="Fit for one user on one LAN"
+          >
+            {/* CryptoFlix column band */}
+            <rect
+              x={colX[2] - 8}
+              y={60}
+              width={colW + 16}
+              height={contentBottom + 8 - 60}
+              rx={12}
+              className="fill-primary/[0.05] stroke-primary/25"
+              strokeWidth="1"
+            />
+
+            {/* Column headers */}
+            {SCORE_COLUMNS.map((col, i) => (
+              <NodePanel
+                key={col.name}
+                x={colX[i]}
+                y={66}
+                w={colW}
+                h={70}
+                accent={col.accent}
+                emphasis={i === 2}
+                align="left"
+                title={col.name}
+                sub={[col.maker]}
+                titleSize={18}
+                subSize={12.5}
+              >
+                <Chip
+                  x={colX[i] + colW - 12}
+                  y={78}
+                  label={col.basis}
+                  accent={col.accent}
+                  filled={i === 2}
+                  fontSize={10.5}
+                  anchor="end"
+                />
+              </NodePanel>
+            ))}
+
+            {/* Rows */}
+            {layout.map(({ row, top, h: rowH }) => {
+              const labelY = top + 24;
+              const labelW = row.label.length * 12 * 0.76;
+              return (
+                <g key={row.label}>
+                  <SectionLabel
+                    x={24}
+                    y={labelY}
+                    label={row.label}
+                    accent={row.mustHave ? "primary" : "muted"}
+                  />
+                  {row.mustHave && (
+                    <Chip x={24 + 16 + labelW + 10} y={labelY - 15} label="must-have" accent="primary" filled />
+                  )}
+                  {row.cells.map((cell, i) => (
+                    <ScoreCellPanel key={i} x={colX[i]} y={top + 34} w={colW} h={rowH} cell={cell} />
+                  ))}
+                </g>
+              );
+            })}
+
+            {/* Legend */}
+            {legend.map(({ fit, x }) => (
+              <g key={fit}>
+                <FitMark cx={x + 9} cy={legendY - 4} fit={fit} />
+                <Mono x={x + 24} y={legendY} anchor="start">
+                  {SCORE_FIT[fit].label}
+                </Mono>
+              </g>
+            ))}
+          </EditorialFrame>
+        </DiagramWrapper>
+      </div>
+      {/* sr-only on a wrapper: a table ignores the 1px width and would widen the page */}
+      <div className="sr-only">
+        <table>
+          <caption>Plex, Jellyfin and CryptoFlix compared for one user on a home LAN</caption>
+          <thead>
+            <tr>
+              <th scope="col">Question</th>
+              {SCORE_COLUMNS.map((col) => (
+                <th key={col.name} scope="col">
+                  {col.name} ({col.basis})
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Who maintains it</th>
+              {SCORE_COLUMNS.map((col) => (
+                <td key={col.name}>{col.maker}</td>
+              ))}
+            </tr>
+            {SCORE_ROWS.map((row) => (
+              <tr key={row.label}>
+                <th scope="row">{row.mustHave ? `${row.label} (must-have)` : row.label}</th>
+                {row.cells.map((cell, i) => (
+                  <td key={i}>
+                    {cell.sr ?? [cell.verdict, ...cell.details].join("; ")} ({SCORE_FIT[cell.fit].label})
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

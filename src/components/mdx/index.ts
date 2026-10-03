@@ -163,6 +163,7 @@ export {
   SameVideoElementDiagram,
   ClassicVsNewDesignDiagram,
   TwoSourcesOneCatalogDiagram,
+  ShoppingTripScorecardDiagram,
 } from "./diagrams-plex-jellyfin-or-build-it-yourself-cryptoflix";
 export {
   ControllerPipelineDiagram,

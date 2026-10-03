@@ -43,23 +43,23 @@ Before any code, the question was what to build against. Two research agents sta
 
 Their verdict was that a custom app was needed. Here's how the candidates stacked up, with prices checked on 2026-10-03.
 
-| | Plex | Jellyfin | CryptoFlix |
-|---|---|---|---|
-| Account required | Plex sign-in by default on a claimed server, LAN included (there's an advanced bypass) | No cloud account; local server users | One local password, one user |
-| Cost | Free for local streaming; Plex Pass is $6.99/month, $69.99/year, or $749.99 lifetime; remote streaming is paid since 2025-04-29 | Free, GPL | No license fee; TMDb is free for non-commercial use; costs time and upkeep |
-| UI control | Plex's own apps | As shipped, the look is Jellyfin's | Fully custom, with two designs |
-| Codec handling | Server transcodes; hardware acceleration needs Plex Pass | FFmpeg, with free hardware acceleration | Direct play when the browser can decode it, otherwise hidden Jellyfin to HLS using Apple's VideoToolbox |
-| Whole-PC file access | Library folders | Library folders, no whole-drive browser | Read-only browser over every PC drive |
-| PC-offline behavior | Not tested here | Keeps items offline if its library roots are deep enough (from the spike) | Titles badged offline, nothing hangs, about 45 s worst case; cloud copies keep playing |
-| Who maintains it | Plex, the company | The Jellyfin open-source project | Me, with Claude Code |
+<ShoppingTripScorecardDiagram />
 
-I should be upfront about the Plex column. I tested Jellyfin hands on during the spike. For Plex I read the docs and pricing pages, so treat those cells as reading, not testing.
+A word on where each column comes from. I tested Jellyfin hands on during the spike. Plex I know as a user: I've used it before, and friends still share their Plex servers with me today. Each Plex fact below links to its source, checked on 2026-10-03.
 
 ### What Plex gets right, and where it missed me
 
-Plex's own words: "When your Plex Media Server is claimed or signed in to a Plex account, then all access to the server will require authentication by default." An advanced setting lets listed networks in without auth, with a security warning attached. So "sign-in by default, even on the LAN" is the accurate summary. Local streaming is free. Remote streaming of personal media stopped being free on 2025-04-29. That's when [Plex announced](https://www.plex.tv/blog/important-2025-plex-updates/) that you now need a Plex Pass or a separate Remote Watch Pass. Hardware-accelerated transcoding [requires an active Plex Pass](https://support.plex.tv/articles/transcoder/) for the server owner.
+Plex gets a lot right. The apps run on nearly everything, and sharing a library with friends is the thing it does best. That's why my friends run it.
 
-None of that is outrageous. A company has to pay for a cloud account system somehow. But the target here was a single-user app on a LAN that nothing outside the house can reach. It does make outbound HTTPS calls, to TMDb and the cloud storage API, but sign-in stays local. A server that signs you in to someone else's service by default is the wrong starting point for that.
+For this build, though, it missed in five ways:
+
+- **It signs you in to someone else's cloud.** [Plex's own words](https://support.plex.tv/articles/200890058-authentication-for-local-network-access/): "When your Plex Media Server is claimed or signed in to a Plex account, then all access to the server will require authentication by default." An advanced setting lets listed networks in without auth, with a security warning attached. So it's sign-in by default, even on the LAN. That dependency showed on 2026-07-14, when a Plex outage [reportedly hit](https://www.theverge.com/tech/965518/plex-tv-down-outage-issues) even local playback for some users. I wanted one local password and nothing outside the house between me and my own files.
+- **The app isn't only my library.** Plex's free ad-supported movies and shows, Live TV, and Discover sit beside your own libraries, and [Plex's plans page](https://www.plex.tv/plans/) says a Plex Pass doesn't remove those ads. I wanted an app that only knows about my files.
+- **It's social by design.** Sharing is why my friends use Plex, and it's a real strength. It also brings a social layer I don't need. In November 2023, Plex's Discover Together emails, which included friends' watch activity, [caught some users off guard](https://www.theverge.com/2023/11/27/23978451/plex-users-have-some-valid-concerns-about-its-new-activity-sharing-feature). CryptoFlix has one user, so there's nobody to overshare with.
+- **The rules are Plex's to change.** Remote streaming of personal video stopped being free on 2025-04-29, a change [Plex announced](https://www.plex.tv/blog/important-2025-plex-updates/) that March. You now need a Plex Pass or a Remote Watch Pass ($2.99/month or $29.99/year on [Plex's plans page](https://www.plex.tv/plans/)). It reaches me as a guest, too: watching a friend's server from my house is free [only if that friend has a Plex Pass](https://support.plex.tv/articles/requirements-for-remote-playback-of-personal-media/). Hardware-accelerated transcoding [requires an active Plex Pass](https://support.plex.tv/articles/transcoder/) for the server owner. The remote rules don't touch a LAN-only app, but the transcoding one does. Either way, someone else's pricing page decides what the server can do.
+- **The account is a target.** Plex asked users to reset their passwords after security incidents in [August 2022](https://forums.plex.tv/t/important-notice-of-a-potential-data-breach-24th-of-august-2022/806518) and [September 2025](https://forums.plex.tv/t/important-notice-of-security-incident/930523), though the passwords were stored hashed both times. CryptoFlix's one password lives on the Mac Mini, not in someone else's user database.
+
+None of that makes Plex bad. A company has to pay for a cloud account system somehow, and if you want to share a library with friends, Plex is still the easy answer. But the target here was a single-user app on a LAN that nothing outside the house can reach. It does make outbound HTTPS calls, to TMDb and the cloud storage API, but sign-in stays local. A server that signs you in to someone else's service by default is the wrong starting point for that.
 
 ### What Jellyfin gets right, and where it missed me
 
