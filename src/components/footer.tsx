@@ -28,6 +28,7 @@ export function Footer() {
           <Link href="/services">Services</Link>
           <Link href="/contact">Contact</Link>
           <a
+            className="editorial-footer-icon"
             href="https://www.linkedin.com/in/chris-johnson-secops/"
             target="_blank"
             rel="noopener noreferrer"
@@ -36,6 +37,7 @@ export function Footer() {
             <Linkedin className="h-4 w-4" />
           </a>
           <a
+            className="editorial-footer-icon"
             href="https://github.com/chris2ao"
             target="_blank"
             rel="noopener noreferrer"
@@ -43,7 +45,7 @@ export function Footer() {
           >
             <Github className="h-4 w-4" />
           </a>
-          <a href="/feed.xml" aria-label="RSS feed">
+          <a href="/feed.xml" className="editorial-footer-icon" aria-label="RSS feed">
             <Rss className="h-4 w-4" />
           </a>
           <span className="editorial-footer-meta">

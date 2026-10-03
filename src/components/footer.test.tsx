@@ -73,4 +73,11 @@ describe("Footer", () => {
       screen.getByText(new RegExp(`© ${currentYear} CryptoFlex LLC`))
     ).toBeInTheDocument();
   });
+
+  it("gives icon-only links the editorial-footer-icon hit area class", () => {
+    render(<Footer />);
+    for (const name of ["LinkedIn", "GitHub", "RSS feed"]) {
+      expect(screen.getByRole("link", { name })).toHaveClass("editorial-footer-icon");
+    }
+  });
 });

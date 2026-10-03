@@ -46,6 +46,40 @@ describe("CodeBlock", () => {
     expect(button).toBeInTheDocument();
   });
 
+  it("keeps the copy button visible on touch and hover-reveals it only on hover-capable pointers", () => {
+    render(
+      <CodeBlock>
+        <code>x</code>
+      </CodeBlock>
+    );
+
+    const button = screen.getByRole("button", { name: /copy code/i });
+    expect(button).not.toHaveClass("opacity-0");
+    expect(button).toHaveClass("[@media(hover:hover)]:opacity-0");
+    expect(button).toHaveClass("[@media(hover:hover)]:group-hover:opacity-100");
+    expect(button).toHaveClass("focus-visible:opacity-100");
+    expect(button).toHaveClass("h-11", "w-11");
+  });
+
+  it("restores the original desktop geometry for the button and language label", () => {
+    render(
+      <CodeBlock>
+        <code className="language-ts">x</code>
+      </CodeBlock>
+    );
+
+    const button = screen.getByRole("button", { name: /copy code/i });
+    expect(button).toHaveClass(
+      "[@media(hover:hover)]:right-2",
+      "[@media(hover:hover)]:top-2",
+      "[@media(hover:hover)]:h-[30px]",
+      "[@media(hover:hover)]:w-[30px]"
+    );
+    const label = screen.getByText("ts");
+    expect(label).toHaveClass("right-14", "top-3");
+    expect(label).toHaveClass("[@media(hover:hover)]:right-12", "[@media(hover:hover)]:top-2");
+  });
+
   it("copies text content to clipboard on button click", async () => {
     render(
       <CodeBlock>

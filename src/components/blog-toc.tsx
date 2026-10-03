@@ -43,7 +43,7 @@ function TocLinks({
   activeId: string;
 }) {
   return (
-    <ul className="space-y-1 text-sm">
+    <ul className="space-y-0.5 text-sm lg:space-y-1">
       {headings.map((heading) => (
         <li
           key={heading.id}
@@ -51,10 +51,10 @@ function TocLinks({
         >
           <a
             href={`#${heading.id}`}
-            className={`block rounded px-2 py-1 transition-colors ${
+            className={`block rounded px-2 py-2 lg:py-1 transition-colors ${
               activeId === heading.id
                 ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground [@media(hover:hover)]:hover:text-foreground"
             }`}
             onClick={(e) => {
               e.preventDefault();
@@ -73,7 +73,7 @@ function TocLinks({
 
 export function BlogToc({ headings, variant = "inline" }: BlogTocProps) {
   const activeId = useTocObserver(headings);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   if (headings.length < 3) return null;
 
@@ -99,7 +99,8 @@ export function BlogToc({ headings, variant = "inline" }: BlogTocProps) {
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between text-sm font-medium text-foreground"
+        aria-expanded={isOpen}
+        className="flex min-h-10 w-full items-center justify-between text-sm font-medium text-foreground"
       >
         <span className="flex items-center gap-2">
           <List className="h-4 w-4" />

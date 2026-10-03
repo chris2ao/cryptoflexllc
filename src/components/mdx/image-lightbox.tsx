@@ -89,7 +89,7 @@ export function ImageLightbox(
             /* eslint-disable-next-line @next/next/no-img-element */
             <img {...props} alt={props.alt ?? ""} className="w-full h-auto rounded" />
           )}
-          <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-md bg-zinc-800/80 px-2 py-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+          <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-md bg-zinc-800/80 px-2 py-1 text-[10px] text-muted-foreground transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
             <svg
               width="12"
               height="12"
@@ -105,7 +105,8 @@ export function ImageLightbox(
               <line x1="21" y1="3" x2="14" y2="10" />
               <line x1="3" y1="21" x2="10" y2="14" />
             </svg>
-            Click to enlarge
+            <span className="[@media(hover:none)]:hidden">Click to enlarge</span>
+            <span className="hidden [@media(hover:none)]:inline">Tap to enlarge</span>
           </span>
         </button>
         {caption && (
@@ -142,7 +143,7 @@ export function ImageLightbox(
                 onClick={zoomOut}
                 disabled={zoomIndex === 0}
                 aria-label="Zoom out"
-                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:p-0 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <svg
                   width="16"
@@ -167,7 +168,7 @@ export function ImageLightbox(
                 onClick={zoomIn}
                 disabled={zoomIndex === ZOOM_LEVELS.length - 1}
                 aria-label="Zoom in"
-                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:p-0 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <svg
                   width="16"
@@ -190,7 +191,7 @@ export function ImageLightbox(
                 type="button"
                 onClick={close}
                 aria-label="Close"
-                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:p-0 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <svg
                   width="16"
@@ -210,7 +211,7 @@ export function ImageLightbox(
           </div>
 
           {/* Scrollable + zoomable content area */}
-          <div className="relative z-10 flex-1 overflow-auto flex items-start justify-center">
+          <div className="relative z-10 flex-1 overflow-auto flex items-start justify-center [touch-action:pan-x_pan-y_pinch-zoom]">
             <div
               className="inline-block p-8 transition-transform duration-200 motion-reduce:transition-none origin-top-center"
               style={{ transform: `scale(${zoom})` }}

@@ -337,7 +337,7 @@ export default async function BlogPostPage({ params }: Props) {
                     h3: createHeading(3),
                     pre: CodeBlock,
                     table: (props) => (
-                      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                      <div className="prose-table-wrap overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0">
                         <table {...props} />
                       </div>
                     ),

@@ -1,0 +1,122 @@
+/* ================================================================
+   DIAGRAMS ON PHONES (mobile-ux workstream C)
+   Imported from globals.css. Below 768px a wide diagram svg keeps about
+   0.8x of its viewBox width and pans sideways inside .diagram-scroll.
+   The width is read from the viewBox attribute with 100px prefix
+   buckets, so no per-diagram edits are needed:
+     "0 0 5" = 500-599, "0 0 6" = 600-699, ... "0 0 9" = 900-999,
+     "0 0 1" = 1000-1999.
+   Selectors are direct children of the wrapper's inner element
+   (.diagram-scroll-inner > svg), so nested icons and markers never
+   match. Every outer diagram svg is at least 380 wide (the narrowest is
+   a 380px phone frame, which must not widen), so these prefixes cannot
+   collide with small viewBoxes in practice. A new diagram outside
+   500-1999 wide needs a new bucket here (and in the modal block below);
+   the "every registered diagram is covered" test fails until it has one.
+   Show/hide lives here, not in utilities, because this unlayered CSS
+   would beat Tailwind display classes on the same element.
+   ================================================================ */
+
+.diagram-hint {
+  display: none;
+}
+
+.diagram-badge {
+  display: flex;
+  opacity: 0;
+}
+
+.diagram-badge-touch {
+  display: none;
+}
+
+@media (hover: hover) {
+  .diagram-frame:hover .diagram-badge,
+  .diagram-frame:focus-within .diagram-badge {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  .diagram-badge {
+    opacity: 1;
+  }
+  .diagram-badge-mouse {
+    display: none;
+  }
+  .diagram-badge-touch {
+    display: inline;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .diagram-hint {
+    display: block;
+  }
+
+  /* The hint line replaces the corner badge on phones. */
+  .diagram-badge {
+    display: none;
+  }
+
+  /* Let the scroll area grow to the wide svg instead of clipping it. */
+  .diagram-scroll-inner {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  /* A narrow frame (3xx or 4xx wide) means nothing to swipe. */
+  .diagram-frame:has(.diagram-scroll-inner > svg[viewBox^="0 0 3"]) .diagram-hint-swipe,
+  .diagram-frame:has(.diagram-scroll-inner > svg[viewBox^="0 0 4"]) .diagram-hint-swipe {
+    display: none;
+  }
+
+  .diagram-scroll-inner > svg[viewBox^="0 0 5"] {
+    min-width: 400px;
+  }
+  .diagram-scroll-inner > svg[viewBox^="0 0 6"] {
+    min-width: 480px;
+  }
+  .diagram-scroll-inner > svg[viewBox^="0 0 7"] {
+    min-width: 560px;
+  }
+  .diagram-scroll-inner > svg[viewBox^="0 0 8"] {
+    min-width: 640px;
+  }
+  .diagram-scroll-inner > svg[viewBox^="0 0 9"] {
+    min-width: 720px;
+  }
+  .diagram-scroll-inner > svg[viewBox^="0 0 1"] {
+    min-width: 800px;
+  }
+
+  /* Enlarged view on phones: open at about the natural viewBox width. */
+  .diagram-modal-content svg {
+    min-width: 85vw;
+    width: 85vw;
+  }
+  .diagram-modal-content > svg[viewBox^="0 0 5"] {
+    min-width: 550px;
+    width: 550px;
+  }
+  .diagram-modal-content > svg[viewBox^="0 0 6"] {
+    min-width: 650px;
+    width: 650px;
+  }
+  .diagram-modal-content > svg[viewBox^="0 0 7"] {
+    min-width: 750px;
+    width: 750px;
+  }
+  .diagram-modal-content > svg[viewBox^="0 0 8"] {
+    min-width: 850px;
+    width: 850px;
+  }
+  .diagram-modal-content > svg[viewBox^="0 0 9"] {
+    min-width: 950px;
+    width: 950px;
+  }
+  .diagram-modal-content > svg[viewBox^="0 0 1"] {
+    min-width: 1000px;
+    width: 1000px;
+  }
+}

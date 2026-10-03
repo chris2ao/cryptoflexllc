@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/search/open-command-palette";
 import { Nav } from "./nav";
 
 vi.mock("next/navigation", () => ({
@@ -22,8 +23,15 @@ vi.mock("@/components/ui/button", () => ({
 
 vi.mock("@/components/ui/sheet", () => ({
   Sheet: ({ children }: any) => <div data-testid="sheet">{children}</div>,
-  SheetContent: ({ children }: any) => (
-    <div data-testid="sheet-content">{children}</div>
+  SheetContent: ({ children, onCloseAutoFocus }: any) => (
+    <div data-testid="sheet-content">
+      <button
+        type="button"
+        data-testid="sheet-close-autofocus"
+        onClick={() => onCloseAutoFocus?.(new Event("focus", { cancelable: true }))}
+      />
+      {children}
+    </div>
   ),
   SheetTrigger: ({ children }: any) => (
     <div data-testid="sheet-trigger">{children}</div>
@@ -40,6 +48,10 @@ vi.mock("@/components/theme-toggle", () => ({
 describe("Nav", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders primary navigation links", () => {
@@ -96,5 +108,47 @@ describe("Nav", () => {
     render(<Nav />);
     expect(screen.getByTestId("sheet")).toBeInTheDocument();
     expect(screen.getByTestId("sheet-trigger")).toBeInTheDocument();
+  });
+
+  it("search button dispatches the open-palette event", () => {
+    const handler = vi.fn();
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, handler);
+    render(<Nav />);
+    fireEvent.click(screen.getByRole("button", { name: "Search posts" }));
+    expect(handler).toHaveBeenCalledTimes(1);
+    window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, handler);
+  });
+
+  it("mobile menu Search entry opens the palette from onCloseAutoFocus, not a timer", () => {
+    vi.useFakeTimers();
+    const handler = vi.fn();
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, handler);
+    render(<Nav />);
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(handler).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId("sheet-close-autofocus"));
+    expect(handler).toHaveBeenCalledTimes(1);
+    // The flag is consumed: a later ordinary close does not reopen the palette
+    fireEvent.click(screen.getByTestId("sheet-close-autofocus"));
+    expect(handler).toHaveBeenCalledTimes(1);
+    window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, handler);
+  });
+
+  it("an ordinary sheet close does not open the palette", () => {
+    const handler = vi.fn();
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, handler);
+    render(<Nav />);
+    fireEvent.click(screen.getByTestId("sheet-close-autofocus"));
+    expect(handler).not.toHaveBeenCalled();
+    window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, handler);
+  });
+
+  it("does not pair display utilities with custom display classes", () => {
+    render(<Nav />);
+    expect(document.querySelector(".masthead-social")?.className).not.toMatch(/hidden|sm:/);
+    expect(document.querySelector(".masthead-right > .btn-editorial")?.className).not.toMatch(/hidden|sm:/);
   });
 });

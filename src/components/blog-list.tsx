@@ -10,6 +10,8 @@ import type { BlogPost } from "@/lib/blog";
 /** Serializable subset of BlogPost (no raw MDX content) */
 export type BlogPostSummary = Omit<BlogPost, "content">;
 
+const MOBILE_PAGE_SIZE = 12;
+
 interface BlogListProps {
   posts: BlogPostSummary[];
   allTags?: string[];
@@ -111,6 +113,33 @@ export function BlogList({ posts }: BlogListProps) {
     router.push("/blog", { scroll: false });
   }
 
+  // Mobile paging: the count resets whenever the filter or query changes.
+  // Keyed by a filter signature, reset during render (no effect).
+  const filterSignature = `${search.trim()}|${selectedTags.join(",")}`;
+  const [pageState, setPageState] = useState({
+    signature: filterSignature,
+    count: MOBILE_PAGE_SIZE,
+  });
+  // Adjusting state during render (React's documented pattern) discards the old
+  // count as soon as the signature changes, so returning to an earlier filter
+  // cannot resurrect it.
+  if (pageState.signature !== filterSignature) {
+    setPageState({ signature: filterSignature, count: MOBILE_PAGE_SIZE });
+  }
+  const mobileCount =
+    pageState.signature === filterSignature
+      ? pageState.count
+      : MOBILE_PAGE_SIZE;
+  const shownOnMobile = Math.min(mobileCount, filtered.length);
+  const hasMore = shownOnMobile < filtered.length;
+
+  function showMore() {
+    setPageState({
+      signature: filterSignature,
+      count: mobileCount + MOBILE_PAGE_SIZE,
+    });
+  }
+
   const hasFilters = search.trim() !== "" || selectedTags.length > 0;
 
   return (
@@ -124,7 +153,7 @@ export function BlogList({ posts }: BlogListProps) {
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search posts..."
-          className="w-full max-w-md rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full max-w-md rounded-md border border-input bg-background py-2 pl-9 pr-3 text-base sm:text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 
@@ -161,9 +190,28 @@ export function BlogList({ posts }: BlogListProps) {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((post) => (
-            <BlogCard key={post.slug} post={post} />
+          {filtered.map((post, index) => (
+            <div
+              key={post.slug}
+              className={
+                index < mobileCount ? "h-full" : "h-full max-sm:hidden"
+              }
+            >
+              <BlogCard post={post} />
+            </div>
           ))}
+        </div>
+      )}
+
+      {filtered.length > 0 && hasMore && (
+        <div className="mt-6 sm:hidden">
+          <button
+            type="button"
+            onClick={showMore}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Show more posts ({shownOnMobile} of {filtered.length} shown)
+          </button>
         </div>
       )}
     </>

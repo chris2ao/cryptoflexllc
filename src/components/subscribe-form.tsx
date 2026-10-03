@@ -41,7 +41,7 @@ export function SubscribeForm() {
             value={email}
             onChange={(e) => updateEmail(e.target.value)}
             placeholder="you@example.com"
-            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <button
             type="submit"

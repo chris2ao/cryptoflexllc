@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./diagrams-mobile.css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -694,8 +695,7 @@
     gap: 12px;
     height: 72px;
   }
-  .masthead-brand-kicker,
-  .status-pill { display: none; }
+  .masthead-brand-kicker { display: none; }
 }
 
 .masthead-brand {
@@ -776,7 +776,10 @@
 
 @media (max-width: 900px) {
   .ed-subnav-inner {
-    padding: 0 16px;
+    height: 44px;
+    padding: 0 40px 0 16px;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -816,9 +819,11 @@
   border-left: 1px solid var(--border);
 }
 
-.ed-subnav-link:hover {
-  color: var(--fg);
-  background: color-mix(in oklab, var(--border) 40%, transparent);
+@media (hover: hover) {
+  .ed-subnav-link:hover {
+    color: var(--fg);
+    background: color-mix(in oklab, var(--border) 40%, transparent);
+  }
 }
 
 .ed-subnav-link[aria-current="page"] {
@@ -846,11 +851,21 @@
   transition: right 280ms var(--ease-hover);
 }
 
-.masthead-nav a:hover {
+@media (hover: hover) {
+  .masthead-nav a:hover {
+    color: var(--fg);
+  }
+
+  .masthead-nav a:hover::before {
+    right: 0;
+  }
+}
+
+.masthead-nav a:focus-visible {
   color: var(--fg);
 }
 
-.masthead-nav a:hover::before,
+.masthead-nav a:focus-visible::before,
 .masthead-nav a[aria-current="page"]::before {
   right: 0;
 }
@@ -890,12 +905,19 @@
     background 160ms ease;
 }
 
-.masthead-icon-btn:hover,
 .masthead-icon-btn:focus-visible {
   border-color: var(--primary);
   color: var(--primary);
   background: var(--accent-dim);
   outline: none;
+}
+
+@media (hover: hover) {
+  .masthead-icon-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--accent-dim);
+  }
 }
 
 .status-pill {
@@ -959,7 +981,15 @@
     background 160ms ease;
 }
 
-.btn-editorial:hover {
+@media (hover: hover) {
+  .btn-editorial:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--accent-dim);
+  }
+}
+
+.btn-editorial:focus-visible {
   border-color: var(--primary);
   color: var(--primary);
   background: var(--accent-dim);
@@ -972,15 +1002,67 @@
   font-weight: 600;
 }
 
-.btn-editorial--primary:hover {
+.btn-editorial--primary:focus-visible {
   background: var(--primary);
   color: var(--primary-foreground);
   filter: brightness(1.08);
 }
 
+@media (hover: hover) {
+  .btn-editorial--primary:hover {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    filter: brightness(1.08);
+  }
+}
+
 .btn-editorial--sm {
   padding: 7px 14px;
   font-size: 12px;
+}
+
+/* Masthead responsive display. Must stay AFTER the base display rules above:
+   unlayered CSS beats Tailwind utilities, so hiding is done here, not in markup. */
+.masthead-right {
+  justify-self: end; /* .masthead-nav is display:none <=900px, so the cluster would land in the 1fr column */
+}
+
+.masthead-search-btn {
+  display: none;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .masthead-search-btn {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Touch devices wider than 900px (iPad landscape) have no keyboard shortcut,
+   so keep the search trigger at every width. */
+@media (pointer: coarse) {
+  .masthead-search-btn {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* The full masthead needs about 1040px. From 901px to 1100px the nav is back,
+   so the status pill and social icons yield (social links stay in the footer). */
+@media (max-width: 1100px) {
+  .status-pill,
+  .masthead-social { display: none; }
+}
+
+@media (max-width: 768px) {
+  .masthead-right { gap: 8px; }
+}
+
+@media (max-width: 639px) {
+  .masthead-right > .btn-editorial { display: none; }
 }
 
 /* ================================================================
@@ -1026,8 +1108,27 @@
   transition: color 160ms ease;
 }
 
-.editorial-footer-links a:hover {
+@media (hover: hover) {
+  .editorial-footer-links a:hover {
+    color: var(--primary);
+  }
+}
+
+.editorial-footer-links a:focus-visible {
   color: var(--primary);
+}
+
+/* 44px hit area for icon-only links on phones; negative margin keeps the visual footprint */
+@media (max-width: 768px) {
+  .editorial-footer-links { gap: 28px; }
+  .editorial-footer-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin: -14px;
+  }
 }
 
 .editorial-footer-meta {
@@ -1537,6 +1638,15 @@
   border: 1px solid var(--border-2);
   border-radius: 2px;
   color: var(--fg-2);
+}
+
+@media (max-width: 768px) {
+  a.ed-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 3px 12px;
+  }
 }
 
 .ed-tag.hot {
@@ -2242,6 +2352,13 @@
   cursor: not-allowed;
 }
 
+/* iOS Safari zooms the page when an input under 16px gets focus.
+   width: 0 drops the input's intrinsic width (which grows with font size and
+   would widen the whole grid column); flex: 1 still fills the row. */
+@media (max-width: 639px) {
+  .subscribe-form input { font-size: 16px; width: 0; min-width: 0; }
+}
+
 .subscribe-form .meta {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -2286,6 +2403,29 @@
 
 @media (max-width: 768px) {
   .ed-post-inner { padding: 0 20px; }
+}
+
+/* Sticky stack heights plus 12px clearance:
+   <=768px: 72 masthead + 44 subnav = 116 -> 128
+   769-900px: 88 + 44 = 132 -> 144
+   >900px: 88 + 36 = 124 -> 136 */
+.prose :is(h1, h2, h3, h4, h5, h6)[id],
+.prose [id] {
+  scroll-margin-top: 128px;
+}
+
+@media (min-width: 769px) {
+  .prose :is(h1, h2, h3, h4, h5, h6)[id],
+  .prose [id] {
+    scroll-margin-top: 144px;
+  }
+}
+
+@media (min-width: 901px) {
+  .prose :is(h1, h2, h3, h4, h5, h6)[id],
+  .prose [id] {
+    scroll-margin-top: 136px;
+  }
 }
 
 .ed-post-header {
@@ -2360,8 +2500,10 @@
   transition: border-color 200ms var(--ease-hover);
 }
 
-button.ed-post-cover:hover {
-  border-color: var(--accent-line);
+@media (hover: hover) {
+  button.ed-post-cover:hover {
+    border-color: var(--accent-line);
+  }
 }
 
 .ed-post-cover img {
@@ -2655,6 +2797,10 @@ button.ed-post-cover:hover {
   .ax-toolbar .tabs-wrap { grid-column: 1 / -1; grid-row: 2; }
 }
 
+@media (max-width: 768px) {
+  .ax-toolbar { position: static; }
+}
+
 .seg {
   display: inline-flex;
   border: 1px solid var(--border-2);
@@ -2793,6 +2939,10 @@ button.ed-post-cover:hover {
   font-size: 12px;
   flex: 1;
   min-width: 0;
+}
+
+@media (max-width: 639px) {
+  .ax-search input { font-size: 16px; }
 }
 
 .ax-search .k {
@@ -3831,6 +3981,22 @@ table.ax-tbl {
   background: oklch(0.13 0.012 225);
 }
 
+@media (max-width: 640px) {
+  .prose pre {
+    padding: 0.875rem 1rem;
+    font-size: 0.78125rem;
+  }
+}
+
+.prose p,
+.prose li,
+.prose td,
+.prose th,
+.prose blockquote,
+.prose figcaption {
+  overflow-wrap: anywhere;
+}
+
 .prose :not(pre) > code {
   background: var(--surface-3);
   border: 1px solid var(--border);
@@ -3839,6 +4005,7 @@ table.ax-tbl {
   font-size: 0.875em;
   color: var(--primary);
   font-family: var(--font-mono);
+  overflow-wrap: anywhere;
 }
 
 /* ---- Reading Progress Bar ---- */
@@ -3877,6 +4044,23 @@ table.ax-tbl {
 .prose th,
 .prose td {
   white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .prose th,
+  .prose td {
+    white-space: normal;
+    min-width: 8rem;
+  }
+}
+
+/* Horizontal scroll shadow: edge shadows appear only where more content scrolls. */
+.prose-table-wrap {
+  background:
+    linear-gradient(to right, var(--background) 30%, transparent) left center / 24px 100% no-repeat local,
+    linear-gradient(to left, var(--background) 30%, transparent) right center / 24px 100% no-repeat local,
+    linear-gradient(to right, rgb(0 0 0 / 0.28), transparent) left center / 12px 100% no-repeat scroll,
+    linear-gradient(to left, rgb(0 0 0 / 0.28), transparent) right center / 12px 100% no-repeat scroll;
 }
 
 @media (max-width: 640px) {

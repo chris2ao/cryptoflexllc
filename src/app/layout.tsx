@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
@@ -38,6 +38,12 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500", "600"],
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  // The site renders dark by default and switches only via the theme toggle,
+  // so the OS color scheme is irrelevant. Light users are corrected by the inline script below.
+  themeColor: "#020405",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -125,12 +131,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className={`${spaceGrotesk.variable} ${sourceSerif4.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen flex flex-col`}
+        className={`${spaceGrotesk.variable} ${sourceSerif4.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-dvh flex flex-col`}
       >
         {/* Prevent flash of wrong theme on page load */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("theme")==="light"){document.documentElement.classList.remove("dark");document.documentElement.classList.add("light")}}catch(e){}`,
+            __html: `try{if(localStorage.getItem("theme")==="light"){document.documentElement.classList.remove("dark");document.documentElement.classList.add("light");var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#f2f5f8")}}catch(e){}`,
           }}
         />
         <ThemeProvider>

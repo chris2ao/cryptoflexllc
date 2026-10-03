@@ -10,8 +10,9 @@ import {
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { NewsletterPopup } from "./NewsletterPopup";
 
+let mockPathname = "/blog";
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/blog",
+  usePathname: () => mockPathname,
 }));
 
 vi.mock("@/hooks/use-subscribe", () => ({
@@ -88,6 +89,11 @@ beforeAll(() => {
 
   // jsdom versions without <dialog> method support
   const proto = window.HTMLDialogElement?.prototype;
+  if (proto && typeof proto.show !== "function") {
+    proto.show = function (this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    };
+  }
   if (proto && typeof proto.showModal !== "function") {
     proto.showModal = function (this: HTMLDialogElement) {
       this.setAttribute("open", "");
@@ -98,7 +104,32 @@ beforeAll(() => {
   }
 });
 
+function setViewport(mobile: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: (query: string) => ({
+      matches: mobile && query.includes("max-width"),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }),
+  });
+}
+
+function setScroll(scrollY: number, innerHeight = 800, docHeight = 4000) {
+  Object.defineProperty(window, "scrollY", { configurable: true, value: scrollY });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: innerHeight });
+  Object.defineProperty(document.documentElement, "scrollHeight", {
+    configurable: true,
+    value: docHeight,
+  });
+}
+
 beforeEach(() => {
+  mockPathname = "/blog";
+  setViewport(false);
+  setScroll(0);
   vi.useFakeTimers();
   localStorage.clear();
   documentHidden = false;
@@ -194,5 +225,168 @@ describe("NewsletterPopup", () => {
     advance(DELAY_MS);
 
     expect(popupHeading()).not.toBeInTheDocument();
+  });
+
+  it("desktop modal: a native cancel event (Escape) writes the dismissal", () => {
+    render(<NewsletterPopup />);
+    advance(DELAY_MS);
+    expect(popupHeading()).toBeInTheDocument();
+    const dialog = document.querySelector("dialog") as HTMLDialogElement;
+    act(() => {
+      dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+    });
+    expect(popupHeading()).not.toBeInTheDocument();
+    expect(localStorage.getItem(DISMISSED_KEY)).not.toBeNull();
+  });
+
+  it("removes its scroll listener on unmount", () => {
+    setViewport(true);
+    mockPathname = "/blog/some-post";
+    const { unmount } = render(<NewsletterPopup />);
+    advance(DELAY_MS);
+    const removeSpy = vi.spyOn(window, "removeEventListener");
+    unmount();
+    expect(removeSpy.mock.calls.map((c) => c[0])).toContain("scroll");
+    removeSpy.mockRestore();
+  });
+
+  it("a dismissal during the scroll wait suppresses the later reveal", () => {
+    setViewport(true);
+    mockPathname = "/blog/some-post";
+    render(<NewsletterPopup />);
+    advance(DELAY_MS);
+    expect(popupHeading()).not.toBeInTheDocument();
+    // Dismissed elsewhere (another tab or form) while waiting for depth
+    localStorage.setItem(DISMISSED_KEY, new Date().toISOString());
+    setScroll(1700);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(popupHeading()).not.toBeInTheDocument();
+  });
+
+  describe("mobile viewport", () => {
+    it("ignores Escape that was already handled (defaultPrevented)", () => {
+      setViewport(true);
+      render(<NewsletterPopup />);
+      advance(DELAY_MS);
+      const handled = (e: KeyboardEvent) => e.preventDefault();
+      // A handler lower in the tree (like a dialog) runs before document's
+      document.body.addEventListener("keydown", handled);
+      act(() => {
+        document.body.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "Escape",
+            cancelable: true,
+            bubbles: true,
+          }),
+        );
+      });
+      document.body.removeEventListener("keydown", handled);
+      expect(popupHeading()).toBeInTheDocument();
+      expect(localStorage.getItem(DISMISSED_KEY)).toBeNull();
+    });
+
+    it("ignores Escape while a Radix sheet or other dialog is open", () => {
+      setViewport(true);
+      render(<NewsletterPopup />);
+      advance(DELAY_MS);
+      const sheet = document.createElement("div");
+      sheet.setAttribute("role", "dialog");
+      sheet.setAttribute("data-state", "open");
+      document.body.appendChild(sheet);
+      act(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      });
+      expect(popupHeading()).toBeInTheDocument();
+      expect(localStorage.getItem(DISMISSED_KEY)).toBeNull();
+      sheet.remove();
+    });
+
+    it("opens non-modal with show(), not showModal()", () => {
+      setViewport(true);
+      const proto = window.HTMLDialogElement.prototype;
+      const show = vi.fn(function (this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+      });
+      const showModal = vi.fn(function (this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+      });
+      const origShow = proto.show;
+      const origModal = proto.showModal;
+      proto.show = show;
+      proto.showModal = showModal;
+      try {
+        render(<NewsletterPopup />);
+        advance(DELAY_MS);
+        expect(popupHeading()).toBeInTheDocument();
+        expect(show).toHaveBeenCalledTimes(1);
+        expect(showModal).not.toHaveBeenCalled();
+      } finally {
+        proto.show = origShow;
+        proto.showModal = origModal;
+      }
+    });
+
+    it("closes on Escape while non-modal", () => {
+      setViewport(true);
+      render(<NewsletterPopup />);
+      advance(DELAY_MS);
+      expect(popupHeading()).toBeInTheDocument();
+      act(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      });
+      expect(popupHeading()).not.toBeInTheDocument();
+      expect(localStorage.getItem(DISMISSED_KEY)).not.toBeNull();
+    });
+
+    it("on a post route waits for 60% scroll depth after the 20s delay", () => {
+      setViewport(true);
+      mockPathname = "/blog/some-post";
+      render(<NewsletterPopup />);
+      advance(DELAY_MS);
+      expect(popupHeading()).not.toBeInTheDocument();
+
+      setScroll(1000); // (1000 + 800) / 4000 = 45%
+      act(() => {
+        window.dispatchEvent(new Event("scroll"));
+      });
+      expect(popupHeading()).not.toBeInTheDocument();
+
+      setScroll(1700); // 62.5%
+      act(() => {
+        window.dispatchEvent(new Event("scroll"));
+      });
+      expect(popupHeading()).toBeInTheDocument();
+    });
+
+    it("on a post route does not show on depth alone before 20s", () => {
+      setViewport(true);
+      mockPathname = "/blog/some-post";
+      setScroll(3000);
+      render(<NewsletterPopup />);
+      act(() => {
+        window.dispatchEvent(new Event("scroll"));
+      });
+      expect(popupHeading()).not.toBeInTheDocument();
+      advance(DELAY_MS);
+      expect(popupHeading()).toBeInTheDocument();
+    });
+
+    it("does not apply the scroll gate on the /blog index", () => {
+      setViewport(true);
+      mockPathname = "/blog";
+      render(<NewsletterPopup />);
+      advance(DELAY_MS);
+      expect(popupHeading()).toBeInTheDocument();
+    });
+
+    it("does not apply the scroll gate on desktop post routes", () => {
+      setViewport(false);
+      mockPathname = "/blog/some-post";
+      render(<NewsletterPopup />);
+      advance(DELAY_MS);
+      expect(popupHeading()).toBeInTheDocument();
+    });
   });
 });

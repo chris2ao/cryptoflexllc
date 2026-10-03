@@ -291,4 +291,79 @@ describe("BlogList", () => {
 
     expect(screen.getByText("Minimal Post")).toBeInTheDocument();
   });
+
+  describe("mobile paging", () => {
+    const manyPosts: BlogPostSummary[] = Array.from({ length: 30 }, (_, i) => ({
+      slug: `bulk-${i + 1}`,
+      title: `Bulk ${i + 1}`,
+      description: `Description ${i + 1}`,
+      tags: i % 2 === 0 ? ["even"] : ["odd"],
+      date: "2026-02-01",
+      author: "Test Author",
+      readingTime: "1 min read",
+    }));
+
+    const wrapperOf = (slug: string) =>
+      screen.getByTestId(`blog-card-${slug}`).parentElement as HTMLElement;
+
+    it("keeps every card in the DOM and hides those beyond 12 on mobile", () => {
+      render(<BlogList posts={manyPosts} />);
+      expect(screen.getAllByTestId(/^blog-card-/)).toHaveLength(30);
+      expect(wrapperOf("bulk-12").className).not.toContain("max-sm:hidden");
+      expect(wrapperOf("bulk-13").className).toContain("max-sm:hidden");
+      expect(
+        screen.getByRole("button", { name: /show more posts \(12 of 30 shown\)/i })
+      ).toBeInTheDocument();
+    });
+
+    it("reveals 12 more per tap and hides the button when none remain", () => {
+      render(<BlogList posts={manyPosts} />);
+      fireEvent.click(screen.getByRole("button", { name: /show more posts/i }));
+      expect(wrapperOf("bulk-24").className).not.toContain("max-sm:hidden");
+      expect(wrapperOf("bulk-25").className).toContain("max-sm:hidden");
+      fireEvent.click(
+        screen.getByRole("button", { name: /show more posts \(24 of 30 shown\)/i })
+      );
+      expect(wrapperOf("bulk-30").className).not.toContain("max-sm:hidden");
+      expect(screen.queryByRole("button", { name: /show more posts/i })).toBeNull();
+    });
+
+    it("hides the button when 12 or fewer posts exist", () => {
+      render(<BlogList posts={mockPosts} />);
+      expect(screen.queryByRole("button", { name: /show more posts/i })).toBeNull();
+    });
+
+    it("resets the visible count when the filter changes", () => {
+      render(<BlogList posts={manyPosts} />);
+      fireEvent.click(screen.getByRole("button", { name: /show more posts/i }));
+      expect(wrapperOf("bulk-13").className).not.toContain("max-sm:hidden");
+
+      fireEvent.change(screen.getByPlaceholderText("Search posts..."), {
+        target: { value: "Bulk 1" },
+      });
+      const matches = screen.getAllByTestId(/^blog-card-/).length;
+      expect(matches).toBeGreaterThan(12);
+      // count resets to 12 for the new result set
+      expect(
+        screen.getByRole("button", {
+          name: new RegExp(`show more posts \\(12 of ${matches} shown\\)`, "i"),
+        })
+      ).toBeInTheDocument();
+    });
+
+    it("does not restore an old count when returning to a previous filter", () => {
+      render(<BlogList posts={manyPosts} />);
+      fireEvent.click(screen.getByRole("button", { name: /show more posts/i }));
+      expect(wrapperOf("bulk-24").className).not.toContain("max-sm:hidden");
+
+      const input = screen.getByPlaceholderText("Search posts...");
+      fireEvent.change(input, { target: { value: "Bulk 1" } });
+      fireEvent.change(input, { target: { value: "" } });
+
+      expect(wrapperOf("bulk-13").className).toContain("max-sm:hidden");
+      expect(
+        screen.getByRole("button", { name: /show more posts \(12 of 30 shown\)/i })
+      ).toBeInTheDocument();
+    });
+  });
 });

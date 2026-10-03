@@ -58,8 +58,8 @@ export function SocialShare({ url, title }: SocialShareProps) {
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-3 [@media(pointer:coarse)]:gap-x-2 [@media(pointer:coarse)]:gap-y-1">
+      <span className="flex items-center gap-1.5 [@media(pointer:coarse)]:mr-1 text-sm text-muted-foreground">
         <Share2 className="h-4 w-4" />
         Share
       </span>
@@ -67,7 +67,7 @@ export function SocialShare({ url, title }: SocialShareProps) {
         href={twitterUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        className="rounded-md p-2 text-muted-foreground [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:p-0 transition-colors [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:text-foreground"
         aria-label="Share on X (Twitter)"
       >
         <TwitterIcon className="h-4 w-4" />
@@ -76,7 +76,7 @@ export function SocialShare({ url, title }: SocialShareProps) {
         href={linkedinUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        className="rounded-md p-2 text-muted-foreground [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:p-0 transition-colors [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:text-foreground"
         aria-label="Share on LinkedIn"
       >
         <LinkedInIcon className="h-4 w-4" />
@@ -85,7 +85,7 @@ export function SocialShare({ url, title }: SocialShareProps) {
         href={blueskyUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        className="rounded-md p-2 text-muted-foreground [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:p-0 transition-colors [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:text-foreground"
         aria-label="Share on Bluesky"
       >
         <BlueskyIcon className="h-4 w-4" />
@@ -94,14 +94,14 @@ export function SocialShare({ url, title }: SocialShareProps) {
         href={hnUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        className="rounded-md p-2 text-muted-foreground [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:p-0 transition-colors [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:text-foreground"
         aria-label="Share on Hacker News"
       >
         <HackerNewsIcon className="h-4 w-4" />
       </a>
       <button
         onClick={copyLink}
-        className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        className="rounded-md p-2 text-muted-foreground [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:p-0 transition-colors [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:text-foreground"
         aria-label="Copy link"
       >
         {copied ? (

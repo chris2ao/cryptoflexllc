@@ -35,6 +35,7 @@ export function BlogCard({ post }: { post: BlogCardPost }) {
               key={tag}
               href={`/blog?tag=${encodeURIComponent(tag)}`}
               rel="nofollow"
+              className="inline-flex items-center [@media(pointer:coarse)]:min-h-8"
             >
               <Badge variant="secondary" className="text-xs hover:bg-primary/20 transition-colors">
                 {tag}

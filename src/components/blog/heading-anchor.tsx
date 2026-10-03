@@ -18,7 +18,7 @@ export function createHeading(level: number) {
         {children}
         <a
           href={`#${id}`}
-          className="ml-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity no-underline"
+          className="ml-2 opacity-0 [@media(hover:none)]:hidden [@media(hover:hover)]:-mx-1 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-3 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100 text-muted-foreground [@media(hover:hover)]:hover:text-primary transition-opacity no-underline"
           aria-label="Link to section"
         >
           #

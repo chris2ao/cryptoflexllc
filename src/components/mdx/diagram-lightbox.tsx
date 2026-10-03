@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { MobileDiagramScroll } from "./mobile-diagram-scroll";
 
 interface DiagramLightboxProps {
   children: ReactNode;
@@ -46,23 +47,16 @@ export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
   return (
     <>
       <figure className="not-prose my-8">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="group relative w-full cursor-zoom-in rounded-lg border border-border/60 bg-card/50 p-6 overflow-x-auto transition-colors hover:border-primary/40 hover:bg-card/80"
-          aria-label={caption ? `Enlarge diagram: ${caption}` : "Enlarge diagram"}
-        >
-          {children}
-          <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-md bg-zinc-800/80 px-2 py-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 3 21 3 21 9" />
-              <polyline points="9 21 3 21 3 15" />
-              <line x1="21" y1="3" x2="14" y2="10" />
-              <line x1="3" y1="21" x2="10" y2="14" />
-            </svg>
-            Click to enlarge
-          </span>
-        </button>
+        <MobileDiagramScroll enlargeable>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="diagram-scroll-inner block w-full cursor-zoom-in p-4 md:p-6 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary/60"
+            aria-label={caption ? `Enlarge diagram: ${caption}` : "Enlarge diagram"}
+          >
+            {children}
+          </button>
+        </MobileDiagramScroll>
         {caption && (
           <figcaption className="mt-2 text-center text-xs text-muted-foreground">
             {caption}
@@ -92,7 +86,7 @@ export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
                 onClick={zoomOut}
                 disabled={zoomIndex === 0}
                 aria-label="Zoom out"
-                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" />
@@ -108,7 +102,7 @@ export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
                 onClick={zoomIn}
                 disabled={zoomIndex === ZOOM_LEVELS.length - 1}
                 aria-label="Zoom in"
-                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" />
@@ -122,7 +116,7 @@ export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
                 type="button"
                 onClick={close}
                 aria-label="Close"
-                className="rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-zinc-800 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -133,7 +127,8 @@ export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
           </div>
 
           {/* Scrollable + zoomable content area */}
-          <div className="relative z-10 flex-1 overflow-auto">
+          {/* pan-x pan-y keep one-finger scrolling; pinch-zoom allows browser pinch */}
+          <div className="relative z-10 flex-1 overflow-auto [touch-action:pan-x_pan-y_pinch-zoom]">
             <div
               className="inline-block p-8 transition-transform duration-200 motion-reduce:transition-none origin-top-left [&_svg]:max-w-none [&_svg]:w-auto [&_svg]:h-auto"
               style={{
@@ -141,8 +136,10 @@ export function DiagramLightbox({ children, caption }: DiagramLightboxProps) {
                 minWidth: `${90 * zoom}vw`,
               }}
             >
-              {/* Force SVGs to render at a large base size */}
-              <div className="[&_svg]:min-w-[85vw] [&_svg]:w-[85vw]">
+              {/* Large base size from md up. On phones diagrams-mobile.css
+                  (.diagram-modal-content) opens at about the natural viewBox
+                  width so text is readable at zoom 1. */}
+              <div className="diagram-modal-content md:[&_svg]:min-w-[85vw] md:[&_svg]:w-[85vw]">
                 {children}
               </div>
             </div>

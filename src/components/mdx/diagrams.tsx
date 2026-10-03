@@ -1,4 +1,5 @@
 /** Architecture diagrams for blog posts — SVG-based, themed to site colors */
+import { MobileDiagramScroll } from "./mobile-diagram-scroll";
 
 interface DiagramProps {
   caption?: string;
@@ -10,9 +11,9 @@ function DiagramWrapper({
 }: DiagramProps & { children: React.ReactNode }) {
   return (
     <figure className="not-prose my-8">
-      <div className="rounded-lg border border-border/60 bg-card/50 p-6 overflow-x-auto">
-        {children}
-      </div>
+      <MobileDiagramScroll>
+        <div className="diagram-scroll-inner p-4 md:p-6">{children}</div>
+      </MobileDiagramScroll>
       {caption && (
         <figcaption className="mt-2 text-center text-xs text-muted-foreground">
           {caption}

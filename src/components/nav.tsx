@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Github, Linkedin, Rss } from "lucide-react";
+import { useRef, useState } from "react";
+import { Github, Linkedin, Rss, Search } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { openCommandPalette } from "@/components/search/open-command-palette";
 
 type NavLink = { href: string; label: string; mobileOnly?: boolean };
 
@@ -48,6 +49,22 @@ function isActive(pathname: string, href: string) {
 export function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  const searchAfterCloseRef = useRef(false);
+
+  // Close the sheet first; the palette opens from onCloseAutoFocus, which Radix
+  // fires after the close animation, so aria-hidden is gone and focus is settled
+  function handleMobileSearch() {
+    searchAfterCloseRef.current = true;
+    setOpen(false);
+  }
+
+  function handleSheetCloseAutoFocus(event: Event) {
+    if (!searchAfterCloseRef.current) return;
+    searchAfterCloseRef.current = false;
+    event.preventDefault();
+    openCommandPalette();
+  }
 
   return (
     <>
@@ -86,11 +103,11 @@ export function Nav() {
           </span>
           <Link
             href="/#subscribe"
-            className="btn-editorial btn-editorial--primary btn-editorial--sm hidden sm:inline-flex"
+            className="btn-editorial btn-editorial--primary btn-editorial--sm"
           >
             Subscribe
           </Link>
-          <div className="masthead-social hidden sm:inline-flex" aria-label="Social">
+          <div className="masthead-social" aria-label="Social">
             <a
               href="https://github.com/chris2ao"
               target="_blank"
@@ -117,11 +134,19 @@ export function Nav() {
               <Rss className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
+          <button
+            type="button"
+            onClick={openCommandPalette}
+            className="masthead-icon-btn masthead-search-btn"
+            aria-label="Search posts"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+          </button>
           <ThemeToggle />
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
-              className="md:hidden inline-flex h-9 items-center gap-1.5 rounded-md border border-border/60 px-2.5 text-fg-2 hover:text-fg hover:border-border"
+              className="min-[901px]:hidden inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-md border border-border/60 px-2.5 text-fg-2 hover:text-fg hover:border-border"
               aria-label="Open menu"
             >
               <svg
@@ -138,9 +163,13 @@ export function Nav() {
                   d="M4 6h16M4 12h16M4 18h16"
                 />
               </svg>
-              <span className="font-heading text-sm">Menu</span>
+              <span className="font-heading text-sm max-[400px]:sr-only">Menu</span>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72 bg-background/95 backdrop-blur-md">
+            <SheetContent
+              side="right"
+              className="w-72 bg-background/95 backdrop-blur-md"
+              onCloseAutoFocus={handleSheetCloseAutoFocus}
+            >
               <SheetTitle className="mb-6">
                 <div className="flex items-center gap-2 font-heading">
                   <span className="masthead-brand-mark">
@@ -155,6 +184,14 @@ export function Nav() {
                 </div>
               </SheetTitle>
               <nav className="flex flex-col gap-1" aria-label="Mobile">
+                <button
+                  type="button"
+                  onClick={handleMobileSearch}
+                  className="font-heading flex items-center gap-2 px-3 py-3 text-base rounded-md text-left text-muted-foreground hover:text-foreground hover:bg-primary/5 transition-colors"
+                >
+                  <Search className="h-4 w-4" aria-hidden="true" />
+                  Search
+                </button>
                 {mobileLinks.map((link) => {
                   const active = isActive(pathname, link.href);
                   return (
@@ -163,7 +200,7 @@ export function Nav() {
                       href={link.href}
                       onClick={() => setOpen(false)}
                       aria-current={active ? "page" : undefined}
-                      className={`font-heading px-3 py-2 text-sm rounded-md transition-colors ${
+                      className={`font-heading px-3 py-3 text-base rounded-md transition-colors ${
                         active
                           ? "text-primary font-medium bg-primary/10 border-l-2 border-primary pl-[10px]"
                           : "text-muted-foreground hover:text-foreground hover:bg-primary/5"

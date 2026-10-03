@@ -76,7 +76,7 @@ export function SkillsFilter({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search skills, agents, hooks, commands..."
-          className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-10 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
         {searchQuery && (
           <button

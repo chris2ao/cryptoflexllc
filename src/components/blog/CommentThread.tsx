@@ -131,7 +131,7 @@ function ReplyForm({
           rows={2}
           maxLength={2000}
           required
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y min-h-[60px]"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y min-h-[60px]"
         />
 
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
@@ -177,7 +177,7 @@ function ReplyForm({
               onChange={(e) => onReplyEmailChange(e.target.value)}
               placeholder="your-subscriber@email.com"
               aria-label="Your subscriber email"
-              className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <button
               type="submit"

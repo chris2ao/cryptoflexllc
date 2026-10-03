@@ -11,6 +11,24 @@ const DELAY_MS = 20_000;
 const GATE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const EXCLUDED_PREFIXES = ["/analytics", "/unsubscribe"];
+const MOBILE_QUERY = "(max-width: 639px)";
+const SCROLL_DEPTH_GATE = 0.6;
+const BLOG_POST_ROUTE = /^\/blog\/(?!series(?:\/|$))[^/]+\/?$/;
+
+function isMobileViewport(): boolean {
+  try {
+    return window.matchMedia(MOBILE_QUERY).matches;
+  } catch {
+    return false;
+  }
+}
+
+function scrollDepth(): number {
+  const doc = document.documentElement;
+  const total = Math.max(doc.scrollHeight, document.body?.scrollHeight ?? 0);
+  if (total <= 0) return 1;
+  return (window.scrollY + window.innerHeight) / total;
+}
 
 function readTimestamp(key: string): number | null {
   if (typeof window === "undefined") return null;
@@ -46,6 +64,7 @@ export function NewsletterPopup() {
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const nonModalRef = useRef(false);
   const { email, status, message, handleSubmit, updateEmail } = useSubscribe();
 
   useEffect(() => {
@@ -68,7 +87,8 @@ export function NewsletterPopup() {
     };
     el.addEventListener("cancel", onCancel);
     return () => el.removeEventListener("cancel", onCancel);
-  }, [dismiss]);
+    // `visible` matters: the dialog only exists in the DOM while visible
+  }, [dismiss, visible]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -78,13 +98,36 @@ export function NewsletterPopup() {
     let elapsed = 0;
     let startedAt = Date.now();
     let fired = false;
+    let removeScrollListener: (() => void) | null = null;
+
+    const reveal = () => {
+      if (shouldSuppress(pathname)) return;
+      // Decide presentation at trigger time, never during render
+      nonModalRef.current = isMobileViewport();
+      setVisible(true);
+    };
 
     const schedule = (remaining: number) => {
       timerId = setTimeout(() => {
         timerId = null;
         fired = true;
         // Dismissal or subscription may have happened since the timer was armed
-        if (!shouldSuppress(pathname)) setVisible(true);
+        if (shouldSuppress(pathname)) return;
+        const gated =
+          isMobileViewport() && pathname !== null && BLOG_POST_ROUTE.test(pathname);
+        if (!gated || scrollDepth() >= SCROLL_DEPTH_GATE) {
+          reveal();
+          return;
+        }
+        const onScroll = () => {
+          if (scrollDepth() < SCROLL_DEPTH_GATE) return;
+          removeScrollListener?.();
+          removeScrollListener = null;
+          reveal();
+        };
+        window.addEventListener("scroll", onScroll, { passive: true });
+        removeScrollListener = () =>
+          window.removeEventListener("scroll", onScroll);
       }, Math.max(0, remaining));
     };
 
@@ -112,6 +155,7 @@ export function NewsletterPopup() {
 
     return () => {
       if (timerId !== null) clearTimeout(timerId);
+      removeScrollListener?.();
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [mounted, pathname]);
@@ -120,11 +164,30 @@ export function NewsletterPopup() {
     const el = dialogRef.current;
     if (!el) return;
     if (visible) {
-      if (!el.open) el.showModal();
+      if (!el.open) {
+        if (nonModalRef.current) el.show();
+        else el.showModal();
+      }
     } else {
       if (el.open) el.close();
     }
   }, [visible]);
+
+  // Esc does not fire `cancel` on a non-modal dialog, so handle it explicitly
+  useEffect(() => {
+    if (!visible || !nonModalRef.current) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      // Escape meant for the command palette or the mobile menu sheet is not ours
+      const other = document.querySelector(
+        'dialog:modal, [role="dialog"][data-state="open"]',
+      );
+      if (other && other !== dialogRef.current) return;
+      dismiss();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [visible, dismiss]);
 
   useEffect(() => {
     if (status === "success") {
@@ -173,14 +236,14 @@ export function NewsletterPopup() {
           type="button"
           onClick={dismiss}
           aria-label="Close newsletter popup"
-          className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute right-2 top-2 inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="h-4 w-4" aria-hidden="true" />
         </button>
 
         <h2
           id="newsletter-popup-heading"
-          className="font-heading text-xl font-semibold tracking-tight pr-8"
+          className="font-heading text-xl font-semibold tracking-tight pr-10"
         >
           Stay in the Loop
         </h2>
@@ -210,7 +273,7 @@ export function NewsletterPopup() {
                 value={email}
                 onChange={(e) => updateEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
             <button

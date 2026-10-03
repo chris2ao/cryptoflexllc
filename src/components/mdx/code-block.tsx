@@ -64,7 +64,7 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
   return (
     <div className="group relative">
       {language && (
-        <span className="absolute right-12 top-2 z-10 text-xs text-muted-foreground/70 font-mono uppercase select-none">
+        <span className="absolute right-14 top-3 [@media(hover:hover)]:right-12 [@media(hover:hover)]:top-2 z-10 text-xs text-muted-foreground/70 font-mono uppercase select-none">
           {language}
         </span>
       )}
@@ -75,7 +75,7 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
         type="button"
         onClick={handleCopy}
         aria-label={copied ? "Copied" : "Copy code"}
-        className="absolute right-2 top-2 rounded-md border border-border bg-zinc-800 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 focus:opacity-100"
+        className="absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center [@media(hover:hover)]:right-2 [@media(hover:hover)]:top-2 rounded-md border border-border bg-zinc-800 text-muted-foreground transition-opacity hover:text-foreground focus-visible:opacity-100 [@media(hover:hover)]:h-[30px] [@media(hover:hover)]:w-[30px] [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
       >
         {copied ? (
           <svg

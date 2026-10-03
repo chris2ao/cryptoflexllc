@@ -49,7 +49,7 @@ export function LoginForm() {
           type="password"
           value={secret}
           onChange={(e) => setSecret(e.target.value)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="Enter your secret"
           required
           autoComplete="off"

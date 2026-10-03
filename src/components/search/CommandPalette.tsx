@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { OPEN_COMMAND_PALETTE_EVENT } from "./open-command-palette";
 import { Search, BookOpen, User, Briefcase, Zap, Library, Mail, MessageSquare } from "lucide-react";
 
 export interface CommandPalettePost {
@@ -47,6 +48,7 @@ export function CommandPalette({ posts }: CommandPaletteProps) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   // Build filtered results
   const results = useMemo<Result[]>(() => {
@@ -115,13 +117,29 @@ export function CommandPalette({ posts }: CommandPaletteProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
+  // Open from touch-friendly buttons via a window CustomEvent
+  useEffect(() => {
+    function handleOpenEvent() {
+      openPalette();
+    }
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, handleOpenEvent);
+    return () =>
+      window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, handleOpenEvent);
+  }, []);
+
   // Sync dialog open/close with native <dialog> API
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
     if (open) {
-      if (!dialog.open) dialog.showModal();
+      if (!dialog.open) {
+        previousFocusRef.current =
+          document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        dialog.showModal();
+      }
       // Focus input after modal opens
       requestAnimationFrame(() => inputRef.current?.focus());
     } else {
@@ -137,6 +155,23 @@ export function CommandPalette({ posts }: CommandPaletteProps) {
     function onClose() {
       setOpen(false);
       setQuery("");
+      // The opener can be gone (the mobile menu sheet unmounts), in which case
+      // the browser leaves focus on body. Fall back to a visible masthead control.
+      const prev = previousFocusRef.current;
+      previousFocusRef.current = null;
+      if (prev && prev.isConnected && prev !== document.body) {
+        prev.focus();
+        return;
+      }
+      const candidates = document.querySelectorAll<HTMLElement>(
+        ".masthead-search-btn, button[aria-label='Open menu']",
+      );
+      for (const el of candidates) {
+        if (el.getClientRects().length > 0) {
+          el.focus();
+          return;
+        }
+      }
     }
     dialog.addEventListener("close", onClose);
     return () => dialog.removeEventListener("close", onClose);
@@ -182,9 +217,9 @@ export function CommandPalette({ posts }: CommandPaletteProps) {
       ref={dialogRef}
       onClick={handleDialogClick}
       className="
-        m-0 p-0 max-w-none max-h-none w-full h-full
+        m-0 p-0 max-w-none max-h-none w-full h-dvh
         bg-transparent backdrop:bg-black/60 backdrop:backdrop-blur-sm
-        open:flex open:items-start open:justify-center open:pt-[15vh]
+        open:flex open:items-start open:justify-center open:pt-[8dvh] sm:open:pt-[15dvh]
       "
       aria-label="Command palette"
     >
@@ -208,7 +243,7 @@ export function CommandPalette({ posts }: CommandPaletteProps) {
             onKeyDown={handleKeyDown}
             placeholder="Search posts or navigate..."
             className="
-              flex-1 bg-transparent text-sm text-foreground
+              flex-1 bg-transparent text-base sm:text-sm text-foreground
               placeholder:text-muted-foreground
               focus:outline-none
             "
@@ -231,7 +266,7 @@ export function CommandPalette({ posts }: CommandPaletteProps) {
         <div
           id="command-palette-list"
           role="listbox"
-          className="overflow-y-auto max-h-[60vh] py-2"
+          className="overflow-y-auto max-h-[50dvh] sm:max-h-[60dvh] py-2"
         >
           {results.length === 0 && (
             <p className="px-4 py-6 text-sm text-center text-muted-foreground">
