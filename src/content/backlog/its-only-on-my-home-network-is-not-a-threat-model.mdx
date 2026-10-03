@@ -1,0 +1,350 @@
+---
+title: "\"It's Only on My Home Network\" Is Not a Threat Model"
+date: "2026-10-03T09:00:00"
+description: "A single-user app on a home LAN still runs on a machine full of your files, behind the browser you use for everything, and parses input you didn't write. What security reviews of CryptoFlix found."
+tags: ["Security", "AppSec", "Self-Hosting", "Threat Modeling", "Home Lab"]
+author: "Chris Johnson"
+readingTime: "16 min read"
+featured: false
+series: Security Engineering
+seriesOrder: 10
+schemaType: TechArticle
+coverImage: /blog/its-only-on-my-home-network-is-not-a-threat-model/infographic.png
+coverImageAlt: "Dark branded cover titled 'It's only on my home network' is not a threat model, Security Engineering Part 10. The left panel is a request terminal with three spellings of one route: GET /api/status returns 401 unauthorized, while GET /%61pi/status and GET /ap%69/status each return 200 with PC status, no session. A note says every /api/* route except four public ones needed a session cookie. The right panel shows the giant URL GET /%61pi/status with the %61 escape highlighted, forking into an Auth Guard card that skips the path because the raw URL does not start with /api/, and a Router card that decodes %61 to a and runs the handler, with a closing callout that the gap between the two strings is where the bypass lives."
+---
+
+`GET /%61pi/status` came back 200, with the PC's status in the body and no login. `GET /api/status` returned 401, as it should. Same route spelled two ways, and my authentication guard only recognized one of them.
+
+This was CryptoFlix, a self-hosted video app I built for exactly one user: me. It runs on a Mac, reads a watched folder on a Windows PC, and plays in a browser on my home network. No public DNS record, no port forward. If any app gets to say "it's only on my home network," this one does. The security reviews found things to fix anyway.
+
+## The Request That Should Have Returned 401
+
+Every `/api/*` route except four public ones needed a session cookie. My plan for enforcing that was a small guard that ran on every request and bailed out early if the URL didn't start with `/api/`. Here's the line, which I removed later:
+
+```ts
+if (!request.url.startsWith('/api/')) return;
+```
+
+Why would the guard and the router disagree about the same request? That check reads the raw URL. The router doesn't. Fastify decodes percent-escapes before it matches a route, so `/%61pi/status` (where `%61` is just the letter `a`) resolved to `/api/status`, skipped my guard, and ran the handler. Here's what the reviewer saw against the real app:
+
+```text
+GET /api/status      -> 401 unauthorized
+GET /%61pi/status    -> 200 with PC status, no session
+GET /ap%69/status    -> 200 with PC status, no session
+```
+
+(That's reconstructed from the review notes, not a terminal capture.) The bug was in the plan's own code, and my route-table test missed it because it only tried canonical URLs. A per-task reviewer caught it at 23:01 local time and reproduced it live. The fix landed about ten minutes later.
+
+The fix stopped asking the raw URL anything. Guards now attach per route, at registration time, from the pattern the router actually knows. Paths that match no route get classified after decoding, and malformed escapes go to the app's error handler. The comment I left in `guards.ts` says it better than I would:
+
+```ts
+// Enforces "a valid session is required". Attached per route (see app.ts), never as
+// an app-level hook: an app-level hook would have to decide from the raw request URL
+// whether a route is guarded, and the raw URL can disagree with the decoded path the
+// router actually matched (for example /%61pi/status resolves to /api/status).
+```
+
+The regression test now throws five spellings at it, each expecting 401: `'/%61pi/status', '/ap%69/status', '/API/status', '/api//status', '/api'`. The re-review went further with 17 variants (double-encoded, `%2F`, dot segments, `;params`, HEAD, absolute-form targets), and all of them got 401. One residual stayed on the books: absolute-form request targets skip normalization.
+
+<Info title="Why the Guard Disagreed">
+Two components looked at the same request and saw different strings. Any time one layer decides "is this protected?" and a different layer decides "what does this resolve to?", the gap between them is where bypasses live. Decoding, case, slashes, and dot segments are the usual suspects.
+</Info>
+
+<GuardVsRouterDiagram />
+
+## What I Assumed Going In
+
+The first page of the security doc says it plainly: CryptoFlix is a single-user, LAN-only application. It isn't designed to resist a hostile local network, an attacker who already owns another device on the LAN, or exposure to the internet.
+
+That's a real threat model, and I'm not embarrassed by it. The trouble is the sentence people hear instead, which is "nobody can reach it, so it doesn't matter." So here's how my starting assumptions fared.
+
+| Assumption | What happened |
+| --- | --- |
+| Nothing is exposed to the internet | Held. The Phase 1b review said nothing it found could be exploited remotely from the LAN or the internet. |
+| One user, one login | Held as design. Until first-run setup is finished, any LAN device can claim the account. I accepted that and wrote it down. |
+| A simple login is enough | Mostly. Argon2id password hashing, 5 attempts a minute, an httpOnly `SameSite=Strict` session cookie. Then the `/%61pi` bypass walked around all of it. |
+| Plain HTTP on the LAN is fine | Accepted risk. A device on the same Wi-Fi could read the login and the cookie. |
+| Only my devices send input | Did not hold. |
+
+The plain HTTP call was deliberate, and the coordinating agent argued against it. It recommended HTTPS with a local certificate authority (mkcert). I chose plain HTTP at a local DNS name, with HTTPS kept as a config switch, because a private `.home` name has no path to a trusted certificate unless you install a CA on every device that will visit. For one household that was more machinery than the risk justified. It's still on the accepted-risk list, next to the physical route to the external drive and the fact that I log in with a password rather than a second factor.
+
+The browser, file names, subtitle tracks, and a third-party API's playlists all send input into the app, and none of them care that my router has no port forward.
+
+<Info title="What Is a Threat Model?">
+A threat model is a written answer to "who might attack this, how, and what do I accept?" "Only on my LAN" is a claim about one boundary. It says nothing about what crosses that boundary from the inside: your browser, the files on disk, the services you call.
+</Info>
+
+<LanBoundaryDiagram />
+
+## Your Browser Is the Bridge
+
+A web page on a hostile domain can point its own hostname at an address on your LAN. This is DNS rebinding. Your browser then happily sends requests to your app, with that hostile hostname in the `Host` header, from a page the attacker controls.
+
+Before the fix, the security review reproduced it with forged Host and Origin headers: a POST to `/api/setup` with both set to `evil.example` returned 201 and created an account. A follow-up `GET /api/status` through that same host returned 200. The review proved it with forged headers against the running app, not with a live rebinding DNS server, so that's what I can claim.
+
+`SameSite` doesn't save you here, and neither does a plain "Origin equals Host" check. A rebinding page matches itself by construction. Both sides say `evil.example`. From the server's seat it looks like a real visit.
+
+<Info title="What Is DNS Rebinding?">
+An attacker's site first resolves to the attacker's server, so the browser loads the page. Then the same name re-resolves to a private address like your router or your self-hosted app. The browser treats it as the same origin, so the page's script can talk to your LAN service. The defense lives on the server: refuse any `Host` you don't recognize.
+</Info>
+
+The fix is a Host allowlist checked first on every request (API, static files, and not-found alike), answering 421 `bad_host`. Mutating requests must be JSON, and their `Origin` has to be on the allowlist and match the `Host`, port included. If there's no `Origin` at all, `Sec-Fetch-Site` has to say `same-origin` or `none`.
+
+```ts
+export function createHostGuard(allowedHosts: ReadonlyArray<string>): Guard {
+  const allowed = new Set(allowedHosts);
+  return async function hostGuard(request, reply) {
+    const host = parseHost(request.headers.host);
+    if (!host || !allowed.has(host.hostname)) {
+      return reply.code(421).send(fail('bad_host', 'Unknown host.'));
+    }
+  };
+}
+// in isAllowedOrigin:
+  if (!originHost || !allowed.has(originHost.hostname)) return false;
+  // Both sides go through the URL parser so default ports and IPv6 spelling compare equal.
+  return url.host === new URL(`http://${host}`).host;
+```
+
+The test replays the exact attack: POST `/api/setup` with `host: 'evil.example'`, a matching `origin`, and `sec-fetch-site: 'same-origin'`. It expects 421 and no account created. Every deploy since runs a curl probe for the same thing:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1/api/status   # expect 401
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: evil.example' http://127.0.0.1/api/health   # expect 421
+```
+
+The recorded deploy result reads "health 200, status 401 without a session, and 421 for a foreign Host."
+
+<Security title="Allowlist the Host Header">
+Brannon Dorsey's [DNS rebinding write-up](https://medium.com/@brannondorsey/attacking-private-networks-from-the-internet-with-dns-rebinding-ea7098a2d325) recommends servers validate that the requested Host header matches its expected value exactly and reject anything else with a 403. I answer 421, but the idea is identical. NCC Group's [2023 state of the art](https://www.nccgroup.com/research/state-of-dns-rebinding-in-2023/) notes that Local Network Access makes rebinding harder, yet it's still possible.
+</Security>
+
+The same commit added security headers, a Content-Security-Policy, and a 30 second request timeout. None of it was expensive, and a one-user app benefits from it as much as a public one.
+
+## File Names Are Input
+
+I'd filed file names under "data I already trust" because they come from my own watched folder. That was wrong twice, in two very different ways.
+
+### Five Characters PowerShell Calls a Single Quote
+
+Setup has one step that needs administrator rights on the PC. The Settings page shows a command I paste into an elevated PowerShell window:
+
+```powershell
+.\pc\Setup-CryptoFlix.ps1 -GrantPath '<path>'
+```
+
+The path goes in single quotes, and my plan doubled any ASCII apostrophe in it, which is the standard way to keep a path inside a quoted string. The opus-grade reviewer on that task knew something I didn't. PowerShell treats five different characters as a single quote:
+
+| Character | Code point | Name |
+| --- | --- | --- |
+| `'` | U+0027 | apostrophe |
+| `‘` | U+2018 | left single quotation mark |
+| `’` | U+2019 | right single quotation mark |
+| `‚` | U+201A | single low-9 quotation mark |
+| `‛` | U+201B | single high-reversed-9 quotation mark |
+
+PowerShell's own `CharTraits.cs` source confirms it: `IsSingleQuote` returns true for exactly these five. (`IsDoubleQuote` accepts `"` plus U+201C, U+201D and U+201E, in case you're building the other kind of string.) My folder-path parser accepted all of them as ordinary path characters. So a synthetic folder like `D:\x’;calc;’` closes the quoted string early, and everything after it runs as PowerShell, in the admin window.
+
+The reviewer confirmed it against the real path parser. The fix doubles all five characters:
+
+```ts
+// PowerShell treats a single quote and its curly lookalikes (U+2018, U+2019, U+201A, U+201B) as a
+// closing quote in a single-quoted string; each is written twice to stay inside the string, or a
+// folder name holding one of them would end -GrantPath '...' early and run the rest as PowerShell.
+export function grantCommand(pcPath: string): string {
+  return `.\\pc\\Setup-CryptoFlix.ps1 -GrantPath '${pcPath.replace(/['\u2018\u2019\u201A\u201B]/g, (q) => q + q)}'`;
+}
+```
+
+The test case turns `'D:\\x\u2019;calc;\u2019'` into `'D:\\x\u2019\u2019;calc;\u2019\u2019'`. The server also rejects C1 control characters and bidi characters in paths outright. The re-review checked the fix against PowerShell's tokenizer source plus 17 live probes, and 41 of 41 offending code points were rejected. Then the security review widened the ban to every Unicode format character and U+2028/2029, and made the snippet refuse to render such a path at all.
+
+<Stop title="Escape for the Real Tokenizer">
+If you build a shell command from text you didn't type, escape it for the shell's actual tokenizer, not for the quote character you happen to know about. Lookalike quotes are the part a quick regex misses.
+</Stop>
+
+### The Parser That Died on Every Restart
+
+CryptoFlix identifies files with a third-party file-name parser. A name like `Show Season 1,,,,.mkv` (synthetic, like every name in this post) looks harmless. Add more commas and the parser's regex backtracks exponentially:
+
+| Commas in the name | Parse time |
+| --- | --- |
+| 22 | 41 ms |
+| 24 | 163 ms |
+| 26 | 679 ms |
+| 40 | about 3 hours |
+
+The Phase 2a security review measured that in a scratch copy, not production. The parse is synchronous, so while it spins, login and every other route stop answering. A second input crashed it instead: an episode range like `Ep 1 - 999999999999` made the parser build a 10^12 element array. Under a 256 MB heap, Node died with `FATAL ERROR: ... JavaScript heap out of memory` (exit 134), an error you can't catch.
+
+Here's what turned a bad name into a persistent problem. Identification runs at startup. So a poison name hung the server, and a restart hung it again within seconds. launchd doesn't restart a process that's alive but spinning, so recovery meant stopping the service and hand-editing the database. Folder names triggered it too. A sibling bug (SEC-043) did it quieter: a 6-digit episode range overflowed a `Math.min(...)` spread with `RangeError: Maximum call stack size exceeded`, and silently blocked every later identification batch.
+
+The fix is deliberately boring:
+
+```ts
+// Exponential backtracking on a run of list separators ("Season 1,,,,") and an unbounded
+// numeric range ("Ep 1 - 999999999999"); the parse is synchronous, so every name is capped first.
+const MAX_NAME_LENGTH = 255;
+const SEPARATOR_RUN = /[,&/\\]{2,}/g;
+const LONG_NUMBER = /\d{5,}/g;
+
+function defang(name: string): string {
+  return name
+    .slice(0, MAX_NAME_LENGTH)
+    .replace(SEPARATOR_RUN, (run) => run.charAt(0))
+    .replace(LONG_NUMBER, (digits) => digits.slice(0, 4));
+}
+```
+
+255 is the NTFS name limit, so no legitimate name loses anything. Separator runs collapse to one character, digit runs get cut to four, nothing is spread, and a failure on one file no longer takes down the batch. I'll admit the first version of the collapse was too narrow. The agent fixing it found that alternating `,&` and backslash runs were just as exponential (about 2 seconds at 24 to 28 characters), so the collapse now covers any run of `,&/\`.
+
+<Tip title="Fuzz the Fix">
+After the fix, the fixer fuzzed every ordered pair of 33 punctuation characters in 3 name shapes (3,267 names per run length) at lengths 40, 80, 120 and 240. Nothing took more than 5 ms. The [OWASP ReDoS page](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS) describes the failure mode as running time growing "exponentially related to input size," which is exactly the doubling per comma above.
+</Tip>
+
+A worker thread for parsing is still deferred. That's a residual on the list.
+
+## Subtitles Are HTML
+
+A subtitle track embedded in a video file is text my server never wrote. The player, Vidstack, renders captions through media-captions' `renderVTTCueString`, which sets `innerHTML`, decodes `&lt;`-style entities back into characters, and copies voice and class annotations through unescaped. That's by design: cue text is allowed to carry markup, so sanitizing an untrusted track is the app's job, not the library's. I don't read any of this as a flaw in Vidstack or media-captions. It's a sink, and I had a hostile source feeding it.
+
+The Phase 3b security review proved the problem in Chromium and WebKit, under the production CSP. A `<meta http-equiv=refresh>` inside a cue navigated the page away. A cue could submit a form to an off-site address. One of the probes was a fake sign-in form asking for the CryptoFlix password. The CSP blocked scripts, and that was all I'd thought to block. A meta refresh and a form submit aren't scripts.
+
+The fix was a server-side VTT sanitizer plus `form-action 'self'` in the CSP. Then the re-reviews started:
+
+1. **B1: tags first, entities second.** Removing a `<c>` tag spliced an entity back together: `&l<c>t;` became `&lt;`, and the decode pass turned that into a live tag.
+2. **B2: what counts as blank.** A whitespace-only line is blank to media-captions, which trims every line, but not to my sanitizer.
+3. **B3: no signature.** A file without a `WEBVTT` header kept a "header" verbatim, and the lenient parser could still read that text as a cue.
+4. **B4: the network chunk boundary.** media-captions splits lines per network chunk. A chunk boundary between the `\r` and the `\n` of the header's CRLF ends the header one line early and turns header text into a cue.
+
+The first fix landed at 15:05. B1 through B3 came out of the first re-review and were fixed by 16:25. B4 came from the second re-review, was reproduced with a standalone Node script, tested red first (the test failed with `live <meta> rendered`), and went out at 16:41. Four bypasses, under two hours, each one in a sanitizer I'd just been told was fixed.
+
+<SubtitleBypassChainDiagram />
+
+Here are the probe payloads from the test file (synthetic):
+
+```text
+Original: Hello &lt;meta http-equiv=refresh content=0;url=http://evil.example/login&gt;
+B1:       &l<c>t;meta http-equiv=refresh content=0;url=http://evil.example/&g<c>t;
+B2:       WEBVTT\n \n1\n00:00:01.000 --> 00:00:04.000\n<v x" onclick="y">bad</v>\n
+B3:       00:00:01.000 --> 00:00:04.000\n<v x" onclick="y">bad</v>\n
+B4:       WEBVTT\r\n00:00:01.000 --> 00:00:04.000\r\nHello &lt;meta ...&gt;\r\n...  (sent as two chunks split at 'WEBVTT\r'.length)
+```
+
+And the sanitizer's matching rules, each with the comment that explains why:
+
+```ts
+// R7: tags are rewritten first. Removing a <c>, <v ...> or <lang ...> tag can splice its
+// neighbors back together into a new entity reference, for example "&l<c>t;" becomes "&lt;"
+const sanitizePayloadLine = (line: string): string => rewriteEntities(rewriteTags(line));
+// R7: media-captions' own parser trims every line before deciding whether it is blank
+const isBlank = (line: Line): boolean => line.text.trim() === '';
+// R7 B3: an optional UTF-8 BOM, then the literal signature "WEBVTT", then whitespace or end of line
+const HEADER_RE = /^\uFEFF?WEBVTT(?:[ \t]|$)/;
+```
+
+After B1, the fixer noticed the tests had only ever read the sanitizer's output as a string, and that output looked safe as plain text. Nothing in the test ever decoded it the way the browser would. So the fix added media-captions as a test-only dependency, and the tests now run `parseResponse` and then `renderVTTCueString`, the two calls Vidstack itself makes. The history file's version of the rule: test a sanitizer through the exact parser and renderer the client uses, including its streaming line splitter, never only against its own output string.
+
+<Warning title="A Sanitizer Is Only Tested End to End">
+The [OWASP XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html) says it directly: if you sanitize content and then send it to a library, check that it doesn't mutate the string somehow, "otherwise, again, your security efforts are void."
+</Warning>
+
+A related catch (SEC-084): zod 4 probed `new Function` on every page for two phases, and the CSP quietly refused it. Nobody saw it until Phase 3b's browser tests, which now fail on any CSP violation.
+
+## A Token in Every URL
+
+Streaming video to a browser means HLS playlists, text files that list segment URLs. Jellyfin, which runs hidden behind CryptoFlix, puts its API key in every URI in them. A third-party cloud streaming API does the same with its own bearer token, and its CORS reflects any `Origin` with credentials. Both showed up in the Phase 0 spike. I didn't want either token sitting in a browser tab that also renders untrusted subtitles.
+
+So the server rewrites every playlist URI to `/stream/{sid}/{tok}/r/{opaqueId}.{ext}`. The id is 128 random bits, mapped to the real URL in that session's memory and discarded when the session ends. `tok` is an HMAC of the session id, compared in constant time.
+
+```ts
+const id = randomBytes(16).toString('base64url');            // playback/sessions.ts
+createHmac('sha256', secret).update(`cryptoflix-stream:${sid}`).digest('base64url');  // streamToken.ts
+```
+
+Every failure answers the same 404. Anything the rewriter can't account for fails the whole playlist closed with a 502, with errors like `Upstream playlist still mentions an API key after the rewrite`.
+
+The rewriter is where the reviews piled up. Encoded `.m3u8` spellings passed through raw with the key attached. The characters U+2028, U+2029 and U+0085 hid URIs that hls.js still fetched. A scan was quadratic (40,000 attributes took 25 seconds, fixed to 95 ms), and the re-review found my replacement regex was quadratic too (320 KB took 9.4 seconds).
+
+Later review rounds on the cloud-source path found a URL named as both subtitle and segment that slipped a subtitle past the sanitizer, a hostile playlist that could get an API-host "segment" streamed raw with its token, and a redirect onto an API-host playlist that still leaked. The security review tried about 40 validator bypass spellings.
+
+My favorite miss is the fix that leaked. I'd added log redaction so tokens never reached the logs, and the redaction logged the token whenever a path couldn't be classified (`%zz` was enough). The final re-review caught it. The deploy check now reads: the log holds neither the forged path nor the forged token.
+
+One residual: upstream tokens live in server memory for the length of a session.
+
+## Blast Radius
+
+Everything above is about getting in. The other half of a threat model asks what the app can touch once something goes wrong, and for a home app the answer is "whatever the machine can."
+
+CryptoFlix reads the PC over a read-only SMB link. The first setup script shared the root of every fixed drive and added the read-only account to the built-in Users group, which meant the folder-level grant confined nothing. The docs said it did. The Phase 1a review found it (SEC-009, High).
+
+The reviewer's fix was folders only, and I overruled it. Asked "How much of the PC should CryptoFlix be able to read?", I took "All drives, hardened" over "Folders only" and "All drives except C:", because I wanted the whole-PC read-only file browser. Then the hardening had to be real: no Users membership, SMB encryption required, adopted share paths verified, and docs that state exactly what the account can read. That includes `C:\Program Files` and `C:\Windows`, but not other users' profiles.
+
+The first fix for that fixed nothing. The re-review found that leaving the Users group is a no-op, because that group contains Authenticated Users and INTERACTIVE. The account could still sign in locally. Phase 1b denied local and Remote Desktop sign-in with `secedit` after two more review rounds on how the script handled it. At deploy, a re-export check confirmed the rights were there. These are the relevant lines of the setup script, the deny-logon rights list and the encrypted read-only share:
+
+```powershell
+$rights = 'SeDenyInteractiveLogonRight', 'SeDenyRemoteInteractiveLogonRight'
+New-SmbShare -Name $name -Path $path -ReadAccess $UserName -EncryptData $true -Description 'CryptoFlix read-only' | Out-Null
+```
+
+Writes are blocked three ways: a read-only share permission, a read-only Mac mount, and read-only NTFS grants. The app has no write route to begin with.
+
+The external drive is the most home-lab thing in this post. Everything the LaunchAgents (the jobs macOS starts at login) ran lived on an external volume that was unencrypted, ignored file ownership, and was therefore writable by every local account. The SMB mount helper on that drive received the password. A dormant second account existed too. Any local account could have modified what ran at my login.
+
+The fix moved the helper into a signed launcher app on the internal disk and made the app check Jellyfin's signature on every start. I turned on ownership for the drive and deleted the dormant account. The physical route (someone holding the drive) stays an accepted risk, and I declined disk encryption. The history's line on this one has stuck with me: ignoring ownership "is an integrity problem, not only a confidentiality one."
+
+Runtime secrets are sealed with AES-256-GCM, each bound to its purpose as authenticated data, so a ciphertext copied into another row fails to decrypt.
+
+A few smaller rules came out of the same reviews:
+
+- Child processes get only `PATH` and `HOME`.
+- Session tokens are stored only as SHA-256 hashes, and a password change revokes every session.
+- Jellyfin binds `127.0.0.1`.
+
+The `O_NOFOLLOW` flag, which refuses to follow a symlink, only covers the last path component, so a device check now catches a symlinked directory too. One gap stays open: a swap-and-swap-back race in the file browser is narrowed but, in the review's words, "not fully closed (Node has no `openat`)."
+
+## How It Got Caught
+
+I didn't catch any of this by reading my own code. Two layers did.
+
+Every task got an independent per-task reviewer, with a stronger model for security-relevant ones. Every phase also got a separate security review, which became standard from Phase 2a, and which ran beside the whole-branch final review on one diff. The reviewers didn't just read code. They sent a percent-encoded URL at the real app and killed a production-shaped migration with `SIGKILL` mid-run, always in scratch copies, never production.
+
+Here's the ledger, using its own rule (each row counts at the highest severity its finder gave it). The two kinds of review grade on different scales, and they caught different things: every Critical came from a code reviewer, and every High came from a security review.
+
+| Scale | Severity | Count |
+| --- | --- | --- |
+| Code review | Critical | 4 |
+| Code review | Important | 31 |
+| Code review | minor | 15 |
+| Security review | High | 9 |
+| Security review | Medium | 9 |
+| Security review | Low | 53 |
+| Observations, no severity | n/a | 18 |
+
+That's 139 entries in total, including spike notes and accepted residuals. Read the Critical count carefully, though. Two of the four are attacker paths: the `/%61pi` bypass and the PowerShell injection. The other two are install failures I logged because they touch signature checks and the setup wizard (a `codesign` check that rejected the genuine signed Jellyfin 288 of 300 runs, and a wizard ordering bug that would have failed every real install). I'd rather say that than let "4 Critical" sound scarier than it was.
+
+<ReviewLedgerDiagram />
+
+Fixes needed review too. Re-reviews broke fixes more often than I expected: the Users-group no-op, the quadratic regex, the log redaction, all four subtitle bypasses. The process that came out of it is one final fix wave, then a scoped re-review of only the fix diff.
+
+## A Checklist for Anything You Self-Host
+
+This is what I'd run against any app you build for yourself, mapped to what failed above.
+
+- Guard by the route the router matched, never the raw URL, and test encoded spellings.
+- Allowlist the `Host` header and check `Origin` on every mutation. Finish first-run setup right away.
+- Treat every file and folder name as attacker input: cap its length, bound the parser, and contain per-file failures.
+- If a shell command is built from untrusted text, escape for the real tokenizer, lookalike quotes included.
+- Find your `innerHTML` sinks and test sanitizers through the real parser. Make browser tests fail on any CSP violation.
+- Keep third-party tokens on the server, hand the browser opaque ids, and fail closed.
+- Run the service under a least-privilege account with no interactive sign-in, and check who else can write what it runs at login.
+- Seal secrets, bind each to its purpose, and keep them out of logs and child processes.
+- Write down accepted risks, then get a separate security review that proves bugs live and re-reviews the fix.
+
+If you'd rather keep it as one card to pin next to your editor, here's the same list grouped by where each check lives:
+
+![The same checklist as one card, grouped into network perimeter, input, output sinks and architecture.](/blog/its-only-on-my-home-network-is-not-a-threat-model/home-built-app-security-checklist.jpg)
+
+For the review process itself, [Round Two](/blog/security-review-round-two) covers a six-agent consensus review, and [I Audited My Own Code](/blog/security-hardening-analytics-dashboard) is the first round on this site.
+
+A later review found that an AI-assisted command's "ask me first" rule was only prose, and that a planted folder name reached the AI verbatim. That's the next post, "The Folder Name That Gave Orders: Prompt Injection From Home Lab to Enterprise."
+
+For now, the regression test for the very first bug still lists five spellings, and `/%61pi/status` is still the first one.

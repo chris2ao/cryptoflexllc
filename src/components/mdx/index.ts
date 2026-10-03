@@ -145,6 +145,30 @@ export {
   SharedCounterBucketsDiagram,
   SilentCSPFailureDiagram,
 } from "./diagrams-security-review-round-two";
+export {
+  LanBoundaryDiagram,
+  SubtitleBypassChainDiagram,
+  GuardVsRouterDiagram,
+  ReviewLedgerDiagram,
+} from "./diagrams-its-only-on-my-home-network-is-not-a-threat-model";
+export {
+  InjectionGateChainDiagram,
+  ActiveParticipantChecklistDiagram,
+} from "./diagrams-the-folder-name-that-gave-orders-prompt-injection";
+export {
+  CryptoFlixArchitectureDiagram,
+  CryptoFlixSixDayTimelineDiagram,
+  DeadShareThreadPoolDiagram,
+  WatchHistoryMigrationDiagram,
+  SameVideoElementDiagram,
+  ClassicVsNewDesignDiagram,
+} from "./diagrams-plex-jellyfin-or-build-it-yourself-cryptoflix";
+export {
+  ControllerPipelineDiagram,
+  FakeVsRealServerDiagram,
+  CommitsPerDayDiagram,
+  WhoCaughtWhatDiagram,
+} from "./diagrams-what-202-subagents-taught-me-about-code-review";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";

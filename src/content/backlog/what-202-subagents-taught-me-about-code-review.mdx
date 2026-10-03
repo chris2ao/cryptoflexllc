@@ -1,0 +1,251 @@
+---
+title: "What 202 Subagents Taught Me About Code Review"
+date: "2026-10-03T09:00:00"
+description: "One Claude Code session ran a six-day build through 202 subagents, and the reviewers that started real servers instead of reading diffs are why it was safe to ship."
+tags: ["Claude Code", "Subagents", "Code Review", "Agentic Workflows", "Testing"]
+author: "Chris Johnson"
+readingTime: "21 min read"
+featured: false
+series: Claude Code Workflow
+seriesOrder: 20
+schemaType: TechArticle
+coverImage: /blog/what-202-subagents-taught-me-about-code-review/infographic.png
+coverImageAlt: "Two stacked panels contrast a fake Jellyfin server with a real one. The top green panel, The suite saw Fake Jellyfin, shows a terminal block with POST /Startup/User returning 200, accepted with no questions asked, and a large 190 of 190 tests green, three runs in a row. The bottom red panel, The reviewer saw Real Jellyfin 12.1.0 using a scratch directory and throwaway key, shows the same POST /Startup/User returning 404 until a GET has run first, with a large 404 on every real first install. An amber strip at the bottom reads GET, then POST: the fix sends the GET first, and a repeat POST gets a 403, so a re-run reuses the sealed password. The headline reads The reviewer that started the real server."
+---
+
+Every test passed, three runs in a row, and every real first install of CryptoFlix would have failed. The fake media server in my test suite was kinder than the real one, and the only thing that noticed was a reviewer agent that bothered to start the real thing.
+
+CryptoFlix is a self-hosted media app I built over about six days. The repo is private, so there are no links here, just the method. One Claude Code session on Opus 5.5 acted as the controller. It planned, dispatched, reviewed and ran every deploy. By the morning of day six it had dispatched 202 subagents, and 243 by the time the last feature shipped that night. The 202 is the number the project history counted, so it's the one I use here.
+
+My very first message ended with "DO not make assumptions and ask clarifying questions if needed." That turned out to be a decent summary of the whole build.
+
+## The Fake That Was Kinder Than the Server
+
+CryptoFlix sits on top of Jellyfin, so phase 1b had to bootstrap a fresh Jellyfin server: create the admin user, set the key, wire everything together. The tests ran against a fake Jellyfin, and they were green. 190 of 190, three times.
+
+Then the final whole-branch review for that phase ran. The reviewer was an Opus agent. Instead of reading the diff and nodding, it started a real Jellyfin 12.1.0 in a scratch directory and ran the real bootstrap against it. It used a scratch database and a throwaway key, and it never touched real secrets. It came back with a Critical finding.
+
+| Call | Test fake | Real Jellyfin 12.1.0 |
+|---|---|---|
+| `POST /Startup/User`, first call | Accepted | 404 |
+| `GET /Startup/User`, then `POST` | Accepted | Works |
+| `POST` again after an interrupted setup | Not modeled (the fake accepted every `POST`) | 403 |
+
+<FakeVsRealServerDiagram />
+
+So why did 190 of 190 pass? The real server answers the `POST` with a 404 until a `GET /Startup/User` has run. My fake accepted the `POST` unconditionally. The suite sat at 190 of 190 with 95.2% coverage while every real first install died on its first request.
+
+The second finding was nastier in a quieter way. A repeat `POST` gets a 403, so an interrupted setup dead-ends. You can't finish it and you can't restart it.
+
+The fix (`acd843f`) does the `GET` first and seals the password before the `POST`. It reuses that password on a re-run. It accepts a 403 only in that case. The reviewer then re-verified it against a real Jellyfin, including a crash in the middle of setup.
+
+<Info title="What is a test fake?">
+A fake is a small stand-in for a real service, written so tests run fast and offline. It only knows the behavior its author thought of. If the real server has a rule the author never saw, the fake happily breaks it, and every test that depends on it passes for the wrong reason.
+</Info>
+
+It happened again in phase 3a. That phase's final review found that the playback request lacked a `MediaSourceId`. Without that field, Jellyfin silently ignores the audio and subtitle tracks you chose and plays the defaults. The reviewer cited lines 154 and 218 of Jellyfin's `MediaInfoHelper.cs` to show why. It wrote: "The fake Jellyfin in the tests could not catch it." The fix is `b2d1c2c`.
+
+After the first miss I'd already adopted a standing rule (D-079, written during phase 2a). Live checks happen only against a scratch Jellyfin, never production, and the fakes get extended to model the real 404 and 403. The 3a miss shows the limit of that rule. A scratch instance only helps if someone exercises the exact path that matters. The history's own lesson says it better than I can: "A fake that is kinder than the real server hides exactly the bugs you need it to catch."
+
+## One Controller, Two Hundred Workers
+
+(If you want the earlier chapters of this workflow, [7 Days, 117 Commits](/blog/7-days-117-commits-building-a-production-site-with-ai) covers my first big agent-driven build, [Going Agentic-First](/blog/going-agentic-first-restructuring-claude-code) covers the parallel-agent setup, and [Will LLM Agents Replace Pentesters?](/blog/will-llm-agents-replace-pentesters) covers the security side.)
+
+The design happened once, up front. Two Haiku researchers gathered background. The controller corrected four of their claims against primary sources. Then it asked me one structured question at a time until the design was settled.
+
+For each phase, the controller wrote a plan head. It held the goal, the constraints, and a Review Focus of five hostile inputs. It also held a list of Rulings (each with a "Cost if wrong") and the interfaces between pieces. Two Opus plan writers (three in phase 2a) then turned that into step-level, test-first tasks.
+
+Building used the subagent-driven development workflow from the superpowers plugin. Each plan got a git worktree and a ledger. Each task got a Sonnet implementer and a reviewer. The reviewer moved up to Opus when the task was risky.
+
+Fix rounds went back to the same implementer. Re-reviews looked only at the fix diff. Minor findings got parked with a destination instead of fixed on the spot.
+
+Finishing was a pair of parallel Opus reviews. One covered the whole branch and one was a separate security review. Then came one fix wave, a rebase, the gates and a fast-forward merge. Only the controller ran the deploy runbook. It took a rollback copy first and ran a lost-row check after any migration.
+
+<ControllerPipelineDiagram />
+
+The plans were enormous: about 82,000 lines across twelve of them.
+
+## Plans That Were Proven Before They Shipped
+
+Plan writers didn't just write steps. They ran every step in a scratch copy of the repo: see the test fail, see it pass, then run the full gate. Sometimes a plan's head turned out to be wrong against the real code. Then the writer filed a "contract issue," and the issue became a binding Ruling. In phase 3a, a replay confirmed it from the other side: "applying the plan text alone to t3 reproduced B's t7 tree."
+
+Phase 4 added a second source type. That meant making a `sources` column nullable, and in SQLite that means rebuilding the table. The controller's starting rulings flagged the trap before any code existed. The database opener turned foreign keys on before running migrations. `PRAGMA foreign_keys = OFF` is a no-op inside a migration transaction.
+
+So the rebuild's `DROP TABLE sources` would cascade straight through into watch history and playback sessions. A migration that looked fine in review would have wiped my watch history on its first deploy.
+
+The ruling made the writers prove a fix on a real database file built at the previous migration, with rows in it. Two Opus writers did. The plan records exactly what they saw:
+
+> Proven in scratch on a file database built at 0004 with rows:
+> - with today's `openDb`, `watch_progress` and `playback_sessions` come out empty;
+> - with the runner, every row keeps its id and values, the four indexes come back, FTS5 still matches, and a delete still cascades.
+
+The task reviewer then tried to break the new runner by killing the process with `SIGKILL` in the middle of a migration. It survived. On deploy day the runbook took its rollback copy, ran the migration, and checked for lost rows by id. Zero lost.
+
+Here's the whole trap on one card:
+
+![The Phase 4 cascade (foreign keys on, a no-op PRAGMA, DROP TABLE emptying watch history) and the scratch-database rule that caught it: 0 rows lost.](/blog/what-202-subagents-taught-me-about-code-review/migration-proven-in-scratch.jpg)
+
+Scratch wasn't perfect, and I'd be lying if I said it was. One real pagination cursor turned out longer than the cap the plan assumed. That emptied the first real listing. Nothing was lost, because the parsing fails closed. A log line that the final review had insisted on named the cause. The hotfix (`ec375da`) took minutes. A scratch copy only holds what you thought to put in it.
+
+## Reviews That Probe Instead of Read
+
+A reviewer that reads a diff finds what a careful reader would find. A reviewer that can run things finds the rest. The Opus reviewers on this build ran things constantly:
+
+- A request to `/%61pi/status` returned 200 with no session. The guard checked the raw URL and the router checked the decoded one. The re-review of the fix ran 17 bypass variants.
+- A Critical injection finding in the PowerShell handling came from lookalike quote characters. The fix was checked against PowerShell's own tokenizer source plus 17 live probes.
+- The URL validator for the second source type got about 40 bypass spellings thrown at it.
+- A 20,000-case fuzz of the `Content-Disposition` handling, plus six time-of-check races.
+
+In phase 3b, the security review proved a caption HTML injection under the real production security policy. It forced a navigation and an off-site form submit, in both Chromium and WebKit. The fixes went back for re-review. The sanitizer lost to the re-reviewers four more times, the last at a network chunk boundary. A static read would not have found a bug that only exists when a network chunk boundary lands between the two characters of a line ending.
+
+The probing wasn't limited to security. Phase 6's final review ran a render-count probe. It found that 20 unchanged playback position reports caused 20 re-renders of the watch page, about four a second. Every functional test passed. Nothing was broken in a way a user could name. The page was just doing work nobody asked for.
+
+### Why run two review seats?
+
+I tallied the "Found by" column of the security ledger (the first seat named on each row). I wanted to know whether the separate security reviews earned their keep.
+
+| Seat | Ledger entries |
+|---|---|
+| Security reviews | 66 |
+| Task reviews | 41 |
+| Final whole-branch reviews | 10 |
+| Re-reviews | 6 |
+| Other | 16 |
+
+<WhoCaughtWhatDiagram />
+
+All four Criticals came from the code-review seats: three from task reviews, one from a final review. All nine Highs came from the security seat or its re-reviews. I read that as the best evidence I have for running both. They find different bugs. A design with only one of them would have missed a whole category. (That's my inference from one project; the ledger doesn't say it outright.)
+
+## The Rules That Kept It Honest
+
+Agents are happy to keep fixing forever, so the process needed brakes.
+
+**The fix-round cap.** The skill allows five rounds per task. Rounds one through three resume the original implementer. Rounds four and five go to a fresh implementer on a stronger model. The skill's reasoning is blunt: "A loop that survives three resumes usually means the implementer cannot see its own problem."
+
+If round five still leaves findings open, a breaker trips. The controller then rules on each open finding itself instead of dispatching again. (My own storyboard said "round five stops the task." The skill says it stops the fix loop and forces a ruling, which is different.)
+
+In practice the cap barely mattered. Most tasks closed in at most two rounds, two took three, and one in the archived ledgers reached five.
+
+Phase 6, task 6 went three rounds. It swaps the next video into the same video element so autoplay keeps working on iPhone. Round one: leaving mid-swap still navigated onward. Round two: round one's own fix broke under React StrictMode's development double-mount. The test only reproduced it once it was nested exactly like the real entry point.
+
+Round three, which the ledger literally labels "Round 3 (last resume)": the player library fires its pause before its own "ended" flag. So the fix had to read the video element's `ended` property directly. Round two's bug was one that round one's fix had introduced.
+
+The ledger shows the controller making a call mid-review:
+
+> Ruling: fix all in round 1 (M7a count user pause/seek as interaction, required; M7b exit fullscreen for the prompt if clean, else backlog) - owner's main client is iPhone - cost: one round.
+
+That "cost: one round" is the habit. Every ruling in a plan carries a "Cost if wrong," so a trade-off is something you can audit later instead of a vibe. This is the phase 3a ruling about watch progress:
+
+> **Progress is stored per source file,** not per title or episode. A replaced file loses its progress. Continue Watching shows the most recently updated unwatched source per title. "Up next" for series goes to the backlog. Cost if wrong: a data migration later.
+
+There's a counterexample in the history. An unmount race got parked in phase 1a, and it "came back two phases later at a higher cost." Each parked item has a reason and a target. Parking it was the right move; that one just had the wrong target.
+
+The Review Focus entries pinned hostile inputs to specific tasks. This one is from 3a:
+
+> These are the inputs most likely to hurt the owner that no happy-path test exercises. Each is pinned in its owning task.
+>
+> 2. **A forged, stale, or reused stream URL.** Examples: a wrong token, a token of a different sid, an ended sid, an opaque id from another session, or an opaque id never minted. Expected: 404 (or 410 for an ended sid with a valid token), no Jellyfin call, and the same response body for every 404 case. Pinned in Task 6.
+
+Finally, one fix wave per phase. Important residuals went to me or to a reviewed follow-up, "never straight to production."
+
+<Warning title="The Controller Broke Its Own Rule">
+The skill says "Never fix findings yourself in the controller session." On my recount, the controller sometimes did anyway. It verified small fixes by reading its own diff, or fixed them directly. That happened in phases 2b, 3a, 3b and 5, and again in phase 6 task 6 round three. I found no harm recorded, but a rule that only holds when it's convenient needs a definition of when it doesn't apply.
+</Warning>
+
+## What Failed
+
+Not everything the reviewers caught was a code bug, and the process had its own failures. The table lists what changed afterward.
+
+| Problem | Where | Adjustment |
+|---|---|---|
+| Fakes kinder than the real server | 1b, 3a | Scratch-Jellyfin checks as a standing rule; fakes model the real errors |
+| A reviewer's environment warning read as handled | 2a | Fixed in production (`9be647d`); later runbooks verify real-mount assumptions |
+| Agent-written docs invented content | First architecture doc | Spell out every fact; review against the source |
+| Subagent compliance slips | Commit trailers, a forked subagent, unicode escapes | Commit bodies checked before merge; explicit bans; byte scans |
+| Parallel agents sharing resources | Browser-test port, a shared temp folder, timing tests | One agent runs browser tests at a time; private temp dirs; behavior-based assertions |
+| Manual device checks never done | 2a, 2b, 3b, 5, 6 | Browser tests accepted as evidence (D-117) |
+
+The second row cost me the most.
+
+In phase 2a, the final reviewer was allowed one check against the network-mounted folder CryptoFlix scans. It returned `ENOENT`. The reviewer's verdict was "can-wait": re-run the check from my own Terminal at deploy time.
+
+The controller then checked from its own shell. It saw the first read fail and the next one succeed, and it decided the scanner's retry-once was enough. Its ledger note said the first `readdir` after idle returns `ENOENT` and the next calls succeed. It added that "the final reviewer's one-shot check hit exactly that first-call ENOENT."
+
+Why did a retry-once look sufficient? Because that theory fit what the controller saw. In production, 525 consecutive scans failed over about 17 hours, while the session was mostly idle.
+
+The actual behavior: a cold directory open on macOS's network-mount client returns `ENOENT` even though `stat` on the same path succeeds. The controller's own shell check had shown the same first-read failure. It read that as proof the retry covered it. The fix was to `stat` first, then retry. The history's own inference is that a visible failure counter would have surfaced it much sooner, and I agree.
+
+The reviewer saw a symptom, and the controller explained it away with a half-right theory. Then 525 scans failed. Human reviewers make the same mistake all the time, a warning explained away instead of verified. This one just repeated itself 525 times.
+
+<Stop title="A Warning Isn't a Verdict">
+"Can-wait" meant "someone must verify this in the real environment," and it got downgraded to "handled." If a reviewer says check it live, the deploy runbook should block until someone does.
+</Stop>
+
+The rest are shorter. The docs agent, asked to describe "the two changes made after approval," invented two plausible-sounding ones, plus a false reason the repo is private.
+
+Subagents spawned their own subagents. In 3b, the final-wave fixer forked a helper. The helper committed six fixes against the rules, and the controller accepted them after the fixer reviewed them. Those commits also carried attribution trailers that had to be stripped out with `git filter-branch`.
+
+Parallel agents fought over shared resources. One 2b test deleted the shared temp folder and wiped other agents' probes. In phase 6 the controller and a plan writer settled the same name two different ways at once. The ledger marks the losing ruling superseded rather than erased.
+
+And the manual device checks I'd planned for 2a, 2b, 3b, 5 and 6 were never recorded as done.
+
+## The Human in the Loop
+
+The controller made 114 of the 150 logged decisions, and I made 36. That ratio sounds lopsided until you see which 36. I answered 27 structured questions through the 202 cutoff and 3 more by the phase 6 deploy. I also did the owner-only work. That meant admin steps on a PC (later through that PC's own Claude Code with printed prompts) and macOS privacy prompts. It also meant typing secrets at silent prompts so none of them crossed the chat.
+
+On 09-29 at 21:57 EDT I wrote: "I think you need to slow down and tell me exactly what I need to do on the pc with URLs steps, I have claude code on pc so if it's easier to use a prompt maybe I can do this that way but I'm really confused now." From then on, owner steps came one part at a time, and "Part A done" came before Part B.
+
+On 10-01 at 02:23 EDT I went the other direction: "Get me to production, continue on with all the steps, troubleshoot issues and commit and deploy a fully production cryptoflix. Use your best judgement." That message became standing authority to plan, build, merge and deploy (D-091). The repo logged 166 commits that day, 170 the next.
+
+<CommitsPerDayDiagram />
+
+Later on 10-01, about 19:00 EDT, I said "Skip the test and continue. I'm ok with synthetic tests." The decision log turned that into D-117: browser tests count as evidence.
+
+At 20:40 EDT I asked "why is there so many idle agents?" and then a narrower question: "I don't want you to chang anything I just want to know if there are more tasks that can run in parallel to get this done quicker and what the risks are."
+
+The controller answered with four options, each with time saved and risk. The last was lighter reviews, about 15 minutes saved per skipped review, with the risk noted as "Lower quality." It opened with "You've asked me not to change anything, so here are the options with their trade-offs, and I won't act on any of them unless you say so." It recommended starting the next phase early. Then it acted on none of it (D-149).
+
+There's a cost I should own. The session spanned 106 hours, and only about 39 of them were active. The 8 long gaps added up to 66.6 hours of the controller waiting on me. Standing authority from 10-01 on was the adjustment.
+
+## Model Mix, and Fable
+
+Sonnet built and did routine reviews. Opus planned, reviewed risky work, and ran the final reviews until phase 6, when Fable took one of the two seats. Haiku only did early research.
+
+| Role | Through the 202 cutoff | Added by the phase 6 deploy |
+|---|---|---|
+| Implementers | 62 (61 Sonnet, 1 Opus) | 16 (15 Sonnet, 1 Opus) |
+| Task reviews | 62 (36 Sonnet, 26 Opus) | 15 (11 Sonnet, 4 Opus) |
+| Task re-reviews | 23 (12 Sonnet, 11 Opus) | 0 |
+| Plan writers | 13 Opus | 2 Opus |
+| Final whole-branch reviews | 8 Opus | 2 (1 Opus, 1 Fable) |
+| Security reviews | 8 Opus | 2 (1 Opus, 1 Fable) |
+| Final fix waves | 8 (5 Sonnet, 3 Opus) | 1 Opus |
+| Researchers | 8 (2 Haiku, 5 Sonnet, 1 Opus) | 1 Opus |
+
+The table leaves out some roles (final re-reviews, docs writers and design work), so the columns won't sum to 202. The dispatch counts also understate the review work. Fix rounds and later re-reviews resumed existing agents by message instead of spawning new ones. That's 131 more messages I counted in the transcript.
+
+For phase 6, I asked to try Fable for the final pair: "For the final check can you use Fable model?" I also warned it: "I know Fable has stricter guardrails for security reviews so be on the lookout if that fails and switch back to opus." An Opus fallback stood ready and wasn't needed.
+
+Did it hold up? The final review read a 150-file, roughly 9,800-line diff in seven passes. It checked a query plan and ran the render-count probe from earlier. It reported 0 Critical, 1 Important and 6 Minor.
+
+The security review came back with no Critical, High or Medium findings and 7 Low. The ledger entry reads "Substantive (21 KB, probes) - no opus fallback need[ed]." An Opus fix wave fixed all but one Low, and the same Fable reviewers confirmed. The history's verdict is that both reached "a reasoned verdict with file:line findings exactly as an opus review would have." That's one phase, so it's a sample of one.
+
+## After the Numbers Stopped
+
+The history's counts end on the morning of 10-02. The build didn't. Phase 6 added browse tabs, "More like this," next-video autoplay and an in-app About page, and went out about 20:27 EDT with zero rows lost.
+
+Then came a redesign: a second interface in the CryptoFlex Cyber Editorial design system, sitting beside the classic one behind a per-browser toggle, with shared components re-themed rather than rewritten.
+
+The redesign branch was built outside this machine. The handoff I pasted into the new session said it "was built outside this machine, so it has only been checked in a Linux sandbox." The server and browser suites hadn't run. The handoff also told the session to "STOP and ask before deploying."
+
+The first browser run on the Mac failed 64 tests. Every page had two security-policy violations: a font inlined as a `data:` URL, and a lazy-loaded chunk that let zod try an `eval`. Both got fixed with a test against the real production build. The policy itself didn't change. Green in a sandbox, red on the real machine. That's the cold open again, a thing proven against the wrong environment.
+
+A review agent reported "I found nothing critical or high." I said "Deploy it," then checked devices myself before the merge. Those were manual checks I'd let slide on earlier phases.
+
+## What I'd Keep and What I'd Change
+
+I'd keep the scratch-proven plans and both review seats on every phase. The pagination hotfix took minutes because a fail-closed default came with a precise log line. I'd keep those too, along with lost-row checks around every migration. The incident rules now live in the repo's agent instructions, like this line in the repo's `CLAUDE.md`: "The CSP gains a directive only when a real browser run proves the player needs it."
+
+I'd change two things. Warnings that repeat should surface as a counter, since 525 failed scans over 17 hours would have been obvious on a dashboard. And parallel agents should get their own ports instead of a rule about taking turns.
+
+As of 10-03, a third session is running on the project. It dispatched five Sonnet implementers at once, each in its own worktree, with code and security reviews to follow. The controller held off on that kind of parallel slicing back on 10-01.
