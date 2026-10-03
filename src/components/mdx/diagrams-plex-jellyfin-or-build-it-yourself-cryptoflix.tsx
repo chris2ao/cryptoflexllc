@@ -56,7 +56,8 @@ function Mono({
 /**
  * Browsers reach the Mac Mini over plain HTTP. Inside it a launcher app
  * parents the CryptoFlix server and a hidden Jellyfin. The server reaches
- * the PC over read-only SMB and TMDb over HTTPS.
+ * the PC over read-only SMB, and TMDb and the cloud storage provider's API
+ * over HTTPS. Cloud segments are proxied so no token reaches a browser.
  */
 export function CryptoFlixArchitectureDiagram({ caption }: DiagramProps) {
   const id = "cfx1";
@@ -64,19 +65,19 @@ export function CryptoFlixArchitectureDiagram({ caption }: DiagramProps) {
     <DiagramWrapper
       caption={
         caption ??
-        "Everything lives on the LAN. CryptoFlix owns the catalog, sign-in, and every playback session, while Jellyfin hides on localhost and only converts video the browser cannot play."
+        "The app is reachable only on the LAN, but it calls out over HTTPS to TMDb and to the cloud storage provider's API. CryptoFlix owns the catalog, sign-in, and every playback session, and proxies cloud segments so no token reaches a browser. Jellyfin hides on localhost and only converts video the browser cannot play."
       }
     >
       <EditorialFrame
         id={id}
         w={880}
-        h={600}
+        h={714}
         eyebrow="CryptoFlix Architecture"
         chips={[
-          { label: "LAN only", accent: "amber" },
+          { label: "inbound: LAN only", accent: "amber" },
           { label: "1 user", accent: "cyan" },
         ]}
-        footerRight="Mac Mini · hidden Jellyfin · read-only PC"
+        footerRight="Mac Mini · hidden Jellyfin · PC + cloud"
       >
         {/* Browsers */}
         <NodePanel
@@ -215,43 +216,88 @@ export function CryptoFlixArchitectureDiagram({ caption }: DiagramProps) {
         </Mono>
 
         {/* Server -> PC */}
-        <FlowLine id={id} d="M234,412 L234,486" accent="muted" />
-        <Mono x={222} y={466} anchor="end">
+        <FlowLine id={id} d="M159,412 L159,548" accent="muted" />
+        <Mono x={171} y={490} anchor="start">
           read-only SMB 3
         </Mono>
-        <NodePanel
-          x={24}
-          y={486}
-          w={420}
-          h={70}
-          align="left"
-          title="Windows PC"
-          sub={["every drive shared read-only", "probed every 30 s, runs nothing"]}
-          titleSize={17}
-          subSize={12.5}
-        />
-        <Chip x={430} y={498} label="may be off" accent="amber" anchor="end" fontSize={11} />
+        <NodePanel x={24} y={548} w={270} h={120} accent="muted" align="left" title="">
+          <text
+            x={38}
+            y={578}
+            className="fill-foreground font-heading font-semibold"
+            style={{ fontSize: 17 }}
+          >
+            Windows PC
+          </text>
+          <Mono x={38} y={602} anchor="start">
+            every drive shared read-only
+          </Mono>
+          <Mono x={38} y={621} anchor="start">
+            probed every 30 s, runs nothing
+          </Mono>
+          <Chip x={38} y={634} label="may be off" accent="amber" fontSize={11} />
+        </NodePanel>
 
         {/* Server -> TMDb */}
-        <FlowLine
-          id={id}
-          d="M400,412 L400,452 Q400,460 408,460 L670,460 Q678,460 678,468 L678,486"
-          accent="muted"
-        />
-        <Mono x={540} y={450}>
+        <FlowLine id={id} d="M360,412 L360,548" accent="muted" />
+        <Mono x={350} y={490} anchor="end">
           HTTPS
         </Mono>
         <NodePanel
-          x={500}
-          y={486}
-          w={356}
-          h={70}
+          x={310}
+          y={548}
+          w={200}
+          h={120}
           align="left"
           title="TMDb"
           sub={["titles, cast, genres", "outbound lookups only"]}
           titleSize={17}
           subSize={12.5}
         />
+
+        {/* Server <-> Cloud storage: request out, proxied segments back */}
+        <FlowLine
+          id={id}
+          d="M396,412 L396,502 Q396,510 404,510 L632,510 Q640,510 640,518 L640,548"
+          accent="emerald"
+        />
+        <Mono x={412} y={502} anchor="start">
+          HTTPS · token in a header
+        </Mono>
+        <FlowLine
+          id={id}
+          d="M800,548 L800,474 Q800,466 792,466 L438,466 Q430,466 430,458 L430,412"
+          accent="emerald"
+        />
+        <Mono x={450} y={458} anchor="start">
+          segments proxied · no token to the browser
+        </Mono>
+        <NodePanel
+          x={526}
+          y={548}
+          w={330}
+          h={120}
+          accent="emerald"
+          emphasis
+          align="left"
+          title=""
+        >
+          <text
+            x={540}
+            y={578}
+            className="fill-success font-heading font-semibold"
+            style={{ fontSize: 17 }}
+          >
+            Cloud storage
+          </text>
+          <Mono x={540} y={602} anchor="start">
+            browse and stream only
+          </Mono>
+          <Mono x={540} y={621} anchor="start">
+            HLS after conversion
+          </Mono>
+          <Chip x={540} y={634} label="plays with the PC off" accent="emerald" filled fontSize={11} />
+        </NodePanel>
       </EditorialFrame>
     </DiagramWrapper>
   );
@@ -296,7 +342,7 @@ const DAYS = [
     day: "Thu",
     n: "DAY 6",
     accent: "emerald" as const,
-    lines: ["2nd source type", "browse + binge", "redesign"],
+    lines: ["cloud storage", "source", "browse + binge", "redesign"],
   },
 ];
 
@@ -313,7 +359,7 @@ export function CryptoFlixSixDayTimelineDiagram({ caption }: DiagramProps) {
     <DiagramWrapper
       caption={
         caption ??
-        "Six calendar days from first message to redesign. The app was live on an iPhone on day three with an empty library, and the second source type shipped on day six without losing a row."
+        "Six calendar days from first message to redesign. The app was live on an iPhone on day three with an empty library, and the cloud storage source shipped on day six without losing a row."
       }
     >
       <EditorialFrame
@@ -358,7 +404,7 @@ export function CryptoFlixSixDayTimelineDiagram({ caption }: DiagramProps) {
           accent="emerald"
           emphasis
           title="0 rows lost"
-          sub={["second source type"]}
+          sub={["cloud storage source"]}
           titleSize={17}
           subSize={12.5}
         />
@@ -1118,6 +1164,163 @@ export function ClassicVsNewDesignDiagram({ caption }: DiagramProps) {
           align="left"
           title="Per-browser toggle, defaults to new"
           sub={["saved in localStorage, never sent to the server, so phone and Mac can differ"]}
+          titleSize={17}
+          subSize={12.5}
+        />
+      </EditorialFrame>
+    </DiagramWrapper>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* 7. Two sources, one catalog                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * PC and cloud lanes feed one Identify step, which lands both files on one
+ * title. A Reach gate then decides which copy plays, PC first.
+ */
+export function TwoSourcesOneCatalogDiagram({ caption }: DiagramProps) {
+  const id = "cfx7";
+  return (
+    <DiagramWrapper
+      caption={
+        caption ??
+        "Two lanes feed one catalog. A cloud file is a row in the same sources table and is identified exactly like a PC file, so one title can hold both copies. Play takes the requested copy if it can, else the other, PC first, which is why the cloud copy plays while the PC is off."
+      }
+    >
+      <EditorialFrame
+        id={id}
+        w={880}
+        h={436}
+        eyebrow="Two Sources, One Catalog"
+        chips={[
+          { label: "no merge step", accent: "cyan" },
+          { label: "PC first", accent: "amber" },
+        ]}
+        footerRight="sources table · identify · reach"
+      >
+        {/* Source lanes */}
+        <NodePanel
+          x={24}
+          y={70}
+          w={270}
+          h={84}
+          accent="cyan"
+          align="left"
+          title="Windows PC"
+          sub={["polled every 2 min", "while online"]}
+          titleSize={17}
+          subSize={12.5}
+        />
+        <NodePanel
+          x={24}
+          y={166}
+          w={270}
+          h={84}
+          accent="emerald"
+          align="left"
+          title="Cloud storage"
+          sub={["full listing every 10 min", "while connected"]}
+          titleSize={17}
+          subSize={12.5}
+        />
+
+        {/* Fan-in bus */}
+        <path d="M294,112 L310,112" fill="none" className="stroke-primary/50" strokeWidth="1.5" />
+        <path d="M294,208 L310,208" fill="none" className="stroke-primary/50" strokeWidth="1.5" />
+        <path d="M310,112 L310,208" fill="none" className="stroke-primary/50" strokeWidth="1.5" />
+        <FlowLine id={id} d="M310,160 L330,160" accent="primary" />
+
+        {/* Identify */}
+        <NodePanel
+          x={330}
+          y={110}
+          w={186}
+          h={100}
+          accent="primary"
+          title="Identify"
+          sub={["same lookup", "for both sources"]}
+          titleSize={17}
+          subSize={12.5}
+        />
+        <FlowLine id={id} d="M516,160 L556,160" accent="primary" />
+
+        {/* One title, two copies */}
+        <NodePanel
+          x={556}
+          y={70}
+          w={300}
+          h={180}
+          accent="primary"
+          emphasis
+          align="left"
+          title=""
+        >
+          <text
+            x={572}
+            y={98}
+            className="fill-primary font-heading font-semibold"
+            style={{ fontSize: 17 }}
+          >
+            One title, two copies
+          </text>
+          <NodePanel
+            x={572}
+            y={112}
+            w={268}
+            h={60}
+            accent="cyan"
+            align="left"
+            title="PC copy"
+            sub={["online, last poll saw it"]}
+            titleSize={15}
+            subSize={12.5}
+          />
+          <NodePanel
+            x={572}
+            y={180}
+            w={268}
+            h={60}
+            accent="emerald"
+            align="left"
+            title="Cloud copy"
+            sub={["connected, last sync saw it"]}
+            titleSize={15}
+            subSize={12.5}
+          />
+        </NodePanel>
+
+        {/* Title -> Reach */}
+        <FlowLine id={id} d="M706,250 L706,296" accent="amber" />
+
+        {/* Reach gate */}
+        <NodePanel
+          x={330}
+          y={296}
+          w={526}
+          h={84}
+          accent="amber"
+          emphasis
+          align="left"
+          title="Reach"
+          sub={["plays if any copy can · PC first", "else: PC offline, not connected, missing"]}
+          titleSize={17}
+          subSize={12.5}
+        />
+
+        {/* Reach -> PC-offline note */}
+        <FlowLine id={id} d="M330,338 L294,338" accent="emerald" dashed />
+        <NodePanel
+          x={24}
+          y={296}
+          w={270}
+          h={84}
+          accent="emerald"
+          variant="dashed"
+          align="left"
+          title="PC offline?"
+          sub={["the cloud copy plays", "PC-only titles show PC offline"]}
           titleSize={17}
           subSize={12.5}
         />

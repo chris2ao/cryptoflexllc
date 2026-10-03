@@ -1,16 +1,16 @@
 ---
 title: "Plex, Jellyfin, or Build It Yourself? Why I Made CryptoFlix"
 date: "2026-10-03T08:00:00"
-description: "Plex and Jellyfin are both good. I still built a private Netflix-style app for my home with Claude Code, and kept Jellyfin hidden inside it as a transcoder."
+description: "Plex and Jellyfin are both good. I still built a private Netflix-style app for my home with Claude Code. It streams from my PC and a cloud storage account, with Jellyfin hidden inside it as a transcoder."
 tags: ["CryptoFlix", "Jellyfin", "Plex", "Claude Code", "Home Lab", "AI Agents"]
 author: "Chris Johnson"
-readingTime: "16 min read"
+readingTime: "22 min read"
 featured: false
 series: Building in Public
 seriesOrder: 9
 schemaType: Article
 coverImage: /blog/plex-jellyfin-or-build-it-yourself-cryptoflix/infographic.png
-coverImageAlt: "Cover graphic for CryptoFlix, with Jellyfin hidden inside. Chips read Building in Public and Why I Built It. A wide top panel shows a wall of six poster tiles with the note that CryptoFlix owns the catalog, sign-in, search, and every playback session. A dashed teal waterline labeled /stream opaque addresses marks that no Jellyfin key reaches the browser. Below it are three cards: a hidden Jellyfin transcoder on 127.0.0.1 mapping MKV to HLS remux, DTS audio to AAC, and SRT, ASS, PGS subtitles to WebVTT or burn in; a VideoToolbox callout dropping from 8.68 to 0.70 seconds of CPU per minute of HEVC video; and a read-only Windows PC card sharing every drive over SMB with an offline badge when the PC is off."
+coverImageAlt: "CryptoFlix, with Jellyfin hidden inside. A wide panel split by a dashed teal /stream waterline. Above it, six poster tiles beside the line CryptoFlix owns the catalog, sign-in, search and every playback session, from the PC or the cloud. Below it, a Hidden transcoder card shows Jellyfin on 127.0.0.1 only, remuxing MKV into HLS, transcoding DTS to AAC and turning SRT, ASS and PGS subtitles into WebVTT or burn-in; a VideoToolbox callout drops from 8.68 to 0.70 seconds of CPU per minute of HEVC video; and two stacked source cards show the read-only Windows PC over SMB and Cloud storage streaming through its API, still playing with the PC off."
 ---
 
 The build took six calendar days, and on day three the app was already live on my iPhone with an empty library. Plex and Jellyfin are both good, and I built my own anyway. The shopping trip took about ten minutes because two research agents did it for me.
@@ -27,7 +27,7 @@ The session opened with a few sentences describing the idea: a locally hosted ap
 
 > "can you use the mac external drive for hosting, I want to avoid using the local storage and the external drive is always plugged in to the mac and I have limited storage on the mac"
 
-Then came the clarifying questions, and the answers turned out to be the spec. Where would I watch? "Browser on the Mac Mini, Other Macs / laptops, Phone / iPad." What about the PC being off? "I'm ok with streaming and file access not working while the pc is down but I just want that to be accounted for." Who uses it? "Just me, simple login." Should it write to the PC? "Read-only."
+Then came the clarifying questions, and the answers turned out to be the spec. Where would I watch? "Browser on the Mac Mini, Other Macs / laptops, Phone / iPad." What about the PC being off? "I'm ok with streaming and file access not working while the pc is down but I just want that to be accounted for." Who uses it? "Just me, simple login." Should it write to the PC? "Read-only." The first message had also asked to hook a cloud storage account in through its API, and when the questions got to it, I picked browse and stream.
 
 The v1 extras were Continue Watching, search and filters, trailers, cast pages, and a feature that tracks what has been watched.
 
@@ -50,7 +50,7 @@ Their verdict was that a custom app was needed. Here's how the candidates stacke
 | UI control | Plex's own apps | As shipped, the look is Jellyfin's | Fully custom, with two designs |
 | Codec handling | Server transcodes; hardware acceleration needs Plex Pass | FFmpeg, with free hardware acceleration | Direct play when the browser can decode it, otherwise hidden Jellyfin to HLS using Apple's VideoToolbox |
 | Whole-PC file access | Library folders | Library folders, no whole-drive browser | Read-only browser over every PC drive |
-| PC-offline behavior | Not tested here | Keeps items offline if its library roots are deep enough (from the spike) | Titles badged offline, nothing hangs, about 45 s worst case |
+| PC-offline behavior | Not tested here | Keeps items offline if its library roots are deep enough (from the spike) | Titles badged offline, nothing hangs, about 45 s worst case; cloud copies keep playing |
 | Who maintains it | Plex, the company | The Jellyfin open-source project | Me, with Claude Code |
 
 I should be upfront about the Plex column. I tested Jellyfin hands on during the spike. For Plex I read the docs and pricing pages, so treat those cells as reading, not testing.
@@ -59,7 +59,7 @@ I should be upfront about the Plex column. I tested Jellyfin hands on during the
 
 Plex's own words: "When your Plex Media Server is claimed or signed in to a Plex account, then all access to the server will require authentication by default." An advanced setting lets listed networks in without auth, with a security warning attached. So "sign-in by default, even on the LAN" is the accurate summary. Local streaming is free. Remote streaming of personal media stopped being free on 2025-04-29. That's when [Plex announced](https://www.plex.tv/blog/important-2025-plex-updates/) that you now need a Plex Pass or a separate Remote Watch Pass. Hardware-accelerated transcoding [requires an active Plex Pass](https://support.plex.tv/articles/transcoder/) for the server owner.
 
-None of that is outrageous. A company has to pay for a cloud account system somehow. But the target here was a single-user app on a LAN that never phones anywhere. A server that signs you in to someone else's service by default is the wrong starting point for that.
+None of that is outrageous. A company has to pay for a cloud account system somehow. But the target here was a single-user app on a LAN that nothing outside the house can reach. It does make outbound HTTPS calls, to TMDb and the cloud storage API, but sign-in stays local. A server that signs you in to someone else's service by default is the wrong starting point for that.
 
 ### What Jellyfin gets right, and where it missed me
 
@@ -98,7 +98,7 @@ So the shape is this. CryptoFlix owns the catalog and identification. It owns si
 
 Jellyfin runs headless on `127.0.0.1` only. It has no web client, and its metadata fetchers are off. Its network config is reinstalled from a pinned template on every start.
 
-When a browser can decode a file, CryptoFlix plays it straight from the read-only mount. When it can't, Jellyfin remuxes or transcodes to HLS (two at once, at most). CryptoFlix then rewrites every playlist line into opaque `/stream` addresses. No Jellyfin key ever reaches the browser.
+When a browser can decode a file, CryptoFlix plays it straight from the read-only mount. When it can't, Jellyfin remuxes or transcodes to HLS (two at once, at most). CryptoFlix then rewrites every playlist line into opaque `/stream` addresses. No Jellyfin key ever reaches the browser. The same proxy later took on the cloud copies, whose playlist and segment URLs each carry an access token, and none of those reach the browser either.
 
 <CryptoFlixArchitectureDiagram />
 
@@ -129,7 +129,7 @@ An empty app is a perfectly good milestone if it's live. The first live moment c
 | Mon | Deploy: launcher app, SMB mounter, Jellyfin bootstrap. Live with an empty library at 22:59 |
 | Tue | Catalog backend deployed |
 | Wed | Browse UI, playback server, web player with resume and Continue Watching, search, person pages, file browser |
-| Thu | A second source type (migration, 0 rows lost), browse and binge, then the redesign |
+| Thu | The cloud storage source (migration, 0 rows lost), browse and binge, then the redesign |
 
 <CryptoFlixSixDayTimelineDiagram />
 
@@ -140,6 +140,93 @@ The last increment came from actually using the thing. On Thursday morning I wro
 More like this looks in the library first, then TMDb. A shared keyword or a top-billed actor adds ln(1 + N/df) to the score. Rarer tags count for more. Autoplay got a 10-second countdown and an "Are you still watching?" prompt after three in a row.
 
 Mid-phase, from a screenshot, I wrote that I couldn't click the genres on a details page. Now you can tap science fiction and get more of it.
+
+## The Cloud Half: Still Playing With the PC Off
+
+The PC isn't CryptoFlix's only source. It also browses and streams from a cloud storage account.
+
+### In the ask from day one
+
+That account was in my first message, so it was never a stretch goal. At 21:27 I answered one more question about it, "Yes, CryptoFlix identifies all (Recommended)," so cloud files go through the same identification as PC files and land in one catalog.
+
+I'd said I could live without streaming while the PC was down, as long as it was accounted for. The design I approved that night went further: PC-only titles get an offline badge, cloud titles keep playing, and nothing hangs. A cloud play never touches the PC or calls Jellyfin.
+
+The day-one research found no existing project that combined this kind of cloud storage account, a local library and a Netflix-style UI. Jellyfin has no support for this provider, one more reason approach A won.
+
+Here's that offline promise on the demo library's Movies wall.
+
+![The Movies wall with the PC offline. PC-only titles are dimmed and badged PC OFFLINE, cloud copies stay playable, and the Sources panel shows Windows PC offline and Cloud storage synced.](/blog/plex-jellyfin-or-build-it-yourself-cryptoflix/cloud-pc-offline-movies.jpg)
+
+*Screenshots in this section use the demo library, and the provider's name is shown generically as "Cloud storage".*
+
+### Linking and syncing
+
+The integration waited until Wednesday evening, because it needed me to register an app with the provider's API first. At 19:53 I asked what connecting would take. The answer was a one-time code, so no token would pass through the chat.
+
+Settings shows the code, I approve it on the provider's site, and CryptoFlix polls every 5 seconds, giving up after 10 minutes since the provider documents no expiry. My password never reaches CryptoFlix, and a late token for a cancelled link gets revoked, never logged. The token is sealed with AES-256-GCM in SQLite and only ever travels in an `Authorization` header to fixed API endpoints.
+
+Once linked, the account gets this card in Settings.
+
+![The Settings card for Cloud storage, connected to a demo account. It checks every 10 minutes, and cloud videos play even while the PC is off.](/blog/plex-jellyfin-or-build-it-yourself-cryptoflix/cloud-settings-card.png)
+
+Why list the whole account every time? A LAN-only server can't receive webhooks, and the provider's change feed reports new files but never renames or deletions. So CryptoFlix lists everything at connect, every 10 minutes while connected, and on Sync now. A listing error, a 429 or one of CryptoFlix's own caps marks a sync incomplete, and only a complete sync may mark a file missing.
+
+All API calls share one rate limit, 2 requests a second with bursts of 10, because the provider publishes no fixed numbers. A 429 pauses every caller, queued ones included.
+
+### One catalog, any copy plays
+
+A cloud file is a row in the same `sources` table as a PC file, with an origin marker, the provider's file id, and no PC folder. A separate table was rejected because progress, sessions, search, Unmatched and history would each have needed a parallel path. Both kinds land on the same title, and as the architecture doc puts it, "There is no merge step." Each file wears a PC or cloud badge.
+
+Availability is per side, tracked as `Reach { pc, cloud }`. A PC file can play while the PC is online and the last poll saw it. A cloud file can play while the account is connected and the last complete sync saw it. A title, a Continue Watching item or a history entry plays if any visible copy at the same placement can (the same movie, or the same episode). Otherwise it says why: PC offline first, then not connected, then missing.
+
+<TwoSourcesOneCatalogDiagram />
+
+Play uses the copy I picked if it can, otherwise a sibling, PC first, and next-episode autoplay follows the same order.
+
+### Playback through the same proxy
+
+The spike had already found that the provider serves HLS only for files it has converted, with an access token in every playlist and segment URL. Its CORS rules would have let the browser play straight from the provider, but only by holding those tokens. So the cloud goes through the same rewriting proxy as Jellyfin, plus a conversion flow.
+
+A cloud play gets its own cap of three sessions, separate from Jellyfin's two. If the file still needs converting, CryptoFlix asks the provider to convert it and answers 202 "preparing" with a percentage, and the player shows Preparing and checks back every 5 seconds. Once it's ready, the server fetches the master playlist with the token in a header and rewrites every URI into a `/stream` address with a 128-bit random id, mapped to the real URL in server memory, so no provider token reaches the browser.
+
+A 401 from the API means the account needs reconnecting: sync stops, cloud sessions end, and cloud files read "not connected."
+
+### What broke on Thursday
+
+The schema change came first, on Wednesday night, and nearly cost me my watch history (that's in the migration section below). The rest came up on Thursday. At 03:25 the final review found that a failed first link would fail closed, which is right, but the log couldn't say why, and one off-schema item in a listing emptied the whole sync. The fix parsed items one at a time and logged the paths of failing fields, never their values:
+
+```ts
+// A2: names the issue PATHS a zod parse failed on, never the values it saw.
+function issuesOf(error: z.ZodError): string {
+  return error.issues.map((i) => `${i.path.length > 0 ? i.path.join('.') : '(root)'}: ${i.message}`).join('; ');
+}
+```
+
+The deploy went out at 06:37, I linked the account at 06:42, and two minutes later I reported:
+
+> "I did link [the cloud account] and hit the sync now and it shows 0 files, 0 titles. Is that expected. Part A is done"
+
+It wasn't. Because parsing failed closed, nothing had been marked missing, and that 03:25 log line named the cause on the first try:
+
+```text
+cursor: Too big: expected string to have <=4096 characters
+```
+
+The provider's real pagination cursor is longer than the 4,096 characters the plan had allowed. The hotfix raised the cap to 256 KiB, with a test, and was committed at 06:45:06, about a minute after my report. After a restart the next sync was complete, and the log held no token text.
+
+<Tip title="Log the path, never the value">
+When a parser rejects data from someone else's API, log which field failed, never the value. The value might be a token.
+</Tip>
+
+My own testing that morning proved less than I thought. At 06:52 I said I'd tested a few cloud videos, but Play prefers the PC copy while the PC is online, so those were PC plays. A real cloud play of something with no PC copy stayed on my list of open checks.
+
+Thursday evening brought three more, the first from a case the spike never checked.
+
+| Thu | What broke | Fix |
+|---|---|---|
+| 21:39 | Some browser-ready videos showed "cannot stream this file." CryptoFlix asked for a conversion they didn't need, and the provider refused with a 400 | On that refusal, try the HLS master directly and remember the file is streamable |
+| 22:18 | I chose to hide titles with no copies left, but Disconnect marked every cloud file unavailable, so disconnecting would have hidden every cloud-only title | Disconnect no longer touches availability; the next complete sync reconciles real deletions |
+| 22:38 | Deleting the watched copy emptied Continue Watching even when another copy could play | The item stays while any copy at that placement can play, and a 404 at play time refreshes the catalog |
 
 ## Things That Went Sideways
 
@@ -173,7 +260,7 @@ A frozen relay still completes TCP handshakes, so a "PC down" test meant killing
 
 ### The migration that nearly erased my watch history
 
-Adding a second source type meant making `sources.folder_id` nullable, which SQLite does by rebuilding the table.
+Adding the cloud storage source meant making `sources.folder_id` nullable, because a cloud file has no PC folder, and SQLite does that by rebuilding the table.
 
 Before any code touched real data, two plan writers tested a scratch copy of the database and found two things. Foreign keys were on during migrations. The migration's own `PRAGMA foreign_keys=OFF` is a no-op inside drizzle's transaction. So `DROP TABLE sources` cascaded and emptied `watch_progress` and `playback_sessions`. In the scratch copy, my watch history was gone, from a migration that ran without a single error.
 
@@ -259,6 +346,8 @@ Building your own means maintaining it, including the hidden Jellyfin underneath
 <Tip title="Pin the hidden dependency">
 Jellyfin's API broke in 12.0, so CryptoFlix runs a pinned 12.1.x. Any bump is an upgrade project, not an auto-update.
 </Tip>
+
+The cloud half is a dependency I can't pin at all. Two of Thursday's bugs came from undocumented API behavior that only a live account could show: a pagination cursor longer than the plan allowed, and a refusal to convert a file that was already browser-ready.
 
 It's also not a Plex or Jellyfin replacement for anyone else. CryptoFlix is LAN-only, single-user, and plain HTTP on purpose, which is a documented choice and also a decision I'm going to be asked about. That's the next post: *"It's Only on My Home Network" Is Not a Threat Model*. One bug in it is a status route that returned 200 with no session because the guard checked the raw URL while the router matched the decoded one.
 

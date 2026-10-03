@@ -162,6 +162,7 @@ export {
   WatchHistoryMigrationDiagram,
   SameVideoElementDiagram,
   ClassicVsNewDesignDiagram,
+  TwoSourcesOneCatalogDiagram,
 } from "./diagrams-plex-jellyfin-or-build-it-yourself-cryptoflix";
 export {
   ControllerPipelineDiagram,
