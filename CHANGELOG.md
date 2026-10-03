@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## 2026-10-03 - Backlog Draft Corrections and Config Sync
+
+### What changed
+- **Noted** VPN remote access in two CryptoFlix backlog drafts (commit 21ed403)
+- **Synced** shared Claude Code configuration across companion repositories and retired six old agent definitions
+- **Disabled** CI on a decommissioned side repository after a failure email traced back to it
+
+### What was learned
+- After a sync agent reports files staged and ready to push, run `git status` yourself to confirm the actual repo state
+- An unpinned build backend can break a dormant repository's CI on an unrelated push when a newer release tightens validation; pin build requirements
+- The auto-mode classifier can block `gh workflow` commands, including read-only listing, so the owner may need to run them directly
+
+---
+
 ## 2026-10-03 - CryptoFlix Backlog Drafts and Home Network Post Redactions
 
 ### What changed
