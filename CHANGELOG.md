@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## 2026-10-03 - CryptoFlix Backlog Drafts and Home Network Post Redactions
+
+### What changed
+- **Added** four CryptoFlix backlog drafts with diagrams, covers, demo screenshots, and a few slides (commit 57e0c64)
+- **Redacted** port-forward rule names and the WAN IP in three Home Network Mission Control posts (commit 2676c4d)
+- **Added** a cloud storage section to the CryptoFlix flagship draft (commit 19440ae)
+
+### What was learned
+- `/backlog` pages compile MDX per request, so `validate-mdx` and `npm run build` can pass while a page returns a 500 at render time (a bare `<meta>` in prose caused this); a local render check with a throwaway `ANALYTICS_SECRET` and Playwright catches it
+- NotebookLM decks and infographics can include inaccurate facts and often ignore a dark theme, so each slide needs individual QA before use
+
+---
+
 ## 2026-09-27 - Favicon Refresh and the Captain-to-Workflow Rebuild
 
 ### What changed
