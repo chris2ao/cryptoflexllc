@@ -62,7 +62,7 @@ Two new security signals lit at the same time:
 
 | Signal | Heuristic | First-run state on my LAN |
 |--------|-----------|---------------------------|
-| **port_forward_open** | NAT rule with `src_is_any = true` AND `enabled = true` | RED, value 2.0 (qBittorrent + folx Mac flagged) |
+| **port_forward_open** | NAT rule with `src_is_any = true` AND `enabled = true` | RED, value 2.0 (two open port-forward rules flagged) |
 | **gravity_stale** | Days since last successful Pi-hole gravity update | GREEN, 2.03 days |
 
 The signals plug into the existing security panel from [Phase 1](/blog/home-network-mission-control-dashboard-phase-1). Same evaluator pattern, same red/amber/green semantics, same `latest_completed_poll_run()` helper. That last one is the load-bearing piece. Hold that thought.
@@ -150,13 +150,13 @@ The reviewer caught it because the persona's job description was "look at this f
 
 The fix landed before merge: the poller pulls firewall policies in parallel with the port-forward list, joins them on the `Allow Port Forward {name}` convention, and infers `src_is_any` from whether the policy's source zone resolves to the internet-facing zone. Three regression tests guarding the inference. Wave 3 caught one bug. Eight findings total in that wave; one of them was a CRITICAL.
 
-![Port-forward table on the live dashboard with the source-is-any column flagged red on two rows: qBittorrent and a folx Mac. The port_forward_open signal evaluates RED on the live LAN.](/blog/home-network-mission-control-dashboard-phase-1-1/port-forward-table.png)
+![Port-forward table on the live dashboard with the source-is-any column flagged red on two rows, Rule 1 and Rule 2 (rule names redacted). The port_forward_open signal evaluates RED on the live LAN.](/blog/home-network-mission-control-dashboard-phase-1-1/port-forward-table.png)
 
 ## The Merge, the Restart, and the First Live Bug
 
 I merged PR #14 on Sunday night. Backend 692 tests, Vitest 246, Playwright 24/24. All four CI jobs green. The persona team caught the C-1 ship-blocker. The Wave 0 probe had de-risked the wire shape. The slice plan was followed. By every artifact I had access to, the feature shipped clean.
 
-Then I restarted the backend on the Mac mini and curled `/api/security/signals/latest`. The port_forward_open signal evaluated GREEN with value 0.0. On the same LAN where qBittorrent and a folx Mac both have open NAT rules I haven't closed yet.
+Then I restarted the backend on the Mac mini and curled `/api/security/signals/latest`. The port_forward_open signal evaluated GREEN with value 0.0. On the same LAN where two machines both have open NAT rules I haven't closed yet.
 
 Same bug class as Wave 3. Different shape.
 
@@ -254,7 +254,7 @@ Phase 1.1 closed Monday afternoon at:
 - **PRs merged**: 2. PR #14 (the feature, 27 files changed, +2,103 −317), PR #15 (the live-verification fixes, 6 files changed, +89 −12).
 - **Tests at the close**: 694 backend pytest, 247 Vitest, 24 Playwright. Coverage above the 80% floor. Backend (3.12), Frontend (Node 20), E2E, fixture-drift all green at the close.
 - **New surfaces**: 5 (VLAN cards, port-forward table, ZBF zone matrix, SSID-to-VLAN Sankey, topology graph).
-- **New security signals**: 2 (`port_forward_open`, `gravity_stale`). First-run state on my LAN: `port_forward_open` RED at 2.0 (qBittorrent + folx Mac), `gravity_stale` GREEN at 2.03 days.
+- **New security signals**: 2 (`port_forward_open`, `gravity_stale`). First-run state on my LAN: `port_forward_open` RED at 2.0 (two open port-forward rules), `gravity_stale` GREEN at 2.03 days.
 - **Persona-team findings**: 8 in Wave 3, of which 1 was CRITICAL (port_forward_open population bug), 4 were medium (zone-matrix glyph styling, topology renderer error handling, two stat-panel copy fixes), and 3 were nice-to-have.
 - **Post-merge bugs caught by live verification**: 2 (poll-run-id mismatch on the security evaluator, SSID column mismatch on the VLAN client-count join). Both fixed in PR #15 the next morning.
 - **Mode posture**: still A. The Network tab is read-only. No mutations on any of the new surfaces. The security signals are evaluator-only. Phase 1.1 doesn't touch the agent surface.

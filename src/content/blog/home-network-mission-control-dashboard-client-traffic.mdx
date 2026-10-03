@@ -142,7 +142,7 @@ One commit: `e07a8ac feat(clients): real per-client traffic totals + DNS-inferre
 
 ## The Money Shot Arrived With a Twist
 
-After the build deployed, I opened the Clients page and clicked into the 2025MainDesktop entry. That machine runs qBittorrent and backs up to Backblaze constantly. It also has a 2.5GbE port. The traffic row read: 559.2 GB (24h) / 1.1 TB (7d) / 4.4 TB (30d), with a sparkline showing the expected sawtooth of nightly heavy-download periods. Top Domains: `microsoft.com`, `backblaze.com`. DNS-inferred Top Apps: Microsoft, Backblaze, Steam.
+After the build deployed, I opened the Clients page and clicked into the 2025MainDesktop entry. That machine backs up to Backblaze constantly, and it has a 2.5GbE port. The traffic row read: 559.2 GB (24h) / 1.1 TB (7d) / 4.4 TB (30d), with a sparkline showing the expected sawtooth of nightly heavy-transfer periods. Top Domains: `microsoft.com`, `backblaze.com`. DNS-inferred Top Apps: Microsoft, Backblaze, Steam.
 
 ![2025MainDesktop client detail after the traffic build. Traffic Totals show 559.2 GB (24h), 1.1 TB (7d), 4.4 TB (30d) with a sparkline. Top Domains list microsoft.com and backblaze.com. DNS-inferred Top Applications bars show Microsoft, Backblaze, and Steam in descending order.](/blog/home-network-mission-control-dashboard-client-traffic/client-desktop.webp)
 
@@ -166,7 +166,7 @@ My first instinct was to detect the bad devices automatically: read each client'
 
 The solution came in two coarser parts. First, a plausibility cap: any hourly bucket that exceeds `POLL_CLIENT_TRAFFIC_MAX_GBPS` (default 2.5, which yields a `_MAX_BYTES_PER_HOUR` constant) is dropped before accumulation. 2.5 Gbps is the fastest link on this LAN, the desktop's 2.5GbE port. Any device reporting more than that sustained for an hour is lying, so the cap catches the worst of it without needing per-device link rates. Second, an exclusion list: `POLL_CLIENT_TRAFFIC_EXCLUDE_MACS` (comma-separated MACs in `.env`) for the devices where even the capped numbers look off and I'd rather show no number than a wrong one.
 
-The Fire TV and the Apple desktop went on the exclusion list. The torrent desktop stayed; its numbers pass the plausibility cap and match what I know the machine does. The cap itself runs silently and logs a warning when it drops a bucket, so I'll know if other devices start reporting garbage.
+The Fire TV and the Apple desktop went on the exclusion list. The Windows desktop stayed; its numbers pass the plausibility cap and match what I know the machine does. The cap itself runs silently and logs a warning when it drops a bucket, so I'll know if other devices start reporting garbage.
 
 My wife's always-on streaming box reporting 16 TB/day is, honestly, the kind of thing I'd never have caught by eye. The dashboard showed me exactly what UniFi was saying, and UniFi was saying something physically impossible. Now I know that about my own gateway's data, which I didn't before.
 
@@ -194,4 +194,4 @@ The approach here was to display what UniFi reports, add a plausibility cap that
 
 The structural limit that I couldn't engineer around: UniFi retains roughly seven days of per-client hourly history. A 30-day total requires accumulation. The `client_traffic_daily` ClickHouse table is the accumulator: it grows one row per client per day and the 730-day TTL means it'll be there when I want 30d comparisons in February. The data will get better with age, which is the right direction for a home lab dashboard.
 
-The Clients page now shows a real row for every active client with enough history. The 2025MainDesktop reads 559.2 GB / 1.1 TB / 4.4 TB, with a sparkline that peaks in the small hours when the torrents and the Backblaze sync run, and a DNS-inferred Top Apps list that reads Microsoft, Backblaze, Steam. The Mac mini's row, the same machine that ran every one of those research agents, lists its top domain as `api.anthropic.com`.
+The Clients page now shows a real row for every active client with enough history. The 2025MainDesktop reads 559.2 GB / 1.1 TB / 4.4 TB, with a sparkline that peaks in the small hours when the Backblaze sync runs, and a DNS-inferred Top Apps list that reads Microsoft, Backblaze, Steam. The Mac mini's row, the same machine that ran every one of those research agents, lists its top domain as `api.anthropic.com`.

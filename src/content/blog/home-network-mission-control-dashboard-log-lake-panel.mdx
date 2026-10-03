@@ -310,8 +310,10 @@ udmpro_parser:
 Sample message, raw from the wire:
 
 ```text
-<13>May 29 18:04:11 UDM-Pro UDM-Pro [PREROUTING-DNAT-4] DESCR=PortForward DNAT [qBittorrent] IN=eth9 OUT=br0 SRC=185.180.143.213 DST=24.150.122.46 PROTO=TCP SPT=42103 DPT=6881
+<13>May 29 18:04:11 UDM-Pro UDM-Pro [PREROUTING-DNAT-4] DESCR=PortForward DNAT [Rule 1] IN=eth9 OUT=br0 SRC=198.51.100.23 DST=203.0.113.10 PROTO=TCP SPT=42103 DPT=<redacted>
 ```
+
+(The addresses are swapped for documentation ranges, and the rule name and port are redacted. Everything else is as it came off the wire.)
 
 The frame has `UDM-Pro` twice. RFC3164 has one hostname slot. Vector's syslog parser fills the hostname slot from the first `UDM-Pro`, and then consumes the second `UDM-Pro` as the syslog `appname`. Then it consumes `[PREROUTING-DNAT-4]` as the `procid`. Then `.message` begins at `DESCR=...`. The netfilter chain tag `[PREROUTING-DNAT-4]` is now in the `procid` field, not in the message.
 
@@ -352,13 +354,13 @@ ORDER BY n DESC
 
 Result: 159,909 rows, 100% of them with `action = 'unknown'`, 100% of them with `inferred = 'dnat'`. Zero drops. Zero accepts. Zero rejects. Zero other.
 
-The UDM was logging exactly one thing: PREROUTING DNAT events for the qBittorrent port-forward. That was it. Not because the firewall wasn't dropping or accepting traffic, but because the UDM by default doesn't log accept/drop events on its WAN firewall. Per-rule logging is an opt-in checkbox in the UniFi UI that I'd never enabled.
+The UDM was logging exactly one thing: PREROUTING DNAT events for a single port-forward rule. That was it. Not because the firewall wasn't dropping or accepting traffic, but because the UDM by default doesn't log accept/drop events on its WAN firewall. Per-rule logging is an opt-in checkbox in the UniFi UI that I'd never enabled.
 
 So the bytes-codec rewrite would've done the work of parsing tags out of doubled-hostname frames, and it would've parsed `[PREROUTING-DNAT-4]` for the only kind of row the UDM was emitting, and the LOG LAKE panel would still have shown nothing useful for drop/accept analysis.
 
 The redirect was: **enable per-rule logging in the UniFi UI, then look at the wire again**. I clicked the checkbox. WAN-scan drops started flowing at roughly 33 per minute. Now I had real data.
 
-And the data revealed the simpler fix. Every row that had `action = 'unknown'` also had a `descr` field that carried the verdict in human-readable English: `[WAN_LOCAL]Block All Traffic`, `PortForward DNAT [qBittorrent]`, `[LAN_LAN]Allow All Traffic`. The doubled-hostname frame had cost me the netfilter tag, but the `descr` field had been there the whole time. It's the kind of detail you'd never look at until you needed it.
+And the data revealed the simpler fix. Every row that had `action = 'unknown'` also had a `descr` field that carried the verdict in human-readable English: `[WAN_LOCAL]Block All Traffic`, `PortForward DNAT [Rule 1]`, `[LAN_LAN]Allow All Traffic`. The doubled-hostname frame had cost me the netfilter tag, but the `descr` field had been there the whole time. It's the kind of detail you'd never look at until you needed it.
 
 Migration `0017_firewall_events_action_from_descr.sql` recreated the MV with a case-insensitive descr fallback:
 
@@ -390,7 +392,7 @@ Before any parse-enhancement, run a live cardinality query on the target column.
 |---|---|---|
 | Last 10 min, all sources | 221 rows, 100% `unknown` | 221 rows, ~50% `dnat`, ~50% `drop`, 0% `unknown` |
 | Last 90s, action=drop | 0 rows | 11 rows (organic WAN-scan drops) |
-| Last 90s, action=dnat | 0 rows | 21 rows (qBittorrent port-forward) |
+| Last 90s, action=dnat | 0 rows | 21 rows (one port-forward rule) |
 | All-time `unknown` count | 159,909 (and rising) | 159,909 (frozen, aging out via 180d TTL) |
 
 Old rows are not retroactively fixed. That is by design. Backfilling a MV against `raw_syslog` for 180 days would be a real query and a real disk-IO event. Forward-only fix, age-out the past, accept the gap.
