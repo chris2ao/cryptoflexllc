@@ -171,6 +171,11 @@ export {
   CommitsPerDayDiagram,
   WhoCaughtWhatDiagram,
 } from "./diagrams-what-202-subagents-taught-me-about-code-review";
+export {
+  CannOnlineLockstepDiagram,
+  CannSimulateThenPlayDiagram,
+  CannSixBuildWavesDiagram,
+} from "./diagrams-cann-cann-2-we-have-multiplayer";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
