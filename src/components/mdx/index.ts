@@ -176,6 +176,16 @@ export {
   CannSimulateThenPlayDiagram,
   CannSixBuildWavesDiagram,
 } from "./diagrams-cann-cann-2-we-have-multiplayer";
+export {
+  HarnessMapDiagram,
+  HarnessRoadmapDiagram,
+  HarnessDoctorPipelineDiagram,
+} from "./diagrams-claude-harness-modernization-1-harness-doctor";
+export {
+  MemoryTopologyDiagram,
+  RecallFlowDiagram,
+  CutoverSequenceDiagram,
+} from "./diagrams-claude-harness-modernization-2-memory";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
