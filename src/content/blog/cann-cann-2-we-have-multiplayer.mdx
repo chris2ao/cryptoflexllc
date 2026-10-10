@@ -34,7 +34,9 @@ coverImageAlt: >-
 
 My review of my own game was "pretty much unplayable." Every shot felt random, the weapons didn't behave like their descriptions, and the explosions had visual glitches I couldn't unsee. I handed that complaint to Claude Code, and one session later a friend and I finished an online match without a single issue.
 
-That match is in the database, so I can show you the rows. First, the part where I explain why my own game was so frustrating.
+That match is in the database, so I can show you the rows. The game is live at [cann-cann.vercel.app](https://cann-cann.vercel.app), free in any browser on a phone or desktop, with nothing to install. Open it in another tab, hit Quick Play, and miss a few shots while you read. By the third one you'll see why I care so much about missing.
+
+First, the part where I explain why my own game was so frustrating.
 
 ## The Ask
 
@@ -372,8 +374,6 @@ The database remembers the real one:
 
 Thirty-five actions: 22 shots, 8 draft picks, 5 moves. The match ran about eight minutes, from 00:27:29 to 00:35:09 UTC, and I won 2 to 1. Nothing in those rows is an error. Every draft pick, drive, and shot went through the same engine on two machines, and the two machines agreed.
 
-You can play the single-player game right now at [cann-cann.vercel.app](https://cann-cann.vercel.app). Online play needs a friend and a link that works for two hours.
-
 ## About Opus 5.5
 
 I'll say this plainly, in my own words from the end of the session:
@@ -385,3 +385,11 @@ The taste calls stayed mine: keep it cartoony, ask how long a battle could possi
 ## Lessons Learned
 
 The sequence check that broke the security checklist is still my favorite part, and the closest thing to a lesson I have: checklists need tests too. A document written to prove the database was safe tripped over a TOAST table named `pg_toast_24576`, and the fix was one `CASE` guard.
+
+## Go Play It
+
+Everything in this post is live at [cann-cann.vercel.app](https://cann-cann.vercel.app). Start with Quick Play, a weapon draft against a Medium CPU. Miss on purpose once, then use the ghost trail and the SHORT tag to range in, and count how many shots it takes you to land a hit.
+
+Then go find a real opponent. Hit Play Online, send the invite link to a friend (it works for two hours), and settle something. Your shells land in the same spot on both screens. That's what all those rows were for.
+
+Tell me in the comments how many shots your first hit took, and whether the CPU got you first.
