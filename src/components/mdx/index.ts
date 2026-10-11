@@ -186,6 +186,24 @@ export {
   RecallFlowDiagram,
   CutoverSequenceDiagram,
 } from "./diagrams-claude-harness-modernization-2-memory";
+export {
+  LocalAiLessonsToControlsDiagram,
+  LocalAiTrustBoundaryDiagram,
+} from "./diagrams-securing-local-ai-cryptoflix-overview";
+export {
+  LocalAiFeatureMapDiagram,
+} from "./diagrams-securing-local-ai-cryptoflix";
+export {
+  LocalAiDefenseLayersDiagram,
+  LocalAiSandboxLayersDiagram,
+  LocalAiRecapIsolationDiagram,
+  LocalAiEgressMapDiagram,
+} from "./diagrams-securing-local-ai-cryptoflix-controls";
+export {
+  LocalAiInputCleaningDiagram,
+  LocalAiOutputValidationDiagram,
+  LocalAiSpoilerGuaranteeDiagram,
+} from "./diagrams-securing-local-ai-cryptoflix-data";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";

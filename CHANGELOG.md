@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## 2026-10-10 - Security Engineering #12 Backlog Draft
+
+### What changed
+- **Added** backlog draft (Security Engineering #12) with editorial diagrams
+
+---
+
 ## 2026-10-03 - Mobile and Tablet Usability Pass
 
 ### What changed
