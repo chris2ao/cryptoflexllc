@@ -204,6 +204,10 @@ export {
   LocalAiOutputValidationDiagram,
   LocalAiSpoilerGuaranteeDiagram,
 } from "./diagrams-securing-local-ai-cryptoflix-data";
+export {
+  JiraBoardLifecycleDiagram,
+  JiraWrapUpSweepDiagram,
+} from "./diagrams-jira-for-home-projects";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";

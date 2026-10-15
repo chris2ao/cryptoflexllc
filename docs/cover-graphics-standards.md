@@ -145,3 +145,4 @@ type. Iterate until a render passes every check in one look.
 4. Downscale to 560 px and confirm the card-scale read.
 5. Copy outputs to their destinations, write `coverImageAlt`, and add
    the register row.
+| jira-for-home-projects | The junk drawer becomes a board: five scattered places deferred work lived feed a five-column Jira kanban where Waiting on me is the amber column, with the wrap-up Jira sync step beneath | Full-width five-column kanban board (Backlog, Ready, In Progress, Waiting on me, Done) fed by an arrow from a left stack of dashed scattered-source notes, with a wrap-up step 4d terminal strip below |
