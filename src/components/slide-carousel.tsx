@@ -2,26 +2,8 @@
 
 import { useState, useCallback, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Syne, JetBrains_Mono, Outfit } from "next/font/google";
+import { carouselSyne as syne, carouselJetbrainsMono as jetbrainsMono, carouselOutfit as outfit } from "@/fonts/carousel";
 import "./slide-carousel.css";
-
-const syne = Syne({
-  subsets: ["latin"],
-  variable: "--font-syne",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-  display: "swap",
-});
 
 export interface SlideData {
   id: string;

@@ -3,10 +3,10 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { SlideCarousel } from "./slide-carousel";
 import type { SlideData } from "./slide-carousel";
 
-vi.mock("next/font/google", () => ({
-  Syne: () => ({ variable: "--font-syne" }),
-  JetBrains_Mono: () => ({ variable: "--font-jetbrains-mono" }),
-  Outfit: () => ({ variable: "--font-outfit" }),
+vi.mock("@/fonts/carousel", () => ({
+  carouselSyne: { variable: "--font-syne" },
+  carouselJetbrainsMono: { variable: "--font-jetbrains-mono" },
+  carouselOutfit: { variable: "--font-outfit" },
 }));
 
 vi.mock("@/components/ui/button", () => ({

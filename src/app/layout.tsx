@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Source_Serif_4, JetBrains_Mono } from "next/font/google";
+import { spaceGrotesk, sourceSerif4, jetbrainsMono } from "@/fonts";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -16,28 +16,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { BASE_URL } from "@/lib/constants";
 import { getAllPosts } from "@/lib/blog";
 import "./globals.css";
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-heading-var",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const sourceSerif4 = Source_Serif_4({
-  variable: "--font-body-var",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["400", "600"],
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono-var",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
 
 export const viewport: Viewport = {
   // The site renders dark by default and switches only via the theme toggle,
