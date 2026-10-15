@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## 2026-10-15 - Quick Tips #3 Backlog Draft and Blog Pipeline Fixes
+
+### What changed
+- **Added** backlog draft `jira-for-home-projects.mdx` (Quick Tips, seriesOrder 3) with a cover infographic, three annotated Jira setup screenshots, and two diagrams (`JiraBoardLifecycleDiagram`, `JiraWrapUpSweepDiagram`) registered in `src/components/mdx/index.ts` and both the blog and backlog page component maps (commit ec23a2a)
+- **Fixed** broken frontmatter left by the pipeline (a stray multi-line alt text folded into `schemaType`) and two factual errors before commit
+- **Fixed** CLAUD-264 in the local `~/.claude` config: the cover script left broken frontmatter while reporting ok (db1b330)
+- **Fixed** CLAUD-270 in the local `~/.claude` config: model-written alt text no longer passes through a double-quoted shell argument (edcdde2)
+
+### What was learned
+- Model-written text should reach scripts on stdin through a quoted heredoc with a workflow-computed FNV-1a checksum, never as a shell argument
+- `blog-set-cover.py` verifies frontmatter with the site's gray-matter (non-YAML engines blocked) before an atomic write, and pins the post to `src/content/{blog,backlog}/<slug>.mdx`
+- Backlog posts compile per request, so `npm run build` and validate-mdx miss frontmatter YAML errors
+
+---
+
 ## 2026-10-10 - Security Engineering #12 Backlog Draft
 
 ### What changed
