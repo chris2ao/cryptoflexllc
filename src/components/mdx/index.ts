@@ -208,6 +208,13 @@ export {
   JiraBoardLifecycleDiagram,
   JiraWrapUpSweepDiagram,
 } from "./diagrams-jira-for-home-projects";
+export {
+  MellieMelSystemMapDiagram,
+  MellieMelDailyRhythmDiagram,
+  MellieMelMemoryLayoutDiagram,
+  MellieMelGuardrailLayersDiagram,
+  MellieMelModelLadderDiagram,
+} from "./diagrams-openclaw-deployment-part-5-is-openclaw-still-the-one";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
