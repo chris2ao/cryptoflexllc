@@ -38,7 +38,7 @@ describe("HeroIdentity", () => {
     render(<HeroIdentity postCount={3} />);
     expect(
       screen.getByText(
-        "I work in cybersecurity defense and build with AI agents on my own time. This is where I write it all down: the security reviews, the home-lab SOC, the agent workflows, and the bugs that got past all of them."
+        "I'm a security engineer and build with AI agents on my own time. This is where I write it all down: the security reviews, the home-lab SOC, the agent workflows, and the bugs that got past all of them."
       )
     ).toBeInTheDocument();
   });

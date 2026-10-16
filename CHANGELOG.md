@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## 2026-10-16 - `published: false` Now Hides a Post (CLAUD-302)
+
+### What changed
+- **Fixed** `published: false` in a live post's frontmatter doing nothing. The loader now leaves the post out of every list, feed, sitemap, tag, series and related-posts view, and its URL returns 404. Other explicit no values (quoted or capitalized "false", `no`, `off`, `0`) also hide it, so a hurried pull fails closed.
+- **Added** `src/content/hidden-posts.json` and a CI guard (`src/__tests__/published-frontmatter.test.ts`): a hidden post must be listed there, `published` must be a real boolean, near-miss keys like `Published` fail, and backlog drafts may not carry the flag. This catches a pipeline that writes `published: false` straight into `src/content/blog`.
+- **Fixed** the publish API carrying a draft's `published` flag into the live post; it now drops the field when it stamps the publish date, and its slug-collision check still sees hidden posts. Added route tests for both.
+- **Removed** the leftover `published: false` line from five live posts (the Grand Seiko post and four Home Network Mission Control posts), so they stay visible
+- **Changed** the home page hero line to "I'm a security engineer and build with AI agents on my own time."
+
+### What was learned
+- To pull a post quickly, set `published: false` and add its slug to `src/content/hidden-posts.json`. The MDX file, its git history and its `public/blog/<slug>/` images stay readable because the repo is public, so delete or redact the content when it must not be seen.
+
+---
+
 ## 2026-10-16 - Home Page Refresh (CLAUD-300)
 
 ### What changed

@@ -10,7 +10,7 @@ import {
   createFile,
   deleteFile,
 } from "@/lib/github-api";
-import { getBacklogPostBySlug, getPostBySlug } from "@/lib/blog";
+import { getBacklogPostBySlug, getPostBySlug, toPublishedFrontmatter } from "@/lib/blog";
 
 const rateLimiter = createRateLimiter({
   name: "backlog-publish",
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Step 6: Check for collision in live blog
-  const existingPost = getPostBySlug(slug);
+  // Step 6: Check for collision in live blog (hidden posts still occupy the slug)
+  const existingPost = getPostBySlug(slug, { includeUnpublished: true });
   if (existingPost) {
     return NextResponse.json(
       { error: "Post already exists in blog" },
@@ -96,10 +96,11 @@ export async function POST(request: NextRequest) {
     const fileContent = fileData.content;
     const fileSha = fileData.sha;
 
-    // Step 8: Parse frontmatter and update date
+    // Step 8: Parse frontmatter, stamp today's date (YYYY-MM-DD), and drop any
+    // `published` flag so a stale draft value cannot hide the live post
     const { data, content } = parseFrontmatter(fileContent);
-    data.date = new Date().toISOString().split("T")[0]; // Today's date in YYYY-MM-DD
-    const updatedContent = matter.stringify(content, data);
+    const today = new Date().toISOString().split("T")[0];
+    const updatedContent = matter.stringify(content, toPublishedFrontmatter(data, today));
 
     // Step 9: Create file in blog
     const blogPath = `src/content/blog/${slug}.mdx`;

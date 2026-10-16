@@ -16,7 +16,14 @@ vi.mock("fs", () => ({
   },
 }));
 
-import { getAllPosts, getAllTags, getPostBySlug } from "./blog";
+import {
+  getAllPosts,
+  getAllTags,
+  getPostBySlug,
+  getRelatedPosts,
+  getSeriesPosts,
+  toPublishedFrontmatter,
+} from "./blog";
 
 describe("blog", () => {
   beforeEach(() => {
@@ -343,6 +350,99 @@ Content`);
 
       expect(post).toBeDefined();
       expect(post?.slug).toBe("my-valid-post-123");
+    });
+  });
+
+  describe("published: false", () => {
+    const fileFor = (published?: string) => `---
+title: Some Post
+date: 2026-02-01
+${published === undefined ? "" : `published: ${published}`}
+---
+Body`;
+
+    function serve(files: Record<string, string>) {
+      mockReaddirSync.mockReturnValue(Object.keys(files) as any);
+      // Match the exact basename: "also-live.mdx" also ends with "live.mdx".
+      mockReadFileSync.mockImplementation((filePath) => {
+        const base = filePath.toString().split(/[\\/]/).pop() ?? "";
+        return files[base] ?? "";
+      });
+    }
+
+    it("leaves hidden posts out of getAllPosts", () => {
+      serve({
+        "live.mdx": fileFor(),
+        "also-live.mdx": fileFor("true"),
+        "hidden.mdx": fileFor("false"),
+      });
+
+      expect(getAllPosts().map((p) => p.slug).sort()).toEqual(["also-live", "live"]);
+    });
+
+    it("treats a quoted or capitalized \"false\" as hidden too", () => {
+      serve({
+        "a.mdx": fileFor('"false"'),
+        "b.mdx": fileFor("False"),
+        "c.mdx": fileFor('"False"'),
+        "d.mdx": fileFor('" false "'),
+        "live.mdx": fileFor(),
+      });
+
+      expect(getAllPosts().map((p) => p.slug)).toEqual(["live"]);
+    });
+
+    it("fails closed on other explicit no values", () => {
+      serve({
+        "no.mdx": fileFor("no"),
+        "off.mdx": fileFor("off"),
+        "zero.mdx": fileFor("0"),
+        "live.mdx": fileFor("true"),
+      });
+
+      expect(getAllPosts().map((p) => p.slug)).toEqual(["live"]);
+    });
+
+    it("returns undefined from getPostBySlug for a hidden post, so its URL 404s", () => {
+      mockReadFileSync.mockReturnValue(fileFor("false"));
+
+      expect(getPostBySlug("hidden")).toBeUndefined();
+    });
+
+    it("still finds a hidden post when asked to include unpublished ones", () => {
+      mockReadFileSync.mockReturnValue(fileFor("false"));
+
+      expect(getPostBySlug("hidden", { includeUnpublished: true })?.slug).toBe("hidden");
+    });
+
+    it("keeps hidden posts out of tags, series and related posts", () => {
+      serve({
+        "live.mdx": `---\ntitle: Live\ndate: 2026-02-01\ntags: [shared]\nseries: S\n---\n`,
+        "hidden.mdx": `---\ntitle: Hidden\ndate: 2026-02-02\ntags: [secret, shared]\nseries: S\npublished: false\n---\n`,
+      });
+
+      expect(getAllTags()).toEqual(["shared"]);
+      expect(getSeriesPosts("S").map((p) => p.slug)).toEqual(["live"]);
+      expect(getRelatedPosts("other", ["shared"]).map((p) => p.slug)).toEqual(["live"]);
+    });
+  });
+
+  describe("toPublishedFrontmatter", () => {
+    it("drops the published flag and stamps the publish date", () => {
+      const data = { title: "Draft", date: "2026-01-01", published: false, tags: ["a"] };
+
+      expect(toPublishedFrontmatter(data, "2026-10-16")).toEqual({
+        title: "Draft",
+        date: "2026-10-16",
+        tags: ["a"],
+      });
+    });
+
+    it("does not mutate the input", () => {
+      const data = { title: "Draft", date: "2026-01-01", published: false };
+      toPublishedFrontmatter(data, "2026-10-16");
+
+      expect(data).toEqual({ title: "Draft", date: "2026-01-01", published: false });
     });
   });
 });

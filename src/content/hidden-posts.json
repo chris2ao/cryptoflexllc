@@ -1,0 +1,4 @@
+{
+  "about": "Slugs of live posts intentionally hidden with `published: false` in their frontmatter. A hidden post that is not listed here fails CI (src/__tests__/published-frontmatter.test.ts). Hiding removes a post from the site, but the repo is public, so the MDX stays readable on GitHub.",
+  "slugs": []
+}

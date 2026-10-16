@@ -23,10 +23,41 @@ export interface BlogPost {
 const contentDir = path.join(process.cwd(), "src/content/blog");
 const backlogDir = path.join(process.cwd(), "src/content/backlog");
 
-function parsePost(slug: string, filePath: string): BlogPost {
-  const fileContents = fs.readFileSync(filePath, "utf8");
-  const { data, content } = parseFrontmatter(fileContents);
+type ParsedFile = Pick<ReturnType<typeof parseFrontmatter>, "data" | "content">;
 
+function readPostFile(filePath: string): ParsedFile {
+  const { data, content } = parseFrontmatter(fs.readFileSync(filePath, "utf8"));
+  return { data, content };
+}
+
+const NO_VALUES = new Set(["false", "no", "off", "0"]);
+
+/**
+ * `published: false` in a live post's frontmatter hides it everywhere: lists,
+ * feeds, the sitemap, series pages, and its own URL. Other explicit "no"
+ * values (quoted, capitalized, no, off, 0) also hide it, so pulling a post in
+ * a hurry fails closed. CI still insists on a real boolean and an entry in
+ * src/content/hidden-posts.json (src/__tests__/published-frontmatter.test.ts).
+ */
+function isUnpublished(value: unknown): boolean {
+  if (value === false || value === 0) return true;
+  return typeof value === "string" && NO_VALUES.has(value.trim().toLowerCase());
+}
+
+/** Frontmatter for a draft going live: today's date, and no `published` flag to hide it. */
+export function toPublishedFrontmatter(
+  data: Record<string, unknown>,
+  date: string
+): Record<string, unknown> {
+  const { published: _published, ...rest } = data;
+  return { ...rest, date };
+}
+
+function parsePost(slug: string, filePath: string): BlogPost {
+  return toBlogPost(slug, readPostFile(filePath));
+}
+
+function toBlogPost(slug: string, { data, content }: ParsedFile): BlogPost {
   // gray-matter auto-parses YAML dates into Date objects; normalize to string
   const rawDate = data.date;
   const date =
@@ -72,10 +103,10 @@ export function getAllPosts(): BlogPost[] {
 
   const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"));
 
-  const posts = files.map((filename) => {
+  const posts = files.flatMap((filename) => {
     const slug = filename.replace(/\.mdx$/, "");
-    const filePath = path.join(contentDir, filename);
-    return parsePost(slug, filePath);
+    const parsed = readPostFile(path.join(contentDir, filename));
+    return isUnpublished(parsed.data.published) ? [] : [toBlogPost(slug, parsed)];
   });
 
   // Sort by date descending (newest first)
@@ -118,14 +149,24 @@ export function getAllTags(): string[] {
   );
 }
 
-export function getPostBySlug(slug: string): BlogPost | undefined {
+/**
+ * A hidden (`published: false`) post resolves to undefined, so its page 404s.
+ * Pass includeUnpublished for checks that must see every file on disk, such
+ * as the publish route's slug-collision guard.
+ */
+export function getPostBySlug(
+  slug: string,
+  { includeUnpublished = false }: { includeUnpublished?: boolean } = {}
+): BlogPost | undefined {
   if (slug.includes('/') || slug.includes('\\') || slug.includes('..')) {
     return undefined;
   }
   const filePath = path.join(contentDir, `${slug}.mdx`);
   if (!fs.existsSync(filePath)) return undefined;
 
-  return parsePost(slug, filePath);
+  const parsed = readPostFile(filePath);
+  if (!includeUnpublished && isUnpublished(parsed.data.published)) return undefined;
+  return toBlogPost(slug, parsed);
 }
 
 export function getRelatedPosts(

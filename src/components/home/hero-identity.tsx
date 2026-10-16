@@ -36,8 +36,8 @@ export function HeroIdentity({ postCount, latestDate }: Props) {
               <span className="accent">on purpose.</span>
             </h1>
             <p className="ed-hero-sub reveal">
-              I work in cybersecurity defense and build with AI agents on my
-              own time. This is where I write it all down: the security
+              I&apos;m a security engineer and build with AI agents on my own
+              time. This is where I write it all down: the security
               reviews, the home-lab SOC, the agent workflows, and the bugs
               that got past all of them.
             </p>

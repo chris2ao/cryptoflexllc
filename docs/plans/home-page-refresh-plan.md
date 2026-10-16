@@ -56,7 +56,7 @@ No em dashes anywhere (owner rule). Internal links use `next/link`; external lin
 ### Hero
 
 - Meta row: `NO. <b>{postCount}</b>` · `CRYPTOFLEX / ENGINEERING LAB` (hidden at 600px and below) · `UPDATED <b>{LATEST POST DATE}</b>` (uppercase short date). It no longer reads `new Date()`, so the static build shows true values.
-- Subhead: "I work in cybersecurity defense and build with AI agents on my own time. This is where I write it all down: the security reviews, the home-lab SOC, the agent workflows, and the bugs that got past all of them."
+- Subhead: "I'm a security engineer and build with AI agents on my own time. This is where I write it all down: the security reviews, the home-lab SOC, the agent workflows, and the bugs that got past all of them." (Owner revision after launch, 2026-10-16; the first version opened "I work in cybersecurity defense".)
 - Portrait caption: **Chris Johnson** / "Security Engineer · Builder".
 - Headline, overline and CTAs unchanged.
 - Metadata title: "CryptoFlex LLC | Chris Johnson: Build in public. Break things on purpose." OG image alt: "CryptoFlex LLC, Chris Johnson".
