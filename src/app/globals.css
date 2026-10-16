@@ -656,11 +656,40 @@
   transform: none;
 }
 
+/* Cards that also animate on hover. Their own transition list would replace
+   the reveal one, so the entrance slide moves to `translate` and only the
+   reveal transitions get the stagger delay (--stagger, set by MotionLayer).
+   Hover keeps `transform` and background with no delay. */
+.ed-post-row.reveal,
+.ed-path.reveal,
+.ed-work.reveal {
+  transform: none;
+  translate: 0 14px;
+  transition:
+    opacity var(--dur-reveal) var(--ease-reveal) var(--stagger, 0ms),
+    translate var(--dur-reveal) var(--ease-reveal) var(--stagger, 0ms),
+    background 160ms ease,
+    transform 220ms var(--ease-hover);
+}
+
+.ed-post-row.reveal.in,
+.ed-path.reveal.in,
+.ed-work.reveal.in {
+  translate: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  .ed-post-row.reveal,
+  .ed-path.reveal,
+  .ed-work.reveal {
+    translate: none;
+    transition: background 160ms ease;
   }
 }
 
@@ -1226,6 +1255,18 @@
   line-height: 1.5;
 }
 
+.ed-section-head .lede a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ed-section-head .lede a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .ed-overline {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -1310,6 +1351,10 @@
 .ed-hero-meta-row b {
   color: var(--primary);
   font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .ed-hero-meta-mid { display: none; }
 }
 
 .ed-hero-grid {
@@ -1490,68 +1535,83 @@
 }
 
 /* ================================================================
-   EDITORIAL REDESIGN — Ticker
+   EDITORIAL REDESIGN: Now strip
    ================================================================ */
 
-.ed-ticker {
+.ed-now {
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  padding: 18px 0;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--fg-3);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  overflow: hidden;
-  white-space: nowrap;
-  position: relative;
 }
 
-.ed-ticker-track {
+.ed-now .ed-wrap {
   display: flex;
-  gap: 48px;
-  align-items: center;
-  animation: ticker-scroll 48s linear infinite;
-  width: max-content;
 }
 
-.ed-ticker:hover .ed-ticker-track {
-  animation-play-state: paused;
+.ed-now-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 24px;
 }
 
-@keyframes ticker-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+.ed-now-cell + .ed-now-cell {
+  border-left: 1px solid var(--border);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ed-ticker-track {
-    animation: none;
-    transform: translateX(0);
-  }
+.ed-now-cell:first-child { padding-left: 0; }
+
+.ed-now-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-3);
 }
 
-.ed-ticker-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.ed-ticker-item b {
+.ed-now-value {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.4;
   color: var(--fg);
-  font-weight: 500;
-  font-size: 14px;
-  text-transform: none;
-  letter-spacing: 0;
 }
 
-.ed-ticker-item .ac { color: var(--primary); }
+.ed-now-value small {
+  margin-left: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fg-3);
+  white-space: nowrap;
+}
 
-.ed-ticker-sep {
-  color: var(--fg-4);
-  margin-left: 48px;
-  flex-shrink: 0;
+/* The as-of date sits on its own line so it never breaks mid-date. */
+.ed-now-value small.ed-now-asof {
+  display: block;
+  margin: 4px 0 0;
+}
+
+.ed-now-value a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.ed-now-value a:hover { text-decoration: underline; }
+
+.ed-now-value a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .ed-now .ed-wrap { flex-direction: column; }
+  .ed-now-cell { padding: 14px 0; }
+  .ed-now-cell + .ed-now-cell {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
 }
 
 /* ================================================================
@@ -1620,13 +1680,11 @@
   z-index: 1;
 }
 
-.ed-post-tag-bar {
-  position: absolute;
-  top: 14px;
-  left: 14px;
+.ed-post-tags {
   display: flex;
-  gap: 6px;
-  z-index: 2;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .ed-tag {
@@ -1853,6 +1911,141 @@
   font-weight: 500;
 }
 
+.ed-about figure {
+  margin: 0;
+}
+
+.ed-about-quote p {
+  display: inline;
+  margin: 0;
+}
+
+.ed-about-attr a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.ed-about-attr a:hover {
+  text-decoration: underline;
+}
+
+.ed-about-attr a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* Career path: five steps on a horizontal rule, vertical rule on narrow screens */
+.ed-about-prose .ed-career-path {
+  list-style: none;
+  margin: 0 0 32px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  position: relative;
+}
+
+.ed-career-path::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: var(--border-2);
+}
+
+.ed-career-path li {
+  position: relative;
+  padding-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+.ed-career-path li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--background);
+  border: 1px solid var(--border-2);
+}
+
+.ed-career-path li span {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg-3);
+}
+
+.ed-career-path li.now {
+  color: var(--primary);
+}
+
+.ed-career-path li.now::before {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+@media (max-width: 900px) {
+  .ed-about-prose .ed-career-path {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding-left: 24px;
+  }
+
+  .ed-career-path::before {
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    right: auto;
+    width: 1px;
+    height: auto;
+  }
+
+  .ed-career-path li {
+    padding-top: 0;
+  }
+
+  .ed-career-path li::before {
+    top: 3px;
+    left: -24px;
+  }
+}
+
+.ed-about-prose .ed-about-note {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--fg-3);
+  margin-bottom: 0;
+}
+
+.ed-about-note a {
+  color: var(--primary);
+  text-decoration: none;
+  margin-right: 16px;
+  white-space: nowrap;
+}
+
+.ed-about-note a:hover {
+  text-decoration: underline;
+}
+
+.ed-about-note a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
 .ed-about-prose p {
   font-family: var(--font-body);
   font-size: 19px;
@@ -1872,89 +2065,102 @@
 }
 
 /* ================================================================
-   EDITORIAL REDESIGN — CV Timeline
+   EDITORIAL REDESIGN: Reading Paths
    ================================================================ */
 
-.ed-cv-list {
+/* Each card draws its own 1px ring (box-shadow) instead of the grid filling
+   the gaps with a border-colored background, so an incomplete last row leaves
+   empty space rather than a solid block. */
+.ed-paths {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  padding: 1px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ed-path {
+  background: var(--background);
+  box-shadow: 0 0 0 1px var(--border);
+  padding: 24px 28px;
   display: flex;
   flex-direction: column;
+  min-height: 200px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 160ms ease, transform 220ms var(--ease-hover);
 }
 
-.ed-cv-row {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 120px 1fr auto;
-  gap: 24px;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--border);
-  align-items: baseline;
+.ed-path:hover {
+  background: var(--surface-1);
+  transform: translateY(-2px);
 }
 
-.ed-cv-row:first-child { padding-top: 0; }
-.ed-cv-row:last-child { border-bottom: 0; }
-
-.ed-cv-row::before {
-  content: "";
-  position: absolute;
-  left: -4px;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--primary);
-  transform: scaleY(0);
-  transform-origin: top center;
-  transition: transform 320ms var(--ease-hover);
+.ed-path:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
 }
 
-.ed-cv-row:hover::before { transform: scaleY(1); }
-
-@media (prefers-reduced-motion: reduce) {
-  .ed-cv-row::before { display: none; }
-}
-
-.ed-cv-row .yr {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--primary);
-  letter-spacing: 0.06em;
-  transition: color 140ms ease;
-}
-
-.ed-cv-row:hover .yr { color: oklch(0.88 0.13 192); }
-
-.ed-cv-row .role {
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-weight: 500;
-  color: var(--fg);
-}
-
-.ed-cv-row .role small {
-  display: block;
-  font-weight: 400;
-  color: var(--fg-3);
-  font-size: 13px;
-  font-family: var(--font-body);
-  font-style: italic;
-  margin-top: 3px;
-}
-
-.ed-cv-row .where {
+.ed-path-meta {
   font-family: var(--font-mono);
   font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+  margin-bottom: 16px;
+}
+
+.ed-path h3 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 0 0 10px 0;
+  text-wrap: balance;
+}
+
+.ed-path-latest {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg-2);
+  margin-bottom: auto;
+}
+
+.ed-path-cta {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
   color: var(--fg-3);
-  letter-spacing: 0.04em;
-  text-align: right;
+  transition: color 160ms;
+}
+
+.ed-path:hover .ed-path-cta {
+  color: var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ed-path:hover { transform: none; }
+}
+
+@media (max-width: 900px) {
+  .ed-paths { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 600px) {
-  .ed-cv-row { grid-template-columns: 80px 1fr; }
-  .ed-cv-row .where {
-    grid-column: 2;
-    text-align: left;
-    margin-top: 4px;
+  .ed-paths { grid-template-columns: 1fr; }
+  .ed-path {
+    min-height: 0;
+    padding: 16px 20px;
   }
+  .ed-path-meta { margin-bottom: 8px; }
+  .ed-path h3 { font-size: 18px; margin-bottom: 0; }
+  .ed-path-latest { display: none; }
+  .ed-path-cta { margin-top: 10px; padding-top: 10px; }
 }
 
 /* ================================================================
@@ -1986,6 +2192,12 @@
 .ed-work:hover {
   background: var(--surface-1);
   transform: translateY(-2px);
+}
+
+/* Inset, because neighbors and the grid's overflow clip an outside ring. */
+.ed-work:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
 }
 
 .ed-work:hover .ed-work-arrow {
@@ -2063,84 +2275,90 @@
 
 .ed-work-meta .chip:first-child::before { display: none; }
 
+/* Featured card: a non-link container spanning the full grid width. */
 .ed-work-feat {
-  grid-column: span 3;
-  grid-row: span 2;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  gap: 32px;
+  align-items: center;
+  min-height: 0;
   background: linear-gradient(180deg, var(--surface-1), var(--background));
 }
 
-.ed-work-feat .shot {
-  margin-top: 24px;
-  aspect-ratio: 16/10;
-  background:
-    repeating-linear-gradient(45deg, transparent 0 10px, oklch(1 0 0 / 0.02) 10px 11px),
-    linear-gradient(180deg, var(--surface-2), var(--surface-1));
-  border: 1px solid var(--border);
-  display: grid;
-  place-items: center;
-  color: var(--fg-3);
+.ed-work-feat:hover {
+  background: linear-gradient(180deg, var(--surface-1), var(--background));
+  transform: none;
+}
+
+.ed-work-feat-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* DOM order is copy then image; the image sits on the left at every width */
+.ed-work-feat .ed-work-shot {
+  margin-top: 0;
+  order: -1;
+}
+
+/* Series links inside the featured card */
+.ed-work-series {
+  list-style: none;
+  margin: 20px 0 0 0;
+  padding: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  position: relative;
-  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
-.ed-work-feat .shot::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 70% 20%, var(--accent-dim) 0%, transparent 60%);
-  animation: glow-drift 14s ease-in-out infinite alternate;
+.ed-work-series li {
+  border-top: 1px solid var(--border);
 }
 
-/* Real image slot on project cards */
+.ed-work-series li:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.ed-work-series a {
+  display: block;
+  padding: 9px 0;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.ed-work-series a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ed-work-series a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Image frame: 16:9 to match the post covers, so nothing meaningful crops */
 .ed-work-shot {
   position: relative;
-  margin-top: 24px;
-  aspect-ratio: 16/10;
+  margin-top: 20px;
+  aspect-ratio: 16/9;
   background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
   border: 1px solid var(--border);
   overflow: hidden;
-}
-
-.ed-work-shot--small {
-  margin-top: 16px;
-  aspect-ratio: 16/9;
-}
-
-.ed-work-shot--contain {
-  background:
-    repeating-linear-gradient(45deg, transparent 0 10px, oklch(1 0 0 / 0.02) 10px 11px),
-    linear-gradient(180deg, var(--surface-2), var(--surface-1));
 }
 
 .ed-work-shot img {
   transition: transform 600ms var(--ease-hover);
 }
 
-.ed-work-shot--contain img {
-  padding: 16px;
-}
-
-.ed-work:hover .ed-work-shot img {
+.ed-work-media:hover .ed-work-shot img {
   transform: scale(1.02);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ed-work:hover .ed-work-shot img { transform: none; }
-}
-
-@keyframes glow-drift {
-  0%   { background: radial-gradient(circle at 20% 30%, var(--accent-dim) 0%, transparent 55%); }
-  50%  { background: radial-gradient(circle at 80% 60%, var(--accent-dim) 0%, transparent 55%); }
-  100% { background: radial-gradient(circle at 30% 80%, var(--accent-dim) 0%, transparent 55%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ed-work-feat .shot::before { animation: none; }
   .ed-work:hover { transform: none; }
+  .ed-work-media:hover .ed-work-shot img { transform: none; }
 }
 
 @media (max-width: 900px) {
@@ -2152,105 +2370,10 @@
     grid-column: span 2;
     grid-row: auto;
   }
-}
-
-/* ================================================================
-   EDITORIAL REDESIGN — Services
-   ================================================================ */
-
-.ed-services {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.ed-svc {
-  padding: 32px 28px;
-  border-left: 1px solid var(--border);
-  position: relative;
-  transition: background 180ms ease;
-}
-
-.ed-svc:first-child { border-left: 0; }
-.ed-svc:hover { background: var(--surface-1); }
-
-.ed-svc .num {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--primary);
-  letter-spacing: 0.12em;
-  margin-bottom: 24px;
-}
-
-.ed-svc h4 {
-  position: relative;
-  display: inline-block;
-  font-family: var(--font-heading);
-  font-size: 19px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.015em;
-  margin: 0 0 12px 0;
-}
-
-.ed-svc h4::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -4px;
-  height: 2px;
-  background: var(--primary);
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform 280ms var(--ease-hover);
-}
-
-.ed-svc:hover h4::after { transform: scaleX(1); }
-
-.ed-svc p {
-  font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--fg-2);
-  margin: 0 0 20px 0;
-}
-
-.ed-svc ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ed-svc li {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--fg-3);
-  letter-spacing: 0.02em;
-  display: flex;
-  gap: 8px;
-}
-
-.ed-svc li::before {
-  content: "\203A";
-  color: var(--primary);
-}
-
-@media (max-width: 900px) {
-  .ed-services { grid-template-columns: repeat(2, 1fr); }
-  .ed-svc:nth-child(3) { border-left: 0; border-top: 1px solid var(--border); }
-  .ed-svc:nth-child(4) { border-top: 1px solid var(--border); }
-}
-
-@media (max-width: 500px) {
-  .ed-services { grid-template-columns: 1fr; }
-  .ed-svc { border-left: 0; border-top: 1px solid var(--border); }
-  .ed-svc:first-child { border-top: 0; }
+  .ed-work-feat {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
 }
 
 /* ================================================================
@@ -2258,15 +2381,19 @@
    ================================================================ */
 
 .ed-subscribe {
-  padding: 80px 40px;
+  padding: 80px 0;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+  position: relative;
+  /* Clears the sticky masthead plus the subnav strip (up to 132px). */
+  scroll-margin-top: 144px;
+}
+
+.ed-subscribe-inner {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 64px;
   align-items: center;
-  position: relative;
-  scroll-margin-top: 80px;
 }
 
 .ed-subscribe::before {
@@ -2279,7 +2406,7 @@
   pointer-events: none;
 }
 
-.ed-subscribe > * {
+.ed-subscribe > .ed-subscribe-inner {
   position: relative;
   z-index: 1;
 }
@@ -2309,8 +2436,11 @@
 
 @media (max-width: 900px) {
   .ed-subscribe {
+    padding: 48px 0;
+  }
+
+  .ed-subscribe-inner {
     grid-template-columns: 1fr;
-    padding: 48px 20px;
     gap: 32px;
   }
 }

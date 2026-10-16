@@ -3,9 +3,9 @@
 import { TerminalPromo } from "@/components/promos/TerminalPromo";
 
 const stats = [
-  { label: "Weapons", value: "6" },
-  { label: "Biomes", value: "4" },
-  { label: "Game Modes", value: "3" },
+  { label: "Weapons", value: "12" },
+  { label: "Biomes", value: "7" },
+  { label: "Multiplayer", value: "Online" },
 ];
 
 const links = [
@@ -18,7 +18,7 @@ export function CannCannPromo() {
       accentColor="amber"
       filename="cann-cann.exe"
       headerText="FIRE MISSION READY"
-      subtitle="Aim. Fire. Adjust. The classic artillery duel."
+      subtitle="Aim. Fire. Adjust. Now online: send a friend the invite link."
       stats={stats}
       links={links}
     />

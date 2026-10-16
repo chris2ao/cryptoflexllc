@@ -4,8 +4,8 @@ import { TerminalPromo } from "@/components/promos/TerminalPromo";
 
 const stats = [
   { label: "Unit Types", value: "7" },
-  { label: "Random Events", value: "8" },
-  { label: "Difficulty Modes", value: "4" },
+  { label: "Random Events", value: "14" },
+  { label: "Difficulty Levels", value: "5" },
 ];
 
 const links = [

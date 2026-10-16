@@ -1,175 +1,258 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { SeriesSummary } from "@/lib/home-content";
+import { isExternalHref } from "@/lib/links";
+import { SectionLabel } from "./section-label";
+
+type Variant = "featured" | "media" | "compact";
 
 type Project = {
   title: string;
   description: string;
   tech: string[];
+  variant: Variant;
   link?: string;
   image?: string;
   imageAlt?: string;
-  imageFit?: "contain" | "cover";
+  seriesNames?: string[];
 };
 
 const projects: Project[] = [
   {
-    title: "Persistent Memory for Claude Code",
+    title: "A home SOC, built from the logs up",
     description:
-      "Two-tier memory architecture: a global rule file plus a vector-database MCP server with 30-day temporal decay. Context survives every session with zero manual effort.",
-    tech: ["Claude Code", "MCP", "Vector DB"],
-    link: "/blog/persistent-memory-for-claude-code",
-    image: "/images/blog/persistent-memory-two-tier-architecture.jpg",
-    imageAlt: "Two-tier persistent memory architecture for Claude Code",
-    imageFit: "cover",
+      "Wazuh on four hosts, a ClickHouse log lake fed by the UDM Pro and Pi-hole, and a Mission Control dashboard that turns DNS traffic into threat-intel detections. Planned, deployed, and debugged in public across three series.",
+    tech: ["Wazuh", "ClickHouse", "FastAPI"],
+    variant: "featured",
+    image: "/blog/building-a-custom-siem-part-1-why-and-architecture/infographic.jpg",
+    imageAlt:
+      "Custom homelab SIEM architecture: UDP syslog from the UDM Pro, Pi-hole, access points, and switches into Vector on a Mac mini, parsed and written to ClickHouse on an external SSD with 180-day retention, with SQLite kept for reference and ack data.",
+    seriesNames: [
+      "Homelab Wazuh Deployment",
+      "Custom SIEM",
+      "Home Network Mission Control",
+    ],
   },
   {
-    title: "Third Conflict",
+    title: "Security reviews of this site",
     description:
-      "Browser-based 4X space strategy game rebuilt from a 1991 DOS classic. Tech trees, admiral system, four AI strategies, and 5,250+ lines of pure-function architecture.",
-    tech: ["TypeScript", "React", "Game AI"],
-    link: "https://third-conflict.vercel.app",
+      "Two rounds so far. In round two, five security agents and an advocate for my priorities had to agree before anything shipped. They caught a blog draft that could have run code on the server. It's fixed, deployed, and checked in CI on every push.",
+    tech: ["AppSec", "OWASP", "Multi-agent"],
+    variant: "media",
+    link: "/blog/security-review-round-two",
+    image: "/blog/security-review-round-two/infographic.jpg",
+    imageAlt:
+      "Dark editorial cover for Security Review: Round Two, with a safe frontmatter fence labelled Data, Renders Fine beside a dangerous one labelled Code, Would Execute, above a row of six chips naming the review team.",
+  },
+  {
+    title: "Ledgerly",
+    description:
+      "A local-first personal finance app. Bank exports land in one SQLite file on my machine, and the chat answers questions by querying that database through MCP tools, using the Claude CLI I already had.",
+    tech: ["Next.js", "SQLite", "MCP"],
+    variant: "media",
+    link: "/blog/series/Ledgerly",
+    image: "/blog/building-ledgerly-v1/infographic.jpg",
+    imageAlt:
+      "Dark teal cover graphic titled Ledgerly, Part 1, Local-First Personal Finance, with four panels for Import, Dashboard, Chat, and Reports.",
+  },
+  {
+    title: "Cramdex",
+    description:
+      "An MIT-licensed study app for open-book GIAC exams: a page-accurate book reader, full-text search that cites book and page, quiz decks, and grounded Q&A over your own course PDFs.",
+    tech: ["FastAPI", "React", "SQLite FTS5"],
+    variant: "compact",
+    link: "/blog/cramdex-open-source-sans-study-app",
   },
   {
     title: "Custom UniFi MCP",
     description:
-      "103 tools, 208 unit tests, 12 hours across three days. A lazy-loading UniFi MCP server packaged as a Claude Code plugin that installs with two slash commands.",
+      "A lazy-loading MCP server for UniFi Network, Protect, and Access, packaged as a Claude Code plugin. Built in three days, then maintained in the open with issues, releases, and semver.",
     tech: ["Python", "FastMCP", "UniFi"],
+    variant: "compact",
     link: "/blog/building-a-custom-unifi-mcp-103-tools-across-three-days",
-    image: "/blog/unifi-mcp-infographic.jpg",
-    imageAlt: "UniFi MCP infographic — 103 tools, 208 tests, three days",
-    imageFit: "cover",
   },
   {
-    title: "Claude Code Config",
+    title: "My Claude Code setup",
     description:
-      "Open-source automation system: persistent vector memory, knowledge graph, 30+ custom skills, multi-repo orchestration, continuous learning loop.",
-    tech: ["TypeScript", "MCP", "SQLite"],
+      "The open-source harness behind everything above: memory that survives sessions, specialist agents, hooks, and multi-agent workflows for writing, reviewing, and shipping.",
+    tech: ["Claude Code", "MCP", "Hooks"],
+    variant: "compact",
     link: "https://github.com/chris2ao/claude-code-config",
-  },
-  {
-    title: "OpenClaw",
-    description:
-      "Seven-agent orchestration system on a headless Mac Mini. Telegram bots per agent, pixel-art Mission Control dashboard, Ollama embeddings, watchdogs.",
-    tech: ["OpenClaw", "Ollama", "Telegram"],
-    link: "/portfolio",
-    image: "/images/blog/mission-control-soc-hero.jpg",
-    imageAlt: "OpenClaw Mission Control pixel-art SOC dashboard",
-    imageFit: "cover",
-  },
-  {
-    title: "5-Layer Memory System vs. The World",
-    description:
-      "22 sources, 3 parallel research agents, 18 search queries. Benchmarked my 5-layer memory architecture against community norms and shipped three improvements the same day.",
-    tech: ["Deep Research", "MCP", "Memory"],
-    link: "/blog/my-5-layer-memory-system-vs-the-world-what-deep-research-revealed",
-    image: "/images/blog/memory-comparison-infographic.jpg",
-    imageAlt: "5-layer memory architecture vs. community approaches — comparison infographic",
-    imageFit: "cover",
   },
 ];
 
-export function SelectedWork() {
+// Static class map: never interpolate Tailwind or ed-* fragments.
+const VARIANT_CLASS: Record<Variant, string> = {
+  featured: "ed-work ed-work-feat reveal",
+  media: "ed-work ed-work-media reveal span-3",
+  compact: "ed-work ed-work-compact reveal span-2",
+};
+
+// Compact cards render no image, so they need no sizes entry.
+const IMAGE_SIZES: Record<Exclude<Variant, "compact">, string> = {
+  featured: "(max-width: 900px) 100vw, 700px",
+  media: "(max-width: 900px) 100vw, 50vw",
+};
+
+function WorkHead({ position, total, linked }: { position: number; total: number; linked: boolean }) {
+  return (
+    <div className="ed-work-head">
+      <span className="ed-work-idx">
+        {String(position).padStart(2, "0")} / {String(total).padStart(2, "0")}
+      </span>
+      {linked && (
+        <span className="ed-work-arrow" aria-hidden="true">
+          ↗
+        </span>
+      )}
+    </div>
+  );
+}
+
+function WorkChips({ tech }: { tech: string[] }) {
+  if (tech.length === 0) return null;
+  return (
+    <div className="ed-work-meta">
+      {tech.map((chip) => (
+        <span key={chip} className="chip">
+          {chip}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function WorkImage({ project }: { project: Project }) {
+  if (!project.image || project.variant === "compact") return null;
+  return (
+    <div className="ed-work-shot">
+      <Image
+        src={project.image}
+        alt={project.imageAlt ?? project.title}
+        fill
+        sizes={IMAGE_SIZES[project.variant]}
+        className="object-cover"
+      />
+    </div>
+  );
+}
+
+function SeriesLinks({ names, series }: { names: string[]; series: SeriesSummary[] }) {
+  const found = names
+    .map((name) => series.find((s) => s.name === name))
+    .filter((s): s is SeriesSummary => s !== undefined);
+  if (found.length === 0) return null;
+  return (
+    <ul className="ed-work-series">
+      {found.map((s) => (
+        <li key={s.name}>
+          <Link href={s.href}>
+            {s.name} · {s.postCount} parts <span aria-hidden="true">→</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function FeaturedCard({
+  project,
+  position,
+  total,
+  series,
+}: {
+  project: Project;
+  position: number;
+  total: number;
+  series: SeriesSummary[];
+}) {
+  return (
+    <article className={VARIANT_CLASS.featured}>
+      <div className="ed-work-feat-body">
+        <WorkHead position={position} total={total} linked={false} />
+        <h3>{project.title}</h3>
+        <p>{project.description}</p>
+        <SeriesLinks names={project.seriesNames ?? []} series={series} />
+        <WorkChips tech={project.tech} />
+      </div>
+      <WorkImage project={project} />
+    </article>
+  );
+}
+
+function LinkedCard({
+  project,
+  position,
+  total,
+}: {
+  project: Project;
+  position: number;
+  total: number;
+}) {
+  const className = VARIANT_CLASS[project.variant];
+  const link = project.link ?? "/portfolio";
+  // The whole card is the link; name it by its title rather than every word inside it.
+  const titleId = `work-title-${position}`;
+  const content = (
+    <>
+      <WorkHead position={position} total={total} linked />
+      <h3 id={titleId}>{project.title}</h3>
+      <p>{project.description}</p>
+      <WorkImage project={project} />
+      <WorkChips tech={project.tech} />
+    </>
+  );
+
+  if (isExternalHref(link)) {
+    return (
+      <a
+        href={link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        aria-labelledby={titleId}
+      >
+        {content}
+      </a>
+    );
+  }
+  return (
+    <Link href={link} className={className} aria-labelledby={titleId}>
+      {content}
+    </Link>
+  );
+}
+
+export function SelectedWork({ index, series }: { index: number; series: SeriesSummary[] }) {
+  const total = projects.length;
+
   return (
     <section id="work" className="ed-section reveal">
-      <div className="ed-section-label">§ 03 / Selected Work</div>
+      <SectionLabel index={index} name="Selected Work" />
       <div className="ed-wrap">
         <div className="ed-section-head reveal">
           <div className="ed-overline">Portfolio</div>
           <h2>Things I&apos;ve shipped.</h2>
           <p className="lede">
-            Six representative builds — memory architecture, MCP servers,
-            retro game rebuilds, and agent systems. More on the portfolio page.
+            What I built this year, from a home SOC to the AI setup behind all
+            of it. More on the <Link href="/portfolio">portfolio page</Link>.
           </p>
         </div>
 
         <div className="ed-work-grid">
-          {projects.map((project, i) => {
-            const isFeatured = i === 0;
-            const isExternal = project.link?.startsWith("http");
-            const common = (
-              <>
-                <div className="ed-work-head">
-                  <span className="ed-work-idx">
-                    {String(i + 1).padStart(2, "0")} / 06
-                  </span>
-                  <span className="ed-work-arrow" aria-hidden="true">
-                    ↗
-                  </span>
-                </div>
-                <h3>{project.title}</h3>
-                <p>{project.description}</p>
-                {isFeatured && (
-                  project.image ? (
-                    <div className={`ed-work-shot ${project.imageFit === "contain" ? "ed-work-shot--contain" : "ed-work-shot--cover"}`}>
-                      <Image
-                        src={project.image}
-                        alt={project.imageAlt ?? project.title}
-                        fill
-                        sizes="(max-width: 900px) 100vw, 50vw"
-                        className={project.imageFit === "contain" ? "object-contain" : "object-cover"}
-                      />
-                    </div>
-                  ) : (
-                    <div className="shot">SHOT / {project.title.toLowerCase()}</div>
-                  )
-                )}
-                {!isFeatured && project.image && (
-                  <div className={`ed-work-shot ed-work-shot--small ${project.imageFit === "contain" ? "ed-work-shot--contain" : "ed-work-shot--cover"}`}>
-                    <Image
-                      src={project.image}
-                      alt={project.imageAlt ?? project.title}
-                      fill
-                      sizes="(max-width: 900px) 100vw, 33vw"
-                      className={project.imageFit === "contain" ? "object-contain" : "object-cover"}
-                    />
-                  </div>
-                )}
-                {project.tech.length > 0 && (
-                  <div className="ed-work-meta">
-                    {project.tech.map((chip) => (
-                      <span key={chip} className="chip">
-                        {chip}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </>
-            );
-
-            // Layout: featured (3 cols x 2 rows) + 2 cards (span-3 each) + 3 cards (span-2 each)
-            const spanClass = isFeatured
-              ? " ed-work-feat"
-              : i <= 2
-                ? " span-3"
-                : " span-2";
-            const className = `ed-work reveal${spanClass}`;
-
-            if (!project.link) {
-              return (
-                <div key={project.title} className={className}>
-                  {common}
-                </div>
-              );
-            }
-            if (isExternal) {
-              return (
-                <a
-                  key={project.title}
-                  href={project.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={className}
-                >
-                  {common}
-                </a>
-              );
-            }
-            return (
-              <Link key={project.title} href={project.link} className={className}>
-                {common}
-              </Link>
-            );
-          })}
+          {projects.map((project, i) =>
+            project.variant === "featured" ? (
+              <FeaturedCard
+                key={project.title}
+                project={project}
+                position={i + 1}
+                total={total}
+                series={series}
+              />
+            ) : (
+              <LinkedCard key={project.title} project={project} position={i + 1} total={total} />
+            )
+          )}
         </div>
       </div>
     </section>

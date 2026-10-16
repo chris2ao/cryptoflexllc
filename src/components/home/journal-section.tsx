@@ -2,21 +2,24 @@ import Image from "next/image";
 import Link from "next/link";
 import type { BlogPost } from "@/lib/blog";
 import { formatPostDateShort } from "@/lib/post-date";
+import { postKicker } from "@/lib/home-content";
+import { SectionLabel } from "./section-label";
 
 type Props = {
+  index: number;
   posts: BlogPost[];
   totalCount: number;
 };
 
 const formatDate = formatPostDateShort;
 
-export function JournalSection({ posts, totalCount }: Props) {
+export function JournalSection({ index, posts, totalCount }: Props) {
   const [featured, ...rest] = posts;
   const listPosts = rest.slice(0, 5);
 
   return (
     <section id="posts" className="ed-section reveal">
-      <div className="ed-section-label">§ 01 / The Blog</div>
+      <SectionLabel index={index} name="The Blog" />
       <div className="ed-wrap">
         <div className="ed-section-head reveal">
           <div className="ed-overline">The Blog</div>
@@ -33,9 +36,6 @@ export function JournalSection({ posts, totalCount }: Props) {
           <div className="ed-posts-grid">
             <article className="ed-post-hero reveal">
               <Link href={`/blog/${featured.slug}`} className="ed-post-image" aria-label={featured.title}>
-                <div className="ed-post-tag-bar">
-                  <span className="ed-tag hot">● Lead Story</span>
-                </div>
                 {featured.coverImage ? (
                   <Image
                     src={featured.coverImage}
@@ -43,21 +43,21 @@ export function JournalSection({ posts, totalCount }: Props) {
                     fill
                     sizes="(max-width: 900px) 100vw, 60vw"
                     className="object-cover"
-                    priority
                   />
                 ) : (
                   <span className="ed-post-image-label">Cover / {featured.slug}</span>
                 )}
               </Link>
-              {featured.tags && featured.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {featured.tags.slice(0, 3).map((tag) => (
-                    <span key={tag} className="ed-tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <div className="ed-post-tags">
+                <span className="ed-tag hot">
+                  <span aria-hidden="true">●</span> Lead Story
+                </span>
+                {(featured.tags ?? []).slice(0, 3).map((tag) => (
+                  <span key={tag} className="ed-tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
               <h3>
                 <Link href={`/blog/${featured.slug}`}>{featured.title}</Link>
               </h3>
@@ -75,7 +75,7 @@ export function JournalSection({ posts, totalCount }: Props) {
 
             <div className="ed-post-list">
               {listPosts.map((post, i) => {
-                const kicker = post.tags?.[0] ?? "Notes";
+                const kicker = postKicker(post);
                 return (
                   <Link
                     key={post.slug}

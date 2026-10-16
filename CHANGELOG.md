@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here.
 
+## 2026-10-16 - Home Page Refresh (CLAUD-300)
+
+### What changed
+- **Replaced** the hardcoded stats ticker (7 of 8 values hand-typed; "117 commits / 7 days" was 14) with a static Now strip: a hand-maintained "Now building" line with an as-of date, the series in progress, and the Monday newsletter
+- **Added** a Reading Paths section: the six most recently updated series with 3+ posts, linking to `/blog/series/*`
+- **Refreshed** Selected Work: a full-width Home SOC feature (Wazuh, custom SIEM, Mission Control, with derived series links), the site security reviews, Ledgerly, Cramdex, UniFi MCP and the Claude Code setup; the games now live only in the Arcade
+- **Merged** About and the CV timeline into one section with a pull quote from a published post, a five-step career path, and a one-line consulting note linking `/services`; removed the standalone Consulting and CV sections
+- **Fixed** the Lead Story chip overlapping cover labels, the duplicate "§ 03" label, the drop cap splitting "I'm", the featured work card's dead space and cropped image, Subscribe sitting off the page grid, clipped focus rings on work cards, and the "No tracking" claim (now "No tracking pixels")
+- **Fixed** stale game promo stats, verified against the game repos: Cann-Cann 12 weapons, 7 biomes, online multiplayer; Third Conflict 14 random events, 5 difficulty levels
+- **Fixed** card scroll reveals: card transitions replaced the `.reveal` fade, and the inline stagger delay also slowed hover; reveals now use `translate` plus a `--stagger` custom property
+- **Changed** the hero meta row to the real post count and latest post date, and section numbers to come from page order so they cannot skip
+- **Removed** unused `hero.tsx`, `animated-counter.tsx`, `ticker-strip.tsx`, `consulting-section.tsx` and `cv-timeline.tsx`
+- **Added** tests for every home component plus a page-level test (sequential labels, no em dashes, links and images that exist); 1144 to 1160 tests
+
+### What was learned
+- A card's own `transition` silently replaces the `.reveal` transition at equal specificity, so the fade disappears with no error
+- Hand-typed stats go stale fast; the home page now derives everything except `NOW_BUILDING` and the Selected Work list from frontmatter
+
+---
+
 ## 2026-10-15 - Quick Tips #3 Backlog Draft and Blog Pipeline Fixes
 
 ### What changed

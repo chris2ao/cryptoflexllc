@@ -1,10 +1,15 @@
+import { SectionLabel } from "./section-label";
 import { ThirdConflictPromo } from "@/components/third-conflict-promo";
 import { CannCannPromo } from "@/components/cann-cann-promo";
 
-export function ArcadeSection() {
+type Props = {
+  index: number;
+};
+
+export function ArcadeSection({ index }: Props) {
   return (
     <section id="arcade" className="ed-section reveal">
-      <div className="ed-section-label">§ 03 / The Arcade</div>
+      <SectionLabel index={index} name="The Arcade" />
       <div className="ed-wrap">
         <div className="ed-section-head reveal">
           <div className="ed-overline">Playable Builds</div>

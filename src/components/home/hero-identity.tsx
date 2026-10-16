@@ -1,26 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
+import { formatPostDateShort } from "@/lib/post-date";
 
-export function HeroIdentity() {
-  const today = new Date();
-  const issueNum = String(
-    Math.floor((today.getTime() - new Date("2024-01-01").getTime()) / (7 * 24 * 60 * 60 * 1000))
-  ).padStart(3, "0");
-  const dateStr = today.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+type Props = {
+  postCount: number;
+  latestDate?: string;
+};
 
+export function HeroIdentity({ postCount, latestDate }: Props) {
   return (
     <section className="ed-hero">
       <div className="ed-wrap ed-hero-inner">
         <div className="ed-hero-meta-row">
           <span>
-            ISSUE <b>#{issueNum}</b>
+            NO. <b>{postCount}</b>
           </span>
-          <span>CRYPTOFLEX / ENGINEERING LAB</span>
-          <span>{dateStr.toUpperCase()}</span>
+          <span className="ed-hero-meta-mid">CRYPTOFLEX / ENGINEERING LAB</span>
+          {latestDate && (
+            <span>
+              UPDATED <b>{formatPostDateShort(latestDate).toUpperCase()}</b>
+            </span>
+          )}
         </div>
 
         <div className="ed-hero-grid">
@@ -36,9 +36,10 @@ export function HeroIdentity() {
               <span className="accent">on purpose.</span>
             </h1>
             <p className="ed-hero-sub reveal">
-              Long-form writing on security engineering, AI-assisted
-              development, and the craft of shipping things that actually work.
-              Stream-of-consciousness notes from a working lab, not a brochure.
+              I work in cybersecurity defense and build with AI agents on my
+              own time. This is where I write it all down: the security
+              reviews, the home-lab SOC, the agent workflows, and the bugs
+              that got past all of them.
             </p>
             <div className="ed-hero-cta-row reveal">
               <Link href="/blog" className="btn-editorial btn-editorial--primary">
@@ -66,7 +67,7 @@ export function HeroIdentity() {
             <p className="ed-hero-portrait-caption">
               <b>Chris Johnson</b>
               <br />
-              Engineer · Builder · Researcher
+              Security Engineer · Builder
             </p>
           </div>
         </div>
