@@ -1,0 +1,333 @@
+---
+title: "I Retired Homunculus and Built Plasticity: A Learning Layer That Actually Reaches the Session"
+date: "2026-10-19T21:00:00"
+description: "My keep-or-retire question about Homunculus ended with neither. Part 3 of the Claude Harness Modernization series: why the old learning layer never changed a session, what replaced it, and the first digest of 324 proposals I refused to review."
+tags: ["Claude Code", "Harness", "Hooks", "Memory", "Plasticity", "Subagents"]
+author: "Chris Johnson"
+readingTime: "22 min read"
+featured: false
+series: Claude Harness Modernization
+seriesOrder: 3
+schemaType: TechArticle
+coverImage: /blog/claude-harness-modernization-3-plasticity/infographic.png
+coverImageAlt: "Infographic titled Learnings that reach the subagents, Part 3 of the Claude Harness Modernization series. The left panel, Homunculus, lists 79 instinct files, showing settings-override-not-merge, gmail-api-full-format, udmpro-doubled-hostname and imessage-storage-setting flagged PURGE, plus 75 more that were never loaded, with the note that they were harmless only because unread. A red dashed wire marked never loaded leads to the middle panel, the weekly gate, where 324 proposals in the first digest become 15 themed decisions that I approved, with the quote I'm not going to review 324 proposals. A teal arrow marked session start leads to the Plasticity panel, which shows 19,408 tool calls in the main thread against 82,372 inside 1,442 subagent transcripts, subagent loading in 22 ms, and an always-on block using 604 of the 2,000 characters, with about 81% of the work happening in subagents. A terminal strip at the bottom shows the canary test: the parent plants PARENT-CANARY-7731 and the subagent answers that the text does not appear anywhere in its context, so it is isolated."
+---
+
+Homunculus had 79 instincts, and not one of them had ever changed how Claude behaved in a session. Nothing loaded them. The learning layer I'd been proud of for months was a very well-organized pile.
+
+Part 2 ended with a keep-or-retire call. The answer turned out to be a third thing: re-engineer it, and name the replacement Plasticity.
+
+## Where Homunculus Came From
+
+I started my Claude Code config from [everything-claude-code](https://github.com/affaan-m/everything-claude-code), a community configuration repo with agents, commands and skills. I covered that starting point in [Configuring Claude Code](/blog/configuring-claude-code). Homunculus was one of the ideas I took from it and ran with.
+
+An earlier post, *The Homunculus Evolution Layer: When Your AI Learns to Upgrade Itself*, described three layers. Layer 1 was a PostToolUse hook that logged every tool call to `observations.jsonl`. Layer 2 was instincts: markdown files with a confidence score, triggers and evidence. Layer 3 was `/evolve`, a command I wrote that clustered the instincts and promoted the best ones into skills. The first run took 50 instincts to 13 clusters to 7 accepted candidates, and 5 of those became skills.
+
+That post stays up as history. It was accurate when I wrote it. The trouble is that I never went back and asked whether the loop closed.
+
+<Info title="What is an instinct?">
+In Homunculus, an instinct is a small markdown file describing one behavior pattern: a trigger, an action, a confidence between 0 and 1, and the evidence it came from. The idea was that Claude would eventually act on them. "Eventually" never arrived.
+</Info>
+
+## What Was Actually Wrong
+
+So did the loop ever close? Part 2's decision table had a row for this: "Measure first. It grows about 21 to 24 MB a day and nothing reads the stream, so keep or retire comes after a soak." The measurements are from October 10 and October 17, and the second set was no kinder than the first.
+
+| Part | What I found |
+|---|---|
+| Observation stream | 209 MB on disk, up to 5,000 characters of each tool's input and output per record, rotation at 10 MiB but no deletion. Nothing read it. 96% of records before October 3 were invalid JSON. |
+| Hook cost | On the Windows PC every hook starts PowerShell, about 430 ms per Edit, Write or Bash call. |
+| Instincts | 79 files. 72 drafted by `/ingest-sessions` from archived sessions, 4 from observations. No hook, rule or script loaded any of them. |
+| `/evolve` | Run 4 times. 7 skills promoted, 5 of them later archived as unused. 16 draft bundles never promoted. |
+| Learned notes | 24 notes in `~/.claude/skills/learned/` (44 files counting duplicates). Nothing loaded them, and the doctor from part 1 reported them as strays. |
+
+The stream was the part that stung. A hook was paying 430 ms on the PC for every edit, writing up to 5,000 characters of file contents and command output into a log, and the log had no reader. It was also a place for sensitive text to pile up, since 5,000 characters of Bash input is a lot of room for whatever I'd typed.
+
+Then there was a gap I hadn't thought about at all. In the 30 days to October 17, my interactive Mac sessions made 19,408 tool calls in the main thread and 82,372 inside 1,442 subagent transcripts. That's about 81% of the work happening in subagents. The recall hook from part 2 put its context into the main session only, so the majority of the work started from a blank slate.
+
+Seen side by side, the gap is hard to argue with:
+
+![Bar comparing 19,408 main-thread tool calls with 82,372 subagent tool calls over the 30 days to October 17, inside 1,442 subagent transcripts, with a warning box: 81 percent of the work happened in subagents, but the part 2 recall hook put its context into the main session only, so the majority of the work started from a blank slate](/blog/claude-harness-modernization-3-plasticity/subagent-gap-slide.webp)
+
+The design doc I wrote that day opens with this sentence: "Homunculus, the current learning layer, is meant to make Claude Code get better at working with the owner over time. Today it does not: its three parts (an observation hook, instinct files and /evolve) barely connect, and nothing it learns ever reaches a session." I wrote that about my own system, and it still reads like an indictment.
+
+<HomunculusVsPlasticityDiagram />
+
+## Reading 79 Instincts Before Deciding Anything
+
+Which of the old instincts were worth carrying forward? Before designing the replacement I did a read-only review of every one, because I didn't want to throw out good material. The verdicts came to 22 KEEP, 10 KEEP-PROJECT, 16 ENCODED (already covered elsewhere), 2 MERGE (duplicates), 21 STALE (retired systems, outdated, fixed) and 8 WEAK (too vague).
+
+<InstinctReviewDiagram />
+
+The best ones were created on October 9 from CryptoFlix and shell sessions, with confidence between 0.6 and 0.8. The February and March batch at 0.4 was mostly Mission Control, OpenClaw, Obsidian, Windows and old memory-hook material, which is a fair portrait of what I was building that spring and a poor guide to what I do now.
+
+Four instincts worried me more than the stale ones:
+
+- `settings-override-not-merge` claimed project settings replace global ones. List keys such as `permissions.allow` merge across scopes.
+- `gmail-api-full-format` contradicted a newer finding from October 5.
+- `imessage-storage-setting` recommended a 30-day Messages purge that could delete messages from the iPhone too.
+- `udmpro-doubled-hostname` was about a SIEM I'd already decommissioned.
+
+What would a loaded instinct have done?
+
+<Stop title="Loaded Instincts Would Have Hurt">
+If a loading mechanism had existed, the iMessage instinct would have told Claude to recommend a purge that could wipe messages off my phone. The fact that nothing loaded these files was the only thing that kept them harmless.
+</Stop>
+
+The layer's biggest flaw was also its only safety property, and fixing the flaw meant an actual approval step had to sit in front of everything.
+
+## Brainstorming: Four Jobs and a Pile of Decisions
+
+The brainstorm was on October 17, with clarifying questions before any design. What is the layer for? I picked all four options: stop repeating mistakes, pick up my habits, grow new skills, and show how I work.
+
+The rest I settled as a table, once, so I wouldn't relitigate it mid-build.
+
+| Topic | Decision |
+|---|---|
+| Autonomy | I approve a digest. Nothing applies on its own. |
+| Raw tool log | A lean log: one small record per call, no file contents or outputs, 30-day retention. |
+| Storage of learnings | Files in `~/.claude`, recalled by the hook. Not published. |
+| Digest surface | A private web page (a claude.ai artifact) with Approve, Reject and Edit per item, usable from a phone. |
+| Cadence | Weekly. |
+| Existing instincts | Into the first digest, pre-sorted using the review above. |
+| `/evolve`, `/refine` | Folded into the digest as stages. The commands stay as manual triggers. |
+| Backfill | One-time, last 90 days, at launch. |
+| Session archive | Automated processing and rotation. A processed transcript is kept 60 days, then deleted. |
+| Name | Plasticity, home in `~/.claude/plasticity/`. |
+| Subagents | Approved learnings reach them too. |
+| `log-activity` hook | Retired. |
+| Public sync | Private by default. Explicit per-item publish with a redaction check. |
+
+The most useful thing I wrote wasn't in the table. It was a list of anti-goals, the ways the project could fail even if every component worked: context bloat, another unread pile, anything changing behavior without my approval (including through text copied out of a transcript), sensitive text accumulating, the PC getting slower, and the digest turning into a chore.
+
+The design also has one rule that shapes everything else. Lessons are facts, and they stay in vector memory from part 2. Learnings are directives, "do this" or "don't do that," and they live in separate files that I approve.
+
+<Info title="Lessons versus learnings">
+A lesson is a fact worth remembering, like "this endpoint returns a different format after October 5." A learning is an instruction to Claude, like "explain the purpose and risks before a costly setup step." Facts can sit in a searchable store. Instructions get injected into sessions, so they need a gate.
+</Info>
+
+## The Shape of Plasticity
+
+The previous layer had three parts that barely connected. This one has a single pipeline, and nothing in it runs per tool call.
+
+<PlasticityPipelineDiagram />
+
+On every machine (the Mac, the Windows PC and the MacBook Pro), the SessionEnd hook archives interactive transcripts. Every 30 minutes the extractor sweep from part 2 processes finished sessions, and now one Haiku call per session produces two things: lessons for vector memory, unchanged, and learning candidates sorted into four kinds (correction, habit, gotcha, workflow). The lean log is built in plain code with no model call: tool name, first word of the Bash command only, ok or error, a short redacted error signature and duration. No inputs, no outputs, no file contents.
+
+The PC and the MacBook Pro are spokes. They write candidates and daily rollups to a dedicated Syncthing outbox folder, and the Mac hub ingests them and writes acknowledgments back.
+
+On Sundays at 17:00 a launchd job on the Mac runs five stages: Learn (merge candidates into proposed learnings), Tune (edits to existing skills, what `/refine` used to do), Grow (new skills, commands and agents, what `/evolve` used to do), Insights and Health. It builds a digest page capped at about 15 proposals a week. The first digest was exempt from the cap.
+
+The digest is a private artifact with Approve, Reject, Defer and Edit per card plus group actions. `/learn apply` in my next interactive Mac session exports the decisions and applies them.
+
+Loading reuses the recall hook from part 2. At session start it injects an always-on block, capped at 2,000 characters. Situational learnings are matched locally on keywords and project, at most 3 per prompt and each once per session. Subagents get them through a SubagentStart hook.
+
+Archives get a daily rotation on every machine: compress processed transcripts after 7 days, delete 60 days after processing. Unprocessed sessions are never deleted, and a 2 GB per-machine cap raises an alert and nothing else.
+
+<Security title="Candidates Are Untrusted Data">
+A learning candidate comes from a transcript, and a transcript can contain anything the session saw. Candidates are untrusted data until I approve them: nothing in one executes or injects before then, and the candidate filter rejects instruction-shaped text. Part 2 made the same call for the recall hook, which wraps retrieved notes as data, not instructions.
+</Security>
+
+## Three Spikes Before Building
+
+Three questions could have sunk the design, so they ran as spikes on October 17.
+
+**S1, does SubagentStart work?** Yes. Five headless runs with ten subagents in total. The hook fired once per subagent, each subagent repeated its own canary and none saw another's, and the main transcript showed zero hook context attachments. The hook itself ran in a median of 22 ms (p95 23 ms).
+
+It also found a limit I hadn't expected. The SubagentStart payload carries `session_id`, `transcript_path`, `cwd`, `prompt_id`, `agent_id` and `agent_type`, and no task text. So the hook can't know what a subagent was asked to do. Subagents get matched on agent type, project and the parent's latest prompt instead.
+
+**S2, can a headless run build the artifact?** No. A headless `claude -p` run has no Artifact or ArtifactData tools. Interactive works. That killed the idea of a fully unattended digest, so the weekly job builds the page locally, and publishing and applying happen in my next interactive session with `/learn publish` and `/learn apply`.
+
+I liked that failing spike more than the passing one. It saved a design that would have looked right in the doc and not worked on a Sunday afternoon.
+
+**S3, are the transcript fields what I need?** Yes.
+
+## How It Got Built
+
+The build used subagent-driven development: one implementer per task, a task review after each, and a final whole-branch review on the most capable model.
+
+From Task 5A on, the work ran in parallel waves at my request. Each task got its own git worktree and branch from a shared base, with written rules for shared files: no task edits the CLI registry, the contracts, the hub store, the test conftest, the config or the paths module. The controller merged one branch at a time. A lesson saved to memory afterward records that parallel-wave SDD cut wall clock about in half, from an estimated 9 to 10 serial hours to roughly 4 to 5.
+
+The controller recorded 64 or more rulings where the plan was silent or a review found a gap. A few of them show the flavor:
+
+- **Ruling 10:** publish mode is interactive, after S2 failed headless.
+- **Ruling 11:** no task text in SubagentStart, after S1 showed the payload has none.
+- **Ruling 41:** my own quotes are exempt from the instruction filter, because they're verified owner words shown only as evidence and never injected.
+- **Ruling 48:** `index.json` has no provenance check, accepted because the Mac is the only writer.
+
+Ruling 48 is a risk I knowingly took, so I'm leaving it in plain view here.
+
+The work merged to main on October 17. Side-agent notes during the build had surfaced three real gaps: situational learnings never loading, the old archive never shrinking, and VS Code and desktop sessions not being archived at all.
+
+| Suite | Tests at merge |
+|---|---|
+| plasticity | 4,886 |
+| harness_doctor | 1,963 |
+| memory | 1,787 |
+| mbp-memory-client | 192 |
+
+All passing on Python 3.11 and 3.9.
+
+## Rollout, and the Candidate Quality Gate
+
+Per-call hooks went off first: `observe-homunculus` and `log-activity` were removed live. Plasticity went on at the Mac at 20:16 UTC on October 17, and the 90-day backfill followed under caps I approved.
+
+The backfill came to 103 sessions (75 on the Mac, 16 on the Windows PC, 12 on the MacBook Pro), 100 model calls, 259 historical candidates and $0.488 reported cost. The Mac accounted for $0.363 of that, the PC $0.068 and the MacBook Pro $0.057.
+
+Cheap isn't the same as good, so candidate quality had its own gate. A 20-session sample came back with all 20 responses valid against the schema, 53 candidates of which 47 were kept, and none of the observations or reasons shaped like instructions. The model cost per session averaged $0.0047, with a max of $0.0079.
+
+Then I marked every candidate myself on a small review page built for the purpose. Of 39 corrections and habits, 38 were real. That's 97% against a gate of 70%. The single "not real" one was me asking Claude to save a fix to vector memory, which is a fair thing to mark as noise.
+
+The plan said to wait until October 21 for a shadow check. The evidence at the time was 16 of 16 sweeps ok and 5 real interactive sessions processed, with zero errors, and the call was "accept now." That's me overriding my own schedule on evidence I could see, so I'll own it.
+
+## A Deployment Check Found Drift
+
+On October 18 I asked for a look at the whole Plasticity deployment: every check, whether it was fully operational, and whether Homunculus was deprecated and cleaned up.
+
+The doctor's Plasticity checks said 9 pass, 0 warn, 0 fail, 2 skip, which was good as far as it went. When Claude compared the repo with the live `~/.claude`, the new `/learn` command and the Plasticity versions of `/evolve`, `/refine` and `/ingest-sessions` existed only in the repo. The live folder still had the old Homunculus versions, and the two retired agents, `evolve-synthesizer` and `refine-reader`, were still registered.
+
+So the tests passed against code that wasn't what I was running.
+
+<Warning title="Repo Is Not Live">
+The doctor checked what I told it to check, and the repo copies were fine. Nothing compared the repo to the live config directory. The fix was a snapshot, then copying 10 files, then archiving the 3 retired ones. The PC and MacBook Pro confirmed the change arrived through Syncthing.
+</Warning>
+
+Part 1's doctor exists to catch drift, and its script check did flag two scripts. It just had no check that compared commands with the repo, so that's the next gap to close.
+
+## Loading Learnings for Real
+
+Building a loader is one thing. Showing that an approved learning actually reaches a subagent is another, and the second is the entire reason Plasticity exists.
+
+The baseline came first. With zero learnings, the recall hook printed nothing for a simulated SubagentStart, in 14 ms. Then the SubagentStart hook went into `settings.json`, pointed at the same memory-recall script with a timeout of 3 seconds.
+
+The test needed real learnings, in my own words, picked on the review page:
+
+- **Always-on:** "Before running a costly or automated setup step, explain its purpose, benefit and risks first."
+- **Situational** (keywords pc, macbook, prompt): "Steps for the PC or MacBook Pro go as paste-ready prompts for that machine's Claude Code session, one part at a time."
+
+Did the subagent get the learning, and nothing else? The real check ran in a fresh interactive session (043deaa3):
+
+1. SessionStart loaded 1 learning, in 208 ms.
+2. A real SubagentStart with entrypoint `cli` and agent type Explore loaded 1, in 22 ms.
+3. The subagent quoted the always-on block back, and when asked, said "No, the text PARENT-CANARY-7731 does not appear anywhere in my context." The canary lived in the parent session only.
+4. The situational learning appeared only on a prompt that mentioned the PC (177 ms).
+5. The status line still showed "recall: 3" after the Agent call.
+
+<SubagentCanaryDiagram />
+
+![Enlarged crop of the Claude Code status line after the subagent check, showing model, effort, context bar and usage limits, with the recall: 3 counter highlighted to show it was retained after the subagent ran.](/blog/claude-harness-modernization-3-plasticity/statusline-recall-retained.png)
+
+The subagent's own summary was short enough to quote: "Learnings reach subagents: yes. The subagent's block is identical to the parent's. Isolation: the subagent did not have PARENT-CANARY-7731."
+
+<Tip title="Plant a Canary, Then Ask">
+A canary string in the parent session and a question to the subagent tested two claims at once: the learning arrived, and nothing else leaked across. It's the same silly-looking test as the PINEAPPLE KIWI one in part 2, and I still trust it more than the docs.
+</Tip>
+
+For scale, the three always-on learnings in the end state use 604 of the 2,000 characters allowed. The 22 ms row is the one that matters most in this post: for the first time, a learning I approve shows up in the place where most of the work happens.
+
+## The First Digest, and the Refusal
+
+The model-free ingest ran first: 23 new files, 21 candidates, 6 rollups and 0 violations, for $0. Then the weekly job needed a model budget. I approved a $5 cap, but only after Claude told me the purpose, benefit and risks of spending it. That's the always-on learning from the previous section doing its job on day one.
+
+The output:
+
+```text
+learn: 197 proposal(s) stored
+tune: 0 proposal(s) stored
+grow: 3 proposal(s) stored
+first digest: 124 proposal(s) from the old instincts, drafts and notes
+weekly: digest 2026-W42 with 324 proposal(s) (first digest); spent 0.1513 of 5.00 USD; ok
+```
+
+It spent 15 cents of five dollars and handed me 324 proposals. The pipeline's own recommendation was approve 66, reject 80, defer 178.
+
+I had written "the digest becomes a chore" as an anti-goal the day before. I'd also exempted the first digest from the 15-card cap, because the old instincts, drafts and notes had to go through it somewhere. I'd more or less scheduled my own failure. My reply, verbatim:
+
+> "I'm not going to review 324 proposals, you will need to take a pass and get that number down to like 15 at most. Go through them and present me with the most valuable ones that would bring value or improve my harness and workstreams. Look for themes."
+
+So Claude read every proposal and grouped them into 15 themed decisions. Here they are, by theme.
+
+**How I work with Claude.** P1: verify before claiming, an always-on learning that merged 7 cards from 8 sessions. P5: status questions get a straight answer (5 sessions, all three machines). P6: my planning style, the most repeated pattern in the pile with 14 cards across 10+ sessions. P7: "later" means document, not build (9 cards).
+
+**Safety.** P4: snapshot, verify, then delete (6 cards across all three machines). P9: clean up after testing, and check that it's actually cleaned up.
+
+**Cost and speed.** P8: scale verification to the change, 5 cards, including a quote of mine, "it killed my entire rate limit." P3: the commit convention, which replaced 19 separate cards.
+
+**Machines and tooling.** P2: macOS shell traps, plus the `shell-runtime-gotchas` skill. P10: update the PC and MacBook learning. P11: UniFi writes must be read back.
+
+**Skills and fixes.** P12: draft a `parallel-fanout-build` skill. P13: draft a blog MDX pre-publish check. P14: fix stale memory-architecture content.
+
+**Keep useful Homunculus knowledge.** P15: keep 33 vetted old instincts and notes as situational learnings.
+
+Everything else, 274 proposals, was rejected: one-session habits, retired-system material, old drafts, four locked harmful items from the earlier review, and duplicates.
+
+<Info title="What Reject Means Here">
+In Plasticity, reject means "not now." A rejected proposal comes back only if new evidence appears. Deferred ones reappear in every digest. So rejecting 274 cards wasn't deleting them, and I didn't have to be certain about any one of them.
+</Info>
+
+I asked for a canvas page to make the decision, and Claude built one with the 15 picks. I approved all 15. Then, on my instruction, Claude wrote all 324 decisions into the digest page's database in 7 batches of 50 and ran apply:
+
+```text
+apply: 324 decision(s) kept; left out: none
+apply: digest 2026-W42: 45 learning change(s), 0 escalation(s) sent to Tune, 274 rejected, 2 deferred, 0 no-op, 0 ignored, 0 invalid, 1 failed; tune edits 2, grow changes 0
+```
+
+So 15 decisions from me became 324 recorded ones, and the only thing that didn't go through was the skill with the link.
+
+<ProposalFunnelDiagram />
+
+Why did a 324-card digest happen at all? The exemption, and nothing else. The refusal wasn't a bug in the pipeline. It was me telling the pipeline what the digest page should have been from the start. If the soak digests come in at 15, the exemption was the mistake.
+
+Here's the whole refusal and its outcome on one page:
+
+![Slide with the quote I'm not going to review 324 proposals, a note that the first digest was exempt from the 15 card cap and arrived with 324 proposals that Claude grouped into 15 themed decisions, and a four-cell grid: 15 themed decisions approved by the owner, 274 proposals explicitly rejected, 45 learning changes successfully applied, and 1 single failure](/blog/claude-harness-modernization-3-plasticity/digest-refusal-slide.webp)
+
+## The One Failure, and a Learning That Lied
+
+Of the 324, one apply failed. Promoting the `shell-runtime-gotchas` skill was refused with the reason `unsafe-content`.
+
+Plasticity's Grow safety filter refuses any promoted text containing a link. Line 99 of the draft held an example error message with a URL in it, the kind of thing you'd paste to show a zsh glob failure:
+
+```text
+(eval):1: no matches found: https://...?bytes=1000
+```
+
+The line was an illustration, not a link anyone would follow, and the filter doesn't know that. After the line was reworded and run through Plasticity's own cleaning function to confirm it passed, the skill went in by hand. A filter that blocks promoted text with links is the right default, and it caught a false positive in the very first run. I'm keeping the filter.
+
+The second problem was subtler. A side agent noticed that the new always-on shell learning said "the Bash tool runs zsh." That's true on the Mac. Learnings sync to the Windows PC, where it's false. So a learning I'd just approved would have told the PC's Claude something wrong, on every session start.
+
+The fix was to retire it and re-add it starting "On macOS, ...". The same change went to a situational shell learning that was firing on the bare word "bash." Learnings are plain text, and I'd written them as if only one machine existed.
+
+Both problems, laid out as issue, cause and fix:
+
+![Two-column slide. The Safety Filter Trigger: the pipeline failed to promote one skill because the Grow safety filter blocked a zsh glob error message containing a dummy URL structure; verdict, a filter that blocks promoted text with links is the right default and stays active. The Learning That Lied: a new always-on learning stated the Bash tool runs zsh, true on the Mac hub and false on the Windows PC spoke; fix, it was retired and re-added to state On macOS explicitly](/blog/claude-harness-modernization-3-plasticity/failure-and-lie-slide.webp)
+
+## Rotation and Retirement
+
+The Mac's rotate job runs daily at 04:15, and the weekly job runs Sundays at 17:00. The first rotation compressed 541 transcripts with 0 deleted and 0 errors, taking the archive from 1.6 GB to 1.3 GB. One check mattered more than the size: the Gmail metrics export, which feeds the site's analytics page, produced a byte-identical payload (387,247 bytes) before and after compression.
+
+Then the actual retirement. On the Mac, `~/.claude/homunculus` and `~/.claude/skills/learned` moved to `~/.claude/archive/2026-10-19/`, 147 files, as a reversible move and not a delete. The doctor's Plasticity checks went to 13 pass, 0 warn, 0 fail, 0 skip. The full doctor says 413 pass, 25 warn, 2 fail, and both fails are pre-existing and unrelated.
+
+The surprise was the other machines. The PC still had a homunculus folder: 11 files, 61.9 MB, made of `observations.jsonl` plus 10 Syncthing conflict copies. A PC-only ignore line for `observations.jsonl` had kept it there, so the Mac's move could never remove it. The MacBook Pro had 213 MB in 24 files, held by three ignore lines. The PC's folder went to the archive, and the MacBook Pro's moved outside the synced folder.
+
+<Warning title="Ignore Lines Hide Leftovers">
+A sync ignore line means a deletion on one machine never reaches the other. "Retired on the Mac" and "retired everywhere" are different claims, and only checking each machine tells them apart.
+</Warning>
+
+The PC's rotation task compressed 11 files on its first run, result 0. The MacBook Pro's job found nothing old enough to compress yet. The final verification reports were deferred, and each spoke got a single prompt that turns rotation on only if a dry run shows no errors and no deletions.
+
+The rotation and retirement numbers in one view:
+
+![Four-cell slide: 541 processed transcripts compressed, 0 deleted under the 60-day retention rule, storage reduced from 1.6 GB to 1.3 GB, and 147 legacy files archived, with a caveat strip: sync ignore lines mean a deletion on the Mac hub never reaches the spokes, so retired on the Mac is not retired everywhere](/blog/claude-harness-modernization-3-plasticity/rotation-retirement-slide.webp)
+
+## What I Can and Can't Say Yet
+
+If you skimmed to here, this is the whole post in one picture:
+
+![Infographic in three columns titled Learnings that reach the subagents. Homunculus: 79 instincts none ever loaded, a 209 MB observation stream nothing read, 430 ms per hook call on the Windows PC, and the instinct review of 22 keep, 10 keep-project, 16 encoded, 2 merge, 21 stale and 8 weak. The gap: 19,408 main-thread tool calls against 82,372 subagent tool calls in 1,442 subagent transcripts, about 81 percent of the work in subagents. Plasticity: weekly digest, owner approves, 324 proposals funneled to 15 themed decisions with the quote I'm not going to review 324 proposals, 45 learnings applied, a 22 ms subagent hook, 3 always-on learnings using 604 of 2,000 characters, the PARENT-CANARY-7731 canary test, and 541 transcripts compressed with 0 deleted](/blog/claude-harness-modernization-3-plasticity/plasticity-at-a-glance.webp)
+
+Delivery is proven and improvement isn't. An approved learning loads at session start, and a subagent gets the same block as its parent without seeing the parent's conversation. Whether Claude is any better for it is a different question. 45 approved learnings and a soak that started on October 19 only show the pipe works. Plasticity is also private, and I'm not offering it as something to install.
+
+The digest page is built to work from a phone, though the first 15 decisions were approved on a canvas page. The next two checkpoints are the weekly digests on Sunday, October 25 and Sunday, November 1, each capped at 15 proposals. CLAUD-70, the keep-or-retire ticket that started this, closes after the second applies cleanly. Two drafts are already queued for the next Grow run: `parallel-fanout-build` and the blog MDX pre-publish check. I'm also curious whether a cap of 15 keeps the digest from turning back into a pile.
+
+Before the October 25 digest arrives, I'm going to reread all 45 and look for another "the Bash tool runs zsh."

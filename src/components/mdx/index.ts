@@ -187,6 +187,13 @@ export {
   CutoverSequenceDiagram,
 } from "./diagrams-claude-harness-modernization-2-memory";
 export {
+  PlasticityPipelineDiagram,
+  HomunculusVsPlasticityDiagram,
+  ProposalFunnelDiagram,
+  InstinctReviewDiagram,
+  SubagentCanaryDiagram,
+} from "./diagrams-claude-harness-modernization-3-plasticity";
+export {
   LocalAiLessonsToControlsDiagram,
   LocalAiTrustBoundaryDiagram,
 } from "./diagrams-securing-local-ai-cryptoflix-overview";
