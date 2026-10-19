@@ -215,6 +215,13 @@ export {
   MellieMelGuardrailLayersDiagram,
   MellieMelModelLadderDiagram,
 } from "./diagrams-openclaw-deployment-part-5-is-openclaw-still-the-one";
+export {
+  EncryptedDnsTierChainDiagram,
+  PlainVsDohDiagram,
+  Log2RamFlowDiagram,
+  GatewayInterceptDiagram,
+  FourLeaksBeforeAfterDiagram,
+} from "./diagrams-encrypted-dns-pihole-raspberry-pi-5";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
