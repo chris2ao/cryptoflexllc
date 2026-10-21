@@ -229,6 +229,7 @@ export {
   GatewayInterceptDiagram,
   FourLeaksBeforeAfterDiagram,
 } from "./diagrams-encrypted-dns-pihole-raspberry-pi-5";
+export { PiholeTailscaleDnsPathDiagram } from "./diagrams-pihole-tailscale-ad-blocking-on-the-go";
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
