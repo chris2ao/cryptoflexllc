@@ -31,6 +31,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
+          # Resolve the newest 22.x instead of the runner's cached copy so
+          # security releases (e.g. CVE-2026-111497, fixed in 22.23.4) apply.
+          check-latest: true
           cache: npm
 
       - name: Install dependencies
