@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## 2026-10-26 - CVE-2026-111497 (Brotli RCE) and Next.js 16.4.3 Upgrade
+
+### What changed
+- **Changed** CI (`.github/workflows/ci.yml`) to resolve the latest Node 22.x with `check-latest: true`, so builds pick up the Brotli RCE fix for CVE-2026-111497 (03df285)
+- **Upgraded** `next` to 16.4.3 and patched other vulnerable dependencies after a follow-up `npm audit --omit=dev` found critical Next.js 16.3.0 advisories (unauthenticated RCE in Image Optimization and next/og). CI and the Vercel production deploy both succeeded (51450fa)
+- **Patched** the same CVE outside this repo: the Mac's Node, both Pi-holes (automatic updates enabled on the backup), and restarted stale services. Openclaw_MissionControl also moved to Next 16.4.3 (8316407)
+
+### What was learned
+- A runtime CVE sweep should also run `npm audit --omit=dev`; the Next.js advisories were more severe than the Brotli CVE
+- Upgrading a shared library does not fix processes that already loaded it. Restart them and verify with `lsof` (macOS) or `grep "(deleted)" /proc/*/maps` (Linux)
+- On Raspbian, unattended-upgrades needs `origin=Raspbian` and `origin=Raspberry Pi Foundation` origins, since the shipped defaults match only origin=Debian
+- Hand-installed binaries (dnscrypt-proxy in /opt) get no automatic updates (CLAUD-526)
+
+---
+
 ## 2026-10-16 - `published: false` Now Hides a Post (CLAUD-302)
 
 ### What changed
