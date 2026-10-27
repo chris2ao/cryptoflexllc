@@ -119,6 +119,10 @@ The gate is what keeps the whole thing honest. Every later change has to leave t
 
 There was one standing rule: no git operations inside `~/.claude` until SP4. That folder is a stale clone of the public [claude-code-config](https://github.com/chris2ao/claude-code-config) repo, and committing into it mid-audit was asking for trouble. So every fix got a snapshot of the original, an entry in a fix log, and a commit only in the private project repo, `CJClaudin_Mac`.
 
+<Info title="Update, October 2026">
+I archived my `claude-code-config` repo on October 26, 2026. It stays public as a read-only snapshot, so links to it still work, but it no longer tracks my live setup, and parts of what it held have changed or been removed since. My vector memory system now carries what a shared config used to.
+</Info>
+
 ## What /harness-doctor Actually Is
 
 The doctor is one cross-platform Python package, standard library only, targeting Python 3.9 and up. That floor comes from the Mac, whose system Python is 3.9 (the PC has 3.13). It's tested with pytest on 3.9 and 3.11, installs by copying into `~/.claude/scripts/harness_doctor`, and a `/harness-doctor` skill wraps it.

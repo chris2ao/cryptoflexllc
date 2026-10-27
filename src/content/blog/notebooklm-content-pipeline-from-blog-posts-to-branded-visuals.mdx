@@ -323,3 +323,7 @@ The pipeline is operational. The next step is actually using it: running it agai
 If Google eventually ships an official NotebookLM API, the migration path is clean. The agent's workflow (create notebook, add source, prime, generate, QA) stays exactly the same. Only the underlying CLI commands change. That's the benefit of wrapping the tool behind a script and an agent definition: the interface is mine, and the implementation is swappable.
 
 This is post 12 in the [Claude Code Workflow](/blog/series/claude-code-workflow) series. The config that powers this pipeline (agent definitions, skill definitions, wrapper scripts, and rules) lives in the public [claude-code-config](https://github.com/chris2ao/claude-code-config) repo.
+
+<Info title="Update, October 2026">
+I archived my `claude-code-config` repo on October 26, 2026. It stays public as a read-only snapshot, so links to it still work, but it no longer tracks my live setup, and parts of what it held have changed or been removed since. My vector memory system now carries what a shared config used to.
+</Info>

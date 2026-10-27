@@ -74,10 +74,10 @@ const projects: Project[] = [
   {
     title: "My Claude Code setup",
     description:
-      "The open-source harness behind everything above: memory that survives sessions, specialist agents, hooks, and multi-agent workflows for writing, reviewing, and shipping.",
+      "The harness behind everything above: memory that survives sessions, specialist agents, hooks, and multi-agent workflows for writing, reviewing, and shipping, written up as the Claude Harness Modernization series.",
     tech: ["Claude Code", "MCP", "Hooks"],
     variant: "compact",
-    link: "https://github.com/chris2ao/claude-code-config",
+    link: "/blog/series/Claude%20Harness%20Modernization",
   },
 ];
 

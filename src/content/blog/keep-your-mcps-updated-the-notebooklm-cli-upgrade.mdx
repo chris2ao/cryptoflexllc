@@ -113,6 +113,10 @@ This is the step I spent the most time on, and the one that decides whether the 
 
 I found four files in my `claude-code-config` repo that referenced the NotebookLM MCP: `agents/notebooklm-assistant.md`, `agents/notebooklm-content.md`, `skills/notebooklm-content/SKILL.md`, and `skills/homenet-document/SKILL.md`. All four had accumulated drift since the original setup.
 
+<Info title="Update, October 2026">
+I archived my `claude-code-config` repo on October 26, 2026. It stays public as a read-only snapshot, so links to it still work, but it no longer tracks my live setup, and parts of what it held have changed or been removed since. My vector memory system now carries what a shared config used to.
+</Info>
+
 The specific issues were small, and the kind that fail silently. The old `source_add_text` and `source_add_url` tools no longer exist as separate calls; they're consolidated into a single `source_add(source_type=url|text|drive|file, ...)`, and any doc still naming the old tools would confuse the model or fail outright. One file still referenced the pre-rename `revise-slide` instead of `studio_revise`. Another still advertised "35 tools" in its description, a number the consolidated 0.7.2 surface no longer matches, so the doc was quietly lying about its own capabilities. I dropped the hardcoded count rather than chase a figure that'll drift again next release.
 
 Beyond fixing the regressions, I added the new capabilities:

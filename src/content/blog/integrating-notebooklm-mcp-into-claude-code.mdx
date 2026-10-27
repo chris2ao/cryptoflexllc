@@ -68,7 +68,7 @@ The jacob-bd repo won on every dimension: maturity, test coverage, feature compl
 
 ## The Superpowers Pipeline
 
-This is where the session got interesting. I had the right package. Now I needed a structured approach to design and implement the integration. I used the [superpowers plugin](https://github.com/chris2ao/claude-code-config) (v5.0.6) for the first time, and it changed how I think about complex feature work.
+This is where the session got interesting. I had the right package. Now I needed a structured approach to design and implement the integration. I used the [superpowers plugin](https://github.com/obra/superpowers) (v5.0.6) for the first time, and it changed how I think about complex feature work.
 
 The plugin provides three skills that chain together into a pipeline:
 
@@ -96,7 +96,7 @@ After gathering requirements, it proposed three approaches:
 I picked option 2. The MCP server gives Claude raw access to the 35 tools. The custom agent wraps those tools into higher-level workflows: "turn this blog post into a podcast," "research these sources," "download all artifacts from this notebook." Without the agent, you are issuing one MCP tool call at a time. With it, you describe what you want and the agent orchestrates the multi-step sequence.
 
 <Info title="What Is the Superpowers Plugin?">
-Superpowers is a collection of structured Claude Code skills for common engineering workflows: brainstorming, implementation planning, subagent-driven development, and code review. Each skill enforces a specific process (sequential Q&A, task decomposition, parallel execution) rather than letting you freeform your way through a feature. The plugin lives in the [claude-code-config](https://github.com/chris2ao/claude-code-config) repo.
+Superpowers is a collection of structured Claude Code skills for common engineering workflows: brainstorming, implementation planning, subagent-driven development, and code review. Each skill enforces a specific process (sequential Q&A, task decomposition, parallel execution) rather than letting you freeform your way through a feature. The plugin lives in the [obra/superpowers](https://github.com/obra/superpowers) repo.
 </Info>
 
 The brainstorming phase produced a design document covering four sections: MCP setup, agent design, cross-platform configuration, and workflow examples. One detail worth noting: I asked about source download capability mid-session, and the brainstormer incorporated `source_get_content` into the design immediately. The structured Q&A is rigid on process but flexible on scope.
@@ -260,6 +260,10 @@ Orchestrates multi-step workflows. Instead of calling `notebook_create`, then `s
 The actual service. No official API. The MCP server talks to reverse-engineered internal endpoints that the NotebookLM web UI uses. This could break at any time if Google changes their internals.
 
 The agent lives at `~/.claude/agents/notebooklm-assistant.md` and is synced to the [claude-code-config](https://github.com/chris2ao/claude-code-config) repo. The MCP server registration lives in `~/.claude.json` and must be configured per-machine (Windows and Mac have different paths).
+
+<Info title="Update, October 2026">
+I archived my `claude-code-config` repo on October 26, 2026. It stays public as a read-only snapshot, so links to it still work, but it no longer tracks my live setup, and parts of what it held have changed or been removed since. My vector memory system now carries what a shared config used to.
+</Info>
 
 ## Cross-Platform Differences
 

@@ -99,12 +99,11 @@ describe("SelectedWork", () => {
     );
   });
 
-  it("opens the GitHub card externally and safely", () => {
+  it("links the Claude Code setup card to the harness series in the same tab", () => {
     render(<SelectedWork index={3} series={series} />);
     const link = screen.getByRole("heading", { name: "My Claude Code setup" }).closest("a")!;
-    expect(link).toHaveAttribute("href", "https://github.com/chris2ao/claude-code-config");
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link.getAttribute("rel")).toContain("noopener");
+    expect(link).toHaveAttribute("href", "/blog/series/Claude%20Harness%20Modernization");
+    expect(link).not.toHaveAttribute("target");
   });
 
   it("names each linked card by its title alone", () => {

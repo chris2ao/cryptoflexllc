@@ -40,7 +40,7 @@ const projects = [
   {
     title: "Claude Code AI Infrastructure",
     description:
-      "Automation system for Anthropic's Claude Code CLI: persistent vector memory with semantic search via MCP, knowledge graph, session archiving, 30+ custom skills, multi-repo orchestration, and a continuous learning loop. Open-source configuration repository.",
+      "Automation system for Anthropic's Claude Code CLI: persistent vector memory with semantic search via MCP, knowledge graph, session archiving, 30+ custom skills, multi-repo orchestration, and a continuous learning loop. The open-source configuration repository is archived as a read-only snapshot (October 2026).",
     tech: ["TypeScript", "MCP", "SQLite", "Claude Code"],
     link: "https://github.com/chris2ao/claude-code-config",
   },
