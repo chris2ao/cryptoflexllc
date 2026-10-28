@@ -194,6 +194,13 @@ export {
   SubagentCanaryDiagram,
 } from "./diagrams-claude-harness-modernization-3-plasticity";
 export {
+  CloudHarnessBeforeAfterDiagram,
+  CloudCanaryMatrixDiagram,
+  CloudHarnessArchitectureDiagram,
+  CloudSecretGateDiagram,
+  CloudUpdateFlowDiagram,
+} from "./diagrams-claude-harness-modernization-4-cloud-harness";
+export {
   LocalAiLessonsToControlsDiagram,
   LocalAiTrustBoundaryDiagram,
 } from "./diagrams-securing-local-ai-cryptoflix-overview";

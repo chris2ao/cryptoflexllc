@@ -1,0 +1,461 @@
+---
+title: "My Harness Lived Only on My Mac. So I Built It a Cloud Twin."
+date: "2026-10-28"
+description: "Claude Code sessions started from my phone ran on a cloud VM that had none of my rules, skills, agents or hooks. Part 4 of the Claude Harness Modernization series: the canary experiment, the two-stream design, and the secret gate that decides what is allowed to leave my Mac."
+tags: ["Claude Code", "Harness", "Cloud Sessions", "Plugins", "Security", "Python"]
+author: "Chris Johnson"
+readingTime: "17 min read"
+featured: false
+series: Claude Harness Modernization
+seriesOrder: 4
+schemaType: TechArticle
+coverImage: /blog/claude-harness-modernization-4-cloud-harness/infographic.png
+coverImageAlt: "Cover graphic for Part 4 of the Claude Harness Modernization series. A left panel labeled Mac ~/.claude lists Rules (14 files), File-guard hook, Skills (5 of 22), Agents (2 of 26), Plasticity learnings, Vector memory and LAN MCP servers. Amber arrows labeled Setup script (25 KB of 64 KB) carry the rules and the file-guard hook, and teal arrows labeled Account plugin carry skills, agents and learnings, to a right panel labeled Cloud VM cjclaudin. A vertical amber Secret Gate bar sits across the arrows. Vector memory and LAN MCP servers have red dashed lines ending in an X marked Stays home, and their cloud boxes read Not here, by design. A terminal strip at the bottom quotes the cloud session saying it has the full cloud harness, the subset meant for cloud sessions."
+---
+
+I can start a Claude Code session from my phone, and until October 27 that session was a stranger. It ran on a fresh Linux VM in Anthropic's cloud with my repo cloned in and nothing else: none of my rules, skills, agents, hooks or learnings.
+
+Fixing that took a throwaway experiment full of made-up tokens and a build tool whose job is mostly to refuse things.
+
+## Why a Phone Session Was Stock Claude Code
+
+Sessions start three ways now: the terminal on my Mac, the Code tab in the Claude iPhone app, and claude.ai/code in a browser. The last two are **cloud sessions**. They don't run on my machine at all.
+
+<Info title="What is a cloud session?">
+A cloud session runs Claude Code on a fresh, Anthropic-managed Linux VM. It clones your repo, runs, and goes away. The VM has no connection to your laptop, so anything that lives only in your local `~/.claude` folder simply doesn't exist there.
+</Info>
+
+In this series, "the harness" means my `~/.claude` folder: rules (instruction files that are always on), skills, agents (subagents), hooks, the Plasticity learnings, and MCP servers. Part 1, [My Claude Code Harness Grew Up Ad Hoc. So I Built It a Doctor.](/blog/claude-harness-modernization-1-harness-doctor), audited all of it. Part 2, [Rebuilding My Claude Code Memory: One Server, One Proxy, and a Hook That Does the Searching](/blog/claude-harness-modernization-2-memory), rebuilt the memory. Part 3 covers Plasticity, the learning layer that injects owner-approved learnings into sessions and subagents when they start.
+
+All of that is synced across three machines (a Mac, a Windows PC and a MacBook Pro) by a `/sync` skill and a private config repo, `CJClaudin_Mac`. The cloud VM isn't a fourth machine in that arrangement. It never sees any of it.
+
+So a phone session was stock Claude Code. I could think of a small fix, open the app, and get a model that didn't know how I like code reviewed or that it should never touch a `.env` file.
+
+<CloudHarnessBeforeAfterDiagram />
+
+The ticket for this, CLAUD-545, sat in my Jira backlog. On the morning of October 27 I opened a session with this:
+
+> "I wanted to review Jira item CLAUD backlog: CLAUD-545 for cloud and phone sessions. Is it possible to make my harness available skills etc available to the cloud and phone Claude / Claude code sessions? If so I would like to implement that. Maybe the first step is to do some research."
+
+I started at 09:10. The last check came back at about 23:50.
+
+## What the Docs Said (and Didn't)
+
+The research step took the docs' word for three things. They come from the [cloud environments](https://code.claude.com/docs/en/cloud-environments), [settings](https://code.claude.com/docs/en/settings) and [skills](https://code.claude.com/docs/en/skills) pages (accessed October 27):
+
+- A cloud session loads the cloned repo's committed `.claude/` folder (CLAUDE.md, rules, skills, agents, commands; hooks, permissions and `.mcp.json` only in single-repo sessions), skills enabled on the claude.ai account, and the cloud environment's **setup script**.
+- Plugins that a repo declares in its `.claude/settings.json` do not load in cloud sessions.
+- A setup script runs before Claude Code starts, is limited to 64 KB, and has its result cached for about 7 days.
+
+The second bullet killed the idea the ticket started with, a plugin marketplace declared in a repo. The third one set the budget that shaped everything afterward.
+
+<Info title="What is a setup script?">
+Each cloud environment can have a shell script that runs on the VM before Claude Code starts. It can install packages or write files, including files under the VM's `~/.claude`. That makes it a delivery path for anything small enough to fit in 64 KB.
+</Info>
+
+The docs confirmed exactly one capability directly: a setup script can write `~/.claude/CLAUDE.md`. Whether it could also drop in rules, skills, agents or hooks was an open runtime question. So was whether an uploaded account plugin would show up at startup. A guess would have been cheap. Evidence was better.
+
+Here's how big the thing I wanted to ship actually was, measured on the Mac that day:
+
+| Piece | Size on the Mac | Fits in a 64 KB script? |
+|---|---|---|
+| Rules | 20,137 bytes in 16 files | Yes |
+| Agents | 171,302 bytes in 26 files | No |
+| Skills | 22 folders, about 4.9 MB | No |
+
+So how do you get 4.9 MB of skills into a 64 KB budget? You can't. Rules fit with room to spare, agents and skills never would, and whatever I built had to be two things, not one.
+
+## Asking the VM What It Can See
+
+Instead of guessing, I built a throwaway test kit in `CJClaudin_Research`, my research repo, under `experiments/cloud-harness-payload/`. Each delivery path planted a unique, made-up token, a **canary**. At the end, you ask the cloud Claude which tokens it can see. If it can quote `CANARY-USER-RULES-M4X9`, that path loaded. If it can't, it didn't.
+
+<Info title="What is a canary token?">
+A canary is a unique string that has no reason to exist anywhere except the one place you planted it. If the model can repeat it back, the file it lives in made it into context. It turns "I think this loaded" into a yes or no.
+</Info>
+
+My first reaction to the test instructions is worth admitting, because it changed how the rest of the day went. I read the first version of the README and replied: "I read the instructions in the readme but I still don't understand can you make it more ELI5". The instructions became plain click-by-click steps under an "In plain words" heading. From then on, every manual step was written that way, and nobody (me included) wasted time decoding the tooling.
+
+The run happened on October 27, in Claude Code 2.1.312 inside the VM, with `CLAUDE_CODE_REMOTE=true`. The setup script ran as root with `HOME=/root`. Ten hypotheses:
+
+| Test | Delivery | Result |
+|------|----------|--------|
+| H1 | Setup script appends to the VM's `~/.claude/CLAUDE.md` | pass: K7P2 in context |
+| H2 | Setup script writes `~/.claude/rules/cjc-canary.md` | pass: M4X9 in context |
+| H3 | Setup script writes a skill | pass (listed) |
+| H4 | Setup script writes an agent | pass (listed) |
+| H5 | Setup script merges a SessionStart hook into the VM's `settings.json` | pass: hook output reached the model on `startup`; the platform did not overwrite `settings.json` |
+| H6 | Skill uploaded to the claude.ai account | pass (listed as `anthropic-skills:cjc-account-canary`) |
+| H7 | Plugin uploaded to the account (skill, agent, SessionStart hook) | pass: skill and agent listed, hook output reached the model |
+| H8 | Repo skill committed in the repo | not reported |
+| H9 | Setup script reaches private GitHub repos (`git ls-remote`) | FAIL |
+| H10 | Second session in the same environment keeps the setup files | partial |
+
+<CloudCanaryMatrixDiagram />
+
+Seven clean passes, one not reported, one partial, and one hard failure. The failure comes first, because it decided the architecture.
+
+<Warning title="The setup script has no git credentials">
+H9 failed because the setup script has no git credentials while it runs. The platform's own clone of the working repo worked fine. But a script can't `git clone` a private repo of generated files to fetch its payload, so the payload has to be inline, under 64 KB.
+</Warning>
+
+The second finding was about timing, and it was the one that made me nervous. In the first canary session, the account skill and the plugin's items were missing at startup. They only appeared after the session resumed, and the plugin's hook fired with source `resume`, not `startup`. In the second session, everything was there from the start. I never settled whether the uploads had finished late or whether account sync can lag a first startup. The setup-script items were there at startup every time.
+
+That asymmetry is why the rules and the safety hook ended up where they did. The first session's own summary says it plainly: "All 9 tokens showed up, but the plugin and account ones only appeared after the session resumed." The second session, titled "Claude configuration diagnostics" in an environment named `cjc-harness-test`, listed every layer as present. It also noted that both `git ls-remote` probes failed because "The script has no git credentials at that stage".
+
+Here's the first session's summary as it came back, with the startup tokens and the late arrivals split into two lists:
+
+![Screenshot of the first canary session's summary in the Claude app. It reports that all 9 tokens showed up but the plugin and account ones only appeared after the session resumed. Under At session startup it lists the five setup-script canaries: the user CLAUDE.md, the rules file, the SessionStart hook on startup, the setup agent and the setup skill. Under Only after the session resumed it lists the plugin hook on resume, the plugin agent, the plugin skill and the account skill.](/blog/claude-harness-modernization-4-cloud-harness/canary-first-session-resume.png)
+
+One more small result: the repo's own MCP server, `rea`, failed in the VM with `CONNECTION_CLOSED`. Its tooling is only installed on the Mac. Servers that depend on my machine stay on my machine.
+
+## The Design: Two Streams Into One VM
+
+After the experiment I told the session to commit it and start designing the real version. The brainstorming skill started asking clarifying questions, and I answered with two words: "enough, go." So the design was written from what we knew, with every assumption labeled as my call, and I approved it.
+
+The design is two generated pieces, both built from the live `~/.claude` (read-only) by a build tool in `CJClaudin_Mac` at `scripts/cloudbuild/`:
+
+1. **An account plugin named `cjclaudin`**, published from a new private repo, `CJClaudin_Cloud`, which acts as a plugin marketplace. claude.ai syncs it automatically, so changes reach cloud sessions without an upload. It carries skills, agents, and a session-start hook that injects the Plasticity learnings. Its components appear namespaced, for example `cjclaudin:brainstorming`.
+2. **A cloud environment, also named `cjclaudin`, with a generated setup script** (`environment/setup.sh`). Before Claude starts, it writes the rules, a short cloud CLAUDE.md and a file-guard safety hook into the VM's `~/.claude`.
+
+<CloudHarnessArchitectureDiagram />
+
+The split follows the experiment. Rules and the safety hook go through the setup script because setup-script content loaded at startup every time, while account content once arrived only after a resume. Skills, agents and learnings go through the plugin because they're too big for 64 KB and because a plugin updates itself.
+
+The plugin lives in its own repo instead of a folder inside `CJClaudin_Mac`. The Claude GitHub App has to be given access to whatever hosts the marketplace, and a repo of generated, scanned content is a better thing to expose than my config repo's personal docs. The tradeoff is a second repo. Every file in `CJClaudin_Cloud` is generated, its README says so, and the build refuses to overwrite an output folder that contains files it doesn't recognize.
+
+The alternatives that got dropped:
+
+- **A marketplace declared in a repo's `.claude/settings.json`:** cloud sessions don't load repo-declared plugins.
+- **Setup script only:** rules fit, but agents and skills don't, and the script can't fetch a private payload.
+- **Account plugin only:** plugins can't ship rules or CLAUDE.md, and account content had arrived late once.
+- **Committing `.claude/` into every repo used from the phone:** the copies drift.
+- **Remote Control server mode:** it runs phone sessions on the Mac with the full harness, but only while the Mac is awake. It stays an option for work that needs my home network.
+
+### What ships, and what doesn't
+
+Version one is an allowlist. This is `cloud/include.txt`, verbatim:
+
+```text
+# CJClaudin cloud allowlist (CLAUD-545). One "<kind> <name>" per line.
+# Every rules/**/*.md ships unless a rule-exclude line names its path under rules/.
+rule-exclude operations/macos-platform.md
+rule-exclude operations/windows-platform.md
+skill brainstorming
+skill writing-plans
+skill systematic-debugging
+skill parallel-fanout-build
+skill blog-mdx-prepublish-check
+agent code-reviewer
+agent security-reviewer
+```
+
+Fourteen rule files ship (everything except the two platform files, since the VM runs Linux), five skills and two agents. That's a small slice of a harness with 22 skills and 26 agents, and it was meant to be.
+
+NotebookLM drew the allowlist as a pipe with three filters, which is a fair way to picture it:
+
+![Slide showing raw local files flowing through a pipe with three filter gates, labeled operations/macos-platform.md and windows-platform.md, workflow-backed skills, and scripts requiring LAN access or local CLI auth, into a clean payload of 14 rules, 5 skills and 2 agents. Below it: Engine, Python 3 cloudbuild package; Coverage, 99%; Tests, 125 passed in 3.92s.](/blog/claude-harness-modernization-4-cloud-harness/what-ships-filter-pipeline.png)
+
+The leftovers stay home for reasons. `neon` and `neon-postgres` have vendor examples that trip the secret scan. `blog-post` and `ui-ux` run Workflow scripts, which plugins can't ship. The research skills depend on local Exa and Firecrawl MCP servers, and `harness-doctor`, `sync` and `wrap-up` lean on local scripts, my LAN, or local CLI auth. No commands ship.
+
+Version one also skips the LAN MCP servers (vector memory, UniFi, Pi-hole, ClickHouse, which is its own ticket, CLAUD-482), workflow-backed skills, the research family, and keyword-triggered learnings. The design lists anti-goals too, written down so there'd be something to check the finished thing against:
+
+> "No secrets in the marketplace repo, the setup script or the plugin. Nothing from `secrets.env` and no API keys; the build refuses on a secret-scan hit." "No duplicate skills, agents or hooks in local sessions on any of the three machines." "No hand-edited cloud copy." "No cloud hook that errors, stalls or nags because it expects a LAN service, a Mac tool or a local script." "No silently stale rules in cloud sessions."
+
+The fifth one is the one that cost the most work.
+
+## The Build
+
+The implementation plan had 3 waves and 13 tasks. Wave 1 was four `parallel-safe` tasks, each built by its own sonnet implementer agent in a shared git worktree: allowlist parsing and frontmatter normalizing, the setup script renderer, the plugin manifests and learnings renderer, and the cloud context hook. Wave 2 was build orchestration and the publish command, marked `critical`, and it got a security review. Wave 3 covered publishing, my manual steps, and phone verification.
+
+I'd approved fanning out agents for design and implementation, with one condition: if I had to do anything by hand, write it ELI5.
+
+Two of the implementers reported on their own process, and the contrast stuck. One said: "I didn't run the tests before the code existed, so I never saw the red step. I wrote the tests and the implementation in one pass, then ran them once." Another said: "I wrote the tests first and saw them fail on the missing import before implementing." The first kind of report beats a clean summary that hides the gap. It's also a reminder that "test-first" in a prompt is a request, not a guarantee.
+
+The result is a Python 3 standard-library package with 125 tests passing in about four seconds, across 16 commits in `CJClaudin_Mac`.
+
+### Three commands
+
+You run it as `python -m cloudbuild` plus one of:
+
+- **`build`** reads `~/.claude`, copies the allowlisted items, and normalizes frontmatter. It drops my custom `platform` key. On agents it also drops `hooks`, `mcpServers` and `permissionMode`, which plugin agents ignore. Then it renders everything and runs every check. If any check fails, it writes nothing.
+- **`publish`** builds into the local `CJClaudin_Cloud` clone, commits `chore: CLAUD-545 build <stamp>` and pushes. It refuses unless the repo top level, the fetch URL and every push URL match `CJClaudin_Cloud`. The branch has to be `main`.
+- **`allow`** prints a fingerprint for one reviewed line. More on that in the secret gate.
+
+The build stamp looks like `2026.10.27-cef4aad8`: the date plus the first 8 hex characters of a digest over the source and over the generator's own code. Changing the generator counts as a change too.
+
+The generated repo holds 22 files: the marketplace manifest, the `cjclaudin` plugin (two agents, five skills with their reference files, a hooks file, the context hook script, the learnings), `environment/setup.sh`, a `BUILD.json` with a sha256 per file, a README and a `.gitignore`.
+
+### The plugin side
+
+The plugin manifest is short:
+
+```json
+{
+  "name": "cjclaudin",
+  "version": "2026.10.27-cef4aad8",
+  "description": "CJClaudin harness for Claude Code cloud sessions: skills, agents and session-start learnings. Rules come from the cjclaudin environment.",
+  "author": {
+    "name": "Chris Johnson"
+  }
+}
+```
+
+The hooks file wires one script to two events, so the same code serves the main session and its subagents:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/cloud-context.sh\" SessionStart",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/cloud-context.sh\" SubagentStart",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The script prints the learnings and a build line as JSON under `hookSpecificOutput.additionalContext`. It does two other jobs, and they're the ones I'm fonder of. First, it stays silent on any machine that has the native harness. Second, it compares fingerprints to catch stale rules. An excerpt:
+
+```bash
+# The native harness handles context itself, so stay silent there.
+[ -f "${HOME:-/nonexistent}/.claude/hooks/dispatch.sh" ] && exit 0
+...
+# Only the cjclaudin environment's setup script writes the VM's setup.sha256. Missing means
+# another environment or Cowork (no rules here, nothing to fix); different means stale rules.
+stale=""
+stale_msg="Cloud rules are stale: upload environment/setup.sh from CJClaudin_Cloud to the cjclaudin environment"
+vm_digest="${HOME:-/nonexistent}/.claude/cjclaudin/setup.sha256"
+if [ -r "$ctx/setup.sha256" ]; then
+  want="$(head -n 1 "$ctx/setup.sha256" 2>/dev/null | tr -d '[:space:]')"
+  if [ -r "$vm_digest" ]; then
+    have="$(head -n 1 "$vm_digest" 2>/dev/null | tr -d '[:space:]')"
+    [ "$want" != "$have" ] && stale="1"
+  else
+    stale="1"
+    stale_msg="cjclaudin rules are not installed in this session: only the cjclaudin cloud environment installs them"
+  fi
+fi
+```
+
+The plugin knows which rules version it expects. The VM knows which rules version the setup script wrote. When they disagree, the model hears about it at session start. That's how rules stay honest even though they travel by a different road than everything else.
+
+### The setup script side
+
+`environment/setup.sh` is 25,262 bytes, against a build guard of 61,440 and the platform's 64 KB limit. It opens like this:
+
+```bash
+#!/usr/bin/env bash
+# CJClaudin cloud environment setup. Generated by CJClaudin_Mac scripts/cloudbuild. Do not edit.
+set -u
+
+C="${HOME:-/root}/.claude"
+# A machine with the native harness is never the cloud VM: change nothing there.
+if [ -f "$C/hooks/dispatch.sh" ]; then
+  echo "cjclaudin setup: native harness found in $C, nothing changed"
+  exit 0
+fi
+```
+
+That guard exists because the Wave 1 code review found a HIGH: the first version had no check at all, so running the script on a real Mac would have written cloud rules over my live harness. The fix is those few lines at the top. I'm glad a reviewer found it before I did, in the worst possible way.
+
+After the guard, the script writes a cloud CLAUDE.md block between `<!-- cjclaudin:start -->` and `<!-- cjclaudin:end -->` markers. It replaces an old block but keeps any other text. The block tells the session where it is:
+
+> "This session runs on an Anthropic cloud VM, not on the owner's Mac, PC or MacBook Pro." ... "Unavailable here: vector memory, Plasticity commands, the session archive, and LAN MCP servers (UniFi, Pi-hole, ClickHouse). Skip memory saves; put anything worth keeping in the final message or in a Jira comment, since the Atlassian connector works here." ... "Never ask for, print or store secrets. There is no secrets.env here."
+
+Each rule is written through a quoted heredoc with the delimiter `CJCLAUDIN_EOF_7Q2W`, so the rules stay readable inside the environment dialog. The build checks that no rule line equals the delimiter. The script also writes the file-guard hook and merges a `PreToolUse` entry for `Edit|Write` into the VM's `settings.json` without clobbering other keys. A malformed `settings.json` is left untouched.
+
+The last step has a comment worth quoting: `# The stamp goes last and only after a clean run, so a half-finished VM reports stale rules.` The `setup.sha256` file is written only if nothing failed. The setup id is a content digest over the template, the rules and the file-guard, not a date. So the script changes only when the rules change, and only rule changes ever need a re-upload.
+
+If you skipped the bash, the whole script reduces to three stages:
+
+![Slide titled environment/setup.sh with a payload box reading 25,262 bytes against an internal guard limit of 61,440 bytes. Three stacked stages connected by arrows: Native Guard, which checks for dispatch.sh to prevent overwriting the local Mac harness; Rule Delivery, which uses the CJCLAUDIN_EOF_7Q2W heredoc delimiter to write 14 rules sequentially; and Execution Verification, which writes the setup.sha256 content digest only upon clean execution.](/blog/claude-harness-modernization-4-cloud-harness/setup-script-three-stages.png)
+
+The dependency scan is the other piece of discipline here. Every included item is scanned for things that only exist on my machine, and the build fails if it finds one:
+
+```python
+DEPENDENCY_PATTERN = re.compile(
+    r"~/\.claude/scripts|\$HOME/\.claude/(scripts|hooks|plasticity|workflows)"
+    r"|mcp__(vector-memory|unifi|pihole|notebooklm|exa|firecrawl|clickhouse|project-tools|rea)__"
+    r"|osascript|launchctl|research-repo\.sh|Workflow tool|workflows/|secrets\.env|nlm |/Volumes/")
+```
+
+So a later edit that adds a Mac-only dependency to a shipped skill fails the build, instead of quietly breaking phone sessions.
+
+## The Secret Gate
+
+Everything the build ships ends up in a pushed GitHub repo and then in every cloud session. That's why the scan had to be strict, and it's where the day zigzagged the most.
+
+The first live build run stopped with `build refused: secret-like text in skill neon: SKILL.md`. The Neon vendor skill's example snippets look like credentials. Dropping `neon` and `neon-postgres` from v1 fixed it.
+
+The next run stopped with `build refused: secret-like text in agent security-reviewer: security-reviewer.md`. The cause was the agent's own checklist headings, "Secrets" and "Authentication and authorization". My security agent got flagged for talking about security. It still had to be solved properly.
+
+The fix is a reviewed allowlist, `cloud/secret-allowlist.txt`. It holds sha256 fingerprints of exact source lines, never the text itself. Its header reads: "# One sha256 of an exact source line per entry, then a note. Editing the line changes its hash, so the scan flags it again. Never put secret text here." Three prose lines in `security-reviewer.md` are allowlisted.
+
+<Security title="Why fingerprints, not text">
+If the allowlist stored the flagged text, it would be a second place for a secret to live. Storing a hash of the exact line means an approved line stays approved only while it is byte-for-byte identical. Edit it, and the scan flags it again.
+</Security>
+
+<CloudSecretGateDiagram />
+
+### Letting the security reviewer review the security gate
+
+Then came the obvious step: point the `security-reviewer` agent at the build code (Tasks 5 and 6). The first pass found no CRITICAL, 2 HIGH, 3 MEDIUM and 7 LOW, with the verdict "fix before the first publish." It also said "No secret has leaked", which I appreciated, and the next two passes were about keeping that true.
+
+**HIGH 1: the scan never checked real secret values.** The reviewer's finding: "9 of the 16 secrets.env values would pass the scan if they appeared bare in a rule, skill, agent or learning." Its scenario was mine to be embarrassed by: "the owner pastes a key into a skill example, or a learning quotes one. /sync publishes automatically, pushes it to GitHub and loads it into every cloud session." Pattern matching catches things that look like keys. It doesn't catch a key that looks like a random word.
+
+The fix reuses the harness's existing publish gate (`plasticity.publish_detect`) and adds literal values from every file in `~/.claude/secrets`. The live build then reported `literal values loaded: 17`. A literal-value hit can never be allowlisted.
+
+**HIGH 2: the scan failed open on content it couldn't read.** What does a scanner do with a file it can't read? This one let it through. The reviewer proved it with a synthetic home directory. A symlink to the secrets file inside a skill folder was shipped with its contents. A `.env` dotfile was shipped. A UTF-16 file holding a fake key was shipped, because the scanner read it as garbage and moved on. The fix refuses symlinks, dotfiles, key-style file names, NUL bytes and non-UTF-8 text.
+
+<Stop title="A scan that skips what it can't read">
+A secret scanner that treats unreadable files as clean is worse than no scanner, because it makes you feel checked. Refusal has to be the default for anything the scan can't see.
+</Stop>
+
+The MEDIUM findings were quieter and, in two cases, scarier:
+
+- The output guard trusted any folder with a file named `BUILD.json`, so a wrong `--out` path could have been wiped. The build now parses and validates `BUILD.json` and refuses unknown files.
+- `publish` never checked it was publishing to `CJClaudin_Cloud`. The reviewer showed it could commit into an unrelated parent repo and, without `--no-push`, push it, "which could be public (cryptoflexllc)". That would have been this site's repo. It now checks the top level, every origin and push URL, and the branch.
+
+A third finding was about the allowlist itself. A refusal printed only a hash, which invited blind approval. Now refusals print `path:line` and the detector type, never the text, and only `allow` produces an entry, after a human has looked at the line. A real refusal reads like this:
+
+```text
+build refused: secret-like text in agents/security-reviewer.md:54. Look at that line; only if the owner confirms it is prose, run python -m cloudbuild allow agents/security-reviewer.md:54 and append its output to cloud/secret-allowlist.txt
+```
+
+The re-review found one more MEDIUM: a secret split across two lines, sitting next to an allowlisted line. It was fixed, and the reviewer's final check is the sentence I'd frame: the real `security-reviewer.md`, with the real allowlist and a two-line "Password:" secret appended, "is now refused with 'spans lines; not allowlistable'."
+
+Across three passes the count was 2 HIGH, 4 MEDIUM and 13 LOW. Everything is fixed except one LOW, a lock and atomic swap for the output folder, which went to a bundle ticket, CLAUD-565.
+
+## Publishing, and the Two Steps That Were Mine
+
+The first real publish printed this:
+
+```text
+stamp: 2026.10.27-1bda1cdf
+files: 22
+changed: yes
+setup.sh changed: yes (upload it to the cjclaudin environment)
+published: 2026.10.27-1bda1cdf
+ACTION: upload environment/setup.sh to the cjclaudin environment (claude.ai/code)
+```
+
+Running it again with nothing changed:
+
+```text
+stamp: 2026.10.27-79b0ce03
+files: 22
+changed: no
+setup.sh changed: no
+nothing to publish
+```
+
+Two things had to be done by hand, once, in the claude.ai UI.
+
+Step A is adding the plugin. Go to Customize, Plugins, Add, Add marketplace, and type the repo name. Give the Claude GitHub App access to only `CJClaudin_Cloud`, turn on Sync automatically, and switch on the `cjclaudin` plugin.
+
+Step B is making the environment. Open the environment picker at claude.ai/code, choose New environment, and name it `cjclaudin`. Pick the setup script file, then click Add environment.
+
+Step B hit a mismatch between the docs and the real screen. The docs, and my own instructions, said to leave network access on "Trusted". The dialog had no such option, and I said so: "These are the options for network, there is no trusted option". The actual dropdown offers three choices: **None** ("Sessions can't reach the internet."), **Limited** ("Sessions reach only what you allow below.") and **Full** ("Sessions can reach any domain."). There's also an "Allow package managers" checkbox, ticked. Limited with package managers allowed is what the docs call Trusted, and the README now says so.
+
+This is the screen I was looking at:
+
+![Screenshot of the Network access dialog when adding a cloud environment. The dropdown is open with three options: None, Sessions can't reach the internet; Limited, Sessions reach only what you allow below, which is checked; and Full, Sessions can reach any domain. Below it an Allow package managers checkbox is ticked, next to Cancel and Add environment buttons.](/blog/claude-harness-modernization-4-cloud-harness/network-access-options.png)
+
+<Warning title="Docs can lag the UI">
+The docs said "Trusted" and the screen said "Limited" plus a checkbox. If step-by-step instructions you wrote from documentation don't match what the person sees, believe the person.
+</Warning>
+
+## Checking It From My Phone
+
+A read-only verification prompt went into a brand new phone session: Claude app, Code tab, one of my repos, environment `cjclaudin`. Its report quoted the setup line and the build line, and both matched the publish output.
+
+It listed the skills with the `cjclaudin:` prefix: blog-mdx-prepublish-check, brainstorming, parallel-fanout-build, systematic-debugging and writing-plans. Then it listed the agents, code-reviewer and security-reviewer. And then came the sentence the whole day was aimed at: "All of these were already in my initial context, so the cjclaudin plugin was present at startup."
+
+The tail of the setup log it printed:
+
+```text
+wrote /root/.claude/rules/operations/performance.md
+wrote /root/.claude/hooks/file-guard.sh
+settings.json merged
+wrote setup.sha256
+cjclaudin setup done
+---
+CLAUDE_CODE_REMOTE=true
+2.1.312 (Claude Code)
+```
+
+It ran the `cjclaudin:code-reviewer` agent, which replied with the single word `OK`. Then it tried to write a `.env` file, to see whether the safety hook was really live:
+
+```text
+PreToolUse:Write hook error: [bash "$HOME/.claude/hooks/file-guard.sh"]: BLOCKED: Cannot modify sensitive file '.env'. Edit environment files manually.
+```
+
+No `.env` file was created. For the stale-rules test, the session wrote `x` into `setup.sha256`, and the hook's output ended with "Cloud rules are stale: upload environment/setup.sh from CJClaudin_Cloud to the cjclaudin environment". It restored the file, and the hashes matched again.
+
+Its summary table had 11 checks, and every one said yes. Unlike the first canary session, the plugin was present from the first turn: "Only the GitHub and Vercel connectors arrived later."
+
+Here's that run as a single card, with five of the eleven checks and the file-guard's block message:
+
+![Slide reading 11 of 11 Checks Passed. A card lists the test environment as the Claude app, Code tab, repo Third-Conflict, environment cjclaudin, with five ticked checks: setup id and build stamp match; all 5 skills and 2 agents present at initial startup; code-reviewer agent executed successfully; stale-rules warning triggered on fingerprint mismatch; file-guard execution blocked test write. A terminal pane at the bottom shows BLOCKED: Cannot modify sensitive file '.env'.](/blog/claude-harness-modernization-4-cloud-harness/phone-verification-11-of-11.png)
+
+A separate web session in the `cjclaudin` environment got a simpler question: "Do you have all my tools and skills?" It answered: "You have the full cloud harness, which is the subset meant for cloud sessions. It isn't everything from your Mac." It listed the 14 rule files, the five skills, the two agents, and the hooks ("the file-guard runs before every Edit or Write, and the session-start hook loaded your Plasticity learnings, which appeared at startup").
+
+![Screenshot crop of a web cloud session in environment cjclaudin. Asked whether it has all the tools and skills, Claude lists 14 rules, five skills, two agents and the hooks as loaded, and lists vector memory, Plasticity commands, LAN servers and Mac scripts as unavailable by design.](/blog/claude-harness-modernization-4-cloud-harness/cloud-session-inventory-crop.png)
+
+Then came a section titled "Not available here, by design": vector memory, Plasticity commands, the session archive, the LAN MCP servers, and Mac-side scripts. I wrote that last list into the cloud CLAUDE.md on purpose, and it was nice to hear it read back.
+
+## Updates Without Uploading
+
+Every `/sync` on the Mac now ends with a new Step 7 that runs `python -m cloudbuild publish`. If the plugin changed, it pushes `CJClaudin_Cloud` and claude.ai syncs it. If the rules changed, it prints the ACTION line and the plain-language re-upload steps. Cloud sessions print "Cloud rules are stale" until the new script is uploaded.
+
+<CloudUpdateFlowDiagram />
+
+Later that day, after two more fixes, I published build `2026.10.27-cef4aad8`, with `setup.sh changed: no`. Then I opened a fresh cloud session and checked its build line. My report back was four words and a hash: "cleanup done, build shows cef4aad8". No upload, and no click in claude.ai.
+
+So there are two kinds of edit now. A skill, agent or learning change is a `/sync` and a new session. A rule change is a `/sync`, one re-upload of `setup.sh`, and a stale warning in every cloud session until it's done.
+
+## Two Fixes That Came From Side Notes
+
+Side agents send heads-ups while a build session works, and two of them paid for themselves.
+
+The first noticed that sessions outside the `cjclaudin` environment (Cowork tasks, phone sessions on the Default environment) would print a false "rules are stale" warning, because only the cjclaudin setup script writes the fingerprint file. Its risk statement was exact: "you learn to ignore the warning and miss a real one later." The fix is the branch in the script excerpt above. A missing file prints "cjclaudin rules are not installed in this session", and only a present but different file prints the stale warning.
+
+The second was about my own idea. I'd added an age warning that fired when the build was more than 7 days old. A side agent pointed out it would fire after every quiet week, because a build is only made when the harness changes, so its date marks the last change, not the last check. The warning is gone. It was a fine idea right up until someone asked what the date actually measures.
+
+## Keeping the Local Machines Clean
+
+The account plugin is account-wide, so it also syncs down to the Mac, PC and MacBook Pro, which already have the native harness. Left alone, every harness skill would be listed twice.
+
+<Tip title="Disable it once per machine">
+Run `claude plugin disable cjclaudin@synced` once on each machine. On the Mac it worked even before the plugin had synced down, and wrote `"cjclaudin@synced": false` into settings. The hook's `dispatch.sh` check is a backstop: on a machine with the native harness it prints nothing.
+</Tip>
+
+The Mac is done. The PC and MacBook Pro are a separate ticket, CLAUD-569. The five skills also show up in claude.ai chat and Cowork, because there's no per-surface switch. That's a tradeoff I accepted.
+
+## What's Not Here, and How I'll Know It's Wrong
+
+The follow-ups are all tickets: CLAUD-565 for the review findings bundle (including the lock and atomic swap), CLAUD-566 for the research skills via the claude.ai Firecrawl connector, CLAUD-567 for `/blog-post` and `/ui-ux` in the cloud, CLAUD-568 for keyword-triggered learnings, and CLAUD-482 for the LAN MCP servers over Tailscale.
+
+The decision record holds three tripwires. A cloud session's `cjclaudin build` line shows a date long before the last harness change. `/sync` says `nothing to publish` when the harness did change. Or the harness skills start misfiring in claude.ai chat. Any of those means the design is wrong.
+
+The canary environment is archived and the test skill and plugin are gone from the account. The experiment, design, plan and decision record all live in `CJClaudin_Research`, and CLAUD-545 is Done.
+
+If you'd rather skim this as slides, the deck is here: [Cloud harness slide deck (PDF)](/blog/claude-harness-modernization-4-cloud-harness/slides.pdf). NotebookLM built it from the same notes as this post. I kept the nine slides that checked out against those notes and cut six that had small errors or muddled diagrams.
