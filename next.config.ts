@@ -60,6 +60,14 @@ const nextConfig: NextConfig = {
   },
   headers: async () => [
     {
+      // Keep Vercel preview and deployment URLs out of search results. This
+      // used to be done in middleware, which ran a function on every page
+      // request; a static header rule costs nothing per request.
+      source: "/:path*",
+      has: [{ type: "host", value: ".*\\.vercel\\.app" }],
+      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+    },
+    {
       source: "/:path*",
       headers: [
         {

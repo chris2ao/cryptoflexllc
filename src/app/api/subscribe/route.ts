@@ -49,7 +49,9 @@ export async function GET() {
       { count },
       {
         headers: {
-          "Cache-Control": "public, max-age=300",
+          // s-maxage lets the CDN answer repeat requests for five minutes
+          // instead of invoking this function on every page view.
+          "Cache-Control": "public, max-age=300, s-maxage=300",
         },
       }
     );

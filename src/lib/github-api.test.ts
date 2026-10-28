@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getFileContents, createFile, GitHubApiError } from "./github-api";
+import { getFileContents, createFile, moveFile, GitHubApiError } from "./github-api";
 
 const PATH = "src/content/backlog/example.mdx";
 
@@ -85,5 +85,80 @@ describe("github-api error reporting", () => {
     await expect(getFileContents("../../etc/passwd")).rejects.toThrow(
       /Invalid repository path/
     );
+  });
+});
+
+describe("moveFile", () => {
+  const FROM = "src/content/backlog/example.mdx";
+  const TO = "src/content/blog/example.mdx";
+
+  beforeEach(() => {
+    vi.stubEnv("GITHUB_TOKEN", "test-token");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  function gitDataFetch(refUpdateStatus = 200) {
+    return vi
+      .fn()
+      .mockResolvedValueOnce(mockResponse(200, { object: { sha: "parent-sha" } }))
+      .mockResolvedValueOnce(mockResponse(200, { tree: { sha: "base-tree" } }))
+      .mockResolvedValueOnce(mockResponse(201, { sha: "new-tree" }))
+      .mockResolvedValueOnce(mockResponse(201, { sha: "new-commit" }))
+      .mockResolvedValueOnce(mockResponse(refUpdateStatus, {}));
+  }
+
+  // Regression: publishing made one commit to add the post and a second to
+  // delete the draft, so Vercel built and stored two deployments per publish.
+  it("adds and removes in one commit and moves main without forcing", async () => {
+    const fetchMock = gitDataFetch();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await moveFile(FROM, TO, "body", "publish: example");
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    const [treeUrl, treeInit] = fetchMock.mock.calls[2];
+    expect(treeUrl).toMatch(/\/git\/trees$/);
+    expect(JSON.parse(treeInit.body)).toEqual({
+      base_tree: "base-tree",
+      tree: [
+        { path: TO, mode: "100644", type: "blob", content: "body" },
+        { path: FROM, mode: "100644", type: "blob", sha: null },
+      ],
+    });
+
+    const [, commitInit] = fetchMock.mock.calls[3];
+    expect(JSON.parse(commitInit.body)).toEqual({
+      message: "publish: example",
+      tree: "new-tree",
+      parents: ["parent-sha"],
+    });
+
+    const [refUrl, refInit] = fetchMock.mock.calls[4];
+    expect(refUrl).toMatch(/\/git\/refs\/heads\/main$/);
+    expect(refInit.method).toBe("PATCH");
+    expect(JSON.parse(refInit.body)).toEqual({ sha: "new-commit", force: false });
+  });
+
+  it("keeps the status when main moved underneath the commit", async () => {
+    vi.stubGlobal("fetch", gitDataFetch(422));
+
+    const error = await moveFile(FROM, TO, "body", "msg").catch((e) => e);
+    expect(error).toBeInstanceOf(GitHubApiError);
+    expect(error.status).toBe(422);
+  });
+
+  it("rejects paths outside src/content/ before calling GitHub", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(moveFile(FROM, "../../etc/passwd", "x", "m")).rejects.toThrow(
+      /Invalid repository path/
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

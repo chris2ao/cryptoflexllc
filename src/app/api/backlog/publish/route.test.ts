@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import matter from "gray-matter";
 import { POST } from "./route";
-import { createFile, deleteFile, getFileContents } from "@/lib/github-api";
+import { getFileContents, moveFile } from "@/lib/github-api";
 import { getBacklogPostBySlug, getPostBySlug, type BlogPost } from "@/lib/blog";
 
 vi.mock("@/lib/analytics-auth", () => ({ verifyApiAuth: () => true }));
@@ -15,8 +15,7 @@ vi.mock("@/lib/rate-limit", () => ({
 vi.mock("@/lib/github-api", () => ({
   isGitHubApiConfigured: () => true,
   getFileContents: vi.fn(),
-  createFile: vi.fn(),
-  deleteFile: vi.fn(),
+  moveFile: vi.fn(),
 }));
 
 // Keep the real toPublishedFrontmatter; stub only the filesystem lookups.
@@ -63,8 +62,7 @@ beforeEach(() => {
   vi.mocked(getBacklogPostBySlug).mockReturnValue(draft);
   vi.mocked(getPostBySlug).mockReturnValue(undefined);
   vi.mocked(getFileContents).mockResolvedValue({ content: DRAFT_FILE, sha: "abc123" } as never);
-  vi.mocked(createFile).mockResolvedValue(undefined as never);
-  vi.mocked(deleteFile).mockResolvedValue(undefined as never);
+  vi.mocked(moveFile).mockResolvedValue(undefined as never);
 });
 
 afterEach(() => {
@@ -82,16 +80,18 @@ describe("POST /api/backlog/publish", () => {
 
     expect(res.status).toBe(409);
     expect(getPostBySlug).toHaveBeenCalledWith(SLUG, { includeUnpublished: true });
-    expect(createFile).not.toHaveBeenCalled();
+    expect(moveFile).not.toHaveBeenCalled();
   });
 
   it("publishes without the draft's published flag, dated today", async () => {
     const res = await publish();
 
     expect(res.status).toBe(200);
-    expect(createFile).toHaveBeenCalledTimes(1);
-    const [blogPath, content] = vi.mocked(createFile).mock.calls[0];
+    expect(moveFile).toHaveBeenCalledTimes(1);
+    const [backlogPath, blogPath, content, message] = vi.mocked(moveFile).mock.calls[0];
+    expect(backlogPath).toBe(`src/content/backlog/${SLUG}.mdx`);
     expect(blogPath).toBe(`src/content/blog/${SLUG}.mdx`);
+    expect(message).toBe(`publish: ${SLUG}`);
 
     const { data, content: body } = matter(content as string);
     expect(data).not.toHaveProperty("published");
@@ -101,13 +101,16 @@ describe("POST /api/backlog/publish", () => {
     expect(body.trim()).toBe("Body text.");
   });
 
-  it("still reports success when removing the backlog copy fails", async () => {
-    vi.mocked(deleteFile).mockRejectedValue(new Error("GitHub 500"));
+  // Publishing used to make two commits (add, then delete), so every publish
+  // built and stored two Vercel deployments. A failed move now leaves the
+  // repository untouched instead of half published.
+  it("reports a failed move and leaves nothing half published", async () => {
+    vi.mocked(moveFile).mockRejectedValue(new Error("GitHub returned 422."));
     vi.spyOn(console, "error").mockImplementation(() => {});
 
     const res = await publish();
 
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ success: true, slug: SLUG });
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toMatch(/422/);
   });
 });

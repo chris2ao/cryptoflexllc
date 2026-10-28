@@ -18,8 +18,8 @@ const MAX_ROWS = 50;
 /**
  * Stop polling after this much continuous live time and ask whether to keep
  * going. A dashboard left open all day was generating far more traffic than
- * the site itself: one poll every 4.2s costs a middleware invocation, a
- * function invocation, and a database query.
+ * the site itself: one poll every 4.2s costs a function invocation and a
+ * database query.
  */
 const IDLE_LIMIT_MS = 30 * 60 * 1000;
 

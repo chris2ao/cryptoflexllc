@@ -190,6 +190,100 @@ export async function createFile(
 }
 
 /**
+ * Sends one Git Data API request and returns its parsed JSON body.
+ * Failures carry the HTTP status, like the contents API wrappers above.
+ */
+async function gitDataRequest<T>(
+  method: string,
+  endpoint: string,
+  body?: unknown
+): Promise<T> {
+  const url = `${GITHUB_API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/git/${endpoint}`;
+  const response = await fetch(url, {
+    method,
+    headers: getHeaders(),
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    console.error(
+      `GitHub API error: ${method} git/${endpoint} returned ${response.status}`
+    );
+    throw new GitHubApiError(
+      describeFailure(method, response.status),
+      response.status
+    );
+  }
+
+  return (await response.json()) as T;
+}
+
+/**
+ * Moves a file to a new path with new content in a single commit.
+ *
+ * createFile followed by deleteFile makes two commits, and Vercel builds and
+ * stores a full deployment for each one. Publishing a backlog post that way
+ * doubled the site's deployments, and Hobby Deployment Storage is capped at
+ * 10 GB. One tree with the addition and the deletion lands as one commit,
+ * so one deployment.
+ *
+ * The ref update is not forced, so a commit that lands on main in between
+ * fails with 422 instead of being overwritten.
+ *
+ * @param fromPath - Existing repository path to remove
+ * @param toPath - New repository path to create
+ * @param content - Content of the new file as a UTF-8 string
+ * @param message - Commit message
+ */
+export async function moveFile(
+  fromPath: string,
+  toPath: string,
+  content: string,
+  message: string
+): Promise<void> {
+  validateRepoPath(fromPath);
+  validateRepoPath(toPath);
+
+  try {
+    const ref = await gitDataRequest<{ object: { sha: string } }>(
+      "GET",
+      `ref/heads/${REPO_BRANCH}`
+    );
+    const parentSha = ref.object.sha;
+    const parent = await gitDataRequest<{ tree: { sha: string } }>(
+      "GET",
+      `commits/${parentSha}`
+    );
+
+    const tree = await gitDataRequest<{ sha: string }>("POST", "trees", {
+      base_tree: parent.tree.sha,
+      tree: [
+        { path: toPath, mode: "100644", type: "blob", content },
+        // A null sha removes the path from the new tree.
+        { path: fromPath, mode: "100644", type: "blob", sha: null },
+      ],
+    });
+
+    const commit = await gitDataRequest<{ sha: string }>("POST", "commits", {
+      message,
+      tree: tree.sha,
+      parents: [parentSha],
+    });
+
+    await gitDataRequest("PATCH", `refs/heads/${REPO_BRANCH}`, {
+      sha: commit.sha,
+      force: false,
+    });
+  } catch (error) {
+    if (error instanceof GitHubApiError) throw error;
+    console.error(`Error moving file ${fromPath} to ${toPath}:`, error);
+    throw new GitHubApiError(
+      `Could not reach the GitHub API to move ${fromPath} to ${toPath}.`
+    );
+  }
+}
+
+/**
  * Deletes a file from the repository.
  *
  * @param path - Repository path (e.g., "src/content/blog/post.mdx")
