@@ -7,8 +7,7 @@ import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import {
   isGitHubApiConfigured,
   getFileContents,
-  createFile,
-  deleteFile,
+  moveFile,
 } from "@/lib/github-api";
 import { getBacklogPostBySlug, getPostBySlug, toPublishedFrontmatter } from "@/lib/blog";
 
@@ -90,11 +89,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Step 7: Get file content and SHA from GitHub
+    // Step 7: Get the draft's current content from GitHub
     const backlogPath = `src/content/backlog/${slug}.mdx`;
     const fileData = await getFileContents(backlogPath);
     const fileContent = fileData.content;
-    const fileSha = fileData.sha;
 
     // Step 8: Parse frontmatter, stamp today's date (YYYY-MM-DD), and drop any
     // `published` flag so a stale draft value cannot hide the live post
@@ -102,24 +100,12 @@ export async function POST(request: NextRequest) {
     const today = new Date().toISOString().split("T")[0];
     const updatedContent = matter.stringify(content, toPublishedFrontmatter(data, today));
 
-    // Step 9: Create file in blog
+    // Step 9: Add the post to the blog and remove it from the backlog in one
+    // commit. Two commits meant two Vercel deployments for every publish.
     const blogPath = `src/content/blog/${slug}.mdx`;
-    await createFile(blogPath, updatedContent, `publish: ${slug}`);
+    await moveFile(backlogPath, blogPath, updatedContent, `publish: ${slug}`);
 
-    // Step 10: Delete file from backlog
-    // If this fails, the post is still published (just needs manual cleanup)
-    try {
-      await deleteFile(
-        backlogPath,
-        fileSha,
-        `publish: remove ${slug} from backlog`
-      );
-    } catch (deleteError) {
-      console.error("Failed to delete backlog file after publish:", deleteError);
-      // Still return success since the post was published
-    }
-
-    // Step 11: Return success
+    // Step 10: Return success
     return NextResponse.json({ success: true, slug }, { status: 200 });
   } catch (error) {
     console.error("Error publishing post:", error);

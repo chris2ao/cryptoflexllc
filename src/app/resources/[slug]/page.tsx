@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllResources, getResourceBySlug } from "@/lib/resources";
 import { SlideCarousel } from "@/components/slide-carousel";
+import { PdfPreview } from "@/components/pdf-preview";
 import { weekOneSlides } from "@/components/slides/week-one-slides";
 import { BASE_URL } from "@/lib/constants";
 import { toDownloadHref } from "@/lib/asset-url";
@@ -94,12 +95,7 @@ export default async function ResourceDetailPage({ params }: Props) {
         {resource.type === "document" && resource.downloadPath && (
           <div className="mt-10 flex flex-col gap-4">
             {resource.downloadPath.endsWith(".pdf") ? (
-              <iframe
-                src={resource.downloadPath}
-                title={resource.title}
-                className="w-full rounded-lg border border-border"
-                style={{ height: "80vh", minHeight: "600px" }}
-              />
+              <PdfPreview src={resource.downloadPath} title={resource.title} />
             ) : /\.(png|jpe?g|gif|webp|svg)$/i.test(resource.downloadPath) ? (
               <div className="rounded-lg border border-border overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element -- dynamic resource path, not a build-time asset */}
@@ -143,7 +139,9 @@ export default async function ResourceDetailPage({ params }: Props) {
             <p className="text-center text-muted-foreground">
               {resource.description}
             </p>
-            <audio controls className="w-full max-w-lg">
+            {/* preload="none": the briefing is a large Blob file, so only
+                fetch it when the listener presses play. */}
+            <audio controls preload="none" className="w-full max-w-lg">
               <source src={resource.downloadPath} type="audio/mp4" />
               Your browser does not support the audio element.
             </audio>

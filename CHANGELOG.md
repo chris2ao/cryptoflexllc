@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## 2026-10-28 - Trim Vercel Hobby Usage (Deployment Storage and Fast Origin Transfer)
+
+### What changed
+- **Changed** the backlog publish API to move a draft into `src/content/blog` in one Git commit (`moveFile` in `src/lib/github-api.ts`) instead of a create and a delete, so each publish builds and stores one deployment instead of two. A failed move now leaves nothing half published.
+- **Added** a Vercel Ignored Build Step (`scripts/vercel-ignore-build.sh`, wired up as `ignoreCommand` in `vercel.json`). Commits that only touch `docs/`, `Plans/`, `content-assets/`, `design_handoff_*/`, `.github/` or root-level `*.md` files no longer build a full deployment. Anything else, or a missing previous commit, still builds.
+- **Changed** resource PDFs to load on click (`src/components/pdf-preview.tsx`) instead of in an iframe on page load, and set the audio briefing to `preload="none"`, so visitors and crawlers stop pulling multi-MB Blob files they never open
+- **Removed** `src/middleware.ts`. Unmatched paths already 404, the apex redirect is a Vercel domain setting, and Vercel serves HTTPS. The `*.vercel.app` noindex moved to a host-matched header in `next.config.ts`.
+- **Added** a 5 minute CDN cache to the public subscriber count (`GET /api/subscribe`). Comments stay uncached because the page refetches right after a post.
+
+### What was learned
+- Backlog-only commits still need a deploy, because the `/backlog` preview reads the bundled drafts and their images. The skip list covers only files the site never reads.
+- Deployment retention (Project Settings) is the other storage lever and stays a dashboard change
+
+---
+
 ## 2026-10-26 - CVE-2026-111497 (Brotli RCE) and Next.js 16.4.3 Upgrade
 
 ### What changed
