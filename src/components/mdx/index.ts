@@ -240,3 +240,15 @@ export { PiholeTailscaleDnsPathDiagram } from "./diagrams-pihole-tailscale-ad-bl
 export { ImageLightbox } from "./image-lightbox";
 export { CoverImageLightbox } from "./cover-image-lightbox";
 export { YouTubeEmbed } from "./youtube-embed";
+export {
+  AgentNightTimelineDiagram,
+  SelfRepairLoopDiagram,
+  RuleCarveOutDiagram,
+  AgentThreatModelDiagram,
+} from "./diagrams-the-agent-that-rewrote-its-own-rules";
+export {
+  TrustBoundariesDiagram,
+  SchgAloneFailsDiagram,
+  ControlsMatrixDiagram,
+  UnrestrictedModelChecklistDiagram,
+} from "./diagrams-the-agent-that-rewrote-its-own-rules-controls";
