@@ -9,7 +9,7 @@ featured: false
 series: Claude Harness Modernization
 seriesOrder: 4
 schemaType: TechArticle
-coverImage: /blog/claude-harness-modernization-4-cloud-harness/infographic.png
+coverImage: /blog/claude-harness-modernization-4-cloud-harness/infographic.jpg
 coverImageAlt: "Cover graphic for Part 4 of the Claude Harness Modernization series. A left panel labeled Mac ~/.claude lists Rules (14 files), File-guard hook, Skills (5 of 22), Agents (2 of 26), Plasticity learnings, Vector memory and LAN MCP servers. Amber arrows labeled Setup script (25 KB of 64 KB) carry the rules and the file-guard hook, and teal arrows labeled Account plugin carry skills, agents and learnings, to a right panel labeled Cloud VM cjclaudin. A vertical amber Secret Gate bar sits across the arrows. Vector memory and LAN MCP servers have red dashed lines ending in an X marked Stays home, and their cloud boxes read Not here, by design. A terminal strip at the bottom quotes the cloud session saying it has the full cloud harness, the subset meant for cloud sessions."
 ---
 
@@ -153,7 +153,7 @@ Fourteen rule files ship (everything except the two platform files, since the VM
 
 NotebookLM drew the allowlist as a pipe with three filters, which is a fair way to picture it:
 
-![Slide showing raw local files flowing through a pipe with three filter gates, labeled operations/macos-platform.md and windows-platform.md, workflow-backed skills, and scripts requiring LAN access or local CLI auth, into a clean payload of 14 rules, 5 skills and 2 agents. Below it: Engine, Python 3 cloudbuild package; Coverage, 99%; Tests, 125 passed in 3.92s.](/blog/claude-harness-modernization-4-cloud-harness/what-ships-filter-pipeline.png)
+![Slide showing raw local files flowing through a pipe with three filter gates, labeled operations/macos-platform.md and windows-platform.md, workflow-backed skills, and scripts requiring LAN access or local CLI auth, into a clean payload of 14 rules, 5 skills and 2 agents. Below it: Engine, Python 3 cloudbuild package; Coverage, 99%; Tests, 125 passed in 3.92s.](/blog/claude-harness-modernization-4-cloud-harness/what-ships-filter-pipeline.webp)
 
 The leftovers stay home for reasons. `neon` and `neon-postgres` have vendor examples that trip the secret scan. `blog-post` and `ui-ux` run Workflow scripts, which plugins can't ship. The research skills depend on local Exa and Firecrawl MCP servers, and `harness-doctor`, `sync` and `wrap-up` lean on local scripts, my LAN, or local CLI auth. No commands ship.
 
@@ -286,7 +286,7 @@ The last step has a comment worth quoting: `# The stamp goes last and only after
 
 If you skipped the bash, the whole script reduces to three stages:
 
-![Slide titled environment/setup.sh with a payload box reading 25,262 bytes against an internal guard limit of 61,440 bytes. Three stacked stages connected by arrows: Native Guard, which checks for dispatch.sh to prevent overwriting the local Mac harness; Rule Delivery, which uses the CJCLAUDIN_EOF_7Q2W heredoc delimiter to write 14 rules sequentially; and Execution Verification, which writes the setup.sha256 content digest only upon clean execution.](/blog/claude-harness-modernization-4-cloud-harness/setup-script-three-stages.png)
+![Slide titled environment/setup.sh with a payload box reading 25,262 bytes against an internal guard limit of 61,440 bytes. Three stacked stages connected by arrows: Native Guard, which checks for dispatch.sh to prevent overwriting the local Mac harness; Rule Delivery, which uses the CJCLAUDIN_EOF_7Q2W heredoc delimiter to write 14 rules sequentially; and Execution Verification, which writes the setup.sha256 content digest only upon clean execution.](/blog/claude-harness-modernization-4-cloud-harness/setup-script-three-stages.webp)
 
 The dependency scan is the other piece of discipline here. Every included item is scanned for things that only exist on my machine, and the build fails if it finds one:
 
@@ -414,11 +414,11 @@ Its summary table had 11 checks, and every one said yes. Unlike the first canary
 
 Here's that run as a single card, with five of the eleven checks and the file-guard's block message:
 
-![Slide reading 11 of 11 Checks Passed. A card lists the test environment as the Claude app, Code tab, repo Third-Conflict, environment cjclaudin, with five ticked checks: setup id and build stamp match; all 5 skills and 2 agents present at initial startup; code-reviewer agent executed successfully; stale-rules warning triggered on fingerprint mismatch; file-guard execution blocked test write. A terminal pane at the bottom shows BLOCKED: Cannot modify sensitive file '.env'.](/blog/claude-harness-modernization-4-cloud-harness/phone-verification-11-of-11.png)
+![Slide reading 11 of 11 Checks Passed. A card lists the test environment as the Claude app, Code tab, repo Third-Conflict, environment cjclaudin, with five ticked checks: setup id and build stamp match; all 5 skills and 2 agents present at initial startup; code-reviewer agent executed successfully; stale-rules warning triggered on fingerprint mismatch; file-guard execution blocked test write. A terminal pane at the bottom shows BLOCKED: Cannot modify sensitive file '.env'.](/blog/claude-harness-modernization-4-cloud-harness/phone-verification-11-of-11.webp)
 
 A separate web session in the `cjclaudin` environment got a simpler question: "Do you have all my tools and skills?" It answered: "You have the full cloud harness, which is the subset meant for cloud sessions. It isn't everything from your Mac." It listed the 14 rule files, the five skills, the two agents, and the hooks ("the file-guard runs before every Edit or Write, and the session-start hook loaded your Plasticity learnings, which appeared at startup").
 
-![Screenshot crop of a web cloud session in environment cjclaudin. Asked whether it has all the tools and skills, Claude lists 14 rules, five skills, two agents and the hooks as loaded, and lists vector memory, Plasticity commands, LAN servers and Mac scripts as unavailable by design.](/blog/claude-harness-modernization-4-cloud-harness/cloud-session-inventory-crop.png)
+![Screenshot crop of a web cloud session in environment cjclaudin. Asked whether it has all the tools and skills, Claude lists 14 rules, five skills, two agents and the hooks as loaded, and lists vector memory, Plasticity commands, LAN servers and Mac scripts as unavailable by design.](/blog/claude-harness-modernization-4-cloud-harness/cloud-session-inventory-crop.webp)
 
 Then came a section titled "Not available here, by design": vector memory, Plasticity commands, the session archive, the LAN MCP servers, and Mac-side scripts. I wrote that last list into the cloud CLAUDE.md on purpose, and it was nice to hear it read back.
 
