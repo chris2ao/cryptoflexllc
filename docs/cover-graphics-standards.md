@@ -1,7 +1,8 @@
 # Cover Graphics Standards
 
 Every post on cryptoflexllc.com gets a cover infographic: hand-authored
-HTML rendered to PNG with headless Chrome. This document is the contract
+HTML rendered with headless Chrome to a PNG master, then published as a
+JPEG. This document is the contract
 for those covers, the counterpart of `editorial-diagram-standards.md` for
 inline diagrams. The pipeline agent is `~/.claude/agents/brand-graphics.md`
 (invoked by `/brand-graphics` and by the Assets stage of the
@@ -14,9 +15,15 @@ inline diagrams. The pipeline agent is `~/.claude/agents/brand-graphics.md`
 | Design canvas | 1376x768 CSS px, `html, body { overflow: hidden }` |
 | Render output | exactly 2752x1536 px (`--force-device-scale-factor=2`) |
 | Crop-safe zone | nothing legible within 84 CSS px of the left or right edge (cards and the homepage lead story crop to 16:10) |
-| PNG | `public/blog/<slug>/infographic.png` |
+| PNG master | `content-assets/covers/<slug>/cover.png` (gitignored, never deployed) |
+| Published cover | `public/blog/<slug>/infographic.jpg`: JPEG, 1600 px wide, quality 85, made by `~/.claude/scripts/blog-image-convert.py cover` |
 | HTML source | `content-assets/covers/<slug>/cover.html` (gitignored, kept for re-renders; edits go to the HTML, never a regenerate) |
-| Frontmatter | `coverImage: /blog/<slug>/infographic.png` and a thorough `coverImageAlt` |
+| Frontmatter | `coverImage: /blog/<slug>/infographic.jpg` and a thorough `coverImageAlt` |
+
+Covers are JPEG under the deployment storage policy
+(`docs/plans/deployment-storage-reduction-plan.md`, section B): every deploy
+copies all of `public/`, and some og:image crawlers reject WebP.
+`src/lib/blog-image-formats.test.ts` fails CI on a non-JPEG `coverImage`.
 
 ## What every cover shares (branding, and only branding)
 
@@ -141,11 +148,11 @@ type. Iterate until a render passes every check in one look.
 ## Verification loop
 
 1. Render with headless Chrome at 1376x768 and device scale 2.
-2. Run the art director review above on the PNG.
-3. `sips -g pixelWidth -g pixelHeight` must print 2752 and 1536.
+2. Run the art director review above on the PNG master.
+3. `sips -g pixelWidth -g pixelHeight` on the PNG master must print 2752 and 1536.
 4. Downscale to 560 px and confirm the card-scale read.
-5. Copy outputs to their destinations, write `coverImageAlt`, and add
-   the register row.
+5. Publish the JPEG with `blog-image-convert.py cover`, write
+   `coverImageAlt`, and add the register row.
 | jira-for-home-projects | The junk drawer becomes a board: five scattered places deferred work lived feed a five-column Jira kanban where Waiting on me is the amber column, with the wrap-up Jira sync step beneath | Full-width five-column kanban board (Backlog, Ready, In Progress, Waiting on me, Done) fed by an arrow from a left stack of dashed scattered-source notes, with a wrap-up step 4d terminal strip below |
 | encrypted-dns-pihole-raspberry-pi-5 | The pipe with four leaks: a healthy DoH pipe from devices through Pi-hole to Cloudflare and Quad9, with four dashed red leaks dripping into cards that each pair the leak with its plug | Horizontal teal pipe with three nodes and four hanging leak/plugged cards |
 | claude-harness-modernization-3-plasticity | The gate between a pile and a session: 79 Homunculus instinct files wired to nothing (dashed red break), a weekly approval gate that turns 324 proposals into 15 decisions, and a solid teal wire into session start where approved learnings reach the main thread and the subagents that do about 81% of the work | Three-stage left-to-right wire diagram (file-pile card, amber gate card with 324 to 15 numerals, teal Plasticity card with proportional main-thread vs subagent bars) over a canary-test terminal strip |

@@ -9,7 +9,7 @@ featured: false
 series: Security Engineering
 seriesOrder: 13
 schemaType: TechArticle
-coverImage: /blog/encrypted-dns-pihole-raspberry-pi-5/infographic.png
+coverImage: /blog/encrypted-dns-pihole-raspberry-pi-5/infographic.jpg
 coverImageAlt: "A healthy encrypted DNS pipe runs left to right from a node labeled Every device through a Pi-hole with dnscrypt-proxy to Cloudflare and Quad9 over DoH on port 443, annotated zero plaintext in 30 uncached lookups. Four dashed red leaks drip from the pipe into four cards titled Leak 1 DHCP fallbacks, Leak 2 Open port 53, Leak 3 The Pi itself, and Leak 4 Gateway WAN DNS. Each card has a red problem half and a green Plugged half describing the fix. The headline reads Four leaks around a healthy Pi-hole, with chips for Home Lab and Security Engineering 13."
 ---
 
@@ -94,7 +94,7 @@ Where does a headless Pi get its power when there's no power connected where it 
 
 The case that did it is the [GeeekPi P33 M.2 NVMe M-Key PoE+ Hat with Official Pi 5 Active Cooler and Aluminum Case](https://www.amazon.com/dp/B0DMW98LBR). It cost $49.99 on 2026-10-17. The reason for buying this one: it "came with a heatsink and PoE hat which is what I was most interested in since I don't have power connected just PoE and that makes it conveinient to tuck it behind a desk and forget about."
 
-![Product photos of the GeeekPi P33 aluminum case for the Raspberry Pi 5, the official active cooler with heatsink, and the M.2 NVMe PoE+ HAT, which lets one Ethernet cable power the Pi.](/blog/encrypted-dns-pihole-raspberry-pi-5/geeekpi-p33-pi5-poe-case.png)
+![Product photos of the GeeekPi P33 aluminum case for the Raspberry Pi 5, the official active cooler with heatsink, and the M.2 NVMe PoE+ HAT, which lets one Ethernet cable power the Pi.](/blog/encrypted-dns-pihole-raspberry-pi-5/geeekpi-p33-pi5-poe-case.webp)
 
 One purchase covered cooling and power. The listing says "Single cable powers and connects with PoE+", promises an active cooler that "keeps Pi 5 running cool under load," and quotes 5.1V/4.5A output from the hat. Those are the seller's claims. The part that has been tested here is simpler: one cable powers the Pi and carries the network, and it has worked since.
 

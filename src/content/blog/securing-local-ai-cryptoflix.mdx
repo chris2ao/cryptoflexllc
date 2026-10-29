@@ -19,7 +19,7 @@ featured: false
 series: Security Engineering
 seriesOrder: 12
 schemaType: TechArticle
-coverImage: /blog/securing-local-ai-cryptoflix/infographic.png
+coverImage: /blog/securing-local-ai-cryptoflix/infographic.jpg
 coverImageAlt: >-
   A dark Venn diagram titled Local AI, Zero Trust for the Security Engineering
   post on CryptoFlix. Three overlapping circles are labeled untrusted content,
@@ -78,7 +78,7 @@ Each lesson became a group of controls, and the diagram pairs them.
 
 ## The Four Features
 
-![Four AI subsystems of CryptoFlix, speech processing, face matching, plot search and recap generation, as tiles inside a dashed sandbox boundary.](/blog/securing-local-ai-cryptoflix/ai-subsystems-overview.png)
+![Four AI subsystems of CryptoFlix, speech processing, face matching, plot search and recap generation, as tiles inside a dashed sandbox boundary.](/blog/securing-local-ai-cryptoflix/ai-subsystems-overview.webp)
 
 Three are local models and one is a Claude call. The next diagram adds where each runs. Only the recap writer sends anything off the Mac.
 
@@ -94,7 +94,7 @@ An embedding model turns a piece of text into a long list of numbers, so that te
 
 The model is `nomic-embed-text`, running on the Ollama install that was already on my Mac. Each title's document is built only from public catalog metadata: plot, tagline, genres and a few keywords. The query is capped at 200 characters, and no user or profile data goes in. The vectors land in a `title_embeddings` table with no `user_id` column, and the search is cosine similarity computed in memory.
 
-![Plot search diagram: a typed query talks only to a local embedding model on loopback port 11434 and a local vector store, with internet access blocked.](/blog/securing-local-ai-cryptoflix/plot-search-loopback-only.png)
+![Plot search diagram: a typed query talks only to a local embedding model on loopback port 11434 and a local vector store, with internet access blocked.](/blog/securing-local-ai-cryptoflix/plot-search-loopback-only.webp)
 
 The query only ever talks to the embedding model on loopback and a local vector store.
 
@@ -108,7 +108,7 @@ Sometimes a file's English subtitles drift out of step with the audio, and Crypt
 
 Why is the sandboxed tool called `cf-whisper` if no Whisper speech model is installed? Because it's whisper.cpp built from source without Metal, running only the Silero VAD model. VAD is voice activity detection. It finds where speech happens and says nothing about what was said. CryptoFlix does no transcription, translation or language detection.
 
-![Speech detection diagram: 16 kHz audio enters a sandboxed whisper.cpp speech detector and only time-coded speech spans come out. No transcription model, no network, no writes.](/blog/securing-local-ai-cryptoflix/speech-detection-sandbox.png)
+![Speech detection diagram: 16 kHz audio enters a sandboxed whisper.cpp speech detector and only time-coded speech spans come out. No transcription model, no network, no writes.](/blog/securing-local-ai-cryptoflix/speech-detection-sandbox.webp)
 
 Audio goes in and "speech from here to there" spans come out. With no network, no writes and no transcription model, there's nothing in the tool that can invent words.
 
@@ -124,7 +124,7 @@ A face model converts a face into a list of numbers so that two photos of the sa
 
 The tool is `cf-vision`, a small Swift program that uses Apple Vision's face landmarks and the SFace model, converted to Core ML at install time and running on the CPU. It grabs a keyframe every two seconds. It compares faces only against that one title's own published cast portraits. It never looks at the household, cameras, profile pictures or home videos.
 
-![Who's on screen, a memory-only face pipeline: published cast photos for this title only (up to 20) and a video keyframe every 2 seconds go into the sandboxed cf-vision tool, where Apple Vision finds faces and SFace compares them with no network and no file writes. Face vectors, crops, frames and portraits are discarded after the job. Only who, when, how sure and the model key are stored.](/blog/securing-local-ai-cryptoflix/face-matching-memory-only.png)
+![Who's on screen, a memory-only face pipeline: published cast photos for this title only (up to 20) and a video keyframe every 2 seconds go into the sandboxed cf-vision tool, where Apple Vision finds faces and SFace compares them with no network and no file writes. Face vectors, crops, frames and portraits are discarded after the job. Only who, when, how sure and the model key are stored.](/blog/securing-local-ai-cryptoflix/face-matching-memory-only.webp)
 
 Everything biometric stays in memory and dies with the job. A small record of who appeared and when is all that survives. (The two faces on the slide are generated stand-ins, not cast members.)
 
@@ -136,7 +136,7 @@ A "Catch me up" button on a title page writes a recap of earlier seasons, earlie
 
 This is the one feature whose input leaves the Mac. It runs through my own Claude Code CLI, headless, on my Max plan, never through the paid API. The input is the cleaned subtitle text of one part of a show, Claude's own earlier summaries, and season, episode and part numbers. It never gets a title, an episode name, an overview, a path or a profile. Work happens a whole show at a time, overnight.
 
-![Previously On, the one feature that leaves the Mac: titles, episode names, plot summaries, file names, paths and watch history are crossed out and filtered out. Only subtitle lines and episode numbers go over HTTPS to Claude through my own Claude Code CLI. Confinement: tools off, a fixed system prompt, the answer must match a JSON schema, no action follows from the answer, and it runs in a sandbox with an empty temp folder.](/blog/securing-local-ai-cryptoflix/recaps-what-leaves-the-mac.png)
+![Previously On, the one feature that leaves the Mac: titles, episode names, plot summaries, file names, paths and watch history are crossed out and filtered out. Only subtitle lines and episode numbers go over HTTPS to Claude through my own Claude Code CLI. Confinement: tools off, a fixed system prompt, the answer must match a JSON schema, no action follows from the answer, and it runs in a sandbox with an empty temp folder.](/blog/securing-local-ai-cryptoflix/recaps-what-leaves-the-mac.webp)
 
 Everything that identifies a title or a household is filtered out before the call. Only subtitle lines and episode numbers make it through.
 
@@ -170,7 +170,7 @@ Every component has a different mix of untrusted input, private data, network ac
 
 Red marks a leg that's present, amber a limited one and green a removed one. Every model component has at least one green dot.
 
-![The confinement matrix. Speech detection: Silero VAD in whisper.cpp on the CPU without Metal, in a sandbox-exec profile, no network, no files, model passed as an open file descriptor. Face matching: Apple Vision plus SFace on Core ML, in a sandbox-exec profile, no network, reads only its own compiled model. Search by plot: nomic-embed-text on local Ollama, loopback 127.0.0.1 only, no files, and CryptoFlix never pulls or loads models. Recaps: Claude Sonnet through my Claude Code CLI, in a sandbox-exec profile with tools off, HTTPS to Anthropic with subtitle lines only, an empty private temp folder only.](/blog/securing-local-ai-cryptoflix/confinement-matrix.png)
+![The confinement matrix. Speech detection: Silero VAD in whisper.cpp on the CPU without Metal, in a sandbox-exec profile, no network, no files, model passed as an open file descriptor. Face matching: Apple Vision plus SFace on Core ML, in a sandbox-exec profile, no network, reads only its own compiled model. Search by plot: nomic-embed-text on local Ollama, loopback 127.0.0.1 only, no files, and CryptoFlix never pulls or loads models. Recaps: Claude Sonnet through my Claude Code CLI, in a sandbox-exec profile with tools off, HTTPS to Anthropic with subtitle lines only, an empty private temp folder only.](/blog/securing-local-ai-cryptoflix/confinement-matrix.webp)
 
 The same four features as a confinement table: where each one runs, what network it gets, and which files it can touch.
 
@@ -190,7 +190,7 @@ Pinning means writing down the exact fingerprint (a SHA-256 hash and a size) of 
 
 Downloads happen in exactly one place, `scripts/install-localai.sh`, with hash-locked Python environments. The server itself "never downloads, builds, converts or updates anything." Pinning proves I installed the right file once. So `localai/verify.ts` proves it again before the first job of each budget day and before every spawn. It requires `0700` folders owned by me and plain files nobody else can write. It opens files with `O_NOFOLLOW_ANY`, so a symlink can't stand in for a binary.
 
-![The verification loop in four gates: hardcoded pins, a daily hash check, an identity re-check, and a final gate right before spawning a tool. The SHA-256 chips are illustrative placeholders.](/blog/securing-local-ai-cryptoflix/verification-loop-pins.png)
+![The verification loop in four gates: hardcoded pins, a daily hash check, an identity re-check, and a final gate right before spawning a tool. The SHA-256 chips are illustrative placeholders.](/blog/securing-local-ai-cryptoflix/verification-loop-pins.webp)
 
 The hash chips on the slide are illustrative placeholders, not real digests, but the behavior is real. A mismatch comes back as a fixed code such as `pin_mismatch`, and the tools stay off for at least 30 minutes.
 
@@ -204,7 +204,7 @@ A matching hash tells me the bytes are the bytes I pinned. It says nothing about
 
 A sandbox is the wall that's still standing when a pin check passes and the tool turns out to be hostile or just buggy. Here I spent the most time and hit the most surprises. `apps/server/src/localai/sandbox.ts` builds a macOS `sandbox-exec` profile in code, so there's no profile file on disk to edit. It starts from denying everything:
 
-![Anatomy of the sandbox profile. The code reads: version 1, deny default, import system.sb, deny mach-lookup for every XPC service name, deny mach-lookup for com.apple.trustd and com.apple.trustd.agent, allow process-exec of the one tool binary. Three cards explain it: deny by default means nothing is allowed unless listed; no XPC and no trustd means no side door to helper services or the network; a clean launch means no shell, an environment of only PATH and TMPDIR, and capped NDJSON output checked against a schema.](/blog/securing-local-ai-cryptoflix/sandbox-profile-anatomy.png)
+![Anatomy of the sandbox profile. The code reads: version 1, deny default, import system.sb, deny mach-lookup for every XPC service name, deny mach-lookup for com.apple.trustd and com.apple.trustd.agent, allow process-exec of the one tool binary. Three cards explain it: deny by default means nothing is allowed unless listed; no XPC and no trustd means no side door to helper services or the network; a clean launch means no shell, an environment of only PATH and TMPDIR, and capped NDJSON output checked against a schema.](/blog/securing-local-ai-cryptoflix/sandbox-profile-anatomy.webp)
 
 <Info title="What is a sandbox profile?">
 On macOS, `sandbox-exec` runs a program under a rule list that the kernel enforces. The program can't opt out, and it doesn't need to cooperate. Anything the rules don't list is denied, even if the program is compromised.
@@ -228,7 +228,7 @@ Without the GPU client, Apple Vision doesn't error. It returns no faces. A sandb
 
 How do you know the walls hold? You try to walk through them. `apps/server/scripts/localAiSandboxCheck.ts` runs each real tool inside its own profile on synthetic speech and two public-domain paintings, where faces must still be found. Then it tries `curl`, `cat`, `ls`, `stat` and `touch` and expects every one to be denied. I rerun it after each macOS upgrade, because an OS update can change how a profile gets interpreted.
 
-![Continuous proof of confinement: a check script runs each tool on synthetic data and tries network, write and read actions that must all be denied. The terminal output shown is illustrative.](/blog/securing-local-ai-cryptoflix/sandbox-proof-of-confinement.png)
+![Continuous proof of confinement: a check script runs each tool on synthetic data and tries network, write and read actions that must all be denied. The terminal output shown is illustrative.](/blog/securing-local-ai-cryptoflix/sandbox-proof-of-confinement.webp)
 
 The green PASS output on the slide is illustrative, not a captured log. The shape is real: run the tool, attempt the forbidden actions, expect every one to fail.
 
@@ -309,7 +309,7 @@ Why would a household of one need limits at all? Because model jobs are greedy, 
 
 One model job runs at a time, in a single slot shared with ffmpeg. Nothing runs during or within 5 minutes of playback, and a playback start kills the running tool. Recaps go one call at a time, only between 01:00 and 07:00.
 
-![Resource guarding, AI never competes with playback: a timeline of playback with no AI jobs, a 5-minute buffer, then idle time with one AI job at a time, plus a separate 01:00 to 07:00 recap window. Cards: one slot, a single job at a time at the lowest CPU priority (nice 19); playback wins, no job starts during or within 5 minutes of playback and a new session kills a running job; daily budgets cap audio hours, face passes and recap calls per day.](/blog/securing-local-ai-cryptoflix/resource-guarding-playback.png)
+![Resource guarding, AI never competes with playback: a timeline of playback with no AI jobs, a 5-minute buffer, then idle time with one AI job at a time, plus a separate 01:00 to 07:00 recap window. Cards: one slot, a single job at a time at the lowest CPU priority (nice 19); playback wins, no job starts during or within 5 minutes of playback and a new session kills a running job; daily budgets cap audio hours, face passes and recap calls per day.](/blog/securing-local-ai-cryptoflix/resource-guarding-playback.webp)
 
 Laid out as a day, the rule is simple: a playing movie always wins, and daily budgets cap how much audio, how many face passes and how many recap calls a day can spend.
 
@@ -323,7 +323,7 @@ Authorization follows lesson 2 again. Every non-public `/api` route is admin-onl
 
 What does the app remember afterward? For faces, as little as I could manage. No face vector, crop, frame or portrait is written to disk, logged, stored, sent anywhere or kept past its job. What gets stored is `face_appearances` rows: source id, cast person id, start and end milliseconds, strength and model key.
 
-![Privacy ledger comparing what is discarded (audio, video frames, face vectors, face crops, typed plot queries) with what is stored (speech spans, face indices, subtitle text, plot vectors). Recap text is also stored, which the slide omits.](/blog/securing-local-ai-cryptoflix/privacy-ledger-kept-vs-discarded.png)
+![Privacy ledger comparing what is discarded (audio, video frames, face vectors, face crops, typed plot queries) with what is stored (speech spans, face indices, subtitle text, plot vectors). Recap text is also stored, which the slide omits.](/blog/securing-local-ai-cryptoflix/privacy-ledger-kept-vs-discarded.webp)
 
 The slide omits one thing: recap text is stored too, alongside the subtitle text.
 
