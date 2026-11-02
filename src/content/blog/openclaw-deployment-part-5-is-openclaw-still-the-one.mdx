@@ -1,16 +1,38 @@
 ---
-title: "OpenClaw Deployment Part 5: Is OpenClaw Still the One? Rebuilding My Agent on Letta"
-date: "2026-10-15T20:00:00"
-description: "A fact-checked research report told me to keep OpenClaw. I rebuilt my assistant on Letta anyway, found deny rules that did not deny, and started a 14-day trial to settle it."
-tags: ["OpenClaw", "Letta", "AI Agents", "Claude Code", "Security", "Telegram"]
-author: "Chris Johnson"
-readingTime: "20 min read"
+title: >-
+  OpenClaw Deployment Part 5: Is OpenClaw Still the One? Rebuilding My Agent on
+  Letta
+date: '2026-11-02'
+description: >-
+  A fact-checked research report told me to keep OpenClaw. I rebuilt my
+  assistant on Letta anyway, found deny rules that did not deny, and started a
+  14-day trial to settle it.
+tags:
+  - OpenClaw
+  - Letta
+  - AI Agents
+  - Claude Code
+  - Security
+  - Telegram
+author: Chris Johnson
+readingTime: 20 min read
 featured: false
 series: OpenClaw Deployment
 seriesOrder: 5
 schemaType: Article
 coverImage: /blog/openclaw-deployment-part-5-is-openclaw-still-the-one/infographic.jpg
-coverImageAlt: "A three-column wiring diagram on a dark teal-accented canvas titled The deny rules that did not deny. Each row traces one of the agent's tools through the 37 deny rules to its outcome. The shell tool exec_command hits a rule that names it and is refused. Edit and Write are guarded by rules, but the agent never had those tools, so the rules never fired. ApplyPatch, the tool she really has, passes through a dashed warning box reading NO RULE NAMES THIS and succeeds in changing a wrapper script and her own settings file. A terminal panel shows the fix, a sudo chflags schg command that locks the files rather than the tools, with ApplyPatch failing to write and the shell reporting operation not permitted. A green callout reads All four routes blocked, hashes unchanged, wrappers still work."
+coverImageAlt: >-
+  A three-column wiring diagram on a dark teal-accented canvas titled The deny
+  rules that did not deny. Each row traces one of the agent's tools through the
+  37 deny rules to its outcome. The shell tool exec_command hits a rule that
+  names it and is refused. Edit and Write are guarded by rules, but the agent
+  never had those tools, so the rules never fired. ApplyPatch, the tool she
+  really has, passes through a dashed warning box reading NO RULE NAMES THIS and
+  succeeds in changing a wrapper script and her own settings file. A terminal
+  panel shows the fix, a sudo chflags schg command that locks the files rather
+  than the tools, with ApplyPatch failing to write and the shell reporting
+  operation not permitted. A green callout reads All four routes blocked, hashes
+  unchanged, wrappers still work.
 ---
 
 The research report I commissioned was clear: keep OpenClaw, harden it, and don't switch yet. The same day I had a second assistant running on a different runtime, answering me on Telegram and reading my Jira board. I'm not sure that makes me stubborn or just curious.
