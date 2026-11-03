@@ -146,6 +146,37 @@ describe("every registered diagram is covered", () => {
     .filter((f) => /^diagrams.*\.tsx$/.test(f));
   const covered = cssBuckets();
 
+  // Every function a diagrams-*.tsx file exports is treated as a diagram
+  // below. Shared helpers (wrappers, path builders, text primitives) belong
+  // in a diagram-*.tsx module instead, like diagram-editorial.tsx.
+  it("exports nothing but rendered diagrams from diagrams-*.tsx files", async () => {
+    const offenders: string[] = [];
+    for (const f of files) {
+      const mod: Record<string, unknown> = await import(path.join(dir, f));
+      for (const [name, C] of Object.entries(mod)) {
+        if (typeof C !== "function") continue;
+        let html = "";
+        try {
+          html = renderToStaticMarkup(
+            (C as (p: object) => React.ReactElement)({}),
+          );
+        } catch {
+          offenders.push(`${f}: ${name}`);
+          continue;
+        }
+        const host = document.createElement("div");
+        host.innerHTML = html;
+        if (!host.querySelector(".diagram-scroll-inner > svg")) {
+          offenders.push(`${f}: ${name}`);
+        }
+      }
+    }
+    expect(
+      offenders,
+      "move these non-diagram exports into a diagram-*.tsx helper module",
+    ).toEqual([]);
+  });
+
   it("matches each outer svg to a real CSS bucket rule", async () => {
     let total = 0;
     let wide = 0;

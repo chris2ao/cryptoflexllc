@@ -10,7 +10,7 @@ import {
   DIAGRAM_ACCENTS,
   type DiagramAccent,
 } from "./diagram-editorial";
-import { DiagramWrapper, Mono, Zone, route, type DiagramProps } from "./diagrams-the-agent-that-rewrote-its-own-rules";
+import { DiagramWrapper, Mono, Zone, route, type DiagramProps } from "./diagram-agent-rules-parts";
 
 /* ------------------------------------------------------------------ */
 /* 5. Trust boundaries before and after                                */
