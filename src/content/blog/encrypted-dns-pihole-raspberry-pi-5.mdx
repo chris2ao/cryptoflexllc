@@ -1,16 +1,35 @@
 ---
-title: "Plugging My DNS Leaks: A PoE Raspberry Pi 5, a 10-Year-Old Pi 3, and DNS over HTTPS"
-date: "2026-10-18T09:00:00"
-description: "My Pi-hole already encrypted its upstream DNS, and an audit still found four places where plaintext queries left the house. Here's how a PoE Raspberry Pi 5 and an old Pi 3B+ closed them."
-tags: ["Security", "Pi-hole", "Raspberry Pi", "DNS over HTTPS", "Home Lab", "Claude Code"]
-author: "Chris Johnson"
-readingTime: "23 min read"
+title: >-
+  Plugging My DNS Leaks: A PoE Raspberry Pi 5, a 10-Year-Old Pi 3, and DNS over
+  HTTPS
+date: '2026-11-04'
+description: >-
+  My Pi-hole already encrypted its upstream DNS, and an audit still found four
+  places where plaintext queries left the house. Here's how a PoE Raspberry Pi 5
+  and an old Pi 3B+ closed them.
+tags:
+  - Security
+  - Pi-hole
+  - Raspberry Pi
+  - DNS over HTTPS
+  - Home Lab
+  - Claude Code
+author: Chris Johnson
+readingTime: 23 min read
 featured: false
 series: Security Engineering
 seriesOrder: 13
 schemaType: TechArticle
 coverImage: /blog/encrypted-dns-pihole-raspberry-pi-5/infographic.jpg
-coverImageAlt: "A healthy encrypted DNS pipe runs left to right from a node labeled Every device through a Pi-hole with dnscrypt-proxy to Cloudflare and Quad9 over DoH on port 443, annotated zero plaintext in 30 uncached lookups. Four dashed red leaks drip from the pipe into four cards titled Leak 1 DHCP fallbacks, Leak 2 Open port 53, Leak 3 The Pi itself, and Leak 4 Gateway WAN DNS. Each card has a red problem half and a green Plugged half describing the fix. The headline reads Four leaks around a healthy Pi-hole, with chips for Home Lab and Security Engineering 13."
+coverImageAlt: >-
+  A healthy encrypted DNS pipe runs left to right from a node labeled Every
+  device through a Pi-hole with dnscrypt-proxy to Cloudflare and Quad9 over DoH
+  on port 443, annotated zero plaintext in 30 uncached lookups. Four dashed red
+  leaks drip from the pipe into four cards titled Leak 1 DHCP fallbacks, Leak 2
+  Open port 53, Leak 3 The Pi itself, and Leak 4 Gateway WAN DNS. Each card has
+  a red problem half and a green Plugged half describing the fix. The headline
+  reads Four leaks around a healthy Pi-hole, with chips for Home Lab and
+  Security Engineering 13.
 ---
 
 My Pi-hole, the network-wide DNS ad blocker, was already encrypting its upstream DNS. A packet capture proved it: zero plaintext port 53 packets leaving for the internet across 30 uncached lookups. Then an audit of everything *around* the Pi-hole found four separate ways the house was still talking DNS in the clear.
