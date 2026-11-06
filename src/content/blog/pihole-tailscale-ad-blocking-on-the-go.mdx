@@ -1,16 +1,32 @@
 ---
-title: "Take Your Pi-hole With You: Ad Blocking on the Go With Tailscale"
-date: "2026-10-21T09:00:00"
-description: "My two Pi-holes only filtered ads when I was home. Tailscale fixed that with a few DNS settings, two gotchas along the way, and one surprise from iCloud Private Relay."
-tags: ["Pi-hole", "Tailscale", "Home Lab", "DNS", "Self-Hosting"]
-author: "Chris Johnson"
-readingTime: "5 min read"
+title: 'Take Your Pi-hole With You: Ad Blocking on the Go With Tailscale'
+date: '2026-11-06'
+description: >-
+  My two Pi-holes only filtered ads when I was home. Tailscale fixed that with a
+  few DNS settings, two gotchas along the way, and one surprise from iCloud
+  Private Relay.
+tags:
+  - Pi-hole
+  - Tailscale
+  - Home Lab
+  - DNS
+  - Self-Hosting
+author: Chris Johnson
+readingTime: 5 min read
 featured: false
 series: Quick Tips
 seriesOrder: 3
 schemaType: HowTo
 coverImage: /blog/pihole-tailscale-ad-blocking-on-the-go/infographic.jpg
-coverImageAlt: "A phone on 5G with Wi-Fi crossed out shows an ad blocker test result of 94 percent, 124 of 132 blocked on cellular, with a note that Pi-hole filters by domain so page-level ads still slip through. Beside it, a Tailscale admin console DNS window lists two global nameservers, 100.101.1.10 for pihole-main and 100.101.1.20 for pihole-backup, with Restrict to domain and Use with exit node off and Override DNS servers on. A split DNS section shows the unreachable LAN address 192.168.1.x struck through and replaced by the two Tailscale addresses."
+coverImageAlt: >-
+  A phone on 5G with Wi-Fi crossed out shows an ad blocker test result of 94
+  percent, 124 of 132 blocked on cellular, with a note that Pi-hole filters by
+  domain so page-level ads still slip through. Beside it, a Tailscale admin
+  console DNS window lists two global nameservers, 100.101.1.10 for pihole-main
+  and 100.101.1.20 for pihole-backup, with Restrict to domain and Use with exit
+  node off and Override DNS servers on. A split DNS section shows the
+  unreachable LAN address 192.168.1.x struck through and replaced by the two
+  Tailscale addresses.
 ---
 
 My phone was on 5G with Wi-Fi off, and it was still getting its DNS answers from the two Raspberry Pis in my house. Here's how to set that up with Tailscale, without routing any web traffic through home.
