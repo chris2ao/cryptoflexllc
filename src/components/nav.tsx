@@ -21,7 +21,6 @@ const links: NavLink[] = [
   { href: "/portfolio", label: "Work" },
   { href: "/about", label: "About" },
   { href: "/services", label: "Services" },
-  { href: "/#subscribe", label: "Subscribe" },
 ];
 
 const secondaryLinks: NavLink[] = [
@@ -38,6 +37,7 @@ const mobileLinks: NavLink[] = [
   { href: "/resources", label: "Resources" },
   { href: "/guestbook", label: "Guestbook" },
   { href: "/contact", label: "Contact" },
+  { href: "/#subscribe", label: "Subscribe" },
 ];
 
 function isActive(pathname: string, href: string) {
