@@ -1,29 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Shield, Server, Lightbulb, Globe } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { BASE_URL } from "@/lib/constants";
+import {
+  OFFERS,
+  STEPS,
+  SECURITY_SERIES_HREF,
+  type Offer,
+} from "@/lib/services-content";
 
-const serviceIcons: Record<string, React.ReactNode> = {
-  "Security Consulting": <Shield className="h-8 w-8 text-primary mb-2" />,
-  "IT Infrastructure": <Server className="h-8 w-8 text-primary mb-2" />,
-  "IT Strategy & Support": <Lightbulb className="h-8 w-8 text-primary mb-2" />,
-  "Web Development & Management": <Globe className="h-8 w-8 text-primary mb-2" />,
-};
+const DESCRIPTION =
+  "Security review of AI agent setups and detection engineering for small teams, from CryptoFlex LLC. Fixed scope, written findings, and posts as proof.";
 
 export const metadata: Metadata = {
   title: "Services",
-  description:
-    "IT consulting services from CryptoFlex LLC — cybersecurity assessments, infrastructure architecture, cloud strategy, and security engineering.",
+  description: DESCRIPTION,
   alternates: {
     canonical: `${BASE_URL}/services`,
   },
   openGraph: {
     title: "Consulting Services",
-    description:
-      "Cybersecurity assessments, infrastructure architecture, cloud strategy, and security engineering from CryptoFlex LLC.",
+    description: DESCRIPTION,
     url: `${BASE_URL}/services`,
     type: "website",
     images: [
@@ -37,52 +34,36 @@ export const metadata: Metadata = {
   },
 };
 
-const services = [
-  {
-    title: "Security Consulting",
-    description:
-      "Security assessments, vulnerability analysis, and security architecture review. I help organizations understand their risk posture and build practical defenses.",
-    items: [
-      "Security posture assessments",
-      "Vulnerability analysis",
-      "Security architecture review",
-      "Incident response planning",
-    ],
-  },
-  {
-    title: "IT Infrastructure",
-    description:
-      "Network design, server infrastructure, and cloud architecture. From small office setups to complex hybrid environments.",
-    items: [
-      "Network design & implementation",
-      "Server infrastructure",
-      "Cloud migration & architecture",
-      "Performance optimization",
-    ],
-  },
-  {
-    title: "IT Strategy & Support",
-    description:
-      "Technology strategy for small businesses and organizations. I help you make smart technology decisions without the vendor sales pressure.",
-    items: [
-      "Technology roadmapping",
-      "Vendor-neutral recommendations",
-      "IT budget planning",
-      "Technical project management",
-    ],
-  },
-  {
-    title: "Web Development & Management",
-    description:
-      "Professional website creation and ongoing management for businesses. Modern, fast, and secure sites built with the latest technologies.",
-    items: [
-      "Custom website design & development",
-      "Website hosting & maintenance",
-      "Performance optimization & SEO",
-      "Content updates & ongoing management",
-    ],
-  },
-];
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function OfferPanel({ offer, index }: { offer: Offer; index: number }) {
+  return (
+    <article className="ed-offer">
+      <p className="ed-offer-idx">
+        {pad(index + 1)} / {pad(OFFERS.length)}
+      </p>
+      <h2 className="font-heading">{offer.title}</h2>
+      <p className="ed-offer-summary">{offer.summary}</p>
+      <ul className="ed-offer-list">
+        {offer.bullets.map((b) => (
+          <li key={b}>{b}</li>
+        ))}
+      </ul>
+      <div className="ed-offer-proof">
+        <p className="ed-offer-idx">Read first</p>
+        <ul>
+          {offer.proof.map((p) => (
+            <li key={p.href}>
+              <Link href={p.href}>{p.label}</Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </article>
+  );
+}
 
 export default function ServicesPage() {
   return (
@@ -90,50 +71,44 @@ export default function ServicesPage() {
       <EditorialPageHeader
         sectionLabel="§ 04 / Consulting"
         overline="Services"
-        title={<>Selective <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>engagements.</em></>}
-        lede="I take on a small number of projects through CryptoFlex LLC each year. Cybersecurity, infrastructure, strategy, and web. Vendor-neutral, hands-on, accountable."
+        title={
+          <>
+            Two kinds of work,{" "}
+            <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>
+              with receipts.
+            </em>
+          </>
+        }
+        lede="I take on a small number of engagements through CryptoFlex LLC each year. Two kinds of work, each backed by posts you can read before we talk."
       />
       <section className="py-8 sm:py-12">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((service) => (
-            <Card key={service.title} className="bg-card border border-border/40 rounded-lg">
-              <CardHeader>
-                {serviceIcons[service.title]}
-                <h2 className="text-xl font-heading font-semibold">{service.title}</h2>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-body text-muted-foreground mb-4">
-                  {service.description}
-                </p>
-                <ul className="space-y-2">
-                  {service.items.map((item) => (
-                    <li
-                      key={item}
-                      className="text-sm font-body text-muted-foreground flex gap-2"
-                    >
-                      <span className="text-primary mt-1 shrink-0">&#x2022;</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <div className="ed-wrap">
+          <div className="ed-offers">
+            {OFFERS.map((offer, i) => (
+              <OfferPanel key={offer.title} offer={offer} index={i} />
+            ))}
+          </div>
 
-        <div className="mt-16 max-w-2xl">
-          <h2 className="text-2xl font-heading font-bold">Interested?</h2>
-          <p className="mt-4 font-body text-muted-foreground">
-            I&apos;m selective about the projects I take on — I want to make
-            sure I can actually help. Drop me a message and let&apos;s see
-            if it&apos;s a good fit.
-          </p>
-          <Button asChild className="mt-6">
-            <Link href="/contact">Get in Touch</Link>
-          </Button>
+          <h2 className="ed-steps-title font-heading">How an engagement works</h2>
+          <ol className="ed-steps">
+            {STEPS.map((step, i) => (
+              <li key={step.title}>
+                <span className="ed-step-idx">{pad(i + 1)}</span>
+                <h3 className="font-heading">{step.title}</h3>
+                <p>{step.line}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="ed-offers-cta">
+            <Link href="/contact" className="btn-editorial btn-editorial--primary">
+              Get in touch
+            </Link>
+            <Link href={SECURITY_SERIES_HREF} className="ed-offers-cta-link">
+              Read the security reviews first
+            </Link>
+          </div>
         </div>
-      </div>
       </section>
     </>
   );
