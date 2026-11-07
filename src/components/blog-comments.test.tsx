@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { BlogComments } from "./blog-comments";
 
 const mockCommentsThreaded = [
@@ -139,6 +139,29 @@ describe("BlogComments", () => {
 
     expect(screen.getByText("Replying to comment")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Write your reply...")).toBeInTheDocument();
+  });
+
+  it("reply form starts with no reaction and a disabled submit until one is chosen", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
+    });
+
+    render(<BlogComments slug="test-post" />);
+    await screen.findByText("Great post!");
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^reply$/i })[0]);
+
+    const form = screen.getByPlaceholderText("Write your reply...").closest("form")!;
+    const submit = within(form).getByRole("button", { name: /^reply$/i });
+    expect(submit).toBeDisabled();
+    expect(within(form).getByText("Pick a reaction")).toBeInTheDocument();
+    for (const b of within(form).getAllByRole("button", { name: /^react with/i })) {
+      expect(b).toHaveAttribute("aria-pressed", "false");
+    }
+
+    fireEvent.click(within(form).getByRole("button", { name: /thumbs up/i }));
+    await waitFor(() => expect(submit).toBeEnabled());
   });
 
   it("hides reply form when Cancel is clicked", async () => {
@@ -377,8 +400,16 @@ describe("BlogComments", () => {
       name: /thumbs down/i,
     });
 
-    // Default is thumbs up
-    expect(thumbsUpButton).toHaveClass("bg-success/20");
+    // Nothing is preselected
+    expect(thumbsUpButton).toHaveAttribute("aria-pressed", "false");
+    expect(thumbsDownButton).toHaveAttribute("aria-pressed", "false");
+    expect(thumbsUpButton).not.toHaveClass("bg-success/20");
+
+    // Choosing a side
+    fireEvent.click(thumbsUpButton);
+    await waitFor(() => {
+      expect(thumbsUpButton).toHaveClass("bg-success/20");
+    });
 
     // Click thumbs down
     fireEvent.click(thumbsDownButton);
@@ -395,6 +426,47 @@ describe("BlogComments", () => {
       expect(thumbsUpButton).toHaveClass("bg-success/20");
       expect(thumbsDownButton).not.toHaveClass("bg-destructive/20");
     });
+  });
+
+  it("starts with no reaction, a disabled Post button and a hint; choosing one enables it", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ comments: [], thumbsUp: 0 }),
+    });
+
+    render(<BlogComments slug="test-post" />);
+    await screen.findByText(/No comments yet/i);
+
+    const submitButton = screen.getByRole("button", { name: /post/i });
+    expect(submitButton).toBeDisabled();
+    expect(screen.getByText("Pick a reaction")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /thumbs down/i }));
+    await waitFor(() => expect(submitButton).toBeEnabled());
+    expect(screen.queryByText("Pick a reaction")).not.toBeInTheDocument();
+  });
+
+  it("never POSTs a comment without a reaction", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ comments: [], thumbsUp: 0 }),
+    });
+
+    render(<BlogComments slug="test-post" />);
+    await screen.findByText(/No comments yet/i);
+
+    fireEvent.change(screen.getByPlaceholderText("Share your thoughts..."), {
+      target: { value: "Hello" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("your-subscriber@email.com"), {
+      target: { value: "a@example.com" },
+    });
+    fireEvent.submit(screen.getByRole("button", { name: /post/i }).closest("form")!);
+
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      "/api/comments",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
   it("submits a comment successfully", async () => {
@@ -438,6 +510,7 @@ describe("BlogComments", () => {
 
     fireEvent.change(textarea, { target: { value: "New comment" } });
     fireEvent.change(emailInput, { target: { value: "new@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /thumbs up/i }));
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -522,6 +595,7 @@ describe("BlogComments", () => {
 
     fireEvent.change(textarea, { target: { value: "Test" } });
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /thumbs up/i }));
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -537,9 +611,9 @@ describe("BlogComments", () => {
       json: async () => ({ success: true }),
     });
 
-    await waitFor(() => {
-      expect(submitButton).not.toBeDisabled();
-    });
+    // Submission finished: spinner gone (the reaction resets, so Post stays disabled)
+    expect(await screen.findByText("Comment posted!")).toBeInTheDocument();
+    expect(document.querySelector('[class*="lucide-loader"]')).not.toBeInTheDocument();
   });
 
   it("shows API error message on failed submission", async () => {
@@ -565,6 +639,7 @@ describe("BlogComments", () => {
 
     fireEvent.change(textarea, { target: { value: "Test" } });
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /thumbs up/i }));
     fireEvent.click(submitButton);
 
     expect(await screen.findByText("Not a subscriber")).toBeInTheDocument();
@@ -590,6 +665,7 @@ describe("BlogComments", () => {
 
     fireEvent.change(textarea, { target: { value: "Test" } });
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /thumbs up/i }));
     fireEvent.click(submitButton);
 
     expect(
@@ -626,6 +702,7 @@ describe("BlogComments", () => {
 
     fireEvent.change(textarea, { target: { value: "Test comment" } });
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /thumbs up/i }));
     fireEvent.click(submitButton);
 
     await screen.findByText("Comment posted!");
@@ -643,7 +720,7 @@ describe("BlogComments", () => {
     }, { timeout: 2000 });
   });
 
-  it("resets reaction to 'up' after successful submission", async () => {
+  it("clears the reaction after successful submission", async () => {
     (global.fetch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({
         ok: true,
@@ -681,8 +758,10 @@ describe("BlogComments", () => {
 
     const thumbsUpButton = screen.getByRole("button", { name: /thumbs up/i });
     await waitFor(() => {
-      expect(thumbsUpButton).toHaveClass("bg-success/20");
+      expect(thumbsUpButton).toHaveAttribute("aria-pressed", "false");
+      expect(thumbsDownButton).toHaveAttribute("aria-pressed", "false");
     });
+    expect(screen.getByRole("button", { name: /post/i })).toBeDisabled();
   });
 
   it("clears error state when user types in textarea", async () => {
@@ -708,6 +787,7 @@ describe("BlogComments", () => {
 
     fireEvent.change(textarea, { target: { value: "Test" } });
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /thumbs up/i }));
     fireEvent.click(submitButton);
 
     await screen.findByText("Not a subscriber");
@@ -743,6 +823,7 @@ describe("BlogComments", () => {
 
     fireEvent.change(textarea, { target: { value: "Test" } });
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /thumbs up/i }));
     fireEvent.click(submitButton);
 
     await screen.findByText("Not a subscriber");

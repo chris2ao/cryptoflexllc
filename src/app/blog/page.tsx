@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { SubscribeForm } from "@/components/subscribe-form";
+import { SubscribeCard } from "@/components/subscribe/subscribe-card";
 import { BlogIndex } from "@/components/blog/blog-index";
 import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { getAllPosts, getAllTags } from "@/lib/blog";
@@ -104,7 +104,7 @@ export default function BlogPage() {
 
             {/* Subscribe form at the bottom */}
             <div className="mt-12 max-w-xl">
-              <SubscribeForm />
+              <SubscribeCard />
             </div>
           </>
         )}

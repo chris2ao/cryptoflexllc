@@ -4,7 +4,7 @@ import { ThumbsUp, ThumbsDown, Loader2, Send } from "lucide-react";
 
 export interface CommentFormState {
   comment: string;
-  reaction: "up" | "down";
+  reaction: "up" | "down" | null;
   email: string;
   submitting: boolean;
   submitStatus: "idle" | "success" | "error";
@@ -88,7 +88,7 @@ export function CommentForm({
           />
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || reaction === null}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
           >
             {submitting ? (
@@ -100,6 +100,10 @@ export function CommentForm({
           </button>
         </div>
       </div>
+
+      {reaction === null && (
+        <p className="text-xs text-muted-foreground">Pick a reaction</p>
+      )}
 
       {submitStatus === "success" && (
         <p className="text-sm text-success">{submitMessage}</p>

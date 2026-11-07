@@ -2,6 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { useSubscribe } from "@/hooks/use-subscribe";
+import { SUBSCRIBE_COPY, showSubscriberCount } from "@/lib/subscribe-copy";
 
 export function SubscribeBlock() {
   const { email, status, message, handleSubmit, updateEmail, subscriberCount } =
@@ -18,10 +19,7 @@ export function SubscribeBlock() {
           <h2>
             Field notes, <em>every Monday.</em>
           </h2>
-          <p>
-            One email each Monday with what I published that week. No tracking
-            pixels, no growth hacks, and an unsubscribe link in every issue.
-          </p>
+          <p>{SUBSCRIBE_COPY.body}</p>
         </div>
 
         <form
@@ -38,7 +36,7 @@ export function SubscribeBlock() {
               required
               value={email}
               onChange={(e) => updateEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={SUBSCRIBE_COPY.placeholder}
               disabled={isSuccess}
               aria-invalid={status === "error" ? true : undefined}
               aria-describedby={message ? "subscribe-message" : undefined}
@@ -53,7 +51,7 @@ export function SubscribeBlock() {
               ) : isSuccess ? (
                 "✓ Subscribed"
               ) : (
-                "Subscribe"
+                SUBSCRIBE_COPY.cta
               )}
             </button>
           </div>
@@ -61,10 +59,8 @@ export function SubscribeBlock() {
             {status === "error" && message ? (
               <span className="text-destructive">{message}</span>
             ) : isSuccess ? (
-              <>
-                <b>You&apos;re in.</b> Check your inbox Monday.
-              </>
-            ) : subscriberCount !== null && subscriberCount > 0 ? (
+              SUBSCRIBE_COPY.success
+            ) : showSubscriberCount(subscriberCount) ? (
               <>
                 Join <b>{subscriberCount.toLocaleString()}</b> readers ·
                 Unsubscribe anytime

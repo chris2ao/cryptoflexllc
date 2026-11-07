@@ -185,7 +185,7 @@ import { formatPostDate, formatPostDateShort } from "@/lib/post-date";
 import { extractHeadings } from "@/lib/headings";
 import { createHeading } from "@/components/blog/heading-anchor";
 import { ArticleJsonLd, BlogPostingJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
-import { SubscribeForm } from "@/components/subscribe-form";
+import { SubscribeCard } from "@/components/subscribe/subscribe-card";
 import { BlogPostThumbsUp } from "@/components/blog-post-engagement";
 import { BlogComments } from "@/components/blog-comments";
 import { ReadingProgress } from "@/components/reading-progress";
@@ -569,7 +569,7 @@ export default async function BlogPostPage({ params }: Props) {
                   <div className="ed-post-footer-head">Share this</div>
                   <SocialShare url={postUrl} title={post.title} />
                 </div>
-                <SubscribeForm />
+                <SubscribeCard />
                 <div>
                   <div className="ed-post-footer-head">About the author</div>
                   <AuthorCard />

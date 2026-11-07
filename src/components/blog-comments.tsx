@@ -28,7 +28,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
 
   // Form state
   const [comment, setComment] = useState("");
-  const [reaction, setReaction] = useState<"up" | "down">("up");
+  const [reaction, setReaction] = useState<"up" | "down" | null>(null);
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
@@ -37,7 +37,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
   // Reply state
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyComment, setReplyComment] = useState("");
-  const [replyReaction, setReplyReaction] = useState<"up" | "down">("up");
+  const [replyReaction, setReplyReaction] = useState<"up" | "down" | null>(null);
   const [replyEmail, setReplyEmail] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
   const [replyStatus, setReplyStatus] = useState<"idle" | "success" | "error">("idle");
@@ -84,7 +84,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!comment.trim() || !email.trim()) return;
+    if (!comment.trim() || !email.trim() || reaction === null) return;
 
     setSubmitting(true);
     setSubmitStatus("idle");
@@ -108,7 +108,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
       setSubmitMessage("Comment posted!");
       sendGAEvent("event", "blog_comment", { post_slug: slug, reaction });
       setComment("");
-      setReaction("up");
+      setReaction(null);
       setEmail("");
 
       await fetchComments();
@@ -123,7 +123,13 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
 
   async function handleReplySubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!replyComment.trim() || !replyEmail.trim() || replyingTo == null) return;
+    if (
+      !replyComment.trim() ||
+      !replyEmail.trim() ||
+      replyReaction === null ||
+      replyingTo == null
+    )
+      return;
 
     setReplySubmitting(true);
     setReplyStatus("idle");
@@ -153,7 +159,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
       setReplyMessage("Reply posted!");
       sendGAEvent("event", "blog_comment_reply", { post_slug: slug, reaction: replyReaction });
       setReplyComment("");
-      setReplyReaction("up");
+      setReplyReaction(null);
       setReplyEmail("");
 
       await fetchComments();
@@ -172,7 +178,7 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
   function cancelReply() {
     setReplyingTo(null);
     setReplyComment("");
-    setReplyReaction("up");
+    setReplyReaction(null);
     setReplyEmail("");
     setReplyStatus("idle");
     setReplyMessage("");
