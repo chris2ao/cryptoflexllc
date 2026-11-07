@@ -13,6 +13,8 @@ const GATE_MS = 7 * 24 * 60 * 60 * 1000;
 const EXCLUDED_PREFIXES = ["/analytics", "/unsubscribe"];
 const MOBILE_QUERY = "(max-width: 639px)";
 const SCROLL_DEPTH_GATE = 0.6;
+/** Real scroll required, so short pages never trip the depth gate. */
+export const MIN_SCROLL_PX = 160;
 
 function isMobileViewport(): boolean {
   try {
@@ -95,6 +97,7 @@ export function NewsletterPopup() {
 
     // Reveal only on a scroll event that crosses the depth gate, never on mount
     const onScroll = () => {
+      if (window.scrollY < MIN_SCROLL_PX) return;
       if (scrollDepth() < SCROLL_DEPTH_GATE) return;
       window.removeEventListener("scroll", onScroll);
       // Dismissal or subscription may have happened since the listener was armed
