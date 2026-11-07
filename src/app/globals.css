@@ -4392,6 +4392,7 @@ table.ax-tbl {
 @media (max-width: 599px) {
   .ed-offer { padding: 20px; }
   .ed-steps-title { margin-top: 48px; }
+}
 
 /* ==== EDITORIAL REDESIGN: About career path (CLAUD-765 item 11) ==== */
 .ed-career-path.ed-career-path--stacked {
