@@ -4291,3 +4291,32 @@ table.ax-tbl {
   color: var(--fg-2);
   margin: 0 0 20px 0;
 }
+
+/* ==== EDITORIAL REDESIGN: About career path (CLAUD-765 item 11) ==== */
+.ed-career-path.ed-career-path--stacked {
+  list-style: none;
+  margin: 0 0 32px 0;
+  padding: 0 0 0 24px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  position: relative;
+}
+
+.ed-career-path--stacked::before {
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  right: auto;
+  width: 1px;
+  height: auto;
+}
+
+.ed-career-path--stacked li {
+  padding-top: 0;
+}
+
+.ed-career-path--stacked li::before {
+  top: 3px;
+  left: -24px;
+}

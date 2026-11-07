@@ -15,7 +15,7 @@ import {
   pickReadingPaths,
   summarizeSeries,
 } from "@/lib/home-content";
-import { IDENTITY_LINE, SITE_DESCRIPTION } from "@/lib/identity";
+import { SITE_DESCRIPTION } from "@/lib/identity";
 import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "CryptoFlex LLC: Build in public. Break things on purpose.",
-    description: IDENTITY_LINE,
+    description: SITE_DESCRIPTION,
     url: BASE_URL,
     type: "website",
     images: [
