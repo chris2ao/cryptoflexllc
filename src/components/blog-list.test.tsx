@@ -292,78 +292,102 @@ describe("BlogList", () => {
     expect(screen.getByText("Minimal Post")).toBeInTheDocument();
   });
 
-  describe("mobile paging", () => {
-    const manyPosts: BlogPostSummary[] = Array.from({ length: 30 }, (_, i) => ({
-      slug: `bulk-${i + 1}`,
-      title: `Bulk ${i + 1}`,
-      description: `Description ${i + 1}`,
-      tags: i % 2 === 0 ? ["even"] : ["odd"],
-      date: "2026-02-01",
-      author: "Test Author",
-      readingTime: "1 min read",
-    }));
+  describe("paging", () => {
+    const makePosts = (n: number): BlogPostSummary[] =>
+      Array.from({ length: n }, (_, i) => ({
+        slug: `bulk-${i + 1}`,
+        title: `Bulk ${i + 1}`,
+        description: `Description ${i + 1}`,
+        tags: i % 2 === 0 ? ["even"] : ["odd"],
+        date: "2026-02-01",
+        author: "Test Author",
+        readingTime: "1 min read",
+      }));
+    const manyPosts = makePosts(60);
 
-    const wrapperOf = (slug: string) =>
-      screen.getByTestId(`blog-card-${slug}`).parentElement as HTMLElement;
+    const cls = (slug: string) =>
+      (screen.getByTestId(`blog-card-${slug}`).parentElement as HTMLElement).className;
+    const showMore = () => screen.getByRole("button", { name: /show more posts/i });
 
-    it("keeps every card in the DOM and hides those beyond 12 on mobile", () => {
+    it("keeps every card in the DOM and hides cards beyond each width's page", () => {
       render(<BlogList posts={manyPosts} />);
-      expect(screen.getAllByTestId(/^blog-card-/)).toHaveLength(30);
-      expect(wrapperOf("bulk-12").className).not.toContain("max-sm:hidden");
-      expect(wrapperOf("bulk-13").className).toContain("max-sm:hidden");
-      expect(
-        screen.getByRole("button", { name: /show more posts \(12 of 30 shown\)/i })
-      ).toBeInTheDocument();
+      expect(screen.getAllByTestId(/^blog-card-/)).toHaveLength(60);
+      expect(cls("bulk-12")).not.toMatch(/hidden/);
+      expect(cls("bulk-13")).toContain("max-sm:hidden");
+      expect(cls("bulk-24")).toContain("max-sm:hidden");
+      expect(cls("bulk-25")).not.toContain("max-sm:hidden");
+      expect(cls("bulk-25").split(" ")).toContain("hidden");
     });
 
-    it("reveals 12 more per tap and hides the button when none remain", () => {
+    it("labels the button with a count for each width", () => {
       render(<BlogList posts={manyPosts} />);
-      fireEvent.click(screen.getByRole("button", { name: /show more posts/i }));
-      expect(wrapperOf("bulk-24").className).not.toContain("max-sm:hidden");
-      expect(wrapperOf("bulk-25").className).toContain("max-sm:hidden");
-      fireEvent.click(
-        screen.getByRole("button", { name: /show more posts \(24 of 30 shown\)/i })
-      );
-      expect(wrapperOf("bulk-30").className).not.toContain("max-sm:hidden");
+      const button = showMore();
+      expect(button).toHaveTextContent("(12 of 60 shown)");
+      expect(button).toHaveTextContent("(24 of 60 shown)");
+      expect(button.querySelector("span.sm\\:hidden")).toHaveTextContent("(12 of 60 shown)");
+      expect(button.querySelector("span.hidden")).toHaveTextContent("(24 of 60 shown)");
+    });
+
+    it("reveals one more page per click at both widths", () => {
+      render(<BlogList posts={manyPosts} />);
+      fireEvent.click(showMore());
+      expect(cls("bulk-24")).not.toMatch(/hidden/);
+      expect(cls("bulk-25")).toContain("max-sm:hidden");
+      expect(cls("bulk-48")).toContain("max-sm:hidden");
+      expect(cls("bulk-49").split(" ")).toContain("hidden");
+      expect(showMore()).toHaveTextContent("(24 of 60 shown)");
+      expect(showMore()).toHaveTextContent("(48 of 60 shown)");
+    });
+
+    it("shows the button only on mobile when only mobile has more", () => {
+      render(<BlogList posts={makePosts(20)} />);
+      expect(showMore().parentElement?.className).toContain("sm:hidden");
+      expect(showMore()).toHaveTextContent("(12 of 20 shown)");
+      expect(cls("bulk-20")).toContain("max-sm:hidden");
+      expect(cls("bulk-20").split(" ")).not.toContain("hidden");
+    });
+
+    it("shows the button at every width while desktop has more", () => {
+      render(<BlogList posts={manyPosts} />);
+      expect(showMore().parentElement?.className).not.toContain("sm:hidden");
+    });
+
+    it("removes the button once nothing remains at either width", () => {
+      render(<BlogList posts={makePosts(24)} />);
+      fireEvent.click(showMore());
+      expect(cls("bulk-24")).not.toMatch(/hidden/);
       expect(screen.queryByRole("button", { name: /show more posts/i })).toBeNull();
     });
 
-    it("hides the button when 12 or fewer posts exist", () => {
+    it("omits the button when 12 or fewer posts exist", () => {
       render(<BlogList posts={mockPosts} />);
       expect(screen.queryByRole("button", { name: /show more posts/i })).toBeNull();
     });
 
-    it("resets the visible count when the filter changes", () => {
+    it("resets paging when the filter changes", () => {
       render(<BlogList posts={manyPosts} />);
-      fireEvent.click(screen.getByRole("button", { name: /show more posts/i }));
-      expect(wrapperOf("bulk-13").className).not.toContain("max-sm:hidden");
+      fireEvent.click(showMore());
+      expect(cls("bulk-13")).not.toMatch(/hidden/);
 
       fireEvent.change(screen.getByPlaceholderText("Search posts..."), {
         target: { value: "Bulk 1" },
       });
       const matches = screen.getAllByTestId(/^blog-card-/).length;
       expect(matches).toBeGreaterThan(12);
-      // count resets to 12 for the new result set
-      expect(
-        screen.getByRole("button", {
-          name: new RegExp(`show more posts \\(12 of ${matches} shown\\)`, "i"),
-        })
-      ).toBeInTheDocument();
+      expect(showMore()).toHaveTextContent(`(12 of ${matches} shown)`);
     });
 
-    it("does not restore an old count when returning to a previous filter", () => {
+    it("does not restore an old page count when returning to a previous filter", () => {
       render(<BlogList posts={manyPosts} />);
-      fireEvent.click(screen.getByRole("button", { name: /show more posts/i }));
-      expect(wrapperOf("bulk-24").className).not.toContain("max-sm:hidden");
+      fireEvent.click(showMore());
+      expect(cls("bulk-24")).not.toMatch(/hidden/);
 
       const input = screen.getByPlaceholderText("Search posts...");
       fireEvent.change(input, { target: { value: "Bulk 1" } });
       fireEvent.change(input, { target: { value: "" } });
 
-      expect(wrapperOf("bulk-13").className).toContain("max-sm:hidden");
-      expect(
-        screen.getByRole("button", { name: /show more posts \(12 of 30 shown\)/i })
-      ).toBeInTheDocument();
+      expect(cls("bulk-13")).toContain("max-sm:hidden");
+      expect(showMore()).toHaveTextContent("(12 of 60 shown)");
     });
   });
 });

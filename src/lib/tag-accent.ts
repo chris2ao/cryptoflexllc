@@ -1,12 +1,17 @@
-/** Maps a post's first recognized tag to its card accent-bar CSS variable. */
+/** Maps a post's first recognized topic to its card accent-bar CSS variable. */
 const tagVarMap: Record<string, string> = {
   "Claude Code": "var(--color-tag-claude-code)",
   Security: "var(--color-tag-security)",
-  AI: "var(--color-tag-ai)",
-  "Next.js": "var(--color-tag-nextjs)",
-  DevOps: "var(--color-tag-general)",
-  Analytics: "var(--color-tag-general)",
-  Infrastructure: "var(--color-tag-infrastructure)",
+  "Detection & SIEM": "var(--color-tag-security)",
+  "AI Agents": "var(--color-tag-ai)",
+  Memory: "var(--color-tag-ai)",
+  MCP: "var(--color-tag-ai)",
+  "Web Development": "var(--color-tag-nextjs)",
+  "Home Lab": "var(--color-tag-infrastructure)",
+  "Python & Data": "var(--color-tag-general)",
+  "Game Development": "var(--color-tag-general)",
+  "Open Source": "var(--color-tag-general)",
+  "Career & Life": "var(--color-tag-general)",
 };
 
 export function getTagAccentVar(tags: string[]): string {

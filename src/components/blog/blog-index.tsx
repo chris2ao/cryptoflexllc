@@ -4,11 +4,12 @@ import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { BlogList, type BlogPostSummary } from "@/components/blog-list";
 import { CategoryFilter } from "@/components/blog/CategoryFilter";
-import { FeaturedPosts } from "@/components/blog/FeaturedPosts";
+import { StartHere } from "@/components/blog/start-here";
+import type { SeriesSummary } from "@/lib/home-content";
 
 interface BlogIndexProps {
   posts: BlogPostSummary[];
-  featured: BlogPostSummary[];
+  startHere: SeriesSummary[];
   categories: string[];
   allTags: string[];
 }
@@ -27,7 +28,7 @@ interface BlogIndexProps {
  */
 export function BlogIndex({
   posts,
-  featured,
+  startHere,
   categories,
   allTags,
 }: BlogIndexProps) {
@@ -44,7 +45,7 @@ export function BlogIndex({
 
   return (
     <>
-      {activeCategory === null && <FeaturedPosts posts={featured} />}
+      {activeCategory === null && <StartHere series={startHere} />}
 
       <BlogList posts={filteredPosts} allTags={allTags} />
 

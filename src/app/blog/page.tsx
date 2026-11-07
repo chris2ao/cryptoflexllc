@@ -5,6 +5,8 @@ import { BlogIndex } from "@/components/blog/blog-index";
 import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { getAllPosts, getAllTags } from "@/lib/blog";
 import { BASE_URL } from "@/lib/constants";
+import { pickReadingPaths, summarizeSeries } from "@/lib/home-content";
+import taxonomy from "@/content/tag-taxonomy.json";
 
 /**
  * Static metadata.
@@ -41,40 +43,16 @@ export const metadata: Metadata = {
   },
 };
 
-/** The primary categories shown in the filter bar. Order matters. */
-const FEATURED_CATEGORIES = [
-  "All",
-  "Claude Code",
-  "Security",
-  "AI",
-  "Next.js",
-  "Infrastructure",
-  "OpenClaw",
-];
+/** The filter bar: "All" plus the twelve topics, in specificity order. */
+const CATEGORIES = ["All", ...taxonomy.topics];
 
 export default function BlogPage() {
   const posts = getAllPosts();
   const allTags = getAllTags();
-
-  // Derive category list: featured first, then any extra tag-derived categories
-  const tagSet = new Set(posts.flatMap((p) => p.tags));
-  const extraCategories = Array.from(tagSet)
-    .filter(
-      (tag) =>
-        !FEATURED_CATEGORIES.includes(tag) &&
-        FEATURED_CATEGORIES.every((c) => c.toLowerCase() !== tag.toLowerCase())
-    )
-    .sort();
-  const categories = [...FEATURED_CATEGORIES, ...extraCategories];
+  const startHere = pickReadingPaths(summarizeSeries(posts));
 
   // Strip raw MDX content before passing to client components
   const summaries = posts.map(({ content: _, ...rest }) => rest);
-
-  // Featured posts (no category filter applied; always show top featured)
-  const featuredSummaries = posts
-    .filter((p) => p.featured)
-    .map(({ content: _, ...rest }) => rest)
-    .slice(0, 3);
 
   return (
     <>
@@ -96,8 +74,8 @@ export default function BlogPage() {
             <Suspense>
               <BlogIndex
                 posts={summaries}
-                featured={featuredSummaries}
-                categories={categories}
+                startHere={startHere}
+                categories={CATEGORIES}
                 allTags={allTags}
               />
             </Suspense>
