@@ -55,6 +55,14 @@ describe("StartHere", () => {
     expect(screen.getAllByText(/Start the series/)).toHaveLength(2);
   });
 
+  it("uses the singular for a single series", () => {
+    render(<StartHere series={series.slice(0, 1)} />);
+    expect(
+      screen.getByText("One reading path through the archive, newest first.")
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+  });
+
   it("renders nothing for an empty list", () => {
     const { container } = render(<StartHere series={[]} />);
     expect(container).toBeEmptyDOMElement();
