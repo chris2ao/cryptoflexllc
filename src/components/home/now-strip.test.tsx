@@ -52,6 +52,6 @@ describe("NowStrip", () => {
   it("is a labeled region with no em dash", () => {
     const { container } = render(<NowStrip nowBuilding={building} />);
     expect(screen.getByRole("region", { name: "Now" })).toBeInTheDocument();
-    expect(container.textContent).not.toContain("—");
+    expect(container.textContent).not.toContain("\u2014");
   });
 });
