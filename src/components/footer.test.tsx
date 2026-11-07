@@ -44,6 +44,23 @@ describe("Footer", () => {
     );
   });
 
+  it("renders all eight text links with their hrefs", () => {
+    render(<Footer />);
+    const expected: Record<string, string> = {
+      Blog: "/blog",
+      Work: "/portfolio",
+      About: "/about",
+      Services: "/services",
+      Skills: "/skills",
+      Resources: "/resources",
+      Guestbook: "/guestbook",
+      Contact: "/contact",
+    };
+    for (const [name, href] of Object.entries(expected)) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+    }
+  });
+
   it("has LinkedIn external link", () => {
     render(<Footer />);
     const linkedInLink = screen.getByRole("link", { name: "LinkedIn" });

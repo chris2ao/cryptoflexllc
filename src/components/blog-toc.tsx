@@ -21,7 +21,7 @@ function useTocObserver(headings: TocHeading[]) {
           }
         }
       },
-      { rootMargin: "-80px 0px -80% 0px" }
+      { rootMargin: "-100px 0px -80% 0px" }
     );
 
     for (const heading of headings) {
@@ -80,7 +80,7 @@ export function BlogToc({ headings, variant = "inline" }: BlogTocProps) {
   if (variant === "sidebar") {
     return (
       <nav
-        className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto"
+        className="sticky top-[100px] max-h-[calc(100vh-7rem)] overflow-y-auto"
         aria-label="Table of contents"
       >
         <p className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">

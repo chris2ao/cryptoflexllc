@@ -26,6 +26,9 @@ export function Footer() {
           <Link href="/portfolio">Work</Link>
           <Link href="/about">About</Link>
           <Link href="/services">Services</Link>
+          <Link href="/skills">Skills</Link>
+          <Link href="/resources">Resources</Link>
+          <Link href="/guestbook">Guestbook</Link>
           <Link href="/contact">Contact</Link>
           <a
             className="editorial-footer-icon"

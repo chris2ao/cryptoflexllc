@@ -703,7 +703,7 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: color-mix(in oklab, var(--background) 85%, transparent);
+  background: color-mix(in oklab, var(--background) 97%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
@@ -782,12 +782,7 @@
 
 /* Editorial secondary nav — section bar under the masthead */
 .ed-subnav {
-  position: sticky;
-  top: 88px;
-  z-index: 49;
   background: color-mix(in oklab, var(--background) 92%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
 
@@ -821,12 +816,6 @@
   }
   .ed-subnav-link[data-mobile-only="true"] {
     display: inline-flex;
-  }
-}
-
-@media (max-width: 768px) {
-  .ed-subnav {
-    top: 72px;
   }
 }
 
@@ -2387,8 +2376,8 @@
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   position: relative;
-  /* Clears the sticky masthead plus the subnav strip (up to 132px). */
-  scroll-margin-top: 144px;
+  /* Clears the sticky masthead (88px) plus 12px. */
+  scroll-margin-top: 100px;
 }
 
 .ed-subscribe-inner {
@@ -2537,26 +2526,17 @@
   .ed-post-inner { padding: 0 20px; }
 }
 
-/* Sticky stack heights plus 12px clearance:
-   <=768px: 72 masthead + 44 subnav = 116 -> 128
-   769-900px: 88 + 44 = 132 -> 144
-   >900px: 88 + 36 = 124 -> 136 */
+/* Sticky masthead height plus 12px clearance:
+   <=768px: 72 -> 84; >768px: 88 -> 100 */
 .prose :is(h1, h2, h3, h4, h5, h6)[id],
 .prose [id] {
-  scroll-margin-top: 128px;
+  scroll-margin-top: 84px;
 }
 
 @media (min-width: 769px) {
   .prose :is(h1, h2, h3, h4, h5, h6)[id],
   .prose [id] {
-    scroll-margin-top: 144px;
-  }
-}
-
-@media (min-width: 901px) {
-  .prose :is(h1, h2, h3, h4, h5, h6)[id],
-  .prose [id] {
-    scroll-margin-top: 136px;
+    scroll-margin-top: 100px;
   }
 }
 
@@ -2644,6 +2624,10 @@
 
 /* Prose: Source Serif 4 at 19px / 1.55 for body paragraphs within the editorial post */
 .ed-post-prose {
+  /* width: 100% keeps the grid item inside its track at 1024 to 1100px, where
+     the article column is narrower than the 720px measure; without it the
+     auto margins size the item to its max-width and it runs under the aside. */
+  width: 100%;
   max-width: 720px;
   margin: 0 auto;
 }
@@ -2718,7 +2702,7 @@
   .ed-post-aside {
     display: block;
     position: sticky;
-    top: 96px;
+    top: 100px;
   }
 }
 
@@ -4219,5 +4203,26 @@ table.ax-tbl {
   }
   .dark .texture-scanlines::after {
     display: none;
+  }
+}
+
+/* ==== EDITORIAL REDESIGN: post layout breakout (CLAUD-765 item 9) ==== */
+/* Wide tables grow to the article column (the 1200px content box of
+   .ed-post-inner minus the 260px aside and 48px gap) while paragraphs stay
+   at the 720px prose measure. The column is derived from the viewport, not a
+   container query, which would make .ed-post-layout the containing block for
+   the position: fixed image and diagram lightboxes inside the MDX. */
+@media (min-width: 1024px) {
+  .ed-post-layout {
+    max-width: 1200px;
+  }
+
+  .ed-post-prose .prose-table-wrap {
+    --post-column: calc(min(100vw - 80px, 1200px) - 308px);
+    width: max(100%, var(--post-column));
+    margin-left: calc((100% - max(100%, var(--post-column))) / 2);
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
   }
 }

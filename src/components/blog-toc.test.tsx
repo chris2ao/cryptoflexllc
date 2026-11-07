@@ -38,4 +38,10 @@ describe("BlogToc", () => {
     render(<BlogToc headings={headings} variant="sidebar" />);
     expect(screen.getByRole("link", { name: "Two" })).toBeInTheDocument();
   });
+
+  it("sidebar nav sticks below the single 88px header", () => {
+    render(<BlogToc headings={headings} variant="sidebar" />);
+    const nav = screen.getByRole("navigation", { name: "Table of contents" });
+    expect(nav).toHaveClass("top-[100px]");
+  });
 });
