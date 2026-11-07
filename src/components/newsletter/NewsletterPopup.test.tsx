@@ -8,7 +8,7 @@ import {
   vi,
 } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { NewsletterPopup } from "./NewsletterPopup";
+import { NewsletterPopup, MIN_SCROLL_PX } from "./NewsletterPopup";
 import { SUBSCRIBE_COPY } from "@/lib/subscribe-copy";
 
 let mockPathname = "/blog";
@@ -166,6 +166,33 @@ describe("NewsletterPopup", () => {
     render(<NewsletterPopup />);
     scrollTo(SHALLOW);
     expect(popupHeading()).not.toBeInTheDocument();
+  });
+
+  it("never reveals on a page that fits the viewport, even at depth 1", () => {
+    setScroll(0, 800, 800);
+    render(<NewsletterPopup />);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(popupHeading()).not.toBeInTheDocument();
+  });
+
+  it("does not reveal on a page 100px taller than the viewport scrolled 50px", () => {
+    render(<NewsletterPopup />);
+    setScroll(50, 800, 900); // depth 94%, but only 50px scrolled
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(popupHeading()).not.toBeInTheDocument();
+  });
+
+  it("reveals once scrollY reaches the minimum on a short page", () => {
+    render(<NewsletterPopup />);
+    setScroll(MIN_SCROLL_PX, 800, 900 + MIN_SCROLL_PX);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(popupHeading()).toBeInTheDocument();
   });
 
   it("does not show on mount or over time, even if depth is already 1", () => {

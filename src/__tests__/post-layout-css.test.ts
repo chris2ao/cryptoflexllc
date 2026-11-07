@@ -10,16 +10,15 @@ describe("post layout breakout css", () => {
   const headerAt = css.indexOf(HEADER);
   const block = headerAt >= 0 ? css.slice(headerAt) : "";
 
-  it("appends the breakout block after the reduced-motion block", () => {
-    const reducedAt = css.indexOf("@media (prefers-reduced-motion: reduce)");
-    expect(reducedAt).toBeGreaterThan(-1);
-    expect(headerAt).toBeGreaterThan(reducedAt);
+  it("has the breakout block", () => {
+    expect(headerAt).toBeGreaterThan(-1);
+    expect(block).toContain("max-width: 1200px");
   });
 
-  it("uses a container query sized column for wide tables", () => {
-    expect(block).toContain("container-type: inline-size");
-    expect(block).toContain("100cqw");
-    expect(block).toContain("308px");
+  it("derives the column from the viewport, never from a container query", () => {
+    expect(block).toContain("calc(min(100vw - 80px, 1200px) - 308px)");
+    expect(block).not.toContain("container-type");
+    expect(block).not.toContain("cqw");
   });
 
   it("keeps the scroll-shadow background on prose-table-wrap", () => {

@@ -15,7 +15,7 @@ const CLAUDE_CODE = "Claude Code";
 const FALLBACK = "Career & Life";
 const MAX_TAGS = 3;
 const CLAUDE_RE =
-  /claude|harness|hooks?\b|skills?\b|subagent|agent team|workflow|mcp|plasticity|homunculus|session/i;
+  /\b(?:claude code|harness|hooks?|skills?|subagents?|agent teams?|mcp|plasticity|homunculus)\b/i;
 const CONTENT_DIRS = ["src/content/blog", "src/content/backlog"];
 
 function unquote(raw) {
@@ -55,8 +55,10 @@ function splitInline(body) {
 export function splitFrontmatter(content) {
   if (!/^---\r?\n/.test(content)) return null;
   const open = content.indexOf("\n") + 1;
-  const close = content.indexOf("\n---", open - 1);
-  if (close === -1) return null;
+  const rest = content.slice(open - 1);
+  const m = /\n---(?:\r?\n|$)/.exec(rest);
+  if (!m) return null;
+  const close = open - 1 + m.index;
   return { fm: content.slice(open, close + 1), start: open, end: close + 1 };
 }
 
@@ -65,6 +67,7 @@ export function findTagsBlock(fm) {
   const lines = fm.split("\n");
   const idx = lines.findIndex((l) => /^tags:/.test(l));
   if (idx === -1) return null;
+  const eol = lines[idx].endsWith("\r") ? "\r\n" : "\n";
   const head = lines[idx].replace(/^tags:\s*/, "").replace(/\r$/, "");
   let last = idx;
   let tags;
@@ -79,7 +82,7 @@ export function findTagsBlock(fm) {
   }
   const offset = lines.slice(0, idx).reduce((n, l) => n + l.length + 1, 0);
   const length = lines.slice(idx, last + 1).reduce((n, l) => n + l.length + 1, 0) - 1;
-  return { tags, from: offset, to: offset + length };
+  return { tags, eol, from: offset, to: offset + length };
 }
 
 /** Reads a scalar frontmatter field, including folded and multi-line values. */
@@ -100,7 +103,8 @@ function orderOf(topics) {
 
 /** A topic maps to itself, so a rerun on consolidated posts changes nothing. */
 function lookup(tag, { topics, map }) {
-  return topics.includes(tag) ? tag : map[tag];
+  if (topics.includes(tag)) return tag;
+  return Object.hasOwn(map, tag) ? map[tag] : undefined;
 }
 
 /** Maps old tags to at most three topics, most specific first. */
@@ -112,15 +116,19 @@ export function computeTags(oldTags, text, taxonomy) {
   const ordered = [...unique].sort(orderOf(topics));
   const kept = ordered.filter((t) => t !== CLAUDE_CODE || aboutClaude);
   if (kept.length === 0) return [aboutClaude ? CLAUDE_CODE : FALLBACK];
+  if (kept.length > MAX_TAGS && kept.includes(CLAUDE_CODE)) {
+    const others = kept.filter((t) => t !== CLAUDE_CODE);
+    return [...others.slice(0, MAX_TAGS - 1), CLAUDE_CODE];
+  }
   return kept.slice(0, MAX_TAGS);
 }
 
 function formatTag(tag) {
-  return /[&:#]/.test(tag) ? `"${tag}"` : tag;
+  return /^[A-Za-z0-9][A-Za-z0-9 .+/-]*$/.test(tag) ? tag : JSON.stringify(tag);
 }
 
-export function formatBlock(tags) {
-  return ["tags:", ...tags.map((t) => `  - ${formatTag(t)}`)].join("\n");
+export function formatBlock(tags, eol = "\n") {
+  return ["tags:", ...tags.map((t) => `  - ${formatTag(t)}`)].join(eol);
 }
 
 /** Pure rewrite of one file. Returns the new content and the tag change. */
@@ -128,12 +136,16 @@ export function rewriteContent(content, taxonomy) {
   const parts = splitFrontmatter(content);
   const block = parts ? findTagsBlock(parts.fm) : null;
   if (!parts || !block) return { content, changed: false, before: [], after: [], unmapped: [] };
-  const text = `${readField(parts.fm, "title")} ${readField(parts.fm, "description")}`;
+  const text = readField(parts.fm, "title");
   const after = computeTags(block.tags, text, taxonomy);
   const unmapped = block.tags.filter((t) => lookup(t, taxonomy) === undefined);
   const base = parts.start;
+  const tail = block.eol === "\r\n" ? "\r" : "";
   const next =
-    content.slice(0, base + block.from) + formatBlock(after) + content.slice(base + block.to);
+    content.slice(0, base + block.from) +
+    formatBlock(after, block.eol) +
+    tail +
+    content.slice(base + block.to);
   return { content: next, changed: next !== content, before: block.tags, after, unmapped };
 }
 
@@ -148,8 +160,9 @@ export function planChanges(root, taxonomy = loadTaxonomy(root)) {
     const abs = path.join(root, dir);
     if (!fs.existsSync(abs)) return [];
     return fs
-      .readdirSync(abs)
-      .filter((f) => f.endsWith(".mdx"))
+      .readdirSync(abs, { withFileTypes: true })
+      .filter((d) => d.isFile() && d.name.endsWith(".mdx"))
+      .map((d) => d.name)
       .sort()
       .map((f) => {
         const file = path.join(dir, f);
