@@ -250,17 +250,15 @@ describe("BlogCard", () => {
     expect(screen.getByText("solo-tag")).toBeInTheDocument();
   });
 
-  it("handles posts with many tags", () => {
+  it("shows at most three tags", () => {
     const manyTags = Array.from({ length: 10 }, (_, i) => `tag-${i}`);
-    const postWithManyTags: BlogCardPost = {
-      ...mockPost,
-      tags: manyTags,
-    };
+    render(<BlogCard post={{ ...mockPost, tags: manyTags }} />);
 
-    render(<BlogCard post={postWithManyTags} />);
-
-    manyTags.forEach((tag) => {
+    manyTags.slice(0, 3).forEach((tag) => {
       expect(screen.getByText(tag)).toBeInTheDocument();
+    });
+    manyTags.slice(3).forEach((tag) => {
+      expect(screen.queryByText(tag)).not.toBeInTheDocument();
     });
   });
 });

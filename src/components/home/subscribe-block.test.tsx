@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { SubscribeBlock } from "./subscribe-block";
+import { SUBSCRIBE_COPY } from "@/lib/subscribe-copy";
 
 const hook = vi.hoisted(() => ({
   state: {
@@ -54,17 +55,26 @@ describe("SubscribeBlock", () => {
     expect(container.textContent).not.toMatch(/No tracking(?! pixels)/);
   });
 
-  it("shows the subscriber count variant", () => {
-    setState({ subscriberCount: 1234 });
+  it("shows the subscriber count at or above the social proof floor", () => {
+    setState({ subscriberCount: 250 });
     render(<SubscribeBlock />);
     expect(screen.getByText(/Join/)).toBeInTheDocument();
-    expect(screen.getByText("1,234")).toBeInTheDocument();
+    expect(screen.getByText("250")).toBeInTheDocument();
+  });
+
+  it("hides a small subscriber count", () => {
+    setState({ subscriberCount: 30 });
+    const { container } = render(<SubscribeBlock />);
+    expect(container.textContent).not.toMatch(/Join/);
+    expect(container.querySelector("#subscribe-message")?.textContent).toBe(
+      "Weekly · Unsubscribe anytime · No tracking pixels"
+    );
   });
 
   it("shows the success variant", () => {
     setState({ status: "success" });
     render(<SubscribeBlock />);
-    expect(screen.getByText("You're in.")).toBeInTheDocument();
+    expect(screen.getByText(SUBSCRIBE_COPY.success)).toBeInTheDocument();
     expect(screen.getByRole("button")).toHaveTextContent("✓ Subscribed");
     expect(screen.getByLabelText("Email address")).toBeDisabled();
   });

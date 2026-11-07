@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { SubscribeForm } from "./subscribe-form";
+import { SubscribeCard } from "./subscribe-card";
+import { SUBSCRIBE_COPY } from "@/lib/subscribe-copy";
 
 /** Helper: create a fetch mock that returns `countResponse` for GET and `postResponse` for POST */
 function mockFetch(postResponse?: { ok: boolean; json: () => Promise<unknown> }) {
@@ -13,19 +14,19 @@ function mockFetch(postResponse?: { ok: boolean; json: () => Promise<unknown> })
   });
 }
 
-describe("SubscribeForm", () => {
+describe("SubscribeCard", () => {
   beforeEach(() => {
     // Default: GET returns subscriber count, POST is not expected
     global.fetch = mockFetch();
   });
 
   it("renders the form with all elements", () => {
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
-    expect(screen.getByText("Weekly Digest")).toBeInTheDocument();
     expect(
-      screen.getByText(/Get a weekly email with what I learned/i)
+      screen.getByRole("heading", { name: SUBSCRIBE_COPY.title })
     ).toBeInTheDocument();
+    expect(screen.getByText(SUBSCRIBE_COPY.body)).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText("you@example.com")
     ).toBeInTheDocument();
@@ -35,7 +36,7 @@ describe("SubscribeForm", () => {
   });
 
   it("does not submit when email is empty", async () => {
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const submitButton = screen.getByRole("button", { name: /subscribe/i });
     fireEvent.click(submitButton);
@@ -49,7 +50,7 @@ describe("SubscribeForm", () => {
   });
 
   it("does not submit when email is whitespace only", async () => {
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const input = screen.getByPlaceholderText("you@example.com");
     fireEvent.change(input, { target: { value: "   " } });
@@ -71,7 +72,7 @@ describe("SubscribeForm", () => {
       json: async () => ({ success: true }),
     });
 
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const input = screen.getByPlaceholderText("you@example.com");
     fireEvent.change(input, { target: { value: "test@example.com" } });
@@ -88,7 +89,7 @@ describe("SubscribeForm", () => {
     });
 
     expect(
-      await screen.findByText(/You're subscribed! Check your inbox on Mondays./i)
+      await screen.findByText(SUBSCRIBE_COPY.success)
     ).toBeInTheDocument();
   });
 
@@ -103,7 +104,7 @@ describe("SubscribeForm", () => {
       return Promise.resolve({ ok: true, json: async () => ({ count: 5 }) });
     });
 
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const input = screen.getByPlaceholderText("you@example.com");
     fireEvent.change(input, { target: { value: "test@example.com" } });
@@ -125,10 +126,10 @@ describe("SubscribeForm", () => {
       json: async () => ({ success: true }),
     });
 
-    // After success, form is hidden and replaced with success message
+    // After success, the success message is shown
     await waitFor(() => {
       expect(
-        screen.getByText(/You're subscribed! Check your inbox on Mondays./i)
+        screen.getByText(SUBSCRIBE_COPY.success)
       ).toBeInTheDocument();
     });
   });
@@ -139,7 +140,7 @@ describe("SubscribeForm", () => {
       json: async () => ({ success: true }),
     });
 
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const input = screen.getByPlaceholderText(
       "you@example.com"
@@ -149,14 +150,15 @@ describe("SubscribeForm", () => {
     const submitButton = screen.getByRole("button", { name: /subscribe/i });
     fireEvent.click(submitButton);
 
-    // After success, the form is hidden so the input field disappears
+    // After success the input is emptied and locked
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText("you@example.com")).not.toBeInTheDocument();
+      expect(input).toBeDisabled();
     });
+    expect(input.value).toBe("");
 
     // Success message should be shown
     expect(
-      screen.getByText(/You're subscribed! Check your inbox on Mondays./i)
+      screen.getByText(SUBSCRIBE_COPY.success)
     ).toBeInTheDocument();
   });
 
@@ -166,7 +168,7 @@ describe("SubscribeForm", () => {
       json: async () => ({ error: "Email already subscribed" }),
     });
 
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const input = screen.getByPlaceholderText("you@example.com");
     fireEvent.change(input, { target: { value: "test@example.com" } });
@@ -185,7 +187,7 @@ describe("SubscribeForm", () => {
       json: async () => ({}),
     });
 
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const input = screen.getByPlaceholderText("you@example.com");
     fireEvent.change(input, { target: { value: "test@example.com" } });
@@ -202,7 +204,7 @@ describe("SubscribeForm", () => {
       return Promise.resolve({ ok: true, json: async () => ({ count: 5 }) });
     });
 
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const input = screen.getByPlaceholderText("you@example.com");
     fireEvent.change(input, { target: { value: "test@example.com" } });
@@ -221,7 +223,7 @@ describe("SubscribeForm", () => {
       json: async () => ({ error: "Email already subscribed" }),
     });
 
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const input = screen.getByPlaceholderText("you@example.com");
     fireEvent.change(input, { target: { value: "test@example.com" } });
@@ -242,13 +244,13 @@ describe("SubscribeForm", () => {
     });
   });
 
-  it("hides form and shows success message after subscription", async () => {
+  it("locks the form and shows the success message after subscription", async () => {
     global.fetch = mockFetch({
       ok: true,
       json: async () => ({ success: true }),
     });
 
-    render(<SubscribeForm />);
+    render(<SubscribeCard />);
 
     const input = screen.getByPlaceholderText("you@example.com");
     fireEvent.change(input, { target: { value: "test@example.com" } });
@@ -256,10 +258,44 @@ describe("SubscribeForm", () => {
     const submitButton = screen.getByRole("button", { name: /subscribe/i });
     fireEvent.click(submitButton);
 
-    await screen.findByText(/You're subscribed! Check your inbox on Mondays./i);
+    await screen.findByText(SUBSCRIBE_COPY.success);
 
-    // Form should be replaced with success message
-    expect(screen.queryByPlaceholderText("you@example.com")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
+    // Form stays in place but is locked, with a confirmed button label
+    expect(screen.getByPlaceholderText("you@example.com")).toBeDisabled();
+    expect(screen.getByRole("button")).toHaveTextContent("✓ Subscribed");
+  });
+});
+
+describe("SubscribeCard markup and social proof", () => {
+  it("renders the card landmark labelled by its heading", () => {
+    global.fetch = mockFetch();
+    const { container } = render(<SubscribeCard />);
+    const section = container.querySelector("section.ed-subscribe-card");
+    const heading = section?.querySelector("h3");
+    expect(heading).not.toBeNull();
+    expect(section?.getAttribute("aria-labelledby")).toBe(heading?.id);
+    expect(section?.querySelector(".ed-overline")).toHaveTextContent("Subscribe");
+    expect(section?.querySelector("form.subscribe-form .row")).not.toBeNull();
+    expect(container.textContent).not.toContain("\u2014");
+  });
+
+  it("hides a small subscriber count", async () => {
+    global.fetch = mockFetch(); // count: 5
+    const { container } = render(<SubscribeCard />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(container.textContent).not.toMatch(/Join/);
+    expect(container.querySelector(".meta")?.textContent).toBe(
+      "Weekly · Unsubscribe anytime · No tracking pixels"
+    );
+  });
+
+  it("shows a count at or above the social proof floor", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ count: 250 }),
+    });
+    render(<SubscribeCard />);
+    expect(await screen.findByText("250")).toBeInTheDocument();
+    expect(screen.getByText(/Join/)).toBeInTheDocument();
   });
 });

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { sendGAEvent } from "@next/third-parties/google";
+import { SUBSCRIBE_COPY } from "@/lib/subscribe-copy";
 
 type SubscribeStatus = "idle" | "loading" | "success" | "error";
 
@@ -45,7 +46,7 @@ export function useSubscribe() {
       }
 
       setStatus("success");
-      setMessage("You're subscribed! Check your inbox on Mondays.");
+      setMessage(SUBSCRIBE_COPY.success);
       setEmail("");
       sendGAEvent("event", "subscribe", { method: "email" });
     } catch {

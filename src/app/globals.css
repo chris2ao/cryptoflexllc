@@ -2508,6 +2508,53 @@
   .subscribe-form.ok .meta { animation: none; }
 }
 
+/* ==== EDITORIAL REDESIGN: subscribe card (CLAUD-765 item 10) ==== */
+
+.ed-subscribe-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 24px;
+  max-width: 100%;
+}
+
+.ed-subscribe-card h3 {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px 0;
+  text-wrap: balance;
+}
+
+.ed-subscribe-card p {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--fg-2);
+  margin: 0 0 20px 0;
+  max-width: 480px;
+}
+
+/* The card is the frame, so the shared form drops its own box. */
+.ed-subscribe-card .subscribe-form {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+.ed-subscribe-card .subscribe-form input {
+  min-width: 0;
+  border-radius: 2px;
+}
+
+@media (max-width: 639px) {
+  .ed-subscribe-card { padding: 20px; }
+  .ed-subscribe-card .subscribe-form .row { flex-wrap: wrap; }
+}
+
 /* ================================================================
    EDITORIAL REDESIGN — Blog Post Page
    ================================================================ */
@@ -4225,4 +4272,23 @@ table.ax-tbl {
     padding-left: 0;
     padding-right: 0;
   }
+}
+
+/* ==== EDITORIAL REDESIGN: blog index (CLAUD-765 item 8) ==== */
+/* The Start here block reuses the home .ed-paths / .ed-path card rules above;
+   these rules only space it inside the blog index column. */
+.ed-start-here {
+  margin-bottom: 40px;
+}
+
+.ed-start-here .ed-overline {
+  margin-bottom: 8px;
+}
+
+.ed-start-here-lede {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fg-2);
+  margin: 0 0 20px 0;
 }

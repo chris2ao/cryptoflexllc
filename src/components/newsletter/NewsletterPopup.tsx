@@ -4,16 +4,17 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { X, CheckCircle, Loader2 } from "lucide-react";
 import { useSubscribe } from "@/hooks/use-subscribe";
+import { SUBSCRIBE_COPY } from "@/lib/subscribe-copy";
 
 const DISMISSED_KEY = "cf_newsletter_dismissed_at";
 const SUBSCRIBED_KEY = "cf_newsletter_subscribed";
-const DELAY_MS = 20_000;
 const GATE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const EXCLUDED_PREFIXES = ["/analytics", "/unsubscribe"];
 const MOBILE_QUERY = "(max-width: 639px)";
 const SCROLL_DEPTH_GATE = 0.6;
-const BLOG_POST_ROUTE = /^\/blog\/(?!series(?:\/|$))[^/]+\/?$/;
+/** Real scroll required, so short pages never trip the depth gate. */
+export const MIN_SCROLL_PX = 160;
 
 function isMobileViewport(): boolean {
   try {
@@ -47,7 +48,7 @@ function writeTimestamp(key: string): void {
   try {
     localStorage.setItem(key, new Date().toISOString());
   } catch {
-    // localStorage unavailable (private mode, storage full) — silently skip
+    // localStorage unavailable (private mode, storage full): silently skip
   }
 }
 
@@ -94,70 +95,20 @@ export function NewsletterPopup() {
     if (!mounted) return;
     if (shouldSuppress(pathname)) return;
 
-    let timerId: ReturnType<typeof setTimeout> | null = null;
-    let elapsed = 0;
-    let startedAt = Date.now();
-    let fired = false;
-    let removeScrollListener: (() => void) | null = null;
-
-    const reveal = () => {
+    // Reveal only on a scroll event that crosses the depth gate, never on mount
+    const onScroll = () => {
+      if (window.scrollY < MIN_SCROLL_PX) return;
+      if (scrollDepth() < SCROLL_DEPTH_GATE) return;
+      window.removeEventListener("scroll", onScroll);
+      // Dismissal or subscription may have happened since the listener was armed
       if (shouldSuppress(pathname)) return;
       // Decide presentation at trigger time, never during render
       nonModalRef.current = isMobileViewport();
       setVisible(true);
     };
 
-    const schedule = (remaining: number) => {
-      timerId = setTimeout(() => {
-        timerId = null;
-        fired = true;
-        // Dismissal or subscription may have happened since the timer was armed
-        if (shouldSuppress(pathname)) return;
-        const gated =
-          isMobileViewport() && pathname !== null && BLOG_POST_ROUTE.test(pathname);
-        if (!gated || scrollDepth() >= SCROLL_DEPTH_GATE) {
-          reveal();
-          return;
-        }
-        const onScroll = () => {
-          if (scrollDepth() < SCROLL_DEPTH_GATE) return;
-          removeScrollListener?.();
-          removeScrollListener = null;
-          reveal();
-        };
-        window.addEventListener("scroll", onScroll, { passive: true });
-        removeScrollListener = () =>
-          window.removeEventListener("scroll", onScroll);
-      }, Math.max(0, remaining));
-    };
-
-    const onVisibilityChange = () => {
-      if (fired) return;
-      if (document.hidden) {
-        if (timerId !== null) {
-          clearTimeout(timerId);
-          timerId = null;
-          elapsed += Date.now() - startedAt;
-        }
-      } else {
-        if (timerId !== null) return;
-        startedAt = Date.now();
-        schedule(DELAY_MS - elapsed);
-      }
-    };
-
-    if (document.hidden) {
-      // Start accumulating once the tab becomes visible
-    } else {
-      schedule(DELAY_MS);
-    }
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
-    return () => {
-      if (timerId !== null) clearTimeout(timerId);
-      removeScrollListener?.();
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, [mounted, pathname]);
 
   useEffect(() => {
@@ -245,20 +196,20 @@ export function NewsletterPopup() {
           id="newsletter-popup-heading"
           className="font-heading text-xl font-semibold tracking-tight pr-10"
         >
-          Stay in the Loop
+          {SUBSCRIBE_COPY.title}
         </h2>
 
         <p
           id="newsletter-popup-desc"
           className="font-body mt-2 text-sm text-muted-foreground"
         >
-          Get new posts delivered to your inbox. No spam, just tech.
+          {SUBSCRIBE_COPY.body}
         </p>
 
         {status === "success" ? (
           <div className="mt-4 flex items-center gap-2 text-sm text-success">
             <CheckCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-            <span>{message}</span>
+            <span>{SUBSCRIBE_COPY.success}</span>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
@@ -272,7 +223,7 @@ export function NewsletterPopup() {
                 required
                 value={email}
                 onChange={(e) => updateEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder={SUBSCRIBE_COPY.placeholder}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
@@ -284,7 +235,7 @@ export function NewsletterPopup() {
               {status === "loading" ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : null}
-              Subscribe
+              {SUBSCRIBE_COPY.cta}
             </button>
           </form>
         )}

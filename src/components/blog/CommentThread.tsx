@@ -19,7 +19,7 @@ export interface CommentWithReplies extends Comment {
 export interface ReplyFormState {
   replyingTo: number | null;
   replyComment: string;
-  replyReaction: "up" | "down";
+  replyReaction: "up" | "down" | null;
   replyEmail: string;
   replySubmitting: boolean;
   replyStatus: "idle" | "success" | "error";
@@ -181,7 +181,7 @@ function ReplyForm({
             />
             <button
               type="submit"
-              disabled={replySubmitting}
+              disabled={replySubmitting || replyReaction === null}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
             >
               {replySubmitting ? (
@@ -193,6 +193,10 @@ function ReplyForm({
             </button>
           </div>
         </div>
+
+        {replyReaction === null && (
+          <p className="text-xs text-muted-foreground">Pick a reaction</p>
+        )}
 
         {replyStatus === "success" && (
           <p className="text-sm text-success">{replyMessage}</p>

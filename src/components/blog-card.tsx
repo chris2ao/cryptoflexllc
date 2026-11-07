@@ -6,6 +6,8 @@ import { PostMeta } from "@/components/blog/PostMeta";
 import type { BlogPost } from "@/lib/blog";
 import { getTagAccentVar } from "@/lib/tag-accent";
 
+const MAX_CARD_TAGS = 3;
+
 type BlogCardPost = Omit<BlogPost, "content"> & { content?: string };
 
 export function BlogCard({ post }: { post: BlogCardPost }) {
@@ -30,7 +32,7 @@ export function BlogCard({ post }: { post: BlogCardPost }) {
       )}
       <CardHeader className="pb-3">
         <div className="relative z-10 flex flex-wrap gap-2 mb-2">
-          {post.tags.map((tag) => (
+          {post.tags.slice(0, MAX_CARD_TAGS).map((tag) => (
             <Link
               key={tag}
               href={`/blog?tag=${encodeURIComponent(tag)}`}
