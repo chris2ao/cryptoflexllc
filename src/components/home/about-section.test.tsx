@@ -76,6 +76,13 @@ describe("AboutSection", () => {
     );
   });
 
+  it("names both consulting offers", () => {
+    const { container } = render(<AboutSection index={5} />);
+    const text = container.querySelector(".ed-about-note")!.textContent!;
+    expect(text).toContain("security reviews of AI agent setups");
+    expect(text).toContain("detection engineering for small teams");
+  });
+
   it("contains no em dash", () => {
     const { container } = render(<AboutSection index={5} />);
     expect(container.textContent).not.toContain("\u2014");

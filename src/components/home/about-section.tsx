@@ -58,8 +58,9 @@ export function AboutSection({ index }: Props) {
               the tidy other side.
             </p>
             <p className="ed-about-note">
-              I also take on a small number of security and infrastructure
-              engagements through CryptoFlex LLC.{" "}
+              I also take on a small number of engagements through CryptoFlex
+              LLC: security reviews of AI agent setups and detection
+              engineering for small teams.{" "}
               <Link href="/services">
                 See services <span aria-hidden="true">→</span>
               </Link>{" "}

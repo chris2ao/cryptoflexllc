@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import { IDENTITY_LINE } from "@/lib/identity";
 
 const AUTHOR = {
   name: "Chris Johnson",
-  title: "Cybersecurity Professional & Software Engineer",
-  bio: "I build software, break things on purpose for a living, and write about what I learn. Most of my posts are about AI-assisted development with Claude Code, building this site in public, and the intersection of security and engineering.",
+  title: "Security Engineer · Builder",
+  bio: `${IDENTITY_LINE} Most posts are postmortems of projects I am still wrestling with, written from inside the build.`,
   github: "https://github.com/chris2ao",
   linkedin: "https://www.linkedin.com/in/chris-johnson-secops/",
 };

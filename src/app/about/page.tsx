@@ -1,55 +1,20 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { CareerTimeline } from "@/components/career-timeline";
+import Link from "next/link";
 import { EditorialPageHeader } from "@/components/editorial-page-header";
 import { BASE_URL } from "@/lib/constants";
-
-const careerEvents = [
-  {
-    title: "Military Service",
-    period: "Intelligence & Combat Operations",
-    description:
-      "Intelligence analyst and combat veteran who served in Iraq and Afghanistan. Learned to evaluate complex information, identify patterns, and think in terms of adversaries and systems.",
-  },
-  {
-    title: "Chem/Bio Defense",
-    period: "Pentagon & US Capitol",
-    description:
-      "Supported mission-critical operations at the Pentagon and US Capitol, environments where reliability and discipline aren't optional.",
-  },
-  {
-    title: "IT Operations",
-    period: "Service Desk to Developer",
-    description:
-      "Ran through multiple layers of the stack: service desk, project management, and developer work. Built the broad technical foundation that everything else sits on.",
-  },
-  {
-    title: "Security Engineer & Cloud Architect",
-    period: "Security & Cloud Infrastructure",
-    description:
-      "Designed and implemented security controls, hardened systems, and built cloud infrastructure, bridging defense with modern architecture.",
-  },
-  {
-    title: "Cybersecurity Defense Operations",
-    period: "Current Role",
-    description:
-      "Working across security engineering and SOC operations, helping teams improve detection, response, and operational resilience.",
-  },
-];
+import { seriesHref } from "@/lib/home-content";
+import { IDENTITY_LINE, SITE_DESCRIPTION } from "@/lib/identity";
 
 export const metadata: Metadata = {
   title: "About",
-  description:
-    "Chris Johnson — combat veteran turned cybersecurity professional. Security engineering, SOC operations, cloud architecture, and AI-assisted development.",
+  description: SITE_DESCRIPTION,
   alternates: {
     canonical: `${BASE_URL}/about`,
   },
   openGraph: {
     title: "About Chris Johnson",
-    description:
-      "Combat veteran turned cybersecurity professional. Security engineering, SOC operations, and AI-assisted development.",
+    description: SITE_DESCRIPTION,
     url: `${BASE_URL}/about`,
     type: "profile",
     images: [
@@ -63,7 +28,15 @@ export const metadata: Metadata = {
   },
 };
 
-const skills = [
+const CAREER_PATH = [
+  { role: "Military intelligence", detail: "Analyst, Iraq & Afghanistan" },
+  { role: "Chem/bio defense", detail: "Pentagon & US Capitol" },
+  { role: "IT operations", detail: "Service desk to developer" },
+  { role: "Security & cloud engineering", detail: "Controls & infrastructure" },
+  { role: "Cyber defense operations", detail: "Now" },
+] as const;
+
+const SKILLS = [
   "Security Engineering",
   "SOC Operations",
   "Cloud Architecture",
@@ -76,7 +49,137 @@ const skills = [
   "Automation",
   "AI/ML Tooling",
   "Infrastructure Design",
-];
+] as const;
+
+const H2 = "font-heading text-2xl font-bold tracking-tight text-foreground";
+const BODY = "font-body text-base leading-relaxed text-muted-foreground";
+const LINK = "text-primary underline underline-offset-4";
+const SIDE_LABEL = "ed-overline mb-3";
+
+function SeriesLink({ name }: { name: string }) {
+  return (
+    <Link href={seriesHref(name)} className={LINK}>
+      {name}
+    </Link>
+  );
+}
+
+function WhatThisSiteIs() {
+  return (
+    <section className="space-y-4 border-t border-border pt-8">
+      <h2 className={H2}>What this site is</h2>
+      <p className={BODY}>
+        This is where I build in public. Most posts are postmortems of projects
+        I am still wrestling with, written from inside the build instead of
+        from the tidy other side.
+      </p>
+      <p className={BODY}>
+        The security reviews of this site are here, along with the home-lab SOC
+        across the <SeriesLink name="Custom SIEM" />,{" "}
+        <SeriesLink name="Homelab Wazuh Deployment" /> and{" "}
+        <SeriesLink name="Home Network Mission Control" /> series. So are the
+        agent workflows and the{" "}
+        <SeriesLink name="Claude Harness Modernization" /> series, plus
+        Ledgerly, Cramdex and the Arcade games.
+      </p>
+    </section>
+  );
+}
+
+function RoadHere() {
+  const lastStep = CAREER_PATH.length - 1;
+  return (
+    <section className="space-y-4 border-t border-border pt-8">
+      <h2 className={H2}>The road here</h2>
+      <p className={BODY}>
+        My career has taken a few sharp turns, and each one left something I
+        still use.
+      </p>
+      <div className="ed-about-prose pt-2">
+        <ol className="ed-career-path" aria-label="Career path">
+          {CAREER_PATH.map((step, i) => (
+            <li key={step.role} className={i === lastStep ? "now" : undefined}>
+              {step.role} <span>{step.detail}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <p className={BODY}>
+        Then I left contracting, moved to Florida, and went back to school. I
+        earned a B.S. in Information Technology at FIU, Magna Cum Laude, to
+        build a stronger technical foundation. Today my day job is cyber
+        defense operations: detection, response, and resilience.
+      </p>
+    </section>
+  );
+}
+
+function WhyIWrite() {
+  return (
+    <section className="space-y-4 border-t border-border pt-8">
+      <h2 className={H2}>Why I write</h2>
+      <p className={BODY}>
+        The fastest way I learn is to build in public. Writing down what broke
+        and what held up keeps me honest, and it might save someone else an
+        afternoon.
+      </p>
+    </section>
+  );
+}
+
+function WorkWithMe() {
+  return (
+    <section className="space-y-4 border-t border-border pt-8">
+      <h2 className={H2}>Work with me</h2>
+      <p className={BODY}>
+        I also take on a small number of engagements through CryptoFlex LLC:
+        security reviews of AI agent setups and detection engineering for small
+        teams.{" "}
+        <Link href="/services" className={LINK}>
+          See services
+        </Link>
+        .
+      </p>
+    </section>
+  );
+}
+
+function Sidebar() {
+  return (
+    <aside className="order-1 space-y-8 md:order-2">
+      <Image
+        src="/CJOutside.jpeg"
+        alt="Chris Johnson"
+        width={400}
+        height={400}
+        className="aspect-square w-full object-cover ring-1 ring-border"
+        priority
+      />
+      <div>
+        <h2 className={SIDE_LABEL}>Skills</h2>
+        <ul className="flex flex-wrap gap-2">
+          {SKILLS.map((skill) => (
+            <li key={skill} className="ed-tag">
+              {skill}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <h2 className={SIDE_LABEL}>Education</h2>
+        <p className="font-body text-sm text-muted-foreground">
+          <span className="font-heading font-semibold text-foreground">
+            B.S. Information Technology
+          </span>
+          <br />
+          Florida International University
+          <br />
+          Magna Cum Laude
+        </p>
+      </div>
+    </aside>
+  );
+}
 
 export default function AboutPage() {
   return (
@@ -84,171 +187,26 @@ export default function AboutPage() {
       <EditorialPageHeader
         sectionLabel="§ 02 / About the Author"
         overline="Profile"
-        title={<>About <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>Chris.</em></>}
-        lede="Veteran. Engineer. Defender. A pragmatic operator who uses this site as a working lab."
+        title={
+          <>
+            About{" "}
+            <em className="text-italic-serif" style={{ color: "var(--fg-2)" }}>
+              Chris.
+            </em>
+          </>
+        }
+        lede={IDENTITY_LINE}
       />
       <section className="py-8 sm:py-12">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6">
-        <Separator className="my-10" />
-
-        <div className="grid gap-12 md:grid-cols-3">
-          {/* Main content - shows second on mobile, first on desktop */}
-          <div className="order-2 md:order-1 md:col-span-2 space-y-6 font-body text-muted-foreground leading-relaxed">
-            <p>
-              I&apos;m Chris Johnson, an engineer who uses this blog as a
-              playground to explore technology and share what I learn as I build.
-            </p>
-
-            <p>
-              Most of what you&apos;ll see here is practical, hands-on
-              experimentation: AI tools for development, automation, cloud
-              projects, homelab builds, and whatever else I&apos;m curious about
-              that week. Sometimes it&apos;s security-related. Often it&apos;s
-              not. The common thread is simple: ship things, learn fast, write it
-              down, and help other builders do the same.
-            </p>
-
-            {/* What I'm building */}
-            <h2 className="text-xl font-heading font-bold text-foreground pt-4">
-              What I&apos;m Building (and Writing About)
-            </h2>
-
-            <p>
-              This site is where I document real work-in-progress, ideas and
-              projects from concept to implementation:
-            </p>
-
-            <ul className="space-y-2 text-sm">
-              <li className="flex gap-2">
-                <span className="text-primary mt-1 shrink-0">&#9654;</span>
-                <span>
-                  Using AI copilots and agent workflows to design, code, debug,
-                  and refactor faster
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-primary mt-1 shrink-0">&#9654;</span>
-                <span>
-                  Building small tools, scripts, and prototypes that solve real
-                  problems
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-primary mt-1 shrink-0">&#9654;</span>
-                <span>
-                  Infrastructure experiments: cloud, networks, automation, and
-                  reliability
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-primary mt-1 shrink-0">&#9654;</span>
-                <span>
-                  &ldquo;How I built it&rdquo; breakdowns, architecture notes,
-                  and lessons learned
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-primary mt-1 shrink-0">&#9654;</span>
-                <span>
-                  Occasional deep dives into security when it overlaps with
-                  engineering reality
-                </span>
-              </li>
-            </ul>
-
-            <p>
-              If you like engineering that&apos;s pragmatic, iterative, and a
-              little experimental, you&apos;ll feel at home here.
-            </p>
-
-            {/* The Journey */}
-            <div className="bracket-frame pt-4">
-              <h2 className="text-xl font-heading font-bold text-foreground">
-                The Journey
-              </h2>
-
-              <p className="mt-4">
-                My career has taken a few sharp turns, but each one added a useful
-                layer.
-              </p>
-
-              <CareerTimeline events={careerEvents} />
-
-              <p>
-                At a certain point, I made the jump that changed everything: left
-                contracting, moved to Florida, and went all-in on building a
-                stronger technical foundation at FIU, earning my B.S. in
-                Information Technology (Magna Cum Laude).
-              </p>
-
-              <p className="text-sm italic">
-                Security is part of my career, but this blog is broader than
-                that. Think of it as an engineering lab notebook that occasionally
-                crosses into defense work when it&apos;s relevant.
-              </p>
-            </div>
-
-            {/* Why I write */}
-            <h2 className="text-xl font-heading font-bold text-foreground pt-4">
-              Why I Write
-            </h2>
-
-            <p>Because the fastest way to learn is to build in public.</p>
-
-            <p>
-              This blog is my space to explore engineering with curiosity, use
-              modern AI tools responsibly, and share the wins, failures, and
-              patterns that actually hold up in the real world.
-            </p>
-
-            <p className="font-heading font-semibold text-foreground">
-              Welcome to the playground.
-            </p>
+        <div className="ed-wrap grid gap-12 md:grid-cols-3">
+          <div className="order-2 space-y-10 md:order-1 md:col-span-2">
+            <WhatThisSiteIs />
+            <RoadHere />
+            <WhyIWrite />
+            <WorkWithMe />
           </div>
-
-          {/* Sidebar - shows first on mobile, second on desktop */}
-          <div className="order-1 md:order-2 space-y-8">
-            <Image
-              src="/CJOutside.jpeg"
-              alt="Chris Johnson"
-              width={400}
-              height={400}
-              className="aspect-square rounded-xl object-cover ring-1 ring-border shadow-xl"
-              priority
-            />
-
-            <div>
-              <h3 className="text-xs font-mono text-primary uppercase tracking-widest mb-3">
-                Skills & Expertise
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {skills.map((skill) => (
-                  <Badge key={skill} variant="secondary">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-mono text-primary uppercase tracking-widest mb-3">
-                Education
-              </h3>
-              <div className="space-y-2 text-sm font-body text-muted-foreground">
-                <p>
-                  <span className="font-heading font-semibold text-foreground">
-                    B.S. Information Technology
-                  </span>
-                  <br />
-                  Florida International University
-                  <br />
-                  Magna Cum Laude
-                </p>
-              </div>
-            </div>
-          </div>
+          <Sidebar />
         </div>
-      </div>
       </section>
     </>
   );

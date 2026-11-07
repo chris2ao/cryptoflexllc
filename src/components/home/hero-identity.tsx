@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { IDENTITY_LINE } from "@/lib/identity";
 import { formatPostDateShort } from "@/lib/post-date";
 
 type Props = {
@@ -36,10 +37,8 @@ export function HeroIdentity({ postCount, latestDate }: Props) {
               <span className="accent">on purpose.</span>
             </h1>
             <p className="ed-hero-sub reveal">
-              I&apos;m a security engineer and build with AI agents on my own
-              time. This is where I write it all down: the security
-              reviews, the home-lab SOC, the agent workflows, and the bugs
-              that got past all of them.
+              {IDENTITY_LINE} The security reviews, the home-lab SOC, the agent
+              workflows, and the bugs that got past all of them are here.
             </p>
             <div className="ed-hero-cta-row reveal">
               <Link href="/blog" className="btn-editorial btn-editorial--primary">
