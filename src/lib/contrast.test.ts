@@ -12,13 +12,18 @@ function blockText(start: string): string {
   return css.slice(from, to);
 }
 
-function token(block: string, name: string) {
+function tokenIn(block: string, name: string) {
   const m = block.match(
-    new RegExp(`${name}:\\s*oklch\\(\\s*([\\d.]+)\\s+([\\d.]+)\\s+([\\d.]+)\\s*\\)`),
+    new RegExp(
+      `(?:^|[\\s;{])${name}:\\s*oklch\\(\\s*([\\d.]+)\\s+([\\d.]+)\\s+([\\d.]+)\\s*\\)`,
+      "m",
+    ),
   );
   if (!m) throw new Error(`token ${name} not found`);
   return oklchToSrgb(Number(m[1]), Number(m[2]), Number(m[3]));
 }
+
+const token = tokenIn;
 
 const themes = [
   { name: "dark", selector: ":root", scheme: "color-scheme: dark" },
@@ -38,9 +43,16 @@ describe("contrast maths", () => {
   });
 });
 
+describe("token extraction", () => {
+  it("does not match a longer token name ending in the same suffix", () => {
+    const block = "  --sidebar-background: oklch(0.5 0 0);\n  --background: oklch(0.1 0 0);";
+    expect(tokenIn(block, "--background")).toEqual(oklchToSrgb(0.1, 0, 0));
+  });
+});
+
 describe.each(themes)("$name theme tokens", ({ selector, scheme }) => {
   const block = blockText(selector);
-  const backgrounds = ["--background", "--surface-1", "--surface-2"];
+  const backgrounds = ["--background", "--surface-1", "--surface-2", "--surface-3", "--surface-4"];
 
   it.each(["--foreground-muted", "--foreground-secondary"])(
     "%s reaches 4.5:1 on every surface",
