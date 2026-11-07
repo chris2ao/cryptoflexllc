@@ -100,7 +100,7 @@
   --surface-4:            oklch(0.28 0.010 245);
   --foreground:           oklch(0.95 0.005 245);
   --foreground-secondary: oklch(0.78 0.008 245);
-  --foreground-muted:     oklch(0.62 0.010 245);
+  --foreground-muted:     oklch(0.65 0.010 245);
 
   /* ---- Shadcn/UI semantic aliases ---- */
   --card:                 var(--surface-2);
@@ -278,7 +278,7 @@
   --surface-4:            oklch(0.85 0.008 245);
   --foreground:           oklch(0.13 0.008 245);
   --foreground-secondary: oklch(0.35 0.010 245);
-  --foreground-muted:     oklch(0.52 0.008 245);
+  --foreground-muted:     oklch(0.46 0.008 245);
 
   /* ---- Shadcn/UI semantic aliases ---- */
   --card:                 var(--surface-2);
