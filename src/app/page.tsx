@@ -15,21 +15,20 @@ import {
   pickReadingPaths,
   summarizeSeries,
 } from "@/lib/home-content";
+import { SITE_DESCRIPTION } from "@/lib/identity";
 import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: {
     absolute: "CryptoFlex LLC | Chris Johnson: Build in public. Break things on purpose.",
   },
-  description:
-    "Personal blog and portfolio of Chris Johnson: cybersecurity engineering, AI-assisted development with Claude Code, and infrastructure built from the ground up.",
+  description: SITE_DESCRIPTION,
   alternates: {
     canonical: BASE_URL,
   },
   openGraph: {
     title: "CryptoFlex LLC: Build in public. Break things on purpose.",
-    description:
-      "Personal blog and portfolio: cybersecurity engineering, AI-assisted development, and infrastructure.",
+    description: SITE_DESCRIPTION,
     url: BASE_URL,
     type: "website",
     images: [
