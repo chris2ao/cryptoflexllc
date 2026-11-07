@@ -206,7 +206,7 @@ export function NewsletterPopup() {
         {status === "success" ? (
           <div className="mt-4 flex items-center gap-2 text-sm text-success">
             <CheckCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-            <span>{message}</span>
+            <span>{SUBSCRIBE_COPY.success}</span>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">

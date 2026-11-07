@@ -16,10 +16,11 @@ vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
 }));
 
+let mockStatus = "idle";
 vi.mock("@/hooks/use-subscribe", () => ({
   useSubscribe: () => ({
     email: "",
-    status: "idle",
+    status: mockStatus,
     message: "",
     handleSubmit: vi.fn(),
     updateEmail: vi.fn(),
@@ -118,6 +119,7 @@ function setScroll(scrollY: number, innerHeight = 800, docHeight = 4000) {
 
 beforeEach(() => {
   mockPathname = "/";
+  mockStatus = "idle";
   setViewport(false);
   setScroll(0);
   vi.useFakeTimers();
@@ -150,6 +152,14 @@ describe("NewsletterPopup", () => {
     scrollTo(DEEP);
     expect(screen.getByText(SUBSCRIBE_COPY.body)).toBeInTheDocument();
     expect(screen.queryByText("Stay in the Loop")).not.toBeInTheDocument();
+  });
+
+  it("shows the shared success copy after subscribing", () => {
+    const { rerender } = render(<NewsletterPopup />);
+    scrollTo(DEEP);
+    mockStatus = "success";
+    rerender(<NewsletterPopup />);
+    expect(screen.getByText(SUBSCRIBE_COPY.success)).toBeInTheDocument();
   });
 
   it("does not show on a scroll event at 30% depth", () => {
