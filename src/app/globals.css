@@ -2901,11 +2901,6 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-@media (max-width: 768px) {
-  .ax-toolbar { top: 72px; }
-}
-
-
 @media (max-width: 1100px) {
   .ax-toolbar {
     grid-template-columns: 1fr auto;
@@ -4208,16 +4203,18 @@ table.ax-tbl {
 }
 
 /* ==== EDITORIAL REDESIGN: post layout breakout (CLAUD-765 item 9) ==== */
-/* Wide tables grow to the article column (layout minus the 260px aside and
-   48px gap) while paragraphs stay at the 720px prose measure. */
+/* Wide tables grow to the article column (the 1200px content box of
+   .ed-post-inner minus the 260px aside and 48px gap) while paragraphs stay
+   at the 720px prose measure. The column is derived from the viewport, not a
+   container query, which would make .ed-post-layout the containing block for
+   the position: fixed image and diagram lightboxes inside the MDX. */
 @media (min-width: 1024px) {
   .ed-post-layout {
-    max-width: 1280px;
-    container-type: inline-size;
+    max-width: 1200px;
   }
 
   .ed-post-prose .prose-table-wrap {
-    --post-column: calc(100cqw - 308px);
+    --post-column: calc(min(100vw - 80px, 1200px) - 308px);
     width: max(100%, var(--post-column));
     margin-left: calc((100% - max(100%, var(--post-column))) / 2);
     margin-right: 0;
