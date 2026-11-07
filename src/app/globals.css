@@ -2901,6 +2901,11 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
+@media (max-width: 768px) {
+  .ax-toolbar { top: 72px; }
+}
+
+
 @media (max-width: 1100px) {
   .ax-toolbar {
     grid-template-columns: 1fr auto;
