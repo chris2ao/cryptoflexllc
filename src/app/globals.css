@@ -2624,6 +2624,10 @@
 
 /* Prose: Source Serif 4 at 19px / 1.55 for body paragraphs within the editorial post */
 .ed-post-prose {
+  /* width: 100% keeps the grid item inside its track at 1024 to 1100px, where
+     the article column is narrower than the 720px measure; without it the
+     auto margins size the item to its max-width and it runs under the aside. */
+  width: 100%;
   max-width: 720px;
   margin: 0 auto;
 }

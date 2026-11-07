@@ -33,7 +33,7 @@ export function BlogSeriesNav({
         >
           Series: {seriesName}
         </Link>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
           Part {currentIndex + 1} of {posts.length}
         </span>
       </div>
