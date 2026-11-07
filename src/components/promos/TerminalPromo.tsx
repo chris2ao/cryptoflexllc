@@ -103,10 +103,13 @@ export function TerminalPromo({
 
         <div className="mt-4 mb-6">
           <h2 className={`text-lg sm:text-xl font-mono font-bold ${accent.header} tracking-wider`}>
-            {">"} {typedHeader}
-            <span
-              className={`inline-block w-2 h-5 ${accent.cursor} ml-1 animate-pulse align-text-bottom`}
-            />
+            <span className="sr-only">{headerText}</span>
+            <span aria-hidden="true">
+              {">"} {typedHeader}
+              <span
+                className={`inline-block w-2 h-5 ${accent.cursor} ml-1 animate-pulse align-text-bottom`}
+              />
+            </span>
           </h2>
           <p className={`mt-3 font-mono text-sm ${accent.subtitle}`}>
             {subtitle}

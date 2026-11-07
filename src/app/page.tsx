@@ -64,12 +64,12 @@ export default function HomePage() {
 
   return (
     <>
-      <main>
+      <div>
         <HeroIdentity postCount={allPosts.length} latestDate={allPosts[0]?.date} />
         <NowStrip inProgress={getSeriesInProgress(allPosts)} />
         {sections.map((render, i) => render(i + 1))}
         <SubscribeBlock />
-      </main>
+      </div>
       <MotionLayer />
     </>
   );
