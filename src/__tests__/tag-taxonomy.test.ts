@@ -37,7 +37,7 @@ describe("consolidate-tags core", () => {
 
   it("orders by specificity, dedupes, drops nulls and caps at three", () => {
     const old = ["Claude Code", "Pi-hole", "UniFi", "Tutorial", "SIEM", "Security", "MCP"];
-    expect(computeTags(old, "Claude Code things", tax)).toEqual([
+    expect(computeTags(old, "A home network story", tax)).toEqual([
       "Detection & SIEM",
       "Home Lab",
       "Security",
@@ -48,10 +48,45 @@ describe("consolidate-tags core", () => {
     expect(computeTags(["Claude Code", "Next.js"], "A favicon story", tax)).toEqual([
       "Web Development",
     ]);
-    expect(computeTags(["Claude Code", "Next.js"], "My workflow", tax)).toEqual([
+    expect(computeTags(["Claude Code", "Next.js"], "My Claude setup", tax)).toEqual([
       "Web Development",
       "Claude Code",
     ]);
+  });
+
+  it("reserves the Claude Code slot when a post maps to four topics", () => {
+    const old = ["Claude Code", "Pi-hole", "SIEM", "Security", "MCP"];
+    expect(computeTags(old, "Claude Code hooks", tax)).toEqual([
+      "Detection & SIEM",
+      "Home Lab",
+      "Claude Code",
+    ]);
+  });
+
+  it("matches the Claude Code rule on whole words only", () => {
+    const keep = (text: string) => computeTags(["Claude Code", "Next.js"], text, tax);
+    expect(keep("Verifying a webhook")).toEqual(["Web Development"]);
+    expect(keep("Fixing session cookies")).toEqual(["Web Development"]);
+    expect(keep("A GitHub Actions workflow")).toEqual(["Web Development"]);
+    expect(keep("Claude Code hooks")).toEqual(["Web Development", "Claude Code"]);
+  });
+
+  it("keeps CRLF files on one ending style", () => {
+    const src = '---\r\ntitle: "Lab"\r\ntags:\r\n  - Pi-hole\r\n  - Tutorial\r\nauthor: me\r\n---\r\n\r\nBody\r\n';
+    const out = rewriteContent(src, tax);
+    expect(out.content).toBe(
+      '---\r\ntitle: "Lab"\r\ntags:\r\n  - Home Lab\r\nauthor: me\r\n---\r\n\r\nBody\r\n'
+    );
+  });
+
+  it("does not end the frontmatter at a body line starting with four dashes", () => {
+    const src = '---\ntitle: x\ntags: [Pi-hole]\n----\nauthor: me\n---\nBody\n';
+    expect(rewriteContent(src, tax).content).toContain("author: me\n---\nBody");
+  });
+
+  it("reports a tag named constructor as unmapped", () => {
+    const out = rewriteContent("---\ntitle: x\ntags: [constructor]\n---\nBody\n", tax);
+    expect(out.unmapped).toEqual(["constructor"]);
   });
 
   it("falls back when nothing maps", () => {
