@@ -27,7 +27,7 @@ export const OFFERS: readonly Offer[] = [
     bullets: [
       "A map of what each agent can read, write and run",
       "Findings ranked by severity, each with a fix you can act on",
-      "One follow-up check after you have made the fixes",
+      "A short handoff so your team can keep the fixes in place",
     ],
     proof: [
       {
@@ -70,14 +70,14 @@ export const OFFERS: readonly Offer[] = [
 export const STEPS: readonly Step[] = [
   {
     title: "Scoping call",
-    line: "30 minutes, no charge. We decide whether it is a fit.",
+    line: "A short conversation to decide whether it is a fit and what the scope is.",
   },
   {
     title: "Fixed-scope work",
-    line: "A review lands in one to two weeks. A build runs in phases against a written plan.",
+    line: "A review with a defined scope, or a build in phases against a written plan.",
   },
   {
     title: "Report and handoff",
-    line: "Findings ranked by severity, fixes you can act on, one follow-up check.",
+    line: "Findings ranked by severity, fixes you can act on, and a handoff your team can run without me.",
   },
 ];
