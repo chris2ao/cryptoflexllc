@@ -95,15 +95,13 @@ function RoadHere() {
         My career has taken a few sharp turns, and each one left something I
         still use.
       </p>
-      <div className="ed-about-prose pt-2">
-        <ol className="ed-career-path" aria-label="Career path">
-          {CAREER_PATH.map((step, i) => (
-            <li key={step.role} className={i === lastStep ? "now" : undefined}>
-              {step.role} <span>{step.detail}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
+      <ol className="ed-career-path ed-career-path--stacked" aria-label="Career path">
+        {CAREER_PATH.map((step, i) => (
+          <li key={step.role} className={i === lastStep ? "now" : undefined}>
+            {step.role} <span>{step.detail}</span>
+          </li>
+        ))}
+      </ol>
       <p className={BODY}>
         Then I left contracting, moved to Florida, and went back to school. I
         earned a B.S. in Information Technology at FIU, Magna Cum Laude, to
