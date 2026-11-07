@@ -134,3 +134,16 @@ Controller: merge D1 then D2, apply the about-section line. Visual checks: hero,
 | `security-reviewer` | wave 3 |
 | Production deployment live and spot-checked | every wave |
 | Speed Insights and lazy covers on the index | wave 3 close |
+
+## Status (2026-11-07)
+
+All four waves merged to main and deployed the same day, unattended, with one sonnet implementer per task in its own worktree and the main session as controller.
+
+| Wave | PR | Merge commit | Items |
+|---|---|---|---|
+| 1 quick fixes | #50 | 226240c | 1, 2, 3, 4, 5 |
+| 2 header and post chrome | #51 | 1cfdfba | 6, 9, 13 (plus the pre-existing 1024px prose overflow) |
+| 3 blog index and subscribe | #52 | 61f2f9d | 8, 10, item 7's Featured half |
+| 4 positioning and consulting | #53 | 8b6d242 | 11, 12, item 7's Services half |
+
+Each wave passed tsc, eslint, the full vitest suite, next build and CI, a visual pass measured with headless Chrome at 320, 1024 and 1440 (plus 768 in wave 1), and one code review; wave 3 also had a security review. Production was verified after each merge with headless Chrome (curl receives the Vercel Security Checkpoint page, not the site). Follow-ups: CLAUD-767 (the blog pipeline must pick tags from the taxonomy) and CLAUD-768 (eight minor review findings).
