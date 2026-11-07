@@ -4221,3 +4221,22 @@ table.ax-tbl {
     display: none;
   }
 }
+
+/* ==== EDITORIAL REDESIGN: post layout breakout (CLAUD-765 item 9) ==== */
+/* Wide tables grow to the article column (layout minus the 260px aside and
+   48px gap) while paragraphs stay at the 720px prose measure. */
+@media (min-width: 1024px) {
+  .ed-post-layout {
+    max-width: 1280px;
+    container-type: inline-size;
+  }
+
+  .ed-post-prose .prose-table-wrap {
+    --post-column: calc(100cqw - 308px);
+    width: max(100%, var(--post-column));
+    margin-left: calc((100% - max(100%, var(--post-column))) / 2);
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
