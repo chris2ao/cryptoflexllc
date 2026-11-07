@@ -1,3 +1,4 @@
+import { IDENTITY_LINE } from "@/lib/identity";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { HeroIdentity } from "./hero-identity";
@@ -34,13 +35,11 @@ describe("HeroIdentity", () => {
     );
   });
 
-  it("renders the subhead copy", () => {
-    render(<HeroIdentity postCount={3} />);
-    expect(
-      screen.getByText(
-        "I'm a security engineer and build with AI agents on my own time. This is where I write it all down: the security reviews, the home-lab SOC, the agent workflows, and the bugs that got past all of them."
-      )
-    ).toBeInTheDocument();
+  it("opens the subhead with the identity line", () => {
+    const { container } = render(<HeroIdentity postCount={3} />);
+    const sub = container.querySelector(".ed-hero-sub")!;
+    expect(sub.textContent?.startsWith(IDENTITY_LINE)).toBe(true);
+    expect(sub.textContent).toContain("the home-lab SOC, the agent workflows");
   });
 
   it("renders the portrait caption", () => {

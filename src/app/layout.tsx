@@ -13,6 +13,7 @@ import { NewsletterPopup } from "@/components/newsletter/NewsletterPopup";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { IDENTITY_LINE, SITE_DESCRIPTION } from "@/lib/identity";
 import { BASE_URL } from "@/lib/constants";
 import { getAllPosts } from "@/lib/blog";
 import "./globals.css";
@@ -32,8 +33,7 @@ export const metadata: Metadata = {
     default: "CryptoFlex LLC | Chris Johnson",
     template: "%s | CryptoFlex LLC",
   },
-  description:
-    "Personal tech blog and portfolio of Chris Johnson — veteran, engineer, and cybersecurity professional. Cybersecurity, AI-assisted development, and infrastructure.",
+  description: SITE_DESCRIPTION,
   keywords: [
     "cybersecurity",
     "Claude Code",
@@ -51,8 +51,7 @@ export const metadata: Metadata = {
   publisher: "CryptoFlex LLC",
   openGraph: {
     title: "CryptoFlex LLC | Chris Johnson",
-    description:
-      "Personal tech blog and portfolio of Chris Johnson — veteran, engineer, and cybersecurity professional.",
+    description: SITE_DESCRIPTION,
     url: BASE_URL,
     siteName: "CryptoFlex LLC",
     locale: "en_US",
@@ -69,8 +68,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "CryptoFlex LLC | Chris Johnson",
-    description:
-      "Cybersecurity professional writing about AI-assisted development, security, and infrastructure.",
+    description: SITE_DESCRIPTION,
     images: ["/api/og?title=CryptoFlex%20LLC&author=Chris%20Johnson"],
   },
   alternates: {
@@ -121,13 +119,13 @@ export default function RootLayout({
           <WebsiteJsonLd
             url={BASE_URL}
             name="CryptoFlex LLC"
-            description="Personal tech blog and portfolio of Chris Johnson — veteran, engineer, and cybersecurity professional."
+            description={SITE_DESCRIPTION}
           />
           <PersonJsonLd
             name="Chris Johnson"
             url={BASE_URL}
-            jobTitle="Cybersecurity Professional"
-            description="Veteran turned cybersecurity professional. Writing about AI-assisted development, security, and infrastructure."
+            jobTitle="Security Engineer"
+            description={IDENTITY_LINE}
           />
           <AnalyticsTracker />
           <WebVitalsReporter />
