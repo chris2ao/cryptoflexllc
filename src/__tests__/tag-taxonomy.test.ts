@@ -1,5 +1,6 @@
 import path from "path";
 import { describe, it, expect } from "vitest";
+import { parseFrontmatter } from "@/lib/frontmatter";
 import taxonomy from "@/content/tag-taxonomy.json";
 import {
   computeTags,
@@ -82,6 +83,14 @@ describe("consolidate-tags core", () => {
   it("does not end the frontmatter at a body line starting with four dashes", () => {
     const src = '---\ntitle: x\ntags: [Pi-hole]\n----\nauthor: me\n---\nBody\n';
     expect(rewriteContent(src, tax).content).toContain("author: me\n---\nBody");
+  });
+
+  it("round-trips quoted tags through the strict frontmatter loader", () => {
+    expect(formatBlock(['Say "hi"', "Detection & SIEM", "Plain"])).toBe(
+      'tags:\n  - "Say \\"hi\\""\n  - "Detection & SIEM"\n  - Plain'
+    );
+    const src = `---\ntitle: x\n${formatBlock(['Say "hi"', "Detection & SIEM", "Plain"])}\n---\nBody\n`;
+    expect(parseFrontmatter(src).data.tags).toEqual(['Say "hi"', "Detection & SIEM", "Plain"]);
   });
 
   it("reports a tag named constructor as unmapped", () => {

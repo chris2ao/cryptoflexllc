@@ -124,7 +124,7 @@ export function computeTags(oldTags, text, taxonomy) {
 }
 
 function formatTag(tag) {
-  return /[&:#]/.test(tag) ? `"${tag}"` : tag;
+  return /^[A-Za-z0-9][A-Za-z0-9 .+/-]*$/.test(tag) ? tag : JSON.stringify(tag);
 }
 
 export function formatBlock(tags, eol = "\n") {
@@ -160,8 +160,9 @@ export function planChanges(root, taxonomy = loadTaxonomy(root)) {
     const abs = path.join(root, dir);
     if (!fs.existsSync(abs)) return [];
     return fs
-      .readdirSync(abs)
-      .filter((f) => f.endsWith(".mdx"))
+      .readdirSync(abs, { withFileTypes: true })
+      .filter((d) => d.isFile() && d.name.endsWith(".mdx"))
+      .map((d) => d.name)
       .sort()
       .map((f) => {
         const file = path.join(dir, f);
