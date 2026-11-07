@@ -24,9 +24,9 @@ const projects: Project[] = [
       "Wazuh on four hosts, a ClickHouse log lake fed by the UDM Pro and Pi-hole, and a Mission Control dashboard that turns DNS traffic into threat-intel detections. Planned, deployed, and debugged in public across three series.",
     tech: ["Wazuh", "ClickHouse", "FastAPI"],
     variant: "featured",
-    image: "/blog/building-a-custom-siem-part-1-why-and-architecture/infographic.jpg",
+    image: "/home/home-soc-cover.jpg",
     imageAlt:
-      "Custom homelab SIEM architecture: UDP syslog from the UDM Pro, Pi-hole, access points, and switches into Vector on a Mac mini, parsed and written to ClickHouse on an external SSD with 180-day retention, with SQLite kept for reference and ack data.",
+      "Log flow diagram titled Logs in, Detections out. The UDM Pro and Pi-hole feed a ClickHouse log lake, which feeds Wazuh for alerts and Mission Control for DNS threat-intel hits.",
     seriesNames: [
       "Homelab Wazuh Deployment",
       "Custom SIEM",
