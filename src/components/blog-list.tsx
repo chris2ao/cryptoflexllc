@@ -10,7 +10,15 @@ import type { BlogPost } from "@/lib/blog";
 /** Serializable subset of BlogPost (no raw MDX content) */
 export type BlogPostSummary = Omit<BlogPost, "content">;
 
-const MOBILE_PAGE_SIZE = 12;
+export const PAGE_SIZE_MOBILE = 12;
+export const PAGE_SIZE_DESKTOP = 24;
+
+/** Static class strings per visibility state (never built from fragments). */
+function cardClass(index: number, mobileLimit: number, desktopLimit: number): string {
+  if (index < mobileLimit) return "h-full";
+  if (index < desktopLimit) return "h-full max-sm:hidden";
+  return "h-full hidden";
+}
 
 interface BlogListProps {
   posts: BlogPostSummary[];
@@ -113,31 +121,28 @@ export function BlogList({ posts }: BlogListProps) {
     router.push("/blog", { scroll: false });
   }
 
-  // Mobile paging: the count resets whenever the filter or query changes.
-  // Keyed by a filter signature, reset during render (no effect).
+  // Paging: one page counter drives both widths (12 per page under sm, 24 at
+  // sm and up). It resets whenever the filter or query changes, keyed by a
+  // filter signature and reset during render (no effect).
   const filterSignature = `${search.trim()}|${selectedTags.join(",")}`;
   const [pageState, setPageState] = useState({
     signature: filterSignature,
-    count: MOBILE_PAGE_SIZE,
+    pages: 1,
   });
   // Adjusting state during render (React's documented pattern) discards the old
   // count as soon as the signature changes, so returning to an earlier filter
   // cannot resurrect it.
   if (pageState.signature !== filterSignature) {
-    setPageState({ signature: filterSignature, count: MOBILE_PAGE_SIZE });
+    setPageState({ signature: filterSignature, pages: 1 });
   }
-  const mobileCount =
-    pageState.signature === filterSignature
-      ? pageState.count
-      : MOBILE_PAGE_SIZE;
-  const shownOnMobile = Math.min(mobileCount, filtered.length);
-  const hasMore = shownOnMobile < filtered.length;
+  const pages = pageState.signature === filterSignature ? pageState.pages : 1;
+  const mobileLimit = PAGE_SIZE_MOBILE * pages;
+  const desktopLimit = PAGE_SIZE_DESKTOP * pages;
+  const mobileHasMore = mobileLimit < filtered.length;
+  const desktopHasMore = desktopLimit < filtered.length;
 
   function showMore() {
-    setPageState({
-      signature: filterSignature,
-      count: mobileCount + MOBILE_PAGE_SIZE,
-    });
+    setPageState({ signature: filterSignature, pages: pages + 1 });
   }
 
   const hasFilters = search.trim() !== "" || selectedTags.length > 0;
@@ -193,9 +198,7 @@ export function BlogList({ posts }: BlogListProps) {
           {filtered.map((post, index) => (
             <div
               key={post.slug}
-              className={
-                index < mobileCount ? "h-full" : "h-full max-sm:hidden"
-              }
+              className={cardClass(index, mobileLimit, desktopLimit)}
             >
               <BlogCard post={post} />
             </div>
@@ -203,14 +206,20 @@ export function BlogList({ posts }: BlogListProps) {
         </div>
       )}
 
-      {filtered.length > 0 && hasMore && (
-        <div className="mt-6 sm:hidden">
+      {filtered.length > 0 && (mobileHasMore || desktopHasMore) && (
+        <div className={desktopHasMore ? "mt-6" : "mt-6 sm:hidden"}>
           <button
             type="button"
             onClick={showMore}
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-1 rounded-md border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Show more posts ({shownOnMobile} of {filtered.length} shown)
+            Show more posts{" "}
+            <span className="sm:hidden">
+              ({Math.min(mobileLimit, filtered.length)} of {filtered.length} shown)
+            </span>
+            <span className="hidden sm:inline">
+              ({Math.min(desktopLimit, filtered.length)} of {filtered.length} shown)
+            </span>
           </button>
         </div>
       )}

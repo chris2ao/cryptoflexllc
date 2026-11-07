@@ -4225,3 +4225,22 @@ table.ax-tbl {
     padding-right: 0;
   }
 }
+
+/* ==== EDITORIAL REDESIGN: blog index (CLAUD-765 item 8) ==== */
+/* The Start here block reuses the home .ed-paths / .ed-path card rules above;
+   these rules only space it inside the blog index column. */
+.ed-start-here {
+  margin-bottom: 40px;
+}
+
+.ed-start-here .ed-overline {
+  margin-bottom: 8px;
+}
+
+.ed-start-here-lede {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fg-2);
+  margin: 0 0 20px 0;
+}
