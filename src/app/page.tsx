@@ -11,7 +11,7 @@ import { SubscribeBlock } from "@/components/home/subscribe-block";
 import { MotionLayer } from "@/components/home/motion-layer";
 import { getAllPosts } from "@/lib/blog";
 import {
-  getSeriesInProgress,
+  getNowBuilding,
   pickReadingPaths,
   summarizeSeries,
 } from "@/lib/home-content";
@@ -64,12 +64,12 @@ export default function HomePage() {
 
   return (
     <>
-      <main>
+      <div>
         <HeroIdentity postCount={allPosts.length} latestDate={allPosts[0]?.date} />
-        <NowStrip inProgress={getSeriesInProgress(allPosts)} />
+        <NowStrip nowBuilding={getNowBuilding(allPosts)} />
         {sections.map((render, i) => render(i + 1))}
         <SubscribeBlock />
-      </main>
+      </div>
       <MotionLayer />
     </>
   );

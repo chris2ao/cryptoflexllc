@@ -49,6 +49,11 @@ afterEach(() => {
 });
 
 describe("HomePage", () => {
+  it("does not render its own main landmark (the layout provides it)", () => {
+    const { container } = renderHome();
+    expect(container.querySelector("main")).toBeNull();
+  });
+
   it("keeps section numbers gapless when no series qualifies for Reading Paths", () => {
     const loosePosts: BlogPost[] = getAllPosts()
       .slice(0, 6)
@@ -69,7 +74,7 @@ describe("HomePage", () => {
 
   it("references only images that exist in public/", () => {
     const { container } = renderHome();
-    const sources = Array.from(container.querySelectorAll("main img"))
+    const sources = Array.from(container.querySelectorAll("img"))
       .map((img) => img.getAttribute("src") ?? "")
       .filter((src) => src.startsWith("/"));
 

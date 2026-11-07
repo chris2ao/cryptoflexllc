@@ -89,6 +89,7 @@
    DARK THEME (primary mode — native state)
    ================================================================ */
 :root {
+  color-scheme: dark;
   --radius: 0.5rem;
 
   /* ---- Surface Palette (progressive lightness steps) ---- */
@@ -99,7 +100,7 @@
   --surface-4:            oklch(0.28 0.010 245);
   --foreground:           oklch(0.95 0.005 245);
   --foreground-secondary: oklch(0.78 0.008 245);
-  --foreground-muted:     oklch(0.55 0.010 245);
+  --foreground-muted:     oklch(0.65 0.010 245);
 
   /* ---- Shadcn/UI semantic aliases ---- */
   --card:                 var(--surface-2);
@@ -268,6 +269,7 @@
    LIGHT THEME (secondary mode)
    ================================================================ */
 .light {
+  color-scheme: light;
   /* ---- Surface Palette ---- */
   --background:           oklch(0.97 0.005 245);
   --surface-1:            oklch(0.99 0.003 245);
@@ -276,7 +278,7 @@
   --surface-4:            oklch(0.85 0.008 245);
   --foreground:           oklch(0.13 0.008 245);
   --foreground-secondary: oklch(0.35 0.010 245);
-  --foreground-muted:     oklch(0.52 0.008 245);
+  --foreground-muted:     oklch(0.46 0.008 245);
 
   /* ---- Shadcn/UI semantic aliases ---- */
   --card:                 var(--surface-2);
@@ -1804,7 +1806,7 @@
 .ed-post-row .idx {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--fg-4);
+  color: var(--fg-3);
   padding-top: 3px;
   letter-spacing: 0.08em;
 }
@@ -1838,7 +1840,7 @@
   letter-spacing: 0.04em;
 }
 
-.ed-post-row .byline span { color: var(--fg-4); }
+.ed-post-row .byline span { color: var(--fg-3); }
 
 .ed-posts-footer {
   margin-top: 40px;
@@ -2107,7 +2109,7 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--fg-4);
+  color: var(--fg-3);
   margin-bottom: 16px;
 }
 
@@ -2219,7 +2221,7 @@
 .ed-work-idx {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--fg-4);
+  color: var(--fg-3);
   letter-spacing: 0.08em;
 }
 
@@ -2270,7 +2272,7 @@
 
 .ed-work-meta .chip::before {
   content: "/ ";
-  color: var(--fg-4);
+  color: var(--fg-3);
 }
 
 .ed-work-meta .chip:first-child::before { display: none; }
@@ -2609,7 +2611,7 @@
 }
 
 .ed-post-header-meta .sep {
-  color: var(--fg-4);
+  color: var(--fg-3);
 }
 
 .ed-post-cover {
@@ -2809,7 +2811,7 @@
   flex-wrap: wrap;
 }
 
-.ax-crumbs .sep { color: var(--fg-4); }
+.ax-crumbs .sep { color: var(--fg-3); }
 .ax-crumbs b { color: var(--primary); font-weight: 500; }
 
 .ax-title {
@@ -3036,7 +3038,7 @@
 .ax-tab .n {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--fg-4);
+  color: var(--fg-3);
   letter-spacing: 0.08em;
 }
 
@@ -3242,7 +3244,7 @@
   align-items: center;
 }
 
-.ax-kpi .label .hint { color: var(--fg-4); }
+.ax-kpi .label .hint { color: var(--fg-3); }
 
 .ax-kpi .val {
   font-family: var(--font-heading);
@@ -3526,7 +3528,7 @@
 
 .ax-feed .frow .body .gr { color: var(--fg-3); }
 .ax-feed .frow .body b { color: var(--fg); font-weight: 500; }
-.ax-feed .frow .meta { color: var(--fg-4); font-size: 10.5px; }
+.ax-feed .frow .meta { color: var(--fg-3); font-size: 10.5px; }
 
 /* Status pills */
 .ax-status-pill {
@@ -3613,7 +3615,7 @@
 
 .ax-row:last-child { border-bottom: 0; }
 
-.ax-row .idx { color: var(--fg-4); letter-spacing: 0.06em; }
+.ax-row .idx { color: var(--fg-3); letter-spacing: 0.06em; }
 
 .ax-row .name {
   color: var(--fg);
@@ -3938,7 +3940,7 @@
   text-transform: none;
   letter-spacing: 0;
   font-size: 10px;
-  color: var(--fg-4);
+  color: var(--fg-3);
 }
 
 .ax-vital-value {
@@ -4039,7 +4041,7 @@ table.ax-tbl {
 }
 
 .ax-tbl th .arr {
-  color: var(--fg-4);
+  color: var(--fg-3);
   margin-left: 4px;
 }
 

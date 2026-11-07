@@ -6,7 +6,7 @@ const AUTHOR = {
   title: "Cybersecurity Professional & Software Engineer",
   bio: "I build software, break things on purpose for a living, and write about what I learn. Most of my posts are about AI-assisted development with Claude Code, building this site in public, and the intersection of security and engineering.",
   github: "https://github.com/chris2ao",
-  linkedin: "https://www.linkedin.com/in/chrisjohnsoninfosec/",
+  linkedin: "https://www.linkedin.com/in/chris-johnson-secops/",
 };
 
 function GithubIcon() {

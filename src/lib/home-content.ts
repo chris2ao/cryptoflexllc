@@ -14,13 +14,7 @@ export type SeriesSummary = {
   latest: { title: string; slug: string; date: string; part?: number };
 };
 
-export type SeriesInProgress = {
-  name: string;
-  href: string;
-  part?: number;
-  title: string;
-  slug: string;
-};
+export type NowBuilding = { text: string; href?: string; asOf: string };
 
 type SeriesPost = BlogPost & { series: string };
 
@@ -73,17 +67,16 @@ export function pickReadingPaths(
   return summaries.filter((s) => s.postCount >= minPosts).slice(0, limit);
 }
 
-export function getSeriesInProgress(
-  posts: readonly BlogPost[]
-): SeriesInProgress | null {
+/** Newest series post drives the "Now building" cell; derived, never hand-typed. */
+export function getNowBuilding(posts: readonly BlogPost[]): NowBuilding | null {
   const [newest] = posts.filter((p) => p.series).sort(byNewest);
   if (!newest?.series) return null;
+  const part =
+    newest.seriesOrder !== undefined ? ` · Part ${newest.seriesOrder}` : "";
   return {
-    name: newest.series,
+    text: `${newest.series}${part}`,
     href: seriesHref(newest.series),
-    ...(newest.seriesOrder !== undefined && { part: newest.seriesOrder }),
-    title: newest.title,
-    slug: newest.slug,
+    asOf: newest.date,
   };
 }
 

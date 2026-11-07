@@ -4,7 +4,7 @@ import {
   seriesHref,
   summarizeSeries,
   pickReadingPaths,
-  getSeriesInProgress,
+  getNowBuilding,
   postKicker,
 } from "./home-content";
 
@@ -90,7 +90,7 @@ describe("summarizeSeries", () => {
         post({ slug: "next-day", date: "2026-04-18", series: "S", seriesOrder: 2 }),
       ];
       expect(summarizeSeries(mixed)[0].latest.slug).toBe("next-day");
-      expect(getSeriesInProgress(mixed)?.slug).toBe("next-day");
+      expect(getNowBuilding(mixed)?.text).toBe("S · Part 2");
     });
   });
 
@@ -122,14 +122,12 @@ describe("pickReadingPaths", () => {
   });
 });
 
-describe("getSeriesInProgress", () => {
-  it("returns the series of the newest post that has one", () => {
-    expect(getSeriesInProgress(fixtures)).toEqual({
-      name: "Security Engineering",
+describe("getNowBuilding", () => {
+  it("uses the newest series post across series", () => {
+    expect(getNowBuilding(fixtures)).toEqual({
+      text: "Security Engineering · Part 12",
       href: "/blog/series/Security%20Engineering",
-      part: 12,
-      title: "Sec 12",
-      slug: "sec-12",
+      asOf: "2026-10-16",
     });
   });
 
@@ -138,11 +136,25 @@ describe("getSeriesInProgress", () => {
       post({ slug: "loose", date: "2026-10-20" }),
       post({ slug: "g", date: "2026-10-01", series: "Game Dev", seriesOrder: 3 }),
     ];
-    expect(getSeriesInProgress(posts)?.slug).toBe("g");
+    expect(getNowBuilding(posts)?.text).toBe("Game Dev · Part 3");
   });
 
-  it("returns null when nothing is in a series", () => {
-    expect(getSeriesInProgress([post({ slug: "x" })])).toBeNull();
+  it("breaks a same-day tie toward the higher part", () => {
+    const posts = [
+      post({ slug: "a", date: "2026-10-16", series: "Alpha", seriesOrder: 2 }),
+      post({ slug: "b", date: "2026-10-16", series: "Beta", seriesOrder: 5 }),
+    ];
+    expect(getNowBuilding(posts)?.text).toBe("Beta · Part 5");
+  });
+
+  it("returns null when no post is in a series", () => {
+    expect(getNowBuilding([post({ slug: "x" })])).toBeNull();
+    expect(getNowBuilding([])).toBeNull();
+  });
+
+  it("gives the bare series name when seriesOrder is missing", () => {
+    const posts = [post({ slug: "n", date: "2026-10-16", series: "Notes" })];
+    expect(getNowBuilding(posts)?.text).toBe("Notes");
   });
 });
 
