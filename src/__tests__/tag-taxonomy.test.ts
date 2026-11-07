@@ -48,7 +48,7 @@ describe("consolidate-tags core", () => {
     expect(computeTags(["Claude Code", "Next.js"], "A favicon story", tax)).toEqual([
       "Web Development",
     ]);
-    expect(computeTags(["Claude Code", "Next.js"], "My Claude setup", tax)).toEqual([
+    expect(computeTags(["Claude Code", "Next.js"], "My Claude Code setup", tax)).toEqual([
       "Web Development",
       "Claude Code",
     ]);
@@ -91,7 +91,7 @@ describe("consolidate-tags core", () => {
 
   it("falls back when nothing maps", () => {
     expect(computeTags(["Tutorial"], "A watch", tax)).toEqual(["Career & Life"]);
-    expect(computeTags(["Tutorial"], "A Claude post", tax)).toEqual(["Claude Code"]);
+    expect(computeTags(["Tutorial"], "A Claude Code post", tax)).toEqual(["Claude Code"]);
   });
 
   it("quotes values containing an ampersand", () => {

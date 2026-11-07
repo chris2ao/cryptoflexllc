@@ -15,7 +15,7 @@ const CLAUDE_CODE = "Claude Code";
 const FALLBACK = "Career & Life";
 const MAX_TAGS = 3;
 const CLAUDE_RE =
-  /\b(?:claude|harness|hooks?|skills?|subagents?|agent teams?|mcp|plasticity|homunculus)\b/i;
+  /\b(?:claude code|harness|hooks?|skills?|subagents?|agent teams?|mcp|plasticity|homunculus)\b/i;
 const CONTENT_DIRS = ["src/content/blog", "src/content/backlog"];
 
 function unquote(raw) {
@@ -136,7 +136,7 @@ export function rewriteContent(content, taxonomy) {
   const parts = splitFrontmatter(content);
   const block = parts ? findTagsBlock(parts.fm) : null;
   if (!parts || !block) return { content, changed: false, before: [], after: [], unmapped: [] };
-  const text = `${readField(parts.fm, "title")} ${readField(parts.fm, "description")}`;
+  const text = readField(parts.fm, "title");
   const after = computeTags(block.tags, text, taxonomy);
   const unmapped = block.tags.filter((t) => lookup(t, taxonomy) === undefined);
   const base = parts.start;
