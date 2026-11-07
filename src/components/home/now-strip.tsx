@@ -1,20 +1,10 @@
 import Link from "next/link";
-import { seriesHref, type SeriesInProgress } from "@/lib/home-content";
+import type { NowBuilding } from "@/lib/home-content";
 import { isExternalHref } from "@/lib/links";
 import { formatPostDateShort } from "@/lib/post-date";
 
-export type NowBuilding = { text: string; href?: string; asOf: string };
-
-/** Hand-maintained. Update text and asOf together, or set to null to hide the cell. */
-export const NOW_BUILDING: NowBuilding | null = {
-  text: "Rebuilding my OpenClaw agent on Letta",
-  href: seriesHref("OpenClaw Deployment"),
-  asOf: "2026-10-16",
-};
-
 type Props = {
-  inProgress: SeriesInProgress | null;
-  nowBuilding?: NowBuilding | null;
+  nowBuilding: NowBuilding | null;
 };
 
 function NowLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -28,11 +18,7 @@ function NowLink({ href, children }: { href: string; children: React.ReactNode }
   return <Link href={href}>{children}</Link>;
 }
 
-function seriesLabel({ name, part }: SeriesInProgress): string {
-  return part !== undefined ? `${name} · Part ${part}` : name;
-}
-
-export function NowStrip({ inProgress, nowBuilding = NOW_BUILDING }: Props) {
+export function NowStrip({ nowBuilding }: Props) {
   return (
     <section className="ed-now" aria-label="Now">
       <div className="ed-wrap">
@@ -46,14 +32,6 @@ export function NowStrip({ inProgress, nowBuilding = NOW_BUILDING }: Props) {
                 nowBuilding.text
               )}
               <small className="ed-now-asof">as of {formatPostDateShort(nowBuilding.asOf)}</small>
-            </span>
-          </div>
-        )}
-        {inProgress && (
-          <div className="ed-now-cell">
-            <span className="ed-now-label">In progress</span>
-            <span className="ed-now-value">
-              <NowLink href={inProgress.href}>{seriesLabel(inProgress)}</NowLink>
             </span>
           </div>
         )}
