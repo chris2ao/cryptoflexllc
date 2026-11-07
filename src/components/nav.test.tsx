@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/search/open-command-palette";
 import { Nav } from "./nav";
 
@@ -60,6 +60,21 @@ describe("Nav", () => {
     expect(screen.getAllByText("Work").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("About").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Services").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("primary nav has no Subscribe link", () => {
+    render(<Nav />);
+    const primary = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(primary).queryByText("Subscribe")).toBeNull();
+    for (const label of ["Blog", "Work", "About", "Services"]) {
+      expect(within(primary).getByText(label)).toBeInTheDocument();
+    }
+  });
+
+  it("mobile menu still lists Subscribe", () => {
+    render(<Nav />);
+    const sheet = screen.getByTestId("sheet");
+    expect(within(sheet).getAllByText("Subscribe").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders mobile menu links including extended nav", () => {
