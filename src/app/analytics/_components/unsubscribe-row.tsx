@@ -12,9 +12,9 @@ interface UnsubscribeRowProps {
 }
 
 const STATUS_BADGE = {
-  pending: { label: "Pending", className: "bg-yellow-500/20 text-yellow-400" },
-  approve: { label: "Approved", className: "bg-green-500/20 text-green-400" },
-  deny: { label: "Allowed", className: "bg-zinc-500/20 text-zinc-400" },
+  pending: { label: "Pending", className: "ax-pill ax-pill--warn" },
+  approve: { label: "Approved", className: "ax-pill ax-pill--ok" },
+  deny: { label: "Allowed", className: "ax-pill" },
 } as const;
 
 function statusBadge(decision: "approve" | "deny" | null) {
@@ -38,41 +38,41 @@ export function UnsubscribeRow({ row, acting, expanded, onToggleHistory, onDecid
 
   return (
     <>
-      <tr className="border-t border-border hover:bg-muted/30 transition-colors">
-        <td className="px-4 py-2 font-mono text-xs">{row.sender_email}</td>
-        <td className="px-4 py-2 text-xs text-muted-foreground">{row.method}</td>
-        <td className="px-4 py-2 text-xs">{row.trashed_count_14d}</td>
-        <td className="px-4 py-2">
-          <span
-            className={`inline-block px-2 py-0.5 text-xs rounded-full font-medium ${badge.className}`}
-          >
-            {badge.label}
-          </span>
+      <tr>
+        <td>{row.sender_email}</td>
+        <td className="muted">{row.method}</td>
+        <td>{row.trashed_count_14d}</td>
+        <td>
+          <span className={badge.className}>{badge.label}</span>
           {attempt && !attempt.succeeded && (
-            <span className="ml-1 inline-block px-2 py-0.5 text-xs rounded-full font-medium bg-red-500/20 text-red-400">
+            <span className="ax-pill ax-pill--bad" style={{ marginLeft: 4 }}>
               Attempt failed
             </span>
           )}
         </td>
-        <td className="px-4 py-2 text-xs text-muted-foreground">
+        <td className="muted">
           {attempt ? `${attempt.status_code ?? "no status"}, ${silenceLabel(attempt)}` : "No attempts yet"}
         </td>
-        <td className="px-4 py-2">
-          <div className="flex items-center gap-1">
+        <td>
+          <div className="row-actions">
             <button
               type="button"
               onClick={() => onToggleHistory(row.sender_email)}
-              className="inline-flex items-center px-1 py-1 text-xs rounded-md text-muted-foreground hover:bg-muted/50 transition-colors"
+              className="btn-editorial btn-editorial--sm ax-icon-btn"
               title={expanded ? "Hide history" : "Show history"}
               aria-label={expanded ? "Hide history" : "Show history"}
             >
               <ChevronDown
-                className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
+                size={14}
+                style={{
+                  transition: "transform 140ms",
+                  transform: expanded ? "rotate(180deg)" : "none",
+                }}
               />
             </button>
 
             {acting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              <Loader2 size={14} className="ax-spin" aria-label="Saving" />
             ) : row.decision === null ? (
               <>
                 <button
@@ -84,18 +84,18 @@ export function UnsubscribeRow({ row, acting, expanded, onToggleHistory, onDecid
                       ? "Approve unsubscribe"
                       : "Only one-click (RFC 8058) senders can be approved"
                   }
-                  className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+                  className="btn-editorial btn-editorial--sm ax-icon-btn"
                 >
-                  <Check className="h-3.5 w-3.5" />
+                  <Check size={14} />
                   Approve
                 </button>
                 <button
                   type="button"
                   onClick={() => onDecide(row.sender_email, "deny")}
                   title="Deny: allow this sender to keep sending"
-                  className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-zinc-400 hover:bg-zinc-500/20 transition-colors"
+                  className="btn-editorial btn-editorial--sm ax-icon-btn"
                 >
-                  <ShieldOff className="h-3.5 w-3.5" />
+                  <ShieldOff size={14} />
                   Deny
                 </button>
               </>
@@ -104,9 +104,9 @@ export function UnsubscribeRow({ row, acting, expanded, onToggleHistory, onDecid
                 type="button"
                 onClick={() => onDecide(row.sender_email, "deny")}
                 title="Allow again: stop unsubscribing from this sender"
-                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-zinc-400 hover:bg-zinc-500/20 transition-colors"
+                className="btn-editorial btn-editorial--sm ax-icon-btn"
               >
-                <Undo2 className="h-3.5 w-3.5" />
+                <Undo2 size={14} />
                 Allow again
               </button>
             ) : (
@@ -114,9 +114,9 @@ export function UnsubscribeRow({ row, acting, expanded, onToggleHistory, onDecid
                 type="button"
                 onClick={() => onDecide(row.sender_email, "approve")}
                 title="Unsubscribe from this sender"
-                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-green-400 hover:bg-green-500/20 transition-colors"
+                className="btn-editorial btn-editorial--sm ax-icon-btn"
               >
-                <Check className="h-3.5 w-3.5" />
+                <Check size={14} />
                 Unsubscribe
               </button>
             )}
@@ -124,18 +124,18 @@ export function UnsubscribeRow({ row, acting, expanded, onToggleHistory, onDecid
         </td>
       </tr>
       {expanded && (
-        <tr className="border-t border-border bg-muted/20">
-          <td colSpan={6} className="px-4 py-2">
+        <tr>
+          <td colSpan={6}>
             {row.history.length === 0 ? (
-              <span className="text-xs text-muted-foreground">No decisions yet.</span>
+              <span className="muted">No decisions yet.</span>
             ) : (
-              <ul className="space-y-1">
+              <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
                 {row.history.map((entry, i) => (
-                  <li key={i} className="text-xs text-muted-foreground">
+                  <li key={i} className="muted">
                     <span
-                      className={
-                        entry.decision === "approve" ? "text-green-400" : "text-zinc-400"
-                      }
+                      style={{
+                        color: entry.decision === "approve" ? "var(--ax-green)" : "var(--fg-2)",
+                      }}
                     >
                       {entry.decision === "approve" ? "Approved" : "Denied"}
                     </span>{" "}
