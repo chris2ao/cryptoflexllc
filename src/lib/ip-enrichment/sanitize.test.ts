@@ -35,6 +35,15 @@ describe("cleanText extended ranges", () => {
   });
 });
 
+describe("cleanText invisibles", () => {
+  it("strips soft hyphen and variation selectors", () => {
+    const sh = String.fromCodePoint(0xAD);
+    const vs = String.fromCodePoint(0xFE0F);
+    const hf = String.fromCodePoint(0x3164);
+    expect(cleanText(sh + "Goo" + sh + "gle" + vs + hf, 50)).toBe("Google");
+  });
+});
+
 describe("sanitizeEnrichment", () => {
   const base = { ...EMPTY_ENRICHMENT, ip: "9.9.9.9", enrichedAt: "2026-11-07T00:00:00.000Z" };
   it("strips bidi from asName and caps lengths", () => {

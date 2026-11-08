@@ -16,6 +16,7 @@ const V4_RESERVED: ReadonlyArray<readonly [string, number]> = [
   ["192.0.0.0", 24],
   ["192.0.2.0", 24],
   ["192.168.0.0", 16],
+  ["192.88.99.0", 24],
   ["198.18.0.0", 15],
   ["198.51.100.0", 24],
   ["203.0.113.0", 24],
@@ -26,7 +27,12 @@ const V4_RESERVED: ReadonlyArray<readonly [string, number]> = [
 const V6_RESERVED: ReadonlyArray<readonly [string, number]> = [
   ["::", 128],
   ["::1", 128],
+  ["::", 96],
   ["64:ff9b::", 96],
+  ["64:ff9b:1::", 48],
+  ["2001::", 32],
+  ["2001:10::", 28],
+  ["2001:20::", 28],
   ["100::", 64],
   ["2002::", 16],
   ["2001:db8::", 32],
@@ -58,6 +64,20 @@ function unmapV4(ip: string): string | null {
 }
 
 /**
+ * The SIIT block ::ffff:0:0/96 embeds an IPv4 address. It cannot sit in the
+ * BlockList: node maps IPv4 checks into ::ffff:0:0/96, so it would match every
+ * IPv4 address. Test the canonical form instead.
+ */
+function isSiit(ip: string): boolean {
+  try {
+    const host = new URL(`http://[${ip}]`).hostname;
+    return /^\[::ffff:0:[0-9a-f]{1,4}:[0-9a-f]{1,4}\]$/.test(host);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Reject private, loopback, and reserved IP ranges. Returns false for a
  * string that is not an IP; every caller runs isValidIp first.
  */
@@ -66,5 +86,6 @@ export function isPrivateIp(ip: string): boolean {
   if (family === 0) return false;
   const v4 = family === 6 ? unmapV4(ip) : null;
   if (v4 !== null) return isIP(v4) === 4 && RESERVED.check(v4, "ipv4");
+  if (family === 6 && isSiit(ip)) return true;
   return RESERVED.check(ip, family === 4 ? "ipv4" : "ipv6");
 }
