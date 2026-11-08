@@ -6,8 +6,8 @@
  *   2. Scroll depth milestones (25/50/75/100%)
  *   3. Time on page (seconds before navigation/unload)
  *
- * PRIVACY: Only page path and engagement numbers are sent.
- * All sensitive data (IP, geo, UA) is extracted server-side.
+ * PRIVACY: Only the page path, document.referrer (page views only) and
+ * engagement numbers are sent. All sensitive data (IP, geo, UA) is extracted server-side.
  * No cookies, fingerprints, or localStorage are used.
  */
 
@@ -15,6 +15,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { isTrackedPath } from "@/lib/analytics-tracking-rules";
 
 /** Send JSON payload via sendBeacon with fetch fallback */
 function beacon(url: string, data: Record<string, unknown>) {
@@ -42,14 +43,16 @@ export function AnalyticsTracker() {
 
   // ---- 1. Page view tracking ----
   useEffect(() => {
+    if (!isTrackedPath(pathname)) return;
     // Include search string so the server can extract UTM parameters.
     // window.location.search is safe here because this runs client-side only.
     const fullPath = pathname + (window.location.search ?? "");
-    beacon("/api/analytics/track", { path: fullPath });
+    beacon("/api/analytics/track", { path: fullPath, referrer: document.referrer });
   }, [pathname]);
 
   // ---- 2. Scroll depth + 3. Time on page ----
   useEffect(() => {
+    if (!isTrackedPath(pathname)) return;
     // Reset state on each navigation
     startTime.current = Date.now();
     sentDepths.current = new Set();
