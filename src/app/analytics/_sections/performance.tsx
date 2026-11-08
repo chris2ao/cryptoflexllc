@@ -3,10 +3,14 @@ import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { AxPanel } from "../_components/ax-panel";
 import { WebVitalsGrid } from "../_components/web-vitals-grid";
 import { ApiResponseTable } from "../_components/api-response-table";
+import { WebAnalyticsCard } from "../_components/web-analytics-card";
+import { DeploysStrip } from "../_components/deploys-strip";
 import { ApiResponseChart } from "./lazy-charts";
+import { PerformanceOps } from "./performance-ops";
 
 export async function PerformanceSection({
   days,
+  scope = "humans",
 }: {
   days: number;
   scope?: TrafficScope;
@@ -15,7 +19,9 @@ export async function PerformanceSection({
     apiMetricsEndpoints: typedApiEndpoints,
     apiMetricsDaily: typedApiDaily,
     webVitalsRaw: typedWebVitals,
-  } = await loadPerformance(days);
+    webAnalytics,
+    deployments,
+  } = await loadPerformance(days, scope);
 
   const totalRequests = typedApiEndpoints.reduce(
     (s, r) => s + r.total_count,
@@ -54,11 +60,28 @@ export async function PerformanceSection({
         </AxPanel>
       </div>
 
-      <div>
+      <div style={{ marginBottom: 20 }}>
         <AxPanel title="Daily API latency" kicker="TREND">
           <ApiResponseChart endpoints={typedApiEndpoints} daily={typedApiDaily} />
         </AxPanel>
       </div>
+
+      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
+        <AxPanel title="Vercel Web Analytics" kicker="CROSS-CHECK">
+          <WebAnalyticsCard
+            state={webAnalytics.state}
+            ours={webAnalytics.ours}
+            theirs={webAnalytics.theirs}
+            daily={webAnalytics.daily}
+            days={days}
+          />
+        </AxPanel>
+        <AxPanel title="Deployments" kicker="LAST 10">
+          <DeploysStrip deployments={deployments} />
+        </AxPanel>
+      </div>
+
+      <PerformanceOps />
     </div>
   );
 }

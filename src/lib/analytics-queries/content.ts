@@ -1,5 +1,11 @@
 import { getDb } from "@/lib/analytics";
 import type { ReferrerClass } from "@/lib/traffic/referrer";
+import {
+  fetchSearchAnalytics,
+  isSearchConsoleConfigured,
+  searchConsoleWindow,
+  type SearchAnalyticsRow,
+} from "@/lib/search-console";
 import { scopeClass, type TrafficScope } from "./shared";
 import type {
   CampaignRow,
@@ -183,4 +189,29 @@ export async function loadReferrerClasses(
   } catch {
     return { classes: [], hosts: [] };
   }
+}
+
+export type SearchConsoleData = {
+  configured: boolean;
+  queries: SearchAnalyticsRow[];
+  pages: SearchAnalyticsRow[];
+  daily: SearchAnalyticsRow[];
+  window: { startDate: string; endDate: string } | null;
+};
+
+export async function loadSearchConsole(days: number): Promise<SearchConsoleData> {
+  if (!isSearchConsoleConfigured()) {
+    return { configured: false, queries: [], pages: [], daily: [], window: null };
+  }
+  const windowDays = days < 28 ? 28 : Math.min(days, 90);
+  const window = searchConsoleWindow(windowDays);
+  const siteUrl = process.env.GSC_SITE_URL ?? "";
+  const base = { siteUrl, ...window };
+  const empty: SearchAnalyticsRow[] = [];
+  const [queries, pages, daily] = await Promise.all([
+    fetchSearchAnalytics({ ...base, dimensions: ["query"], rowLimit: 10 }),
+    fetchSearchAnalytics({ ...base, dimensions: ["page"], rowLimit: 10 }),
+    fetchSearchAnalytics({ ...base, dimensions: ["date"], rowLimit: 91 }),
+  ]).catch(() => [empty, empty, empty]);
+  return { configured: true, queries, pages, daily, window };
 }

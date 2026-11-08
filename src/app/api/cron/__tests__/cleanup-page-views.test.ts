@@ -63,4 +63,17 @@ describe("cleanup-page-views cron", () => {
     expect(body.classified).toBe(0);
     expect(body.enriched).toBe(37);
   });
+
+  it("records a cron_runs row with the counts", async () => {
+    classify.mockResolvedValueOnce(0);
+    enrich.mockResolvedValue(2);
+    await GET(req(true));
+    const insert = mockSql.mock.calls.find((c) =>
+      (c[0] as TemplateStringsArray).join("?").includes("INSERT INTO cron_runs"),
+    );
+    expect(insert).toBeDefined();
+    expect(insert?.[1]).toBe("cleanup-page-views");
+    expect(insert?.[2]).toBe(true);
+    expect(insert?.[4]).toBe("anonymized 4, classified 0, enriched 2");
+  });
 });

@@ -4,6 +4,7 @@ import { KpiStrip, type KpiItem } from "../_components/kpi-strip";
 import { LiveFeed } from "../_components/live-feed";
 import { TrendChartPanel, type TrendSeries } from "../_components/trend-chart-panel";
 import { AxPanel } from "../_components/ax-panel";
+import { ShippingPanel } from "../_components/shipping-panel";
 import { BotTrendChart, PeakHoursHeatmap } from "./lazy-charts";
 
 export async function OverviewSection({
@@ -20,6 +21,7 @@ export async function OverviewSection({
     kpis,
     trend,
     publishDates,
+    shipping,
   } = await loadOverview(days, scope);
   const botShare = trend.reduce((s, r) => s + r.bots, 0);
   const totalShare = trend.reduce((s, r) => s + r.humans + r.bots, 0);
@@ -118,6 +120,12 @@ export async function OverviewSection({
           <PeakHoursHeatmap data={typedHeatmap} />
         </AxPanel>
         <LiveFeed />
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Shipping" kicker="COMMITS AND DEPLOYS">
+          <ShippingPanel shipping={shipping} />
+        </AxPanel>
       </div>
     </div>
   );

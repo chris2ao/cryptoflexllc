@@ -6,6 +6,8 @@ import type {
   NewVsReturningRow,
 } from "@/lib/analytics-types";
 import { scopeClass, type TrafficScope } from "./shared";
+import { fetchDeployments, isVercelApiConfigured } from "@/lib/vercel-api";
+import { countSince, fetchRecentCommits } from "@/lib/github-activity";
 
 type OverviewSummaryRow = {
   total_views: number;
@@ -38,6 +40,64 @@ export interface OverviewData {
   };
   trend: TrendPoint[];
   publishDates: string[];
+  shipping: Shipping;
+}
+
+export type Shipping = {
+  /** False when the sources timed out or failed; the panel then says so instead of showing zeros. */
+  available: boolean;
+  commits7d: number;
+  commits14d: number;
+  /** Production deployments only; previews are not shipping. */
+  deploys7d: number;
+  lastDeploy: { state: string; createdAt: number; commitMessage: string } | null;
+};
+
+const SHIPPING_TIMEOUT_MS = 6000;
+const EMPTY_SHIPPING: Shipping = {
+  available: false,
+  commits7d: 0,
+  commits14d: 0,
+  deploys7d: 0,
+  lastDeploy: null,
+};
+
+async function loadShipping(): Promise<Shipping> {
+  const now = Date.now();
+  const since14 = new Date(now - 14 * 86_400_000).toISOString();
+  const since7 = new Date(now - 7 * 86_400_000).toISOString();
+  const work = Promise.all([
+    fetchRecentCommits("chris2ao/cryptoflexllc", since14, process.env.GITHUB_TOKEN),
+    isVercelApiConfigured() ? fetchDeployments(100) : Promise.resolve([]),
+  ]).then(([commits, deployments]): Shipping => {
+    const cutoff7 = now - 7 * 86_400_000;
+    const production = deployments.filter((d) => d.target === "production");
+    const latest = production[0];
+    return {
+      available: true,
+      commits7d: countSince(commits, since7),
+      commits14d: commits.length,
+      deploys7d: production.filter((d) => d.createdAt >= cutoff7).length,
+      lastDeploy: latest
+        ? {
+            state: latest.state,
+            createdAt: latest.createdAt,
+            commitMessage: latest.commitMessage,
+          }
+        : null,
+    };
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<Shipping>((resolve) => {
+    timer = setTimeout(() => resolve({ ...EMPTY_SHIPPING }), SHIPPING_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([work, timeout]);
+  } catch {
+    return { ...EMPTY_SHIPPING };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 type Row = Record<string, unknown>;
@@ -87,6 +147,7 @@ export async function loadOverview(
     minutesWin,
     pendingRows,
     classTrend,
+    shipping,
   ] = await Promise.all([
     sql`
       SELECT
@@ -238,6 +299,7 @@ export async function loadOverview(
       GROUP BY DATE(visited_at)
       ORDER BY date
     `.catch(() => []),
+    loadShipping(),
   ]);
 
   const nvr = newVsReturning as unknown as NewVsReturningRow[];
@@ -276,5 +338,6 @@ export async function loadOverview(
     },
     trend,
     publishDates: publishDatesIn(days),
+    shipping,
   };
 }

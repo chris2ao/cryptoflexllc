@@ -21,7 +21,8 @@ export async function classifyPendingPageViews(
 ): Promise<number> {
   const rows = await sql`
     WITH pending AS (
-      SELECT id FROM page_views WHERE traffic_class IS NULL ORDER BY id LIMIT ${limit}
+      -- Newest first: the dashboard's visible window clears before the historical backlog.
+      SELECT id FROM page_views WHERE traffic_class IS NULL ORDER BY id DESC LIMIT ${limit}
     ),
     owner_ips AS (
       SELECT DISTINCT ip_address FROM auth_attempts

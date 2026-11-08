@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/analytics";
+import { withCronRun } from "@/lib/cron-runs";
 
 export async function GET(request: NextRequest) {
   // ---- Auth: Vercel Cron sends this header automatically ----
@@ -38,12 +39,18 @@ export async function GET(request: NextRequest) {
     const sql = getDb();
 
     // Delete rate limit entries older than 24 hours
-    const result = await sql`
-      DELETE FROM rate_limits
-      WHERE window_start < EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours') * 1000
-    `;
-
-    const deleted = (result as unknown as { count: number }).count ?? 0;
+    const deleted = await withCronRun(
+      sql,
+      "cleanup-rate-limits",
+      async () => {
+        const result = await sql`
+          DELETE FROM rate_limits
+          WHERE window_start < EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours') * 1000
+        `;
+        return (result as unknown as { count: number }).count ?? 0;
+      },
+      (n) => `deleted ${n}`,
+    );
     console.log(`Rate limit cleanup: purged ${deleted} expired entries`);
 
     return NextResponse.json({ ok: true, deleted });

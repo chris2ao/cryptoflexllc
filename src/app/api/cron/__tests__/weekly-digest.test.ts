@@ -264,4 +264,30 @@ describe('Weekly Digest API', () => {
 
     logSpy.mockRestore();
   });
+
+  it('records cron_runs and digest_runs rows after the send loop', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockQuery.mockResolvedValueOnce([
+      { email: 'a@example.com' },
+      { email: 'b@example.com' },
+    ]);
+    const request = new NextRequest('http://localhost/api/cron/weekly-digest', {
+      headers: { Authorization: 'Bearer test-secret' },
+    });
+    await GET(request);
+    const texts = mockQuery.mock.calls.map((c) => (c[0] as TemplateStringsArray).join('?'));
+    const digest = mockQuery.mock.calls.find((c) =>
+      (c[0] as TemplateStringsArray).join('?').includes('INSERT INTO digest_runs'),
+    );
+    expect(digest).toBeDefined();
+    expect(digest?.[1]).toBe(2);
+    expect(digest?.[2]).toBe(2);
+    expect(digest?.[3]).toBe(0);
+    const cron = mockQuery.mock.calls.find((c) =>
+      (c[0] as TemplateStringsArray).join('?').includes('INSERT INTO cron_runs'),
+    );
+    expect(texts.some((t) => t.includes('INSERT INTO cron_runs'))).toBe(true);
+    expect(cron?.[1]).toBe('weekly-digest');
+    expect(cron?.[4]).toBe('recipients 2, sent 2, failed 0');
+  });
 });

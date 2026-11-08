@@ -14,7 +14,7 @@
 
 **Tech stack:** Next.js 16 App Router (force-dynamic page, Suspense), React 19, Neon serverless SQL tag, Recharts through `src/components/ui/chart`, vitest + Testing Library (jsdom), zod, node:crypto. No new runtime dependencies.
 
-**Status:** Wave 1 merged in PR #55 (merge commit e82b2d0, 2026-11-07), verified in production. Wave 2 in progress on `refresh/analytics-w2-shell`.
+**Status:** Wave 1 merged in PR #55 (e82b2d0), wave 2 in PR #56 (b26a80b), wave 3 in PR #57 (8545030), all verified in production on 2026-11-07. Wave 4 on `refresh/analytics-w4-signals`.
 
 ## Global Constraints
 
@@ -279,7 +279,7 @@ it("tags bot hits and hides self hits", ...) // rows with traffic_class bot/self
 - Produces: `loadPostPerformance(days, scope, limit = 25): Promise<PostPerformanceRow[]>` with `{ page_path, title, views, readers, read_through_pct, median_seconds, subscribes, comments }` (title from `getAllPosts()` by slug, `page_path` for unknown slugs). Subscribes join `subscribers.source_page`; comments join `blog_comments.slug` to `/blog/<slug>`.
 - Every loader takes `(days: number, scope: TrafficScope)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it("deltaPercent", () => {
@@ -294,10 +294,10 @@ it("loadOverview runs the human filter and the previous window", async () => {
 it("loadPostPerformance maps slugs to titles", async () => { /* mock sql row for /blog/<existing slug>, expect title from getAllPosts (mock) */ });
 ```
 
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.** Sections: Overview KPI strip becomes Views, Readers, Read-through (percent), Reader minutes, each with `delta` from `deltaPercent`; the bounce KPI is gone; the header meta line shows `PENDING <n>` while `pending > 0` (passed up through `OverviewData`).
-- [ ] **Step 4: Run `npx vitest run src/lib/analytics-queries`, PASS.**
-- [ ] **Step 5: Commit** `feat: CLAUD-779 humans-only loaders with period deltas and the post performance query`
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.** Sections: Overview KPI strip becomes Views, Readers, Read-through (percent), Reader minutes, each with `delta` from `deltaPercent`; the bounce KPI is gone; the header meta line shows `PENDING <n>` while `pending > 0` (passed up through `OverviewData`).
+- [x] **Step 4: Run `npx vitest run src/lib/analytics-queries`, PASS.**
+- [x] **Step 5: Commit** `feat: CLAUD-779 humans-only loaders with period deltas and the post performance query`
 
 ### Task 6: Seven tabs, URL state, one section per load, compact header  `parallel-safe`
 
@@ -314,7 +314,7 @@ it("loadPostPerformance maps slugs to titles", async () => { /* mock sql row for
 - Page: reads `tab`, `days`, `scope` from `searchParams`, renders `<Suspense>` around `SECTIONS[tab]({ days, scope })` only.
 - Header: `AnalyticsHeader({ activeSessions, generatedAt, queryTimeMs, days, pending })` renders crumbs, the title "Signal, not slop.", the live pill, Refresh, Backlog, Sign out in one grid row; the sub copy is gone; the meta line (RANGE, GENERATED, QUERY, PENDING when non-zero, SOURCE) renders as one 11px mono line under the toolbar. `.ax-toolbar` gets `background: var(--background)` (opaque) and loses the blur.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 it("renders seven tab links carrying tab, days and scope", () => {
@@ -327,10 +327,10 @@ it("renders seven tab links carrying tab, days and scope", () => {
 it("resolveTab and resolveScope fall back", () => { expect(resolveTab("nope")).toBe("overview"); expect(resolveScope("x")).toBe("humans"); });
 ```
 
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the two tests, PASS; `npx tsc --noEmit`.**
-- [ ] **Step 5: Commit** `feat: CLAUD-779 seven tabs in the URL, one section per load, compact header`
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the two tests, PASS; `npx tsc --noEmit`.**
+- [x] **Step 5: Commit** `feat: CLAUD-779 seven tabs in the URL, one section per load, compact header`
 
 ### Task 7: Port the chart components to the editorial system  `parallel-safe`
 
@@ -345,7 +345,7 @@ it("resolveTab and resolveScope fall back", () => { expect(resolveTab("nope")).t
 - Scroll depth and time on page show the slug (`page_path` without `/blog/`) with a `title` attribute carrying the full path, and link rows with `next/link`.
 - Bot trend chart gains a stacked humans and bots mode using `OverviewData.trend` shape from Task 5 (`{ date, humans, bots }`), with publish markers rendered as `ReferenceLine` elements from a `markers: string[]` prop.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 const CHARTS = [ ...nine file names... ];
@@ -356,10 +356,10 @@ it.each(CHARTS)("%s uses no Tailwind-era classes", (file) => {
 it("bot trend renders a publish marker", () => { /* render with markers ["2026-11-01"], expect a reference line element with that label */ });
 ```
 
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run `npx vitest run src/app/analytics/_components/charts-editorial.test.tsx`, PASS.**
-- [ ] **Step 5: Commit** `refactor: CLAUD-779 editorial chart components`
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run `npx vitest run src/app/analytics/_components/charts-editorial.test.tsx`, PASS.**
+- [x] **Step 5: Commit** `refactor: CLAUD-779 editorial chart components`
 
 ### Task 8: Port the panels, delete the orphans and the misleading cards  `parallel-safe`
 
@@ -378,20 +378,20 @@ it("bot trend renders a publish marker", () => { /* render with markers ["2026-1
 - `editorial-only.test.ts`: reads every `.tsx` under `_components` and fails on any forbidden string from Global Constraints. Task 7's files must already pass; the controller runs this test at the wave checkpoint after both merges.
 - Unsubscribe panel and row keep their test contracts (`unsubscribe-panel.test.tsx`, `unsubscribe-row.test.tsx` stay green).
 
-- [ ] **Step 1: Write the failing tests** (table sorts by a clicked header and renders links; referrer classes render chips in order; editorial-only guard)
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.** Deleting the 13 files must leave `npx tsc --noEmit` clean.
-- [ ] **Step 4: Run the three tests plus the unsubscribe tests, PASS.**
-- [ ] **Step 5: Commit** `refactor: CLAUD-779 editorial panels, post performance table, orphan and dead-card removal`
+- [x] **Step 1: Write the failing tests** (table sorts by a clicked header and renders links; referrer classes render chips in order; editorial-only guard)
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.** Deleting the 13 files must leave `npx tsc --noEmit` clean.
+- [x] **Step 4: Run the three tests plus the unsubscribe tests, PASS.**
+- [x] **Step 5: Commit** `refactor: CLAUD-779 editorial panels, post performance table, orphan and dead-card removal`
 
 ### Wave 2 checkpoint
 
-- [ ] Merge order: Task 5, Task 6, Task 7, Task 8. Typecheck after each. Keep both sides of any `analytics.css` region conflict.
-- [ ] `npx tsc --noEmit && npm run lint && npm test && npm run build`; `editorial-only.test.ts` green across the directory.
-- [ ] Harness at 1440 and 390 on `next start`: no overflow arrows on the tab strip at 1440; `document.documentElement.scrollWidth` equals the viewport at 390; the toolbar is opaque (computed `background-color` has alpha 1); only the active section's markup is in the DOM (`[data-panel]` count is 1).
-- [ ] Review: one `code-reviewer` on the wave diff. Fix CRITICAL and HIGH.
-- [ ] PR, CI, merge, production check in Chrome: KPIs show deltas, Readers tab shows donuts, Content shows the post table and referrer classes, `?scope=all` raises Views, `?tab=security` works as a link.
-- [ ] Status line to the owner.
+- [x] Merge order: Task 5, Task 6, Task 7, Task 8. Typecheck after each. Keep both sides of any `analytics.css` region conflict.
+- [x] `npx tsc --noEmit && npm run lint && npm test && npm run build`; `editorial-only.test.ts` green across the directory.
+- [x] Harness at 1440 and 390 on `next start`: no overflow arrows on the tab strip at 1440; `document.documentElement.scrollWidth` equals the viewport at 390; the toolbar is opaque (computed `background-color` has alpha 1); only the active section's markup is in the DOM (`[data-panel]` count is 1).
+- [x] Review: one `code-reviewer` on the wave diff. Fix CRITICAL and HIGH.
+- [x] PR, CI, merge, production check in Chrome: KPIs show deltas, Readers tab shows donuts, Content shows the post table and referrer classes, `?scope=all` raises Views, `?tab=security` works as a link.
+- [x] Status line to the owner.
 
 ---
 
@@ -416,11 +416,11 @@ it("bot trend renders a publish marker", () => { /* render with markers ["2026-1
 - `enrichPendingIps(sql, limit = 200): Promise<number>` in `batch.ts`: distinct IPs from `page_views` in the last 2 days with no `ip_intel` row or `enriched_at` older than 30 days, enriched sequentially with a 1.4s spacing (45 a minute), stops at `limit`.
 - Route: `GET /api/analytics/ip-intel?ip=` returns `{ enrichment: IpEnrichment, cached: boolean }`.
 
-- [ ] **Step 1: Write the failing tests** (ipapi anonymous keeps flags null; keyed maps flags; tor list parse and 24h cache hit skips fetch; DROP parse ignores comments and matches a CIDR; IPv6 never matches; `enrichIp` returns cached without fetching; route returns 400 for private IPs and 200 shape `{ enrichment, cached }`)
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run `npx vitest run src/lib/ip-enrichment src/app/api/analytics/ip-intel`, PASS.**
-- [ ] **Step 5: Commit** `feat: CLAUD-779 IP enrichment pipeline over HTTPS with abuse lists and a cache`
+- [x] **Step 1: Write the failing tests** (ipapi anonymous keeps flags null; keyed maps flags; tor list parse and 24h cache hit skips fetch; DROP parse ignores comments and matches a CIDR; IPv6 never matches; `enrichIp` returns cached without fetching; route returns 400 for private IPs and 200 shape `{ enrichment, cached }`)
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run `npx vitest run src/lib/ip-enrichment src/app/api/analytics/ip-intel`, PASS.**
+- [x] **Step 5: Commit** `feat: CLAUD-779 IP enrichment pipeline over HTTPS with abuse lists and a cache`
 
 ### Task 10: Visitor dossier endpoint, panel and IP links  `parallel-safe`
 
@@ -436,11 +436,11 @@ it("bot trend renders a publish marker", () => { /* render with markers ["2026-1
 - Route: `GET /api/analytics/visitor?ip=` with `verifyApiAuth`, same IP validation as ip-intel, returns `{ dossier }`; the panel calls this first and `/api/analytics/ip-intel` second.
 - `IpLink({ ip, children? })`: a `<button type="button" className="ax-ip">` that dispatches `window.dispatchEvent(new CustomEvent("ax:open-visitor", { detail: { ip } }))`. `VisitorPanelHost()` (client) listens, fetches both endpoints, and renders `VisitorPanel` inside a native `<dialog className="ax-visitor">` (non-modal `show()`, Escape and a Close button close it, focus moves to the heading on open). Sections: Identity (class chips: human/bot/owner, datacenter, Tor, VPN, proxy, abuser, DROP; unknown flags print "unknown"), Network (ASN, company, WHOIS org), Location (city, region, country only), History (first and last seen, hits, pages, agents), Engagement, Signals (errors, auth, subscriber, comments, guestbook). No street address, no property links.
 
-- [ ] **Step 1: Write the failing tests** (dossier maps rows; route 401 without cookie and 200 shape; IpLink dispatches the event with the ip; the host opens the dialog on the event and renders the headings)
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the four tests, PASS.**
-- [ ] **Step 5: Commit** `feat: CLAUD-779 visitor dossier panel reachable from every IP`
+- [x] **Step 1: Write the failing tests** (dossier maps rows; route 401 without cookie and 200 shape; IpLink dispatches the event with the ip; the host opens the dialog on the event and renders the headings)
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the four tests, PASS.**
+- [x] **Step 5: Commit** `feat: CLAUD-779 visitor dossier panel reachable from every IP`
 
 ### Task 11: Security tab and the daily batch  `parallel-safe`
 
@@ -455,20 +455,20 @@ it("bot trend renders a publish marker", () => { /* render with markers ["2026-1
 - Cron: after the retention UPDATE, loop `classifyPendingPageViews(sql, 5000)` up to 20 times until it returns 0, then `enrichPendingIps(sql, 200)`; the JSON response gains `classified` and `enriched`.
 - Firewall card: when any of `config`, `attackStatus`, `events` is null, the matching block renders "Unavailable from the Vercel API" in mono instead of an empty table; "Firewall Denied" KPI is removed (it counted anomalies).
 
-- [ ] **Step 1: Write the failing tests** (network types SQL joins `ip_intel`; known bad reasons; cron calls classify until 0 and reports counts)
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the two tests, PASS.**
-- [ ] **Step 5: Commit** `feat: CLAUD-779 security tab with network types, known-bad overlap and the daily batch`
+- [x] **Step 1: Write the failing tests** (network types SQL joins `ip_intel`; known bad reasons; cron calls classify until 0 and reports counts)
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the two tests, PASS.**
+- [x] **Step 5: Commit** `feat: CLAUD-779 security tab with network types, known-bad overlap and the daily batch`
 
 ### Wave 3 checkpoint
 
-- [ ] Merge order: Task 9, Task 10, Task 11. Typecheck after each.
-- [ ] Full gate: `npx tsc --noEmit && npm run lint && npm test && npm run build`
-- [ ] Harness: the Security tab renders; clicking an `IpLink` opens the dialog (DOM check for `dialog.ax-visitor[open]`).
-- [ ] Review: `code-reviewer` plus `security-reviewer` (external fetches, SSRF guard, new endpoints). Fix CRITICAL and HIGH.
-- [ ] PR, CI, merge, production: open the dossier for a bot IP from the visit log; confirm enrichment fields fill (anonymous tier until the key exists) and the Known bad panel renders.
-- [ ] Status line to the owner.
+- [x] Merge order: Task 9, Task 10, Task 11. Typecheck after each.
+- [x] Full gate: `npx tsc --noEmit && npm run lint && npm test && npm run build`
+- [x] Harness: the Security tab renders; clicking an `IpLink` opens the dialog (DOM check for `dialog.ax-visitor[open]`).
+- [x] Review: `code-reviewer` plus `security-reviewer` (external fetches, SSRF guard, new endpoints). Fix CRITICAL and HIGH.
+- [x] PR, CI, merge, production: open the dossier for a bot IP from the visit log; confirm enrichment fields fill (anonymous tier until the key exists) and the Known bad panel renders.
+- [x] Status line to the owner.
 
 ---
 
