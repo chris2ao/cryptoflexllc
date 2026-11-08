@@ -1,6 +1,6 @@
 # /analytics refresh leftovers (CLAUD-782)
 
-Date: 2026-11-08. Jira: CLAUD-782 (bundle), split into CLAUD-783 (A), CLAUD-784 (B), CLAUD-785 (C) when work started. Source: the MEDIUM and LOW findings left open by the four wave reviews of CLAUD-779 (`docs/plans/analytics-refresh-plan.md`), plus one production observation (the Referrers host list shows one class per host).
+Date: 2026-11-08. Jira: CLAUD-782 (bundle), split into CLAUD-791 (A), CLAUD-792 (B), CLAUD-793 (C) when work started. Source: the MEDIUM and LOW findings left open by the four wave reviews of CLAUD-779 (`docs/plans/analytics-refresh-plan.md`), plus one production observation (the Referrers host list shows one class per host).
 
 Status: in progress, one wave, three parallel implementers, one PR.
 
