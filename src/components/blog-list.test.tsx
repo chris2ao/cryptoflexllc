@@ -292,6 +292,30 @@ describe("BlogList", () => {
     expect(screen.getByText("Minimal Post")).toBeInTheDocument();
   });
 
+  describe("old tag aliases", () => {
+    const homeLab: BlogPostSummary = { ...mockPosts[0], slug: "hl", title: "Lab Post", tags: ["Home Lab"] };
+    const other: BlogPostSummary = { ...mockPosts[1], slug: "ot", title: "Other Post", tags: ["Security"] };
+
+    it("matches an old tag name against its topic", () => {
+      mockSearchParams.getAll.mockReturnValue(["Pi-hole"]);
+      render(<BlogList posts={[homeLab, other]} />);
+      expect(screen.getByText("Lab Post")).toBeInTheDocument();
+      expect(screen.queryByText("Other Post")).not.toBeInTheDocument();
+    });
+
+    it("matches a topic name case-insensitively", () => {
+      mockSearchParams.getAll.mockReturnValue(["home lab"]);
+      render(<BlogList posts={[homeLab, other]} />);
+      expect(screen.getByText("Lab Post")).toBeInTheDocument();
+    });
+
+    it("matches nothing for a dropped tag", () => {
+      mockSearchParams.getAll.mockReturnValue(["Tutorial"]);
+      render(<BlogList posts={[homeLab, other]} />);
+      expect(screen.getByText("No posts match your filters.")).toBeInTheDocument();
+    });
+  });
+
   describe("paging", () => {
     const makePosts = (n: number): BlogPostSummary[] =>
       Array.from({ length: n }, (_, i) => ({
