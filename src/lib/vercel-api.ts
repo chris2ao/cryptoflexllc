@@ -90,3 +90,149 @@ export async function fetchFirewallEvents(
 export function isVercelApiConfigured(): boolean {
   return !!(process.env.VERCEL_API_TOKEN && process.env.VERCEL_PROJECT_ID);
 }
+
+// ---------------------------------------------------------------------------
+// Web Analytics and deployments (never throw; failures map to a state or [])
+// ---------------------------------------------------------------------------
+
+export type WebAnalyticsState = "ok" | "not-enabled" | "unavailable";
+
+export type WebAnalyticsDay = { date: string; pageviews: number; visitors: number };
+
+export type DeploymentSummary = {
+  id: string;
+  state: string;
+  createdAt: number;
+  readyAt: number | null;
+  target: string;
+  commitMessage: string;
+  commitSha: string;
+  url: string;
+};
+
+const API_TIMEOUT_MS = 8000;
+
+function asNumber(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+export function parseWebAnalyticsAggregate(json: unknown): WebAnalyticsDay[] {
+  const data = asRecord(json).data;
+  if (!Array.isArray(data)) return [];
+  return data.map((row) => {
+    const r = asRecord(row);
+    return {
+      date: String(r.timestamp ?? "").slice(0, 10),
+      pageviews: asNumber(r.pageviews),
+      visitors: asNumber(r.visitors),
+    };
+  });
+}
+
+export function parseWebAnalyticsCount(json: unknown): {
+  pageviews: number;
+  visitors: number;
+} {
+  const data = asRecord(asRecord(json).data);
+  return { pageviews: asNumber(data.pageviews), visitors: asNumber(data.visitors) };
+}
+
+function firstLine(text: unknown, max = 80): string {
+  const line = String(text ?? "").split("\n")[0].trim();
+  return line.length > max ? line.slice(0, max) : line;
+}
+
+export function parseDeployments(json: unknown): DeploymentSummary[] {
+  const list = asRecord(json).deployments;
+  if (!Array.isArray(list)) return [];
+  return list.map((item) => {
+    const d = asRecord(item);
+    const meta = asRecord(d.meta);
+    const ready = Number(d.ready);
+    return {
+      id: String(d.uid ?? ""),
+      state: String(d.state ?? d.readyState ?? "UNKNOWN"),
+      createdAt: asNumber(d.created),
+      readyAt: Number.isFinite(ready) && d.ready != null ? ready : null,
+      target: String(d.target ?? ""),
+      commitMessage: firstLine(meta.githubCommitMessage),
+      commitSha: String(meta.githubCommitSha ?? ""),
+      url: String(d.url ?? ""),
+    };
+  });
+}
+
+type WebAnalyticsResponse =
+  | { state: "ok"; json: unknown }
+  | { state: "not-enabled" | "unavailable" };
+
+async function getWebAnalytics(
+  path: string,
+  extra: Record<string, string | undefined>
+): Promise<WebAnalyticsResponse> {
+  try {
+    const res = await fetch(`${VERCEL_API_BASE}${path}?${buildQuery(extra)}`, {
+      headers: getHeaders(),
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+    if (res.ok) return { state: "ok", json: await res.json() };
+    if (res.status === 404) {
+      const body = await res.text().catch(() => "");
+      if (body.includes("Web Analytics not found")) return { state: "not-enabled" };
+    }
+    return { state: "unavailable" };
+  } catch {
+    return { state: "unavailable" };
+  }
+}
+
+/** Daily pageviews and visitors from Vercel Web Analytics (30 days max on Hobby). */
+export async function fetchWebAnalyticsDaily(
+  since: string,
+  until: string
+): Promise<{ state: WebAnalyticsState; rows: WebAnalyticsDay[] }> {
+  const r = await getWebAnalytics("/v1/query/web-analytics/visits/aggregate", {
+    since,
+    until,
+    by: "day",
+  });
+  if (r.state !== "ok") return { state: r.state, rows: [] };
+  return { state: "ok", rows: parseWebAnalyticsAggregate(r.json) };
+}
+
+/** Total pageviews and visitors from Vercel Web Analytics for a window. */
+export async function fetchWebAnalyticsCount(
+  since: string,
+  until: string
+): Promise<{ state: WebAnalyticsState; pageviews: number; visitors: number }> {
+  const r = await getWebAnalytics("/v1/query/web-analytics/visits/count", {
+    since,
+    until,
+  });
+  if (r.state !== "ok") return { state: r.state, pageviews: 0, visitors: 0 };
+  return { state: "ok", ...parseWebAnalyticsCount(r.json) };
+}
+
+/** Most recent deployments for the project; [] on any failure. */
+export async function fetchDeployments(limit = 10): Promise<DeploymentSummary[]> {
+  try {
+    const res = await fetch(
+      `${VERCEL_API_BASE}/v6/deployments?${buildQuery({ limit: String(limit) })}`,
+      {
+        headers: getHeaders(),
+        next: { revalidate: 300 },
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      }
+    );
+    if (!res.ok) return [];
+    return parseDeployments(await res.json());
+  } catch {
+    return [];
+  }
+}
