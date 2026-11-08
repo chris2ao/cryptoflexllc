@@ -21,6 +21,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import nodemailer from "nodemailer";
 import { getDb } from "@/lib/analytics";
+import type { SqlTag } from "@/lib/analytics-schema";
+import { withCronRun } from "@/lib/cron-runs";
 import { getAllPosts } from "@/lib/blog";
 import { unsubscribeUrl } from "@/lib/subscribers";
 import { generateDigestIntro, type DigestIntro } from "@/lib/newsletter-intro";
@@ -33,6 +35,160 @@ export const maxDuration = 300;
 function utm(campaign: string, content?: string): string {
   const params = `utm_source=newsletter&utm_medium=email&utm_campaign=${campaign}`;
   return content ? `${params}&utm_content=${encodeURIComponent(content)}` : params;
+}
+
+interface DigestOutcome {
+  response: NextResponse;
+  note: string;
+}
+
+async function runDigest(request: NextRequest, sql: SqlTag): Promise<DigestOutcome> {
+  const startedAt = Date.now();
+  // ---- 1. Get posts from the last 7 days ----
+  const allPosts = getAllPosts();
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  const recentPosts = allPosts.filter(
+    (p) => new Date(p.date) >= oneWeekAgo
+  );
+
+  // Cap at 10 posts per digest to keep emails focused
+  const MAX_DIGEST_POSTS = 10;
+  const totalRecentPosts = recentPosts.length;
+  const digestPosts = recentPosts.slice(0, MAX_DIGEST_POSTS);
+
+  // If no new posts this week, still send a short "catch you next week" note
+  const hasNewPosts = digestPosts.length > 0;
+
+  // ---- 2. Fetch active subscribers (or use testEmail override) ----
+  const testEmail = request.nextUrl.searchParams.get("testEmail");
+  let recipients: { email: string }[];
+
+  // Block testEmail relay in production to prevent spam abuse
+  if (process.env.NODE_ENV === "production" && testEmail) {
+    return {
+      response: NextResponse.json(
+        { error: "testEmail disabled in production" },
+        { status: 400 }
+      ),
+      note: "testEmail rejected in production",
+    };
+  }
+
+  if (testEmail) {
+    recipients = [{ email: testEmail }];
+  } else {
+    const rows = await sql`
+      SELECT email FROM subscribers WHERE active = TRUE
+    `;
+    if (rows.length === 0) {
+      return {
+        response: NextResponse.json({ ok: true, sent: 0, reason: "no subscribers" }),
+        note: "no subscribers",
+      };
+    }
+    recipients = rows.map((r) => ({ email: r.email as string }));
+  }
+
+  // ---- 3. Generate AI intro (only when there are new posts) ----
+  let intro: DigestIntro | undefined;
+  if (hasNewPosts) {
+    intro = await generateDigestIntro(digestPosts, new Date());
+  }
+
+  // ---- 4a. Configure Gmail SMTP transport ----
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+
+  // ---- 5. Send to each subscriber in concurrent batches ----
+  let sent = 0;
+  const BATCH_SIZE = 5;
+  const subject = hasNewPosts
+    ? `This Week at CryptoFlex — ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}!`
+    : "This Week at CryptoFlex — Quick Update";
+
+  console.log(`[weekly-digest] Sending to ${recipients.length} recipients`);
+
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const batch = recipients.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(async ({ email }) => {
+        const html = buildEmailHtml(digestPosts, hasNewPosts, email, intro, totalRecentPosts);
+        await withRetry(() =>
+          transporter.sendMail({
+            from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
+            to: email,
+            subject,
+            html,
+            headers: {
+              "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+          })
+        );
+      })
+    );
+
+    for (let j = 0; j < results.length; j++) {
+      if (results[j].status === "fulfilled") {
+        sent++;
+      } else {
+        console.error(
+          `[weekly-digest] Failed to send to ${maskEmail(batch[j].email)} after retries:`,
+          (results[j] as PromiseRejectedResult).reason
+        );
+      }
+    }
+  }
+
+  console.log(`[weekly-digest] Sent ${sent}/${recipients.length} emails`);
+
+  const failed = recipients.length - sent;
+  try {
+    await sql`
+      INSERT INTO digest_runs (recipients, sent, failed, duration_ms)
+      VALUES (${recipients.length}, ${sent}, ${failed}, ${Date.now() - startedAt})
+    `;
+  } catch (error) {
+    console.error(
+      "[weekly-digest] could not record digest run:",
+      error instanceof Error ? error.message : "unknown",
+    );
+  }
+
+  // Ping healthcheck service (fire-and-forget, non-blocking)
+  const healthcheckUrl = process.env.HEALTHCHECK_PING_URL;
+  if (healthcheckUrl) {
+    try {
+      const url = new URL(healthcheckUrl);
+      if (url.protocol === 'https:') {
+        fetch(healthcheckUrl).catch(() => {});
+      }
+    } catch {
+      // Invalid URL, skip healthcheck
+    }
+  }
+
+  const response = NextResponse.json({
+    ok: true,
+    sent,
+    recipients: recipients.length,
+    posts: digestPosts.length,
+    totalPosts: totalRecentPosts,
+    aiIntro: intro?.fromAi ?? false,
+  });
+  return {
+    response,
+    note: `recipients ${recipients.length}, sent ${sent}, failed ${failed}`,
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -56,129 +212,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // ---- 1. Get posts from the last 7 days ----
-    const allPosts = getAllPosts();
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-    const recentPosts = allPosts.filter(
-      (p) => new Date(p.date) >= oneWeekAgo
+    const sql = getDb();
+    const outcome = await withCronRun(
+      sql,
+      "weekly-digest",
+      () => runDigest(request, sql),
+      (o) => o.note,
     );
-
-    // Cap at 10 posts per digest to keep emails focused
-    const MAX_DIGEST_POSTS = 10;
-    const totalRecentPosts = recentPosts.length;
-    const digestPosts = recentPosts.slice(0, MAX_DIGEST_POSTS);
-
-    // If no new posts this week, still send a short "catch you next week" note
-    const hasNewPosts = digestPosts.length > 0;
-
-    // ---- 2. Fetch active subscribers (or use testEmail override) ----
-    const testEmail = request.nextUrl.searchParams.get("testEmail");
-    let recipients: { email: string }[];
-
-    // Block testEmail relay in production to prevent spam abuse
-    if (process.env.NODE_ENV === "production" && testEmail) {
-      return NextResponse.json(
-        { error: "testEmail disabled in production" },
-        { status: 400 }
-      );
-    }
-
-    if (testEmail) {
-      recipients = [{ email: testEmail }];
-    } else {
-      const sql = getDb();
-      const rows = await sql`
-        SELECT email FROM subscribers WHERE active = TRUE
-      `;
-      if (rows.length === 0) {
-        return NextResponse.json({ ok: true, sent: 0, reason: "no subscribers" });
-      }
-      recipients = rows.map((r) => ({ email: r.email as string }));
-    }
-
-    // ---- 3. Generate AI intro (only when there are new posts) ----
-    let intro: DigestIntro | undefined;
-    if (hasNewPosts) {
-      intro = await generateDigestIntro(digestPosts, new Date());
-    }
-
-    // ---- 4a. Configure Gmail SMTP transport ----
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
-      },
-    });
-
-    // ---- 5. Send to each subscriber in concurrent batches ----
-    let sent = 0;
-    const BATCH_SIZE = 5;
-    const subject = hasNewPosts
-      ? `This Week at CryptoFlex — ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}!`
-      : "This Week at CryptoFlex — Quick Update";
-
-    console.log(`[weekly-digest] Sending to ${recipients.length} recipients`);
-
-    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-      const batch = recipients.slice(i, i + BATCH_SIZE);
-      const results = await Promise.allSettled(
-        batch.map(async ({ email }) => {
-          const html = buildEmailHtml(digestPosts, hasNewPosts, email, intro, totalRecentPosts);
-          await withRetry(() =>
-            transporter.sendMail({
-              from: `"CryptoFlex LLC" <${process.env.GMAIL_USER}>`,
-              to: email,
-              subject,
-              html,
-              headers: {
-                "List-Unsubscribe": `<${unsubscribeUrl(email)}>`,
-                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-              },
-            })
-          );
-        })
-      );
-
-      for (let j = 0; j < results.length; j++) {
-        if (results[j].status === "fulfilled") {
-          sent++;
-        } else {
-          console.error(
-            `[weekly-digest] Failed to send to ${maskEmail(batch[j].email)} after retries:`,
-            (results[j] as PromiseRejectedResult).reason
-          );
-        }
-      }
-    }
-
-    console.log(`[weekly-digest] Sent ${sent}/${recipients.length} emails`);
-
-    // Ping healthcheck service (fire-and-forget, non-blocking)
-    const healthcheckUrl = process.env.HEALTHCHECK_PING_URL;
-    if (healthcheckUrl) {
-      try {
-        const url = new URL(healthcheckUrl);
-        if (url.protocol === 'https:') {
-          fetch(healthcheckUrl).catch(() => {});
-        }
-      } catch {
-        // Invalid URL, skip healthcheck
-      }
-    }
-
-    return NextResponse.json({
-      ok: true,
-      sent,
-      recipients: recipients.length,
-      posts: digestPosts.length,
-      totalPosts: totalRecentPosts,
-      aiIntro: intro?.fromAi ?? false,
-    });
+    return outcome.response;
   } catch (error) {
     console.error("Weekly digest error:", error);
     return NextResponse.json(
