@@ -15,6 +15,7 @@ All notable changes to this project are documented here.
 - **Changed** the masthead to one sticky 88px bar with all offsets at 100px/84px
 - **Changed** wide tables to use viewport maths instead of `container-type`, because fixed lightboxes live inside the MDX
 - **Filed** follow-ups CLAUD-767 (blog pipeline must pick tags from the taxonomy, Ready) and CLAUD-768 (eight minor review findings, Backlog)
+- **Closed** both follow-ups the same evening. CLAUD-768 (PR #54, ccd2cf7, split into CLAUD-769 to CLAUD-776): `reaction` is required on POST `/api/comments`; retired tag names resolve to topics in the blog filters (`src/lib/tag-alias.ts`); `usePaging` and `ShowMoreButton` extracted from `BlogList`; the unused `allTags` plumbing removed; the comment form and thread moved to the editorial system; the header CSS test scoped to its rules; a register row for the home SOC cover; the analytics muted labels verified at the AA floor with no change. CLAUD-767: the harness's `validate-mdx.sh` now fails a post whose tags are not 1 to 3 taxonomy topics, and the writer agent carries the topic list
 
 ### What was learned
 - curl against the production domain receives the Vercel Security Checkpoint page, so live checks need a real browser (a stdlib Node headless-Chrome DevTools harness worked)
