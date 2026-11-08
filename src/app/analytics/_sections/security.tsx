@@ -1,3 +1,4 @@
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { loadSecurity } from "@/lib/analytics-queries/security";
 import { isVercelApiConfigured } from "@/lib/vercel-api";
 import { VercelFirewallCard } from "../_components/vercel-firewall-card";
@@ -7,7 +8,8 @@ import { KpiStrip } from "../_components/kpi-strip";
 import { AxPanel } from "../_components/ax-panel";
 import { BotTrendChart, AuthAttemptsChart } from "./lazy-charts";
 
-export async function SecuritySection({ days }: { days: number }) {
+export async function SecuritySection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
+  void scope;
   const {
     botTrend: typedBotTrend,
     authAttempts: typedAuthAttempts,

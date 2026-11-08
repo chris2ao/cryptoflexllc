@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
-import type { DEFAULT_TABS } from "../_components/tabs";
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
+import type { TabId } from "../_components/tabs";
 import { OverviewSection } from "./overview";
 import { ReadersSection } from "./readers";
 import { ContentSection } from "./content";
@@ -17,11 +18,11 @@ import {
   SectionSkeleton,
 } from "./skeletons";
 
-export type TabId = (typeof DEFAULT_TABS)[number]["id"];
+export type { TabId };
 
 export const SECTIONS: Record<
   TabId,
-  (props: { days: number }) => Promise<ReactElement>
+  (props: { days: number; scope?: TrafficScope }) => Promise<ReactElement>
 > = {
   overview: OverviewSection,
   readers: ReadersSection,

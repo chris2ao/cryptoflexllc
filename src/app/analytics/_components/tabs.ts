@@ -35,3 +35,11 @@ export const DEFAULT_RANGES: RangeDef[] = [
   { id: "90d", days: 90, label: "90D" },
   { id: "12m", days: 365, label: "12M" },
 ];
+
+export type TabId = (typeof DEFAULT_TABS)[number]["id"];
+
+/** Exact id match, otherwise the first tab. */
+export function resolveTab(param: string | undefined): TabId {
+  const match = DEFAULT_TABS.find((t) => t.id === param);
+  return match ? match.id : "overview";
+}

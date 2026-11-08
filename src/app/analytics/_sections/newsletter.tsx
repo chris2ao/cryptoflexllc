@@ -1,3 +1,4 @@
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { loadNewsletter } from "@/lib/analytics-queries/newsletter";
 import { SubscriberPanel } from "../_components/subscriber-panel";
 import { CommentsPanel } from "../_components/comments-panel";
@@ -7,7 +8,8 @@ import { AxPanel } from "../_components/ax-panel";
 import { AxRankedList } from "../_components/ax-ranked-list";
 import { SubscriberGrowthChart } from "./lazy-charts";
 
-export async function NewsletterSection({ days: _days }: { days: number }) {
+export async function NewsletterSection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
+  void scope;
   const {
     subscriberList: typedSubscribers,
     subscriberGrowth: typedSubGrowth,
@@ -15,7 +17,7 @@ export async function NewsletterSection({ days: _days }: { days: number }) {
     commentList: typedComments,
     guestbookList: typedGuestbook,
     subscriberSummary,
-  } = await loadNewsletter(_days);
+  } = await loadNewsletter(days);
 
   const subStats = subscriberSummary[0] || { total: 0, active: 0, inactive: 0 };
 
