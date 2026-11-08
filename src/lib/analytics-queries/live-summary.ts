@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/analytics";
+import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 
 export async function loadLiveSummary() {
   const queryStart = Date.now();
@@ -6,6 +7,9 @@ export async function loadLiveSummary() {
   let activeSessions = 0;
   try {
     const sql = getDb();
+    // The dashboard is untracked, so its own load has to make sure the new
+    // columns exist before any section queries them.
+    await ensureAnalyticsSchema(sql);
     const rows = (await sql`
       SELECT COUNT(DISTINCT ip_address)::int AS active
       FROM page_views
