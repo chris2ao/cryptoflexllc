@@ -151,6 +151,7 @@ export function searchConsoleWindow(
   now: Date = new Date(),
 ): { startDate: string; endDate: string } {
   const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 2));
-  const start = new Date(end.getTime() - days * 86_400_000);
+  // Inclusive window of exactly `days` days ending two days ago.
+  const start = new Date(end.getTime() - (days - 1) * 86_400_000);
   return { startDate: isoDay(start), endDate: isoDay(end) };
 }

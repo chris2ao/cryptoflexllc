@@ -7,7 +7,7 @@ describe("ShippingPanel", () => {
     render(
       <ShippingPanel
         shipping={{
-          commits7d: 12,
+          available: true, commits7d: 12,
           commits14d: 30,
           deploys7d: 5,
           lastDeploy: { state: "READY", createdAt: Date.now() - 2 * 3_600_000, commitMessage: "x" },
@@ -22,8 +22,19 @@ describe("ShippingPanel", () => {
 
   it("handles a missing last deploy", () => {
     render(
-      <ShippingPanel shipping={{ commits7d: 0, commits14d: 0, deploys7d: 0, lastDeploy: null }} />,
+      <ShippingPanel shipping={{ available: true, commits7d: 0, commits14d: 0, deploys7d: 0, lastDeploy: null }} />,
     );
     expect(screen.getByText("none")).toBeInTheDocument();
+  });
+});
+
+describe("ShippingPanel unavailable", () => {
+  it("says the sources did not answer instead of showing zeros", () => {
+    render(
+      <ShippingPanel
+        shipping={{ available: false, commits7d: 0, commits14d: 0, deploys7d: 0, lastDeploy: null }}
+      />,
+    );
+    expect(screen.getByText(/Shipping data unavailable/)).toBeInTheDocument();
   });
 });

@@ -49,7 +49,8 @@ async function loadVercelSignals(days: number) {
   }
   const windowDays = Math.min(days, 30);
   const until = isoDay(Date.now());
-  const since = isoDay(Date.now() - windowDays * 86_400_000);
+  // Inclusive window: 30 days of data is since 29 days ago through today.
+  const since = isoDay(Date.now() - (windowDays - 1) * 86_400_000);
   const [count, daily, deployments] = await Promise.all([
     fetchWebAnalyticsCount(since, until).catch(() => ({ ...UNAVAILABLE, pageviews: 0, visitors: 0 })),
     fetchWebAnalyticsDaily(since, until).catch(() => UNAVAILABLE),

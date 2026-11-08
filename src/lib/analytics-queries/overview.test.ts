@@ -43,11 +43,13 @@ describe("loadOverview", () => {
       { sha: "c", message: "m", date: iso(10 * day) },
     ]);
     fetchDeployments.mockResolvedValue([
-      { state: "READY", createdAt: Date.now() - day, commitMessage: "latest" },
-      { state: "ERROR", createdAt: Date.now() - 9 * day, commitMessage: "old" },
+      { state: "READY", target: "production", createdAt: Date.now() - day, commitMessage: "latest" },
+      { state: "READY", target: null, createdAt: Date.now() - day, commitMessage: "preview" },
+      { state: "ERROR", target: "production", createdAt: Date.now() - 9 * day, commitMessage: "old" },
     ]);
     const { shipping } = await loadOverview(30, "humans");
     expect(shipping).toEqual({
+      available: true,
       commits7d: 2,
       commits14d: 3,
       deploys7d: 1,
@@ -60,7 +62,7 @@ describe("loadOverview", () => {
     fetchRecentCommits.mockRejectedValue(new Error("boom"));
     fetchDeployments.mockRejectedValue(new Error("boom"));
     const { shipping } = await loadOverview(30, "humans");
-    expect(shipping).toEqual({ commits7d: 0, commits14d: 0, deploys7d: 0, lastDeploy: null });
+    expect(shipping).toEqual({ available: false, commits7d: 0, commits14d: 0, deploys7d: 0, lastDeploy: null });
   });
 
   it("skips deployments when the Vercel API is not configured", async () => {

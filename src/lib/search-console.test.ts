@@ -186,6 +186,7 @@ describe("isSearchConsoleConfigured", () => {
 describe("searchConsoleWindow", () => {
   it("ends two days before now and spans the window", () => {
     const w = searchConsoleWindow(7, new Date("2026-11-07T12:00:00Z"));
-    expect(w).toEqual({ startDate: "2026-10-29", endDate: "2026-11-05" });
+    // Seven inclusive days ending two days before the 7th: the 30th through the 5th.
+    expect(w).toEqual({ startDate: "2026-10-30", endDate: "2026-11-05" });
   });
 });

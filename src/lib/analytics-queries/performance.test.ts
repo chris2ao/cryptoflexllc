@@ -41,7 +41,8 @@ describe("loadPerformance web analytics", () => {
     expect(data.deployments).toHaveLength(1);
     const [since, until] = fetchWebAnalyticsCount.mock.calls[0] as string[];
     const span = (Date.parse(until) - Date.parse(since)) / 86_400_000;
-    expect(span).toBe(30);
+    // 30 inclusive days: since is 29 days before until.
+    expect(span).toBe(29);
     expect(fetchDeployments).toHaveBeenCalledWith(10);
     expect(tag.mock.calls.some((c) => c.slice(1).includes("human"))).toBe(true);
   });

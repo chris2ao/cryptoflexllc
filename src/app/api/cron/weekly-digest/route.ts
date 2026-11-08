@@ -38,6 +38,8 @@ function utm(campaign: string, content?: string): string {
 }
 
 interface DigestOutcome {
+  /** False when the stage completed but every send failed; withCronRun records a failed run. */
+  ok?: boolean;
   response: NextResponse;
   note: string;
 }
@@ -152,16 +154,19 @@ async function runDigest(request: NextRequest, sql: SqlTag): Promise<DigestOutco
   console.log(`[weekly-digest] Sent ${sent}/${recipients.length} emails`);
 
   const failed = recipients.length - sent;
-  try {
-    await sql`
-      INSERT INTO digest_runs (recipients, sent, failed, duration_ms)
-      VALUES (${recipients.length}, ${sent}, ${failed}, ${Date.now() - startedAt})
-    `;
-  } catch (error) {
-    console.error(
-      "[weekly-digest] could not record digest run:",
-      error instanceof Error ? error.message : "unknown",
-    );
+  // A testEmail run is a rehearsal, not a send to the list, so it leaves no row.
+  if (!testEmail) {
+    try {
+      await sql`
+        INSERT INTO digest_runs (recipients, sent, failed, duration_ms)
+        VALUES (${recipients.length}, ${sent}, ${failed}, ${Date.now() - startedAt})
+      `;
+    } catch (error) {
+      console.error(
+        "[weekly-digest] could not record digest run:",
+        error instanceof Error ? error.message : "unknown",
+      );
+    }
   }
 
   // Ping healthcheck service (fire-and-forget, non-blocking)
@@ -187,6 +192,8 @@ async function runDigest(request: NextRequest, sql: SqlTag): Promise<DigestOutco
   });
   return {
     response,
+    // Every send failing is a failed run even though the route answers 200.
+    ok: !(recipients.length > 0 && sent === 0),
     note: `recipients ${recipients.length}, sent ${sent}, failed ${failed}`,
   };
 }

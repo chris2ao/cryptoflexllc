@@ -1,6 +1,7 @@
 import { relativeTime, stateTone } from "./deploys-strip";
 
 export type Shipping = {
+  available: boolean;
   commits7d: number;
   commits14d: number;
   deploys7d: number;
@@ -8,7 +9,14 @@ export type Shipping = {
 };
 
 export function ShippingPanel({ shipping }: { shipping: Shipping }) {
-  const { commits7d, commits14d, deploys7d, lastDeploy } = shipping;
+  const { available, commits7d, commits14d, deploys7d, lastDeploy } = shipping;
+  if (!available) {
+    return (
+      <p className="ax-empty">
+        Shipping data unavailable (GitHub or Vercel did not answer in time)
+      </p>
+    );
+  }
   return (
     <div className="ax-stat-row">
       <div className="ax-stat">

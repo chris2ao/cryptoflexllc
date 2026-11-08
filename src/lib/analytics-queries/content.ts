@@ -207,10 +207,11 @@ export async function loadSearchConsole(days: number): Promise<SearchConsoleData
   const window = searchConsoleWindow(windowDays);
   const siteUrl = process.env.GSC_SITE_URL ?? "";
   const base = { siteUrl, ...window };
+  const empty: SearchAnalyticsRow[] = [];
   const [queries, pages, daily] = await Promise.all([
     fetchSearchAnalytics({ ...base, dimensions: ["query"], rowLimit: 10 }),
     fetchSearchAnalytics({ ...base, dimensions: ["page"], rowLimit: 10 }),
-    fetchSearchAnalytics({ ...base, dimensions: ["date"], rowLimit: 90 }),
-  ]);
+    fetchSearchAnalytics({ ...base, dimensions: ["date"], rowLimit: 91 }),
+  ]).catch(() => [empty, empty, empty]);
   return { configured: true, queries, pages, daily, window };
 }

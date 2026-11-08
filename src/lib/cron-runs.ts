@@ -51,9 +51,16 @@ export async function withCronRun<T>(
   let note = "";
   try {
     note = describe ? describe(result) : "";
-  } catch {
+  } catch (error) {
+    console.warn(`cron ${name}: note builder failed:`, error instanceof Error ? error.message : "unknown");
     note = "";
   }
-  await recordCronRun(sql, name, true, Date.now() - started, note);
+  // A stage that completed but reports `ok: false` (for example every send
+  // failed) is recorded as a failed run without turning into a 500.
+  const reportedOk =
+    result !== null && typeof result === "object" && "ok" in result
+      ? (result as { ok?: unknown }).ok !== false
+      : true;
+  await recordCronRun(sql, name, reportedOk, Date.now() - started, note);
   return result;
 }
