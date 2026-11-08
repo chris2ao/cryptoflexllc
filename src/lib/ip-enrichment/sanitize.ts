@@ -3,7 +3,7 @@ import type { IpEnrichment } from "./types";
 // C0 and C1 controls, plus Unicode format and bidi characters that can
 // reorder or hide text when a provider string is rendered.
 const STRIP =
-  /[\u0000-\u001F\u007F-\u009F\u061C\u180E\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFEFF\uFFF9-\uFFFB\u{E0000}-\u{E007F}]/gu;
+  /[\u0000-\u001F\u007F-\u009F\u00AD\u034F\u061C\u115F\u1160\u180E\u200B-\u200F\u2028-\u202E\u2060-\u206F\u3164\uFE00-\uFE0F\uFEFF\uFFF9-\uFFFB\u{E0000}-\u{E007F}]/gu;
 
 /** String-only, control and bidi stripped, trimmed, capped at `max`. */
 export function cleanText(value: unknown, max: number): string {
