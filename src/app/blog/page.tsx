@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { SubscribeCard } from "@/components/subscribe/subscribe-card";
 import { BlogIndex } from "@/components/blog/blog-index";
 import { EditorialPageHeader } from "@/components/editorial-page-header";
-import { getAllPosts, getAllTags } from "@/lib/blog";
+import { getAllPosts } from "@/lib/blog";
 import { BASE_URL } from "@/lib/constants";
 import { pickReadingPaths, summarizeSeries } from "@/lib/home-content";
 import taxonomy from "@/content/tag-taxonomy.json";
@@ -48,7 +48,6 @@ const CATEGORIES = ["All", ...taxonomy.topics];
 
 export default function BlogPage() {
   const posts = getAllPosts();
-  const allTags = getAllTags();
   const startHere = pickReadingPaths(summarizeSeries(posts));
 
   // Strip raw MDX content before passing to client components
@@ -76,7 +75,6 @@ export default function BlogPage() {
                 posts={summaries}
                 startHere={startHere}
                 categories={CATEGORIES}
-                allTags={allTags}
               />
             </Suspense>
 
