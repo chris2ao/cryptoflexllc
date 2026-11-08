@@ -39,6 +39,37 @@ describe("upsertIntel / getCachedIntel", () => {
   });
 });
 
+describe("cache round trip of nullable flags", () => {
+  const row = (flags: Record<string, unknown>) => ({
+    ip_address: "9.9.9.9", is_tor: false, on_drop: false, sources: "ipapi.is",
+    enriched_at: "2026-11-06T00:00:00Z", ...flags,
+  });
+
+  it("keeps false as false", async () => {
+    const sql = vi.fn().mockResolvedValue([
+      row({ is_datacenter: false, is_proxy: false, is_vpn: false, is_abuser: false }),
+    ]);
+    const r = await getCachedIntel(sql as never, "9.9.9.9");
+    expect(r).toMatchObject({ isDatacenter: false, isProxy: false, isVpn: false, isAbuser: false });
+  });
+
+  it("keeps null as null", async () => {
+    const sql = vi.fn().mockResolvedValue([
+      row({ is_datacenter: null, is_proxy: null, is_vpn: null, is_abuser: null }),
+    ]);
+    const r = await getCachedIntel(sql as never, "9.9.9.9");
+    expect(r).toMatchObject({ isDatacenter: null, isProxy: null, isVpn: null, isAbuser: null });
+  });
+
+  it("keeps a mix of false and null apart", async () => {
+    const sql = vi.fn().mockResolvedValue([
+      row({ is_datacenter: false, is_proxy: false, is_vpn: null, is_abuser: null }),
+    ]);
+    const r = await getCachedIntel(sql as never, "9.9.9.9");
+    expect(r).toMatchObject({ isDatacenter: false, isProxy: false, isVpn: null, isAbuser: null });
+  });
+});
+
 describe("enrichIp", () => {
   beforeEach(() => resetListCache());
 
