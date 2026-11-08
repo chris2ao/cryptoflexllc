@@ -14,7 +14,7 @@
 
 **Tech stack:** Next.js 16 App Router (force-dynamic page, Suspense), React 19, Neon serverless SQL tag, Recharts through `src/components/ui/chart`, vitest + Testing Library (jsdom), zod, node:crypto. No new runtime dependencies.
 
-**Status:** Done 2026-11-07. Wave 1 PR #55 (e82b2d0), wave 2 PR #56 (b26a80b), wave 3 PR #57 (8545030), wave 4 PR #58 (98ae711), each verified in production. Owner steps for the external sources: CLAUD-781. Review leftovers: CLAUD-782.
+**Status:** Done 2026-11-07. Wave 1 PR #55 (e82b2d0), wave 2 PR #56 (b26a80b), wave 3 PR #57 (8545030), wave 4 PR #58 (98ae711), follow-ups PR #59 (5d64e40) and PR #60 (f294f85), each verified in production. Owner steps for the external sources: CLAUD-781. Review leftovers: CLAUD-782.
 
 ## Global Constraints
 
