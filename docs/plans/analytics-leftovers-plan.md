@@ -2,7 +2,7 @@
 
 Date: 2026-11-08. Jira: CLAUD-782 (bundle), split into CLAUD-791 (A), CLAUD-792 (B), CLAUD-793 (C) when work started. Source: the MEDIUM and LOW findings left open by the four wave reviews of CLAUD-779 (`docs/plans/analytics-refresh-plan.md`), plus one production observation (the Referrers host list shows one class per host).
 
-Status: in progress, one wave, three parallel implementers, one PR.
+Status: Done 2026-11-08. PR #61 (4043527): three implementers, one controller merge per task with a typecheck after each, one code review (one HIGH, two MEDIUM, five LOW fixed) and one security review (nothing CRITICAL or HIGH; its MEDIUM, engagement IPs outliving the page view anonymisation, fixed in the same retention stage), the full gate three times, a headless pass and a live check of the beacon limiter. An empty `_styles/.css` slipped into the merge and was removed in the docs commit that followed.
 
 ## Decisions
 

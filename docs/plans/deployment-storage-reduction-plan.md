@@ -1,7 +1,7 @@
 # Deployment Storage Reduction Plan
 
 **Date:** 2026-09-22
-**Status:** In progress on branch `fix/deployment-storage`
+**Status:** Fixes B and C shipped 2026-09-22. Fix A (retention) was never applied; see the 2026-11-08 update at the end
 **Trigger:** Vercel email (2026-09-23): the Hobby team used 100% of the free 10 GB **Deployment Storage** allowance.
 
 ## Root Cause
@@ -49,3 +49,9 @@ A guard test fails CI when any file in `public/` exceeds 1 MB, so the blog pipel
 ## Expected Result
 
 Each deployment drops from ~815 MB to under 100 MB, and deployments happen only on real content or code changes. Storage should settle well under 1 GB.
+
+## Update 2026-11-08
+
+The email came back after the CLAUD-765 and CLAUD-779 pushes: 77 deployments retained in 30 days at about 130 MB each (`public/` is 123 MB, build output about 157 MB before compression). Fixes B and C had worked; fix A had never been applied, so the project sat on the 30-day default.
+
+Done the same night: 73 stale deployments deleted by ID with `vercel remove`, keeping the current production, the two before it and the open PR preview (snapshot of the list kept in the session scratchpad). Project retention set through `PATCH /v9/projects/{id}/deployment-expiration` with `{"expiration":"1w","expirationProduction":"1w","expirationCanceled":"1d","expirationErrored":"1d"}`. Preview deployments turned off (`previewDeploymentsDisabled: true`): QA runs on a local `next start`, CI on GitHub. Expected steady state: at most a week of production deployments, so a busy week of 20 deploys stays under 3 GB.

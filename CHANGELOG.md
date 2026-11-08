@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented here.
 
+## 2026-11-08 - CLAUD-782: /analytics Refresh Leftovers (One PR, Three Parallel Implementers)
+
+### What changed
+- **Closed** the MEDIUM and LOW findings left by the four CLAUD-779 wave reviews (bundle CLAUD-782, split into CLAUD-791, CLAUD-792 and CLAUD-793) in PR #61 (4043527): three implementers in parallel worktrees, controller merges with a typecheck after each, one code review and one security review on the combined diff, every CRITICAL and HIGH fixed before the PR
+- **Data and shell:** every KPI tile drives a daily series of its own measure and the Readers sparkline uses the KPI's definition (`src/lib/analytics-queries/overview-engagement.ts`); the post table windows subscribes and comments; digest click-through counts distinct visitors and marks open seven-day windows as partial; the Referrers host list shows each host's dominant class with `mode()`; bare `utm_source` tokens such as `chat-gpt` classify as AI; a parity test pins the bot pattern to the Postgres regex dialect; no range chip lights for a non-preset `days`; Shipping excludes the automated gmail-metrics commits; `analytics.css` is an index of imports over `_styles/*.css`
+- **Enrichment:** `ip-validate.ts` on `node:net` with a `BlockList` of reserved IPv4 and IPv6 ranges (mapped, NAT64, 6to4, Teredo, ORCHID), zone ids rejected; a sanitiser strips control, bidi and invisible characters and caps provider strings on write and read; the visitor panel fetches in parallel, tells a 401 apart and returns focus to its opener; Spamhaus DROP read from `drop_v4.json` with a dual-format parser and logged fallbacks
+- **Routes, crons and schema:** track beacons get an in-memory limit of 60 per IP per minute (no database query per beacon); `ensureAnalyticsSchema` returns a boolean and the track route falls back to the legacy columns while the DDL chain is failing; new indexes for the reader KPI joins with a fourth presence marker; a retention stage blanks engagement IPs at 90 days and prunes `server_events`, `cron_runs` (90 days), `digest_runs` (365 days) and stale `ip_intel`; cron counts are real (counting CTEs); the Search Console token exchange is shared in flight; digest subjects lose their em dashes
+
+### What was learned
+- Postgres `LEAST` and `GREATEST` ignore NULLs, so `LEAST(100, NULL)` is 100: clamp inside a `CASE` that handles the empty denominator first
+- The Neon HTTP tag without `fullResults` resolves UPDATE and DELETE to an empty array, so `.count` is always undefined; count through `WITH d AS (... RETURNING 1) SELECT COUNT(*) FROM d`
+- A new DDL statement in the lazy schema needs a new presence marker, or a warm database never runs it; the marker count is the contract
+- Turbopack resolves `@import "./_styles/x.css"` in a global stylesheet, so a long stylesheet can split by region with the import order as the cascade order and a byte-identical concatenation as the proof
+
+## 2026-11-08 - Vercel Deployment Storage at 100% (Hobby, 10 GB)
+
+### What changed
+- **Diagnosed** the Vercel email: 77 deployments from the last 30 days were retained at about 130 MB each (`public/` is 123 MB after the September reduction; the metrics auto-commits stopped on 2026-09-22), and the two-day refresh effort alone pushed about thirty of them. The project was still on the 30-day default retention; the September plan's dashboard step was never applied
+- **Deleted** 73 stale deployments (51 production, 6 cancelled, 16 previews of merged branches), keeping the current production, the two before it and the open PR preview; production verified serving afterwards. A deleted deployment stops counting the moment it is deleted, so the quota freed immediately
+- **Set** a project retention policy through the Vercel API (preview and production 1 week, cancelled and errored 1 day; Hobby keeps the last 3 production deployments and the newest preview of any open branch regardless) and turned preview deployments off for the project, since QA runs locally and CI on GitHub
+
+### What was learned
+- Deployment Storage is build output plus static assets per retained deployment; the recovery window after deletion is free, and the project policy is `PATCH /v9/projects/{id}/deployment-expiration` with string periods (`1d`, `1w`, `1m`), not the day counts the project object reports
+- The Vercel MCP `update_project` tool exposes `previewDeploymentsDisabled` but not the retention policy; the policy needs the REST endpoint or the dashboard
+
 ## 2026-11-07 - CLAUD-779: /analytics Refresh (4 PRs, One Unattended Session)
 
 ### What changed
