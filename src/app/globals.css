@@ -2633,6 +2633,7 @@
 .ed-comment-input::placeholder { color: var(--fg-3); }
 
 .ed-comment-input:focus { border-color: var(--primary); }
+.ed-comment-input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 textarea.ed-comment-input {
   font-family: var(--font-body);
@@ -2648,7 +2649,8 @@ textarea.ed-comment-input {
   background: var(--accent-dim);
 }
 
-.ed-comment-form .btn-editorial:disabled { opacity: 0.4; cursor: not-allowed; }
+.ed-comment-form .btn-editorial:disabled,
+.ed-reply-form .btn-editorial:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .ed-comment-status {
   font-family: var(--font-mono);

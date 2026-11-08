@@ -191,7 +191,14 @@ export function BlogList({ posts }: BlogListProps) {
           ))}
         </div>
       )}
-      <ShowMoreButton {...paging} total={filtered.length} onClick={paging.showMore} />
+      <ShowMoreButton
+        mobileShown={paging.mobileShown}
+        desktopShown={paging.desktopShown}
+        hasMoreMobile={paging.hasMoreMobile}
+        hasMoreDesktop={paging.hasMoreDesktop}
+        total={filtered.length}
+        onClick={paging.showMore}
+      />
     </>
   );
 }

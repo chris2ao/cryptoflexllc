@@ -29,7 +29,12 @@ export function usePaging(total: number, signature: string): Paging {
 
   return {
     pages,
-    showMore: () => setState({ signature, pages: pages + 1 }),
+    showMore: () =>
+      setState((prev) =>
+        prev.signature === signature
+          ? { signature, pages: prev.pages + 1 }
+          : { signature, pages: 2 }
+      ),
     // Static class strings per visibility state (never built from fragments).
     cardClass: (index) => {
       if (index < mobileLimit) return "h-full";
