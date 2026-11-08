@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyReferrer, referrerHost } from "./referrer";
+import { classifyReferrer, referrerForStorage, referrerHost } from "./referrer";
 
 describe("classifyReferrer", () => {
   it.each([
@@ -40,6 +40,14 @@ describe("classifyReferrer", () => {
   it("classifies an AI utm source", () => {
     expect(classifyReferrer("", { source: "chatgpt.com" }).cls).toBe("ai");
     expect(classifyReferrer("", { source: "chatgpt" }).cls).toBe("ai");
+  });
+
+  it("stores origin and path only", () => {
+    expect(
+      referrerForStorage("https://user:pw@www.google.com/search?q=secret#x"),
+    ).toBe("https://www.google.com/search");
+    expect(referrerForStorage("javascript:void(0)")).toBe("");
+    expect(referrerForStorage(`https://a.example/${"p".repeat(600)}`)).toHaveLength(500);
     expect(classifyReferrer("", { source: "perplexity" }).cls).toBe("ai");
   });
 });

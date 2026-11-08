@@ -111,6 +111,22 @@ export function referrerHost(referrer: string): string {
   }
 }
 
+/**
+ * What the page_views.referrer column stores: origin plus path only, so a
+ * lax referrer policy on the sending site cannot leave a query-string token
+ * or userinfo in the database. Capped at 500 characters.
+ */
+export function referrerForStorage(referrer: string): string {
+  if (!referrer || referrer.length > 2000) return "";
+  try {
+    const url = new URL(referrer);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    return `${url.origin}${url.pathname}`.slice(0, 500);
+  } catch {
+    return "";
+  }
+}
+
 export function classifyReferrer(
   referrer: string,
   utm: { source?: string | null; medium?: string | null },
