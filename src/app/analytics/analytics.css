@@ -1529,3 +1529,25 @@ ol.ax-chart-legend a:hover { color: var(--primary); }
 
 /* ==== REGION: intel ==== */
 
+/* IP links open the visitor dossier (wave 3). */
+.ax-ip {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: inherit;
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-line);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.ax-ip:hover { text-decoration-color: var(--primary); }
+.ax-ip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.ax-ip--empty { color: var(--fg-3); text-decoration: none; cursor: default; }
+.ax-tbl .ax-tbl-empty { text-align: center; padding: 40px 12px; color: var(--fg-3); }
+.ax-nowrap { white-space: nowrap; }
+.ax-muted { color: var(--fg-3); }
+.ax-ellipsis { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+

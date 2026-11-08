@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Trash2, Loader2 } from "lucide-react";
-import { IpOsintPanel, useIpOsintPanel } from "./ip-osint-panel";
+import { IpLink } from "./ip-link";
 import type { SubscriberRow } from "@/lib/analytics-types";
 
 interface SubscriberPanelProps {
@@ -18,7 +18,6 @@ export function SubscriberPanel({
   inactiveCount,
   subscribers: initialSubscribers,
 }: SubscriberPanelProps) {
-  const osint = useIpOsintPanel();
   const [subscribers, setSubscribers] = useState(initialSubscribers);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -100,17 +99,7 @@ export function SubscriberPanel({
                       {new Date(sub.subscribed_at).toLocaleDateString()}
                     </td>
                     <td>
-                      {sub.ip_address ? (
-                        <button
-                          type="button"
-                          onClick={() => osint.lookup(sub.ip_address)}
-                          className="ax-link"
-                        >
-                          {sub.ip_address}
-                        </button>
-                      ) : (
-                        <span className="muted">N/A</span>
-                      )}
+                      <IpLink ip={sub.ip_address} />
                     </td>
                     <td style={{ whiteSpace: "nowrap" }}>
                       {[sub.city, sub.region, sub.country]
@@ -140,15 +129,6 @@ export function SubscriberPanel({
           </table>
         </div>
       </div>
-
-      <IpOsintPanel
-        open={osint.open}
-        onOpenChange={osint.setOpen}
-        ip={osint.ip}
-        data={osint.data}
-        loading={osint.loading}
-        error={osint.error}
-      />
     </>
   );
 }
