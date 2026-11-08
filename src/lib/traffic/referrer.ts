@@ -80,13 +80,10 @@ function isSearchHost(host: string): boolean {
 }
 
 function isInternalHost(host: string): boolean {
-  return INTERNAL_HOST_SUFFIXES.some(
-    (suffix) =>
-      host === suffix ||
-      host === suffix.replace(/^\./, "") ||
-      host.endsWith(suffix) ||
-      host.endsWith(`.${suffix}`),
-  );
+  return INTERNAL_HOST_SUFFIXES.some((suffix) => {
+    const bare = suffix.replace(/^\./, "");
+    return host === bare || host.endsWith(`.${bare}`);
+  });
 }
 
 /** Lowercase hostname without a leading `www.`; empty for anything that is not an http(s) URL. */
@@ -118,8 +115,8 @@ export function classifyReferrer(
   if (!host) return { host, cls: "direct" };
   if (hostMatches(host, FORGED_HOSTS)) return { host, cls: "forged" };
   if (isInternalHost(host)) return { host, cls: "internal" };
+  if (hostMatches(host, AI_HOSTS)) return { host, cls: "ai" };
   if (isSearchHost(host)) return { host, cls: "search" };
   if (hostMatches(host, SOCIAL_HOSTS)) return { host, cls: "social" };
-  if (hostMatches(host, AI_HOSTS)) return { host, cls: "ai" };
   return { host, cls: "other" };
 }
