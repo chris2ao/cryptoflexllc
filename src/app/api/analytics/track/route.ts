@@ -9,6 +9,12 @@
  *   - IP+path deduplication (1 record per IP per page per hour)
  *   - Page path validation (max 500 chars, must start with /)
  *   - Error messages are generic (no internal details leaked)
+ *
+ * Referrer: the client sends document.referrer in the body. The Referer
+ * header is never read (it is always our own page for a beacon). The route
+ * classifies the referrer and the hit at insert time (referrer_host,
+ * referrer_class, traffic_class; NULL traffic_class means pending). Paths
+ * under the untracked prefixes (dashboard, backlog) are dropped with 204.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -21,6 +27,10 @@ import {
 } from "@/lib/analytics";
 import { recordApiMetric } from "@/lib/api-timing";
 import { getClientIp } from "@/lib/rate-limit";
+import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
+import { isTrackedPath } from "@/lib/analytics-tracking-rules";
+import { classifyReferrer } from "@/lib/traffic/referrer";
+import { classifyAtInsert } from "@/lib/traffic/classify";
 
 // Zod schema for input validation
 const trackSchema = z.object({
@@ -80,6 +90,11 @@ export async function POST(request: NextRequest) {
       utmCampaign = searchParams.get("utm_campaign");
     }
 
+    // ---- 4. Untracked paths are never recorded ----
+    if (!isTrackedPath(pagePath)) {
+      return new NextResponse(null, { status: 204 });
+    }
+
     // ---- 5. Extract User-Agent and parse it ----
     // (ipAddress was resolved above via getClientIp for the rate-limit check.)
     const userAgent = request.headers.get("user-agent") || "";
@@ -87,8 +102,17 @@ export async function POST(request: NextRequest) {
     const os = parseOS(userAgent);
     const deviceType = parseDeviceType(userAgent);
 
-    // ---- 6. Extract referrer ----
-    const referrer = request.headers.get("referer") || "(direct)";
+    // ---- 6. Classify the client-supplied referrer and the hit ----
+    const referrer = parsed.data.referrer;
+    const ref = classifyReferrer(referrer, {
+      source: utmSource,
+      medium: utmMedium,
+    });
+    const trafficClass = classifyAtInsert({
+      userAgent,
+      referrerClass: ref.cls,
+      pagePath,
+    });
 
     // ---- 7. Extract Vercel geolocation headers ----
     const country = decodeURIComponent(
@@ -105,6 +129,7 @@ export async function POST(request: NextRequest) {
 
     // ---- 8. Rate limiting: IP+path dedup (1 per hour) ----
     const sql = getDb();
+    await ensureAnalyticsSchema(sql);
     const existing = await sql`
       SELECT 1 FROM page_views
       WHERE ip_address = ${ipAddress}
@@ -123,11 +148,13 @@ export async function POST(request: NextRequest) {
       INSERT INTO page_views (
         page_path, ip_address, user_agent, browser, os,
         device_type, referrer, country, city, region,
-        latitude, longitude, utm_source, utm_medium, utm_campaign
+        latitude, longitude, utm_source, utm_medium, utm_campaign,
+        referrer_host, referrer_class, traffic_class
       ) VALUES (
         ${pagePath}, ${ipAddress}, ${userAgent}, ${browser}, ${os},
         ${deviceType}, ${referrer}, ${country}, ${city}, ${region},
-        ${latitude}, ${longitude}, ${utmSource}, ${utmMedium}, ${utmCampaign}
+        ${latitude}, ${longitude}, ${utmSource}, ${utmMedium}, ${utmCampaign},
+        ${ref.host}, ${ref.cls}, ${trafficClass}
       )
     `;
 
