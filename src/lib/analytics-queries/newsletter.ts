@@ -17,6 +17,50 @@ export interface NewsletterData {
   commentList: CommentRow[];
   guestbookList: GuestbookRow[];
   subscriberSummary: SubscriberSummaryRow[];
+  digestRuns: DigestRunRow[];
+}
+
+export interface DigestRunRow {
+  ran_at: string;
+  recipients: number;
+  sent: number;
+  failed: number;
+  duration_ms: number;
+  clicks7d: number;
+}
+
+// One query: the clicks are a correlated count of human (or not yet
+// classified) page views tagged utm_campaign = 'weekly-digest' in the seven
+// days after each send.
+export async function loadDigestRuns(limit = 12): Promise<DigestRunRow[]> {
+  const sql = getDb();
+  const rows = (await sql`
+    SELECT
+      d.ran_at,
+      d.recipients,
+      d.sent,
+      d.failed,
+      d.duration_ms,
+      (
+        SELECT COUNT(*)::int
+        FROM page_views pv
+        WHERE pv.utm_campaign = 'weekly-digest'
+          AND (pv.traffic_class = 'human' OR pv.traffic_class IS NULL)
+          AND pv.visited_at >= d.ran_at
+          AND pv.visited_at < d.ran_at + INTERVAL '7 days'
+      ) AS clicks7d
+    FROM digest_runs d
+    ORDER BY d.ran_at DESC
+    LIMIT ${limit}
+  `.catch(() => [])) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({
+    ran_at: r.ran_at instanceof Date ? r.ran_at.toISOString() : String(r.ran_at),
+    recipients: Number(r.recipients) || 0,
+    sent: Number(r.sent) || 0,
+    failed: Number(r.failed) || 0,
+    duration_ms: Number(r.duration_ms) || 0,
+    clicks7d: Number(r.clicks7d) || 0,
+  }));
 }
 
 // Subscribers, comments and the guestbook are not page_views: the scope
@@ -34,6 +78,7 @@ export async function loadNewsletter(
     convertingPages,
     commentList,
     guestbookList,
+    digestRuns,
   ] = await Promise.all([
     sql`
       SELECT
@@ -81,6 +126,7 @@ export async function loadNewsletter(
       FROM guestbook
       ORDER BY created_at DESC
     `.catch(() => []),
+    loadDigestRuns(),
   ]);
 
   return {
@@ -90,5 +136,6 @@ export async function loadNewsletter(
     commentList: commentList as unknown as CommentRow[],
     guestbookList: guestbookList as unknown as GuestbookRow[],
     subscriberSummary: subscriberSummary as unknown as SubscriberSummaryRow[],
+    digestRuns,
   };
 }

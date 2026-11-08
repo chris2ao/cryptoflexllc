@@ -1638,3 +1638,5 @@ ol.ax-chart-legend a:hover { color: var(--primary); }
 /* ==== REGION: signals-gsc ==== */
 
 /* ==== REGION: signals-ops ==== */
+.ax-tbl .chip.ax-ops-ok { color: var(--fg-2); }
+.ax-tbl .chip.ax-ops-fail { color: var(--fg-1); border-color: var(--fg-3); font-weight: 600; }

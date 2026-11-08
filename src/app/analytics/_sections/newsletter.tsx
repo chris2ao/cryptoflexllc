@@ -6,6 +6,7 @@ import { GuestbookPanel } from "../_components/guestbook-panel";
 import { KpiStrip } from "../_components/kpi-strip";
 import { AxPanel } from "../_components/ax-panel";
 import { AxRankedList } from "../_components/ax-ranked-list";
+import { DigestRunsPanel } from "../_components/digest-runs-panel";
 import { SubscriberGrowthChart } from "./lazy-charts";
 
 export async function NewsletterSection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
@@ -16,6 +17,7 @@ export async function NewsletterSection({ days, scope = "humans" }: { days: numb
     commentList: typedComments,
     guestbookList: typedGuestbook,
     subscriberSummary,
+    digestRuns,
   } = await loadNewsletter(days, scope);
 
   const subStats = subscriberSummary[0] || { total: 0, active: 0, inactive: 0 };
@@ -64,6 +66,12 @@ export async function NewsletterSection({ days, scope = "humans" }: { days: numb
         </AxPanel>
         <AxPanel title="Top converting pages" kicker={`TOP ${convertingItems.length}`}>
           <AxRankedList items={convertingItems} />
+        </AxPanel>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Digest sends" kicker={`LAST ${digestRuns.length}`}>
+          <DigestRunsPanel runs={digestRuns} />
         </AxPanel>
       </div>
 

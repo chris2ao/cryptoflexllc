@@ -10,6 +10,7 @@
  *   - Input validation via Zod
  */
 
+import { recordServerEvent } from "@/lib/server-events";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/analytics";
@@ -126,6 +127,7 @@ export async function POST(request: NextRequest) {
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
+    recordServerEvent("/api/analytics/track-engagement", "db-error", error instanceof Error ? error.message : "unknown");
     console.error("Engagement tracking error:", error);
     return NextResponse.json(
       { error: "Failed to record engagement" },

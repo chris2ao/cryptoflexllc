@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 300;
 import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/analytics";
+import { withCronRun } from "@/lib/cron-runs";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 import { classifyPendingPageViews } from "@/lib/traffic/backfill";
 import { enrichPendingIps } from "@/lib/ip-enrichment/batch";
@@ -50,44 +51,47 @@ export async function GET(request: NextRequest) {
     const sql = getDb();
     await ensureAnalyticsSchema(sql);
 
-    // Blank the IP on rows older than the retention window. Parameterized day
-    // count via make_interval keeps this a bounded, injection-safe UPDATE.
-    const result = await sql`
-      UPDATE page_views
-      SET ip_address = ''
-      WHERE visited_at < NOW() - make_interval(days => ${RETENTION_DAYS})
-        AND ip_address <> ''
-    `;
+    const summary = await withCronRun(
+      sql,
+      "cleanup-page-views",
+      async () => {
+        // Blank the IP on rows older than the retention window. Parameterized day
+        // count via make_interval keeps this a bounded, injection-safe UPDATE.
+        const result = await sql`
+          UPDATE page_views
+          SET ip_address = ''
+          WHERE visited_at < NOW() - make_interval(days => ${RETENTION_DAYS})
+            AND ip_address <> ''
+        `;
 
-    const anonymized = (result as unknown as { count: number }).count ?? 0;
-    console.log(`Page view retention: anonymized ${anonymized} old IP(s)`);
+        const anonymized = (result as unknown as { count: number }).count ?? 0;
+        console.log(`Page view retention: anonymized ${anonymized} old IP(s)`);
 
-    // Each stage is isolated: a failure is logged and the next stage still runs.
-    let classified = 0;
-    try {
-      for (let i = 0; i < CLASSIFY_MAX_ITERATIONS; i++) {
-        const n = await classifyPendingPageViews(sql, CLASSIFY_BATCH);
-        if (!n) break;
-        classified += n;
-      }
-    } catch (error) {
-      console.error("Page view classification batch error:", error);
-    }
+        // Each stage is isolated: a failure is logged and the next stage still runs.
+        let classified = 0;
+        try {
+          for (let i = 0; i < CLASSIFY_MAX_ITERATIONS; i++) {
+            const n = await classifyPendingPageViews(sql, CLASSIFY_BATCH);
+            if (!n) break;
+            classified += n;
+          }
+        } catch (error) {
+          console.error("Page view classification batch error:", error);
+        }
 
-    let enriched = 0;
-    try {
-      enriched = await enrichPendingIps(sql, ENRICH_LIMIT);
-    } catch (error) {
-      console.error("IP enrichment batch error:", error);
-    }
+        let enriched = 0;
+        try {
+          enriched = await enrichPendingIps(sql, ENRICH_LIMIT);
+        } catch (error) {
+          console.error("IP enrichment batch error:", error);
+        }
 
-    return NextResponse.json({
-      ok: true,
-      anonymized,
-      retentionDays: RETENTION_DAYS,
-      classified,
-      enriched,
-    });
+        return { ok: true, anonymized, retentionDays: RETENTION_DAYS, classified, enriched };
+      },
+      (r) =>
+        `anonymized ${r.anonymized}, classified ${r.classified}, enriched ${r.enriched}`,
+    );
+    return NextResponse.json(summary);
   } catch (error) {
     console.error("Page view retention cleanup error:", error);
     return NextResponse.json({ error: "Cleanup failed" }, { status: 500 });

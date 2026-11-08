@@ -17,6 +17,7 @@
  * under the untracked prefixes (dashboard, backlog) are dropped with 204.
  */
 
+import { recordServerEvent } from "@/lib/server-events";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
     recordApiMetric("/api/analytics/track", "POST", 204, Date.now() - t0);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
+    recordServerEvent("/api/analytics/track", "db-error", error instanceof Error ? error.message : "unknown");
     recordApiMetric("/api/analytics/track", "POST", 500, Date.now() - t0);
     console.error("Analytics tracking error:", error);
     return NextResponse.json(
