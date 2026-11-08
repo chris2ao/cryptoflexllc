@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const dossier = await loadVisitorDossier(getDb(), ip);
     return NextResponse.json({ dossier });
   } catch (error) {
-    console.error("Visitor dossier error:", error);
+    console.error("Visitor dossier error:", error instanceof Error ? error.message : "unknown");
     return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
   }
 }

@@ -11,10 +11,26 @@ import { getDb } from "@/lib/analytics";
 import { verifyApiAuth } from "@/lib/analytics-auth";
 import { enrichIp } from "@/lib/ip-enrichment/enrich";
 import { isPrivateIp, isValidIp } from "@/lib/ip-enrichment/ip-validate";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
+
+// Each uncached lookup costs two outbound calls and provider quota.
+const lookupRateLimiter = createRateLimiter({
+  name: "ip-intel",
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+});
 
 export async function GET(request: NextRequest) {
   if (!verifyApiAuth(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await lookupRateLimiter.checkRateLimit(getClientIp(request));
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many lookups. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter || 60) } },
+    );
   }
 
   const ip = request.nextUrl.searchParams.get("ip");

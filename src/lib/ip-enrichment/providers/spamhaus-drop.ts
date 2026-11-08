@@ -24,6 +24,6 @@ export async function loadDropCidrs(
   fetchImpl: typeof fetch = fetch,
   now: number = Date.now(),
 ): Promise<Array<[number, number]>> {
-  const text = await loadListText(sql, "spamhaus-drop", DROP_URL, 8000, fetchImpl, now);
+  const text = await loadListText(sql, "spamhaus-drop", DROP_URL, 8000, fetchImpl, now, (t) => parseDrop(t).length > 0);
   return parseDrop(text);
 }

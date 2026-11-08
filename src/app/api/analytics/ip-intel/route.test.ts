@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: () => ({ checkRateLimit: vi.fn().mockResolvedValue({ allowed: true }) }),
+  getClientIp: () => "203.0.113.9",
+}));
 vi.mock("@/lib/analytics");
 vi.mock("@/lib/analytics-auth");
 vi.mock("@/lib/ip-enrichment/enrich");
