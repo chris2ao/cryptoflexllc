@@ -27,8 +27,8 @@ export async function fetchRdap(
         if (entity.vcardArray && Array.isArray(entity.vcardArray)) {
           const vcard = entity.vcardArray[1] || [];
           for (const entry of vcard) {
-            if (entry[0] === "fn" && !org) {
-              org = entry[3] || "";
+            if (entry[0] === "fn" && !org && typeof entry[3] === "string") {
+              org = entry[3];
             }
             if (entry[0] === "adr" && !address) {
               const parts = Array.isArray(entry[3]) ? entry[3] : [];

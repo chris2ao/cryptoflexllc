@@ -22,12 +22,18 @@ interface RateLimitOptions {
   name: string;
   windowMs: number;
   maxRequests: number;
+  // "db" (default) uses the rate_limits table when DATABASE_URL is set.
+  // "memory" never touches the database: a per-instance sliding window.
+  backend?: "db" | "memory";
 }
 
 // IPv6 max is 45 characters; anything longer is malformed or spoofed and would
 // bloat the rate_limits key column or overflow the analytics VARCHAR(45)
 // ip_address column, turning inserts into 500s (F-M15).
 const MAX_IP_LENGTH = 45;
+
+// Upper bound on distinct keys held by the in-memory store.
+const MAX_MEMORY_KEYS = 10_000;
 
 interface RateLimitResult {
   allowed: boolean;
@@ -45,14 +51,18 @@ interface RateLimiter {
  * Falls back to in-memory storage if DATABASE_URL is not set
  */
 export function createRateLimiter(options: RateLimitOptions): RateLimiter {
-  const { name, windowMs, maxRequests } = options;
+  const { name, windowMs, maxRequests, backend = "db" } = options;
   const store = new Map<string, number[]>();
+  let lastSweepAt = 0;
 
   /**
-   * In-memory cleanup (only used for fallback mode)
+   * In-memory cleanup (only used for fallback mode). Throttled to once per
+   * window unless forced, so a flood does not scan every key per request.
    */
-  function cleanupMemory(): void {
+  function cleanupMemory(force = false): void {
     const now = Date.now();
+    if (!force && lastSweepAt && now - lastSweepAt < windowMs) return;
+    lastSweepAt = now;
     const cutoff = now - windowMs;
 
     for (const [ip, timestamps] of store.entries()) {
@@ -70,7 +80,15 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
    * In-memory rate limit check (fallback for development)
    */
   function checkRateLimitMemory(ip: string): RateLimitResult {
-    cleanupMemory();
+    if (!store.has(ip) && store.size >= MAX_MEMORY_KEYS) {
+      cleanupMemory(true);
+      for (const oldest of store.keys()) {
+        if (store.size < MAX_MEMORY_KEYS) break;
+        store.delete(oldest);
+      }
+    } else {
+      cleanupMemory();
+    }
 
     const now = Date.now();
     const cutoff = now - windowMs;
@@ -164,7 +182,7 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
     // Check if database is available
     const hasDatabase = !!process.env.DATABASE_URL;
 
-    if (!hasDatabase) {
+    if (backend === "memory" || !hasDatabase) {
       // Fallback to in-memory for development
       return checkRateLimitMemory(key);
     }
@@ -199,7 +217,7 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
  * overflow the analytics ip_address column (F-M15).
  *
  * Deploy note: validate the real header chain at the origin (a live header dump)
- * and roll out log-only before relying on this — see the remediation plan.
+ * and roll out log-only before relying on this (see the remediation plan).
  */
 export function getClientIp(request: NextRequest): string {
   const vercelForwarded = request.headers.get("x-vercel-forwarded-for");

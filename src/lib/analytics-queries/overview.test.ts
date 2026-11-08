@@ -91,11 +91,22 @@ describe("loadOverview", () => {
     expect(data.publishDates).toHaveLength(1);
   });
 
+  it("excludes automated metric commits from the shipping counts", async () => {
+    fetchRecentCommits.mockResolvedValue([
+      { sha: "a", message: "chore: update gmail metrics 2026-11-07", date: new Date().toISOString() },
+      { sha: "b", message: "fix: real work", date: new Date().toISOString() },
+    ]);
+    const { shipping } = await loadOverview(30, "humans");
+    expect(shipping.commits7d).toBe(1);
+    expect(shipping.commits14d).toBe(1);
+  });
+
   it("falls back to zeros when every query fails", async () => {
     tag.mockImplementation(() => Promise.reject(new Error("boom")));
     const data = await loadOverview(30, "humans");
     expect(data.kpis.views).toEqual({ current: 0, previous: 0 });
     expect(data.kpis.pending).toBe(0);
     expect(data.trend).toEqual([]);
+    expect(data.dailyEngagement).toEqual([]);
   });
 });

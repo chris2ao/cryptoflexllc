@@ -1,10 +1,10 @@
 /**
- * Parse the `days` search param: missing or non-numeric gives 30,
+ * Parse the `days` search param: missing or anything but 1 to 4 digits gives 30,
  * anything else is clamped to 1..365.
  */
 export function rangeDays(input: string | undefined): number {
-  const parsed = input ? parseInt(input, 10) : 30;
-  return Math.max(1, Math.min(365, isNaN(parsed) ? 30 : parsed));
+  const parsed = input && /^\d{1,4}$/.test(input) ? parseInt(input, 10) : 30;
+  return Math.max(1, Math.min(365, parsed));
 }
 
 export type TrafficScope = "humans" | "all";

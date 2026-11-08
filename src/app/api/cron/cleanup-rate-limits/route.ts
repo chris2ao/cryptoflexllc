@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/analytics";
 import { withCronRun } from "@/lib/cron-runs";
+import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 
 export async function GET(request: NextRequest) {
   // ---- Auth: Vercel Cron sends this header automatically ----
@@ -37,17 +38,22 @@ export async function GET(request: NextRequest) {
 
   try {
     const sql = getDb();
+    // cron_runs may not exist on a fresh database: create it before recording.
+    await ensureAnalyticsSchema(sql);
 
     // Delete rate limit entries older than 24 hours
     const deleted = await withCronRun(
       sql,
       "cleanup-rate-limits",
       async () => {
-        const result = await sql`
-          DELETE FROM rate_limits
-          WHERE window_start < EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours') * 1000
+        const rows = await sql`
+          WITH d AS (
+            DELETE FROM rate_limits
+            WHERE window_start < EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours') * 1000
+            RETURNING 1
+          ) SELECT COUNT(*)::int AS n FROM d
         `;
-        return (result as unknown as { count: number }).count ?? 0;
+        return Number(rows[0]?.n ?? 0);
       },
       (n) => `deleted ${n}`,
     );

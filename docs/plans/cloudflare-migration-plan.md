@@ -139,7 +139,7 @@ TDD applies: write the unit tests first (vitest), then implement.
 2. **Consumers to update:**
    - `src/app/api/analytics/track/route.ts:96-106` (geo capture)
    - `src/app/api/subscribe/route.ts` (signup geolocation)
-   - `src/lib/rate-limit.ts:177-182` (IP extraction; critical, otherwise all visitors behind one Cloudflare colo share a bucket)
+   - `src/lib/rate-limit.ts:177-182` (IP extraction; critical, otherwise all visitors behind one Cloudflare colo share a bucket, and since 2026-11-08 the 60 per minute beacon limiter on `/api/analytics/track` (CLAUD-793) would answer real page views with 429)
 3. Deploy order safety: this change is safe to ship before or after Phase 2 because of the fallback chain. Ship it before flipping the proxy so geo data has no gap.
 4. Middleware check (`src/middleware.ts`): the HTTPS enforcement reads `x-forwarded-proto`, which Vercel still sets correctly behind Cloudflare; the `*.vercel.app` noindex logic is untouched. No change expected; add a test if one does not exist.
 

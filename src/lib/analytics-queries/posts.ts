@@ -46,9 +46,11 @@ export async function loadPostPerformance(
         FROM page_engagement pe
         WHERE pe.page_path = v.page_path
           AND pe.recorded_at > NOW() - INTERVAL '1 day' * ${days}), 0)::float AS median_seconds,
-      (SELECT COUNT(*) FROM subscribers s WHERE s.source_page = v.page_path)::int AS subscribes,
+      (SELECT COUNT(*) FROM subscribers s WHERE s.source_page = v.page_path
+          AND s.subscribed_at > NOW() - INTERVAL '1 day' * ${days})::int AS subscribes,
       (SELECT COUNT(*) FROM blog_comments c
-        WHERE c.slug = SUBSTRING(v.page_path FROM 7))::int AS comments
+        WHERE c.slug = SUBSTRING(v.page_path FROM 7)
+          AND c.created_at > NOW() - INTERVAL '1 day' * ${days})::int AS comments
     FROM v
     ORDER BY v.views DESC
   `.catch(() => []);

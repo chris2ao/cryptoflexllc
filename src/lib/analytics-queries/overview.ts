@@ -6,8 +6,11 @@ import type {
   NewVsReturningRow,
 } from "@/lib/analytics-types";
 import { scopeClass, type TrafficScope } from "./shared";
+import { loadDailyEngagement, type DailyEngagementRow } from "./overview-engagement";
+
+export type { DailyEngagementRow };
 import { fetchDeployments, isVercelApiConfigured } from "@/lib/vercel-api";
-import { countSince, fetchRecentCommits } from "@/lib/github-activity";
+import { countSince, excludeAutomated, fetchRecentCommits } from "@/lib/github-activity";
 
 type OverviewSummaryRow = {
   total_views: number;
@@ -27,6 +30,7 @@ export type TrendPoint = {
 };
 
 export interface OverviewData {
+  dailyEngagement: DailyEngagementRow[];
   newVsReturning: NewVsReturningRow[];
   dailyViews: DailyViews[];
   hourlyHeatmap: HourlyHeatmapRow[];
@@ -69,7 +73,8 @@ async function loadShipping(): Promise<Shipping> {
   const work = Promise.all([
     fetchRecentCommits("chris2ao/cryptoflexllc", since14, process.env.GITHUB_TOKEN),
     isVercelApiConfigured() ? fetchDeployments(100) : Promise.resolve([]),
-  ]).then(([commits, deployments]): Shipping => {
+  ]).then(([allCommits, deployments]): Shipping => {
+    const commits = excludeAutomated(allCommits);
     const cutoff7 = now - 7 * 86_400_000;
     const production = deployments.filter((d) => d.target === "production");
     const latest = production[0];
@@ -147,6 +152,7 @@ export async function loadOverview(
     minutesWin,
     pendingRows,
     classTrend,
+    dailyEngagement,
     shipping,
   ] = await Promise.all([
     sql`
@@ -299,6 +305,7 @@ export async function loadOverview(
       GROUP BY DATE(visited_at)
       ORDER BY date
     `.catch(() => []),
+    loadDailyEngagement(sql, days, sc),
     loadShipping(),
   ]);
 
@@ -319,6 +326,7 @@ export async function loadOverview(
   });
 
   return {
+    dailyEngagement,
     newVsReturning: nvr,
     dailyViews: dailyViews as unknown as DailyViews[],
     hourlyHeatmap: hourlyHeatmap as unknown as HourlyHeatmapRow[],

@@ -25,8 +25,11 @@ export type SearchAnalyticsQuery = {
 
 let tokenCache: { token: string; expiresAtMs: number } | null = null;
 
+let tokenInFlight: Promise<string> | null = null;
+
 export function resetTokenCacheForTests(): void {
   tokenCache = null;
+  tokenInFlight = null;
 }
 
 export function isSearchConsoleConfigured(): boolean {
@@ -64,14 +67,28 @@ export function buildServiceAccountJwt(creds: ServiceCreds, nowSeconds: number):
   return `${signingInput}.${base64url(signature)}`;
 }
 
-export async function getAccessToken(
+export function getAccessToken(
   creds: ServiceCreds,
   fetchImpl: typeof fetch = fetch,
   now: number = Date.now(),
 ): Promise<string> {
   if (tokenCache && now < tokenCache.expiresAtMs - REFRESH_MARGIN_MS) {
-    return tokenCache.token;
+    return Promise.resolve(tokenCache.token);
   }
+  // Concurrent callers on a cold cache share one exchange.
+  if (tokenInFlight) return tokenInFlight;
+  const exchange = exchangeToken(creds, fetchImpl, now).finally(() => {
+    if (tokenInFlight === exchange) tokenInFlight = null;
+  });
+  tokenInFlight = exchange;
+  return exchange;
+}
+
+async function exchangeToken(
+  creds: ServiceCreds,
+  fetchImpl: typeof fetch,
+  now: number,
+): Promise<string> {
   const assertion = buildServiceAccountJwt(creds, Math.floor(now / 1000));
   const res = await fetchImpl(TOKEN_URL, {
     method: "POST",

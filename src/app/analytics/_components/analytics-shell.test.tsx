@@ -10,11 +10,11 @@ import { AnalyticsShell } from "./analytics-shell";
 
 Element.prototype.scrollIntoView = vi.fn();
 
-function setup() {
+function setup(currentDays = 7) {
   return render(
     <AnalyticsShell
       activeTab="readers"
-      currentDays={7}
+      currentDays={currentDays}
       scope="all"
       meta={<span>META-NODE</span>}
     >
@@ -24,6 +24,17 @@ function setup() {
 }
 
 describe("AnalyticsShell", () => {
+  it("highlights no range chip for a non-preset days value", () => {
+    setup(45);
+    const group = screen.getByRole("group", { name: "Date range" });
+    const chips = within(group).getAllByRole("button");
+    expect(chips.length).toBeGreaterThan(0);
+    for (const chip of chips) {
+      expect(chip.getAttribute("aria-pressed")).toBe("false");
+      expect(chip.className).toBe("");
+    }
+  });
+
   it("renders seven tab links", () => {
     setup();
     const tabs = screen.getAllByRole("tab");

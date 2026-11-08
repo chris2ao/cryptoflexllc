@@ -241,3 +241,71 @@ describe("getClientIp", () => {
     expect(getClientIp(req).length).toBeLessThanOrEqual(45);
   });
 });
+
+describe("createRateLimiter (memory backend)", () => {
+  beforeEach(() => {
+    process.env.DATABASE_URL = "postgres://placeholder";
+  });
+
+  afterEach(() => {
+    delete process.env.DATABASE_URL;
+    vi.restoreAllMocks();
+    vi.resetModules();
+    vi.doUnmock("@/lib/analytics");
+  });
+
+  it("never calls getDb and blocks the 61st call in a window", async () => {
+    const getDb = vi.fn();
+    vi.resetModules();
+    vi.doMock("@/lib/analytics", () => ({ getDb }));
+    const { createRateLimiter: create } = await import("../rate-limit");
+    const limiter = create({
+      name: "track",
+      windowMs: 60_000,
+      maxRequests: 60,
+      backend: "memory",
+    });
+    for (let i = 0; i < 60; i++) {
+      expect((await limiter.checkRateLimit("203.0.113.9")).allowed).toBe(true);
+    }
+    const blocked = await limiter.checkRateLimit("203.0.113.9");
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.retryAfter).toBeGreaterThan(0);
+    expect(getDb).not.toHaveBeenCalled();
+  });
+});
+
+describe("createRateLimiter memory sweep", () => {
+  beforeEach(() => {
+    delete process.env.DATABASE_URL;
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("sweeps expired keys at most once per window", async () => {
+    const limiter = createRateLimiter({ name: "s", windowMs: 60_000, maxRequests: 5, backend: "memory" });
+    await limiter.checkRateLimit("a");
+    vi.advanceTimersByTime(61_000);
+    await limiter.checkRateLimit("b"); // sweep: "a" expired and removed
+    expect(limiter.store.has("a")).toBe(false);
+    await limiter.checkRateLimit("c");
+    // Within the same window no further sweep: nothing to prove by absence,
+    // so assert the store scan does not rewrite entries.
+    const spy = vi.spyOn(limiter.store, "entries");
+    await limiter.checkRateLimit("d");
+    await limiter.checkRateLimit("e");
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("never exceeds the key cap", async () => {
+    const limiter = createRateLimiter({ name: "cap", windowMs: 60_000, maxRequests: 5, backend: "memory" });
+    for (let i = 0; i < 10_050; i++) {
+      await limiter.checkRateLimit(`k${i}`);
+    }
+    expect(limiter.store.size).toBeLessThanOrEqual(10_000);
+    expect(limiter.store.has("cap:k10049")).toBe(true);
+    expect(limiter.store.has("cap:k0")).toBe(false);
+  });
+});

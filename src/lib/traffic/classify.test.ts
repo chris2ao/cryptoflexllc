@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { classifyAtInsert, classifyFromSignals, isBotUserAgent } from "./classify";
+import {
+  BOT_UA_PATTERN_SOURCE,
+  classifyAtInsert,
+  classifyFromSignals,
+  isBotUserAgent,
+} from "./classify";
 
 const CHROME =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0 Safari/537.36";
@@ -54,4 +59,21 @@ describe("classifyFromSignals", () => {
     expect(
       classifyFromSignals({ ...base, pagePath: "/analytics", isOwnerIp: true, referrerClass: "forged" }),
     ).toBe("self"));
+});
+
+describe("BOT_UA_PATTERN_SOURCE Postgres parity", () => {
+  it("compiles as a case-insensitive JS regex", () => {
+    expect(() => new RegExp(BOT_UA_PATTERN_SOURCE, "i")).not.toThrow();
+  });
+
+  it.each(["\\b", "\\B", "(?<", "\\p{", "\\P{", "\\u", "\\k<", "(?i"])(
+    "contains no %s construct",
+    (construct) => expect(BOT_UA_PATTERN_SOURCE.includes(construct)).toBe(false),
+  );
+
+  it("keeps every alternative to plain literals (widen deliberately)", () => {
+    for (const alt of BOT_UA_PATTERN_SOURCE.split("|")) {
+      expect(alt).toMatch(/^[a-z0-9/-]+$/);
+    }
+  });
 });

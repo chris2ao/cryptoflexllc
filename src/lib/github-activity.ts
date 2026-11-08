@@ -56,3 +56,12 @@ export function countSince(commits: CommitSummary[], sinceIso: string): number {
     return Number.isFinite(t) && t >= cutoff;
   }).length;
 }
+
+/** Subjects written by cron jobs; they are not shipping work. */
+export const AUTOMATED_COMMIT_PREFIXES = ["chore: update gmail metrics"] as const;
+
+export function excludeAutomated(commits: CommitSummary[]): CommitSummary[] {
+  return commits.filter(
+    (c) => !AUTOMATED_COMMIT_PREFIXES.some((prefix) => c.message.startsWith(prefix))
+  );
+}

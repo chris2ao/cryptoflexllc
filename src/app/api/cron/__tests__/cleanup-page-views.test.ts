@@ -1,14 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "../cleanup-page-views/route";
+import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 
 const mockSql = vi.fn();
 const classify = vi.fn();
 const enrich = vi.fn();
+const pruneOps = vi.fn();
+const pruneIntel = vi.fn();
+const anonEngagement = vi.fn();
 
 vi.mock("@/lib/analytics", () => ({ getDb: vi.fn(() => mockSql) }));
 vi.mock("@/lib/analytics-schema", () => ({
   ensureAnalyticsSchema: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/lib/analytics-retention", () => ({
+  pruneOperationalRecords: (...args: unknown[]) => pruneOps(...args),
+  pruneStaleIntel: (...args: unknown[]) => pruneIntel(...args),
+  anonymizeEngagementIps: (...args: unknown[]) => anonEngagement(...args),
 }));
 vi.mock("@/lib/traffic/backfill", () => ({
   backfillLegacyReferrers: vi.fn().mockResolvedValue(3),
@@ -28,7 +37,11 @@ describe("cleanup-page-views cron", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.CRON_SECRET = "test-secret";
-    mockSql.mockResolvedValue({ count: 4 });
+    mockSql.mockResolvedValue([{ n: 4 }]);
+    pruneOps.mockResolvedValue({ serverEvents: 11, cronRuns: 12, digestRuns: 13 });
+    pruneIntel.mockResolvedValue(14);
+    anonEngagement.mockResolvedValue({ scrollEvents: 5, pageEngagement: 6 });
+    vi.mocked(ensureAnalyticsSchema).mockResolvedValue(true);
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -51,8 +64,11 @@ describe("cleanup-page-views cron", () => {
       legacyReferrers: 3,
       classified: 5120,
       enriched: 37,
+      anonymizedEngagement: { scrollEvents: 5, pageEngagement: 6 },
+      pruned: { serverEvents: 11, cronRuns: 12, digestRuns: 13, intel: 14 },
     });
     expect(classify).toHaveBeenCalledTimes(3);
+    expect(anonEngagement).toHaveBeenCalledWith(mockSql, 90);
     expect(enrich).toHaveBeenCalledWith(mockSql, 60, expect.objectContaining({ deadline: expect.any(Number) }));
   });
 
@@ -76,6 +92,43 @@ describe("cleanup-page-views cron", () => {
     expect(insert).toBeDefined();
     expect(insert?.[1]).toBe("cleanup-page-views");
     expect(insert?.[2]).toBe(true);
-    expect(insert?.[4]).toBe("anonymized 4, legacy referrers 3, classified 0, enriched 2");
+    expect(insert?.[4]).toBe("anonymized 4, engagement ips 5+6, legacy referrers 3, classified 0, enriched 2, pruned events 11, runs 12, digests 13, intel 14");
+  });
+
+  it("still runs every stage and returns 200 when the schema is not ready", async () => {
+    vi.mocked(ensureAnalyticsSchema).mockResolvedValue(false);
+    classify.mockResolvedValueOnce(0);
+    enrich.mockResolvedValue(1);
+    const res = await GET(req(true));
+    expect(res.status).toBe(200);
+    expect((await res.json()).enriched).toBe(1);
+    expect(classify).toHaveBeenCalled();
+    expect(enrich).toHaveBeenCalled();
+    expect(pruneOps).toHaveBeenCalled();
+  });
+
+  it("reports zero prune counts and keeps going when the prune stage throws", async () => {
+    pruneOps.mockRejectedValue(new Error("boom"));
+    classify.mockResolvedValueOnce(0);
+    enrich.mockResolvedValue(0);
+    const res = await GET(req(true));
+    expect(res.status).toBe(200);
+    expect((await res.json()).pruned).toEqual({
+      serverEvents: 0,
+      cronRuns: 0,
+      digestRuns: 0,
+      intel: 0,
+    });
+    expect(enrich).toHaveBeenCalled();
+  });
+
+  it("keeps going with zero engagement counts when that stage throws", async () => {
+    anonEngagement.mockRejectedValue(new Error("boom"));
+    classify.mockResolvedValueOnce(0);
+    enrich.mockResolvedValue(0);
+    const res = await GET(req(true));
+    expect(res.status).toBe(200);
+    expect((await res.json()).anonymizedEngagement).toEqual({ scrollEvents: 0, pageEngagement: 0 });
+    expect(pruneOps).toHaveBeenCalled();
   });
 });

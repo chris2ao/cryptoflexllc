@@ -27,7 +27,7 @@ import {
   parseDeviceType,
 } from "@/lib/analytics";
 import { recordApiMetric } from "@/lib/api-timing";
-import { getClientIp } from "@/lib/rate-limit";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 import { isTrackedPath } from "@/lib/analytics-tracking-rules";
 import { isSitePath } from "@/lib/site-path";
@@ -39,6 +39,25 @@ const trackSchema = z.object({
   path: z.string().min(1).max(500).optional().default("/"),
   referrer: z.string().max(2000).optional().default(""),
 });
+
+// In-memory on purpose: no database query per beacon. Per instance, so the
+// limit is approximate on serverless, which is enough to blunt a flood.
+const trackLimiter = createRateLimiter({
+  name: "track",
+  windowMs: 60_000,
+  maxRequests: 60,
+  backend: "memory",
+});
+
+const LEGACY_WARN_INTERVAL_MS = 5 * 60 * 1000;
+let lastLegacyWarnAt = 0;
+
+function warnLegacyFallback(): void {
+  const now = Date.now();
+  if (lastLegacyWarnAt && now - lastLegacyWarnAt < LEGACY_WARN_INTERVAL_MS) return;
+  lastLegacyWarnAt = now;
+  console.warn("Analytics schema not ready, recording the beacon with legacy columns");
+}
 
 export async function POST(request: NextRequest) {
   const t0 = Date.now();
@@ -54,6 +73,16 @@ export async function POST(request: NextRequest) {
 
     // ---- 1b. Resolve the trusted client IP (F-H3). ----
     const ipAddress = getClientIp(request) || "127.0.0.1";
+    const limit = await trackLimiter.checkRateLimit(ipAddress);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limit.retryAfter ?? 60) },
+        },
+      );
+    }
 
     // ---- 2. Parse and validate the request body ----
     let body;
@@ -132,7 +161,7 @@ export async function POST(request: NextRequest) {
 
     // ---- 8. Rate limiting: IP+path dedup (1 per hour) ----
     const sql = getDb();
-    await ensureAnalyticsSchema(sql);
+    const schemaReady = await ensureAnalyticsSchema(sql);
     const existing = await sql`
       SELECT 1 FROM page_views
       WHERE ip_address = ${ipAddress}
@@ -147,19 +176,37 @@ export async function POST(request: NextRequest) {
     }
 
     // ---- 9. Insert into database ----
-    await sql`
-      INSERT INTO page_views (
-        page_path, ip_address, user_agent, browser, os,
-        device_type, referrer, country, city, region,
-        latitude, longitude, utm_source, utm_medium, utm_campaign,
-        referrer_host, referrer_class, traffic_class
-      ) VALUES (
-        ${pagePath}, ${ipAddress}, ${userAgent}, ${browser}, ${os},
-        ${deviceType}, ${referrer}, ${country}, ${city}, ${region},
-        ${latitude}, ${longitude}, ${utmSource}, ${utmMedium}, ${utmCampaign},
-        ${ref.host}, ${ref.cls}, ${trafficClass}
-      )
-    `;
+    if (schemaReady) {
+      await sql`
+        INSERT INTO page_views (
+          page_path, ip_address, user_agent, browser, os,
+          device_type, referrer, country, city, region,
+          latitude, longitude, utm_source, utm_medium, utm_campaign,
+          referrer_host, referrer_class, traffic_class
+        ) VALUES (
+          ${pagePath}, ${ipAddress}, ${userAgent}, ${browser}, ${os},
+          ${deviceType}, ${referrer}, ${country}, ${city}, ${region},
+          ${latitude}, ${longitude}, ${utmSource}, ${utmMedium}, ${utmCampaign},
+          ${ref.host}, ${ref.cls}, ${trafficClass}
+        )
+      `;
+    } else {
+      warnLegacyFallback();
+      // Schema not confirmed: record the beacon with the legacy columns only.
+      // The nightly backfill derives referrer_host, referrer_class and
+      // traffic_class later.
+      await sql`
+        INSERT INTO page_views (
+          page_path, ip_address, user_agent, browser, os,
+          device_type, referrer, country, city, region,
+          latitude, longitude, utm_source, utm_medium, utm_campaign
+        ) VALUES (
+          ${pagePath}, ${ipAddress}, ${userAgent}, ${browser}, ${os},
+          ${deviceType}, ${referrer}, ${country}, ${city}, ${region},
+          ${latitude}, ${longitude}, ${utmSource}, ${utmMedium}, ${utmCampaign}
+        )
+      `;
+    }
 
     recordApiMetric("/api/analytics/track", "POST", 204, Date.now() - t0);
     return new NextResponse(null, { status: 204 });

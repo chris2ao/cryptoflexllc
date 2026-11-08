@@ -84,12 +84,36 @@ function isSearchHost(host: string): boolean {
   return labels.length === 2 || (labels.length === 3 && labels[1].length <= 3);
 }
 
-/** `chatgpt.com` and the bare `chatgpt` both mean the assistant sent the reader. */
+/** Lowercase with every non-alphanumeric removed: `chat-gpt` and `ChatGPT` both become `chatgpt`. */
+function normaliseToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** Assistant names seen in `utm_source`, normalised, plus the first label of each AI host. */
+export const AI_SOURCE_ALIASES: ReadonlySet<string> = new Set([
+  "chatgpt",
+  "openai",
+  "claude",
+  "anthropic",
+  "perplexity",
+  "copilot",
+  "bingchat",
+  "gemini",
+  "bard",
+  "poe",
+  "phind",
+  "mistral",
+  "lechat",
+  "deepseek",
+  "grok",
+  "metaai",
+  "kagi",
+  ...AI_HOSTS.map((h) => normaliseToken(h.split(".")[0])),
+]);
+
+/** `chatgpt.com`, the bare `chatgpt` and `Chat-GPT` all mean the assistant sent the reader. */
 function isAiSource(source: string): boolean {
-  return (
-    hostMatches(source, AI_HOSTS) ||
-    AI_HOSTS.some((h) => h.split(".")[0] === source)
-  );
+  return hostMatches(source, AI_HOSTS) || AI_SOURCE_ALIASES.has(normaliseToken(source));
 }
 
 function isInternalHost(host: string): boolean {

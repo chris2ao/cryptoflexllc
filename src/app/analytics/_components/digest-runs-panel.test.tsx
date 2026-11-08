@@ -7,7 +7,7 @@ describe("DigestRunsPanel", () => {
     render(
       <DigestRunsPanel
         runs={[
-          { ran_at: "2026-11-02T13:00:00Z", recipients: 8, sent: 7, failed: 1, duration_ms: 4500, clicks7d: 3 },
+          { ran_at: "2026-11-02T13:00:00Z", recipients: 8, sent: 7, failed: 1, duration_ms: 4500, clicks7d: 3, partial: false },
         ]}
       />,
     );
@@ -19,10 +19,24 @@ describe("DigestRunsPanel", () => {
   it("shows n/a when there were no recipients", () => {
     render(
       <DigestRunsPanel
-        runs={[{ ran_at: "2026-11-02T13:00:00Z", recipients: 0, sent: 0, failed: 0, duration_ms: 100, clicks7d: 0 }]}
+        runs={[{ ran_at: "2026-11-02T13:00:00Z", recipients: 0, sent: 0, failed: 0, duration_ms: 100, clicks7d: 0, partial: false }]}
       />,
     );
     expect(screen.getByText("n/a")).toBeInTheDocument();
+  });
+
+  it("marks a run whose window is still open", () => {
+    render(
+      <DigestRunsPanel
+        runs={[
+          { ran_at: "2026-11-02T13:00:00Z", recipients: 8, sent: 8, failed: 0, duration_ms: 100, clicks7d: 2, partial: true },
+          { ran_at: "2026-10-26T13:00:00Z", recipients: 8, sent: 8, failed: 0, duration_ms: 100, clicks7d: 4, partial: false },
+        ]}
+      />,
+    );
+    const marks = screen.getAllByTitle("Seven-day window still open");
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toHaveTextContent("so far");
   });
 
   it("shows the empty state", () => {
