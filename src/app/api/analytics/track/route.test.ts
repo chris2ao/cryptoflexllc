@@ -343,3 +343,15 @@ describe("POST /api/analytics/track", () => {
     });
   });
 });
+
+describe("path safety", () => {
+  it.each(["//evil.com/x", "/\\evil.com", "/blog/\\x"])("rejects %s with 400", async (path) => {
+    const request = new NextRequest("http://localhost/api/analytics/track", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+      headers: { "content-type": "application/json" },
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+  });
+});

@@ -3,6 +3,8 @@ import { ipv4ToInt } from "../cidr";
 
 export /** After a failed refresh the stale text is reused this long before trying again. */
 const STALE_TTL_MS = 10 * 60 * 1000;
+/** A real list is well under this; a consent or error page that slips through is not cached. */
+const MAX_LIST_BYTES = 2 * 1024 * 1024;
 const LIST_TTL_MS = 24 * 60 * 60 * 1000;
 const TOR_URL = "https://check.torproject.org/torbulkexitlist";
 
@@ -30,6 +32,7 @@ export async function loadListText(
   timeoutMs: number,
   fetchImpl: typeof fetch,
   now: number,
+  validate: (text: string) => boolean = () => true,
 ): Promise<string> {
   const mem = memo.get(name);
   if (mem && now - mem.at < LIST_TTL_MS) return mem.text;
@@ -54,8 +57,12 @@ export async function loadListText(
   try {
     const res = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
     if (!res.ok) return rememberStale(name, stale, now);
+    const declared = Number(res.headers.get("content-length") ?? 0);
+    if (declared > MAX_LIST_BYTES) return rememberStale(name, stale, now);
     const text = await res.text();
-    if (!text.trim()) return rememberStale(name, stale, now);
+    if (!text.trim() || text.length > MAX_LIST_BYTES || !validate(text)) {
+      return rememberStale(name, stale, now);
+    }
     memo.set(name, { text, at: now });
     try {
       await sql`
@@ -86,6 +93,6 @@ export async function loadTorExitSet(
   fetchImpl: typeof fetch = fetch,
   now: number = Date.now(),
 ): Promise<Set<string>> {
-  const text = await loadListText(sql, "tor-exits", TOR_URL, 8000, fetchImpl, now);
+  const text = await loadListText(sql, "tor-exits", TOR_URL, 8000, fetchImpl, now, (t) => parseTorExits(t).size > 0);
   return parseTorExits(text);
 }

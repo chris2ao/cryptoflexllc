@@ -1,3 +1,4 @@
+import { isSitePath } from "@/lib/site-path";
 import Link from "next/link";
 import type { VisitorDossier } from "@/lib/analytics-queries/visitor";
 import type { IpEnrichment } from "@/lib/ip-enrichment/types";
@@ -113,7 +114,7 @@ export function LocationSection({ e }: { e: IpEnrichment }) {
 }
 
 function isInternal(path: string): boolean {
-  return path.startsWith("/") && !path.startsWith("//");
+  return isSitePath(path);
 }
 
 export function HistorySection({ d }: { d: VisitorDossier }) {

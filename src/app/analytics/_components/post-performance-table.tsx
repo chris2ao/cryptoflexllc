@@ -1,5 +1,6 @@
 "use client";
 
+import { isSitePath } from "@/lib/site-path";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { PostPerformanceRow } from "@/lib/analytics-queries/posts";
@@ -16,7 +17,7 @@ const SORTABLE_KEYS: ReadonlySet<SortKey> = new Set([
 
 /** Single leading slash only: rejects protocol-relative and external URLs. */
 function isInternalPath(href: string): boolean {
-  return href.startsWith("/") && !href.startsWith("//") && !href.startsWith("/\\");
+  return isSitePath(href);
 }
 
 function formatMedian(seconds: number): string {

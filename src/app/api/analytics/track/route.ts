@@ -30,6 +30,7 @@ import { recordApiMetric } from "@/lib/api-timing";
 import { getClientIp } from "@/lib/rate-limit";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 import { isTrackedPath } from "@/lib/analytics-tracking-rules";
+import { isSitePath } from "@/lib/site-path";
 import { classifyReferrer, referrerForStorage } from "@/lib/traffic/referrer";
 import { classifyAtInsert } from "@/lib/traffic/classify";
 
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     const rawPath = parsed.data.path;
 
     // ---- 3. Additional path validation ----
-    if (!rawPath.startsWith("/")) {
+    if (!rawPath.startsWith("/") || !isSitePath(rawPath.split("?")[0])) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
