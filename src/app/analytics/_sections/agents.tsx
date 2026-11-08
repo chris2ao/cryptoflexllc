@@ -1,3 +1,4 @@
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { getDb } from "@/lib/analytics";
 import { loadGmailMetricsSnapshots } from "@/lib/automation-snapshots";
 import { loadUnsubscribePanel } from "@/lib/gmail-unsubscribe";
@@ -8,7 +9,9 @@ import { KpiStrip } from "../_components/kpi-strip";
 import { AxPanel } from "../_components/ax-panel";
 import { GmailMetricsChart } from "./lazy-charts";
 
-export async function AgentsSection() {
+export async function AgentsSection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
+  void days;
+  void scope;
   const sql = getDb();
   const { gmailRuns, sessions } = await loadGmailMetricsSnapshots(sql);
   const unsub = await loadUnsubscribePanel(sql).catch(() => null);

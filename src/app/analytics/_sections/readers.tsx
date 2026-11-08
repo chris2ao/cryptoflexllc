@@ -1,3 +1,4 @@
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { loadReaders } from "@/lib/analytics-queries/readers";
 import { VisitorMapDynamic } from "../_components/visitor-map-dynamic";
 import { AxPanel } from "../_components/ax-panel";
@@ -5,7 +6,8 @@ import { AxRankedList } from "../_components/ax-ranked-list";
 import { AxDonut } from "../_components/ax-donut";
 import { NewVsReturningChart } from "./lazy-charts";
 
-export async function ReadersSection({ days }: { days: number }) {
+export async function ReadersSection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
+  void scope;
   const {
     mapLocations: typedMapLocations,
     topCountries: typedCountries,

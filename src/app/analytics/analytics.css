@@ -18,7 +18,7 @@
 
 /* Page header */
 .ax-header {
-  padding: 40px 0 32px;
+  padding: 24px 0 20px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -26,7 +26,7 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 24px;
-  align-items: end;
+  align-items: center;
 }
 
 @media (max-width: 900px) {
@@ -39,7 +39,7 @@
   color: var(--fg-3);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -52,10 +52,10 @@
 .ax-title {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: clamp(2.5rem, 5.5vw, 4.25rem);
-  line-height: 0.98;
+  font-size: 40px;
+  line-height: 1;
   letter-spacing: -0.032em;
-  margin: 0 0 10px 0;
+  margin: 0;
   text-wrap: balance;
 }
 
@@ -68,13 +68,8 @@
 
 .ax-title .accent { color: var(--primary); }
 
-.ax-sub {
-  font-family: var(--font-body);
-  font-size: 17px;
-  color: var(--fg-2);
-  max-width: 620px;
-  margin: 0;
-  line-height: 1.5;
+@media (max-width: 640px) {
+  .ax-title { font-size: 30px; }
 }
 
 .ax-controls {
@@ -143,22 +138,20 @@
 /* Toolbar */
 .ax-toolbar {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  gap: 16px;
+  grid-template-columns: auto auto 1fr auto auto;
+  gap: 12px;
   align-items: center;
-  padding: 16px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 88px;
   z-index: 40;
-  background: color-mix(in oklab, var(--background) 92%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--background);
 }
 
 @media (max-width: 1100px) {
   .ax-toolbar {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto auto 1fr auto;
     grid-template-rows: auto auto;
   }
   .ax-toolbar .tabs-wrap { grid-column: 1 / -1; grid-row: 2; }
@@ -233,7 +226,7 @@
 
 .toolbar-tabs {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
   scroll-behavior: smooth;
@@ -249,7 +242,8 @@
 .ax-tab {
   font-family: var(--font-heading);
   font-size: 13px;
-  padding: 9px 14px;
+  padding: 9px 9px;
+  text-decoration: none;
   color: var(--fg-3);
   border: 1px solid transparent;
   border-radius: 4px;
@@ -288,7 +282,7 @@
   padding: 7px 10px;
   font-family: var(--font-mono);
   font-size: 12px;
-  min-width: 240px;
+  min-width: 140px;
   color: var(--fg-3);
   background: var(--surface-1);
 }
@@ -1312,6 +1306,24 @@ table.ax-tbl {
 }
 
 /* ==== REGION: shell ==== */
+.ax-meta-line {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 6px 40px;
+  max-width: 1440px;
+  margin: 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.08em;
+}
+
+.ax-meta-line span b { color: var(--fg-2); font-weight: 500; }
+
+@media (max-width: 768px) {
+  .ax-meta-line { padding: 6px 20px; }
+}
 
 /* ==== REGION: charts ==== */
 
