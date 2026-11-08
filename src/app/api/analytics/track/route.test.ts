@@ -8,7 +8,7 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/analytics");
 vi.mock("@/lib/analytics-schema", () => ({
-  ensureAnalyticsSchema: vi.fn().mockResolvedValue(undefined),
+  ensureAnalyticsSchema: vi.fn().mockResolvedValue(true),
 }));
 
 describe("POST /api/analytics/track", () => {
@@ -353,5 +353,67 @@ describe("path safety", () => {
     });
     const response = await POST(request);
     expect(response.status).toBe(400);
+  });
+});
+
+describe("POST /api/analytics/track schema fallback and rate limit", () => {
+  let mockSql: any;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const { getDb, parseBrowser, parseOS, parseDeviceType } = await import(
+      "@/lib/analytics"
+    );
+    mockSql = vi.fn();
+    vi.mocked(getDb).mockReturnValue(mockSql);
+    vi.mocked(parseBrowser).mockReturnValue("Chrome");
+    vi.mocked(parseOS).mockReturnValue("Windows");
+    vi.mocked(parseDeviceType).mockReturnValue("Desktop");
+  });
+
+  it("falls back to the legacy INSERT when the schema is not ready", async () => {
+    const { ensureAnalyticsSchema } = await import("@/lib/analytics-schema");
+    vi.mocked(ensureAnalyticsSchema).mockResolvedValueOnce(false);
+    mockSql.mockResolvedValueOnce([]);
+    mockSql.mockResolvedValueOnce([]);
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/analytics/track", {
+        method: "POST",
+        body: JSON.stringify({ path: "/blog/legacy" }),
+        headers: {
+          "content-type": "application/json",
+          "x-real-ip": "198.51.100.77",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(204);
+    const insertText = (mockSql.mock.calls[1][0] as string[]).join("?");
+    expect(insertText).toContain("INSERT INTO page_views");
+    expect(insertText).not.toContain("referrer_host");
+    expect(insertText).not.toContain("traffic_class");
+  });
+
+  it("rate limits the 61st beacon from one IP with 429", async () => {
+    mockSql.mockResolvedValue([]);
+    const send = () =>
+      POST(
+        new NextRequest("http://localhost/api/analytics/track", {
+          method: "POST",
+          body: JSON.stringify({ path: "/blog/flood" }),
+          headers: {
+            "content-type": "application/json",
+            "x-real-ip": "198.51.100.200",
+          },
+        }),
+      );
+    for (let i = 0; i < 60; i++) {
+      expect((await send()).status).not.toBe(429);
+    }
+    const blocked = await send();
+    expect(blocked.status).toBe(429);
+    expect(await blocked.json()).toEqual({ error: "Too many requests" });
+    expect(Number(blocked.headers.get("Retry-After"))).toBeGreaterThan(0);
   });
 });

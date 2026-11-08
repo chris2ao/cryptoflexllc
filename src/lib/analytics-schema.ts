@@ -19,6 +19,11 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
   "ALTER TABLE page_views ADD COLUMN IF NOT EXISTS traffic_class VARCHAR(8)",
   "CREATE INDEX IF NOT EXISTS idx_page_views_traffic_class ON page_views (traffic_class)",
   "CREATE INDEX IF NOT EXISTS idx_page_views_legacy_referrer ON page_views (id) WHERE referrer_host = ''",
+  "CREATE TABLE IF NOT EXISTS scroll_events (id SERIAL PRIMARY KEY, recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), page_path TEXT NOT NULL, depth SMALLINT NOT NULL, ip_address VARCHAR(45) NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS page_engagement (id SERIAL PRIMARY KEY, recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), page_path TEXT NOT NULL, time_seconds SMALLINT NOT NULL, ip_address VARCHAR(45) NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS idx_page_views_class_visited ON page_views (traffic_class, visited_at)",
+  "CREATE INDEX IF NOT EXISTS idx_scroll_events_ip_recorded ON scroll_events (ip_address, recorded_at)",
+  "CREATE INDEX IF NOT EXISTS idx_page_engagement_ip_recorded ON page_engagement (ip_address, recorded_at)",
   "CREATE TABLE IF NOT EXISTS server_events (id SERIAL PRIMARY KEY, occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), route TEXT NOT NULL, kind VARCHAR(40) NOT NULL, message TEXT NOT NULL DEFAULT '')",
   "CREATE TABLE IF NOT EXISTS cron_runs (id SERIAL PRIMARY KEY, ran_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), name VARCHAR(60) NOT NULL, ok BOOLEAN NOT NULL, duration_ms INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '')",
   "CREATE TABLE IF NOT EXISTS digest_runs (id SERIAL PRIMARY KEY, ran_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), recipients INTEGER NOT NULL, sent INTEGER NOT NULL, failed INTEGER NOT NULL, duration_ms INTEGER NOT NULL DEFAULT 0)",
@@ -51,14 +56,14 @@ async function runStatement(sql: SqlTag, statement: string): Promise<unknown> {
 
 /**
  * One cheap read decides whether the chain has to run at all. The last
- * column of each ALTER group is the marker, so a process never takes the
+ * column of each ALTER group (and the newest indexes) are the markers, so a process never takes the
  * ALTER TABLE locks on page_views when the columns already exist.
  */
 const PRESENCE_CHECK =
-  "SELECT column_name AS marker FROM information_schema.columns WHERE (table_name = 'page_views' AND column_name = 'traffic_class') OR (table_name = 'ip_intel' AND column_name = 'enriched_at') UNION ALL SELECT indexname FROM pg_indexes WHERE indexname = 'idx_page_views_legacy_referrer'";
+  "SELECT column_name AS marker FROM information_schema.columns WHERE (table_name = 'page_views' AND column_name = 'traffic_class') OR (table_name = 'ip_intel' AND column_name = 'enriched_at') UNION ALL SELECT indexname FROM pg_indexes WHERE indexname IN ('idx_page_views_legacy_referrer', 'idx_page_engagement_ip_recorded')";
 
-/** Three markers: the two newest columns and the newest index. A new statement needs a new marker here. */
-const PRESENCE_MARKERS = 3;
+/** Four markers: the two newest columns and the two newest indexes. A new statement needs a new marker here. */
+const PRESENCE_MARKERS = 4;
 
 async function columnsPresent(sql: SqlTag): Promise<boolean> {
   const rows = await runStatement(sql, PRESENCE_CHECK);
@@ -68,28 +73,31 @@ async function columnsPresent(sql: SqlTag): Promise<boolean> {
 /** After a failure, wait this long before any request tries the chain again. */
 export const SCHEMA_RETRY_AFTER_MS = 5 * 60 * 1000;
 
-let inFlight: Promise<void> | null = null;
+let inFlight: Promise<boolean> | null = null;
 let lastFailureAt = 0;
 
+/** Resolves true when the schema is ready, false after a failure or while backing off. */
 export function ensureAnalyticsSchema(
   sql: SqlTag,
   now: number = Date.now(),
-): Promise<void> {
+): Promise<boolean> {
   if (inFlight) return inFlight;
   if (lastFailureAt && now - lastFailureAt < SCHEMA_RETRY_AFTER_MS) {
-    return Promise.resolve();
+    return Promise.resolve(false);
   }
-  const run = (async () => {
+  const run = (async (): Promise<boolean> => {
     try {
-      if (await columnsPresent(sql)) return;
+      if (await columnsPresent(sql)) return true;
       for (const statement of SCHEMA_STATEMENTS) {
         await runStatement(sql, statement);
       }
       lastFailureAt = 0;
+      return true;
     } catch (error) {
       console.error("Analytics schema ensure failed:", error);
       lastFailureAt = now;
       inFlight = null;
+      return false;
     }
   })();
   // The async body only reaches the catch after an await, so this

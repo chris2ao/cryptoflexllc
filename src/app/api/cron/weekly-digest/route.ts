@@ -21,7 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import nodemailer from "nodemailer";
 import { getDb } from "@/lib/analytics";
-import type { SqlTag } from "@/lib/analytics-schema";
+import { ensureAnalyticsSchema, type SqlTag } from "@/lib/analytics-schema";
 import { withCronRun } from "@/lib/cron-runs";
 import { getAllPosts } from "@/lib/blog";
 import { unsubscribeUrl } from "@/lib/subscribers";
@@ -75,6 +75,7 @@ async function runDigest(request: NextRequest, sql: SqlTag): Promise<DigestOutco
         { status: 400 }
       ),
       note: "testEmail rejected in production",
+      ok: false,
     };
   }
 
@@ -114,8 +115,8 @@ async function runDigest(request: NextRequest, sql: SqlTag): Promise<DigestOutco
   let sent = 0;
   const BATCH_SIZE = 5;
   const subject = hasNewPosts
-    ? `This Week at CryptoFlex — ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}!`
-    : "This Week at CryptoFlex — Quick Update";
+    ? `This Week at CryptoFlex: ${digestPosts.length} New Post${digestPosts.length > 1 ? "s" : ""}`
+    : "This Week at CryptoFlex: Quick Update";
 
   console.log(`[weekly-digest] Sending to ${recipients.length} recipients`);
 
@@ -220,6 +221,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const sql = getDb();
+    // cron_runs may not exist on a fresh database: create it before recording.
+    await ensureAnalyticsSchema(sql);
     const outcome = await withCronRun(
       sql,
       "weekly-digest",

@@ -241,3 +241,36 @@ describe("getClientIp", () => {
     expect(getClientIp(req).length).toBeLessThanOrEqual(45);
   });
 });
+
+describe("createRateLimiter (memory backend)", () => {
+  beforeEach(() => {
+    process.env.DATABASE_URL = "postgres://placeholder";
+  });
+
+  afterEach(() => {
+    delete process.env.DATABASE_URL;
+    vi.restoreAllMocks();
+    vi.resetModules();
+    vi.doUnmock("@/lib/analytics");
+  });
+
+  it("never calls getDb and blocks the 61st call in a window", async () => {
+    const getDb = vi.fn();
+    vi.resetModules();
+    vi.doMock("@/lib/analytics", () => ({ getDb }));
+    const { createRateLimiter: create } = await import("../rate-limit");
+    const limiter = create({
+      name: "track",
+      windowMs: 60_000,
+      maxRequests: 60,
+      backend: "memory",
+    });
+    for (let i = 0; i < 60; i++) {
+      expect((await limiter.checkRateLimit("203.0.113.9")).allowed).toBe(true);
+    }
+    const blocked = await limiter.checkRateLimit("203.0.113.9");
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.retryAfter).toBeGreaterThan(0);
+    expect(getDb).not.toHaveBeenCalled();
+  });
+});

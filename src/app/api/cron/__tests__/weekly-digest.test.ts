@@ -9,6 +9,10 @@ vi.mock('@/lib/analytics', () => ({
   getDb: vi.fn(() => mockQuery),
 }));
 
+vi.mock('@/lib/analytics-schema', () => ({
+  ensureAnalyticsSchema: vi.fn().mockResolvedValue(true),
+}));
+
 vi.mock('@/lib/blog', () => ({
   getAllPosts: vi.fn(() => []),
 }));

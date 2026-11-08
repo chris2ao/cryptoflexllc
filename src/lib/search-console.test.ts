@@ -92,6 +92,33 @@ describe("getAccessToken", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
+  it("shares one exchange between concurrent cold-cache callers", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ access_token: "tokC", expires_in: 3600 })),
+    );
+    const f = fetchImpl as unknown as typeof fetch;
+    const tokens = await Promise.all([
+      getAccessToken(creds, f, 10),
+      getAccessToken(creds, f, 10),
+      getAccessToken(creds, f, 10),
+    ]);
+    expect(tokens).toEqual(["tokC", "tokC", "tokC"]);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the memo when the exchange fails so the next call fetches again", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("nope", { status: 500 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ access_token: "tokD", expires_in: 3600 })),
+      );
+    const f = fetchImpl as unknown as typeof fetch;
+    await expect(getAccessToken(creds, f, 10)).rejects.toThrow(/\(500\)/);
+    await expect(getAccessToken(creds, f, 10)).resolves.toBe("tokD");
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it("throws a generic error without echoing secrets on failure", async () => {
     const fetchImpl = vi.fn(async () => new Response("nope", { status: 400 }));
     await expect(
