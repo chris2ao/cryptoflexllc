@@ -35,7 +35,7 @@ describe("cleanup-page-views cron", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.CRON_SECRET = "test-secret";
-    mockSql.mockResolvedValue({ count: 4 });
+    mockSql.mockResolvedValue([{ n: 4 }]);
     pruneOps.mockResolvedValue({ serverEvents: 11, cronRuns: 12, digestRuns: 13 });
     pruneIntel.mockResolvedValue(14);
     vi.mocked(ensureAnalyticsSchema).mockResolvedValue(true);

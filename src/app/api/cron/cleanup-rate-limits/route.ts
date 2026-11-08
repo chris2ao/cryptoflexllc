@@ -46,11 +46,14 @@ export async function GET(request: NextRequest) {
       sql,
       "cleanup-rate-limits",
       async () => {
-        const result = await sql`
-          DELETE FROM rate_limits
-          WHERE window_start < EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours') * 1000
+        const rows = await sql`
+          WITH d AS (
+            DELETE FROM rate_limits
+            WHERE window_start < EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours') * 1000
+            RETURNING 1
+          ) SELECT COUNT(*)::int AS n FROM d
         `;
-        return (result as unknown as { count: number }).count ?? 0;
+        return Number(rows[0]?.n ?? 0);
       },
       (n) => `deleted ${n}`,
     );

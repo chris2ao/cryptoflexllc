@@ -32,6 +32,9 @@ interface RateLimitOptions {
 // ip_address column, turning inserts into 500s (F-M15).
 const MAX_IP_LENGTH = 45;
 
+// Upper bound on distinct keys held by the in-memory store.
+const MAX_MEMORY_KEYS = 10_000;
+
 interface RateLimitResult {
   allowed: boolean;
   remaining: number;
@@ -50,12 +53,16 @@ interface RateLimiter {
 export function createRateLimiter(options: RateLimitOptions): RateLimiter {
   const { name, windowMs, maxRequests, backend = "db" } = options;
   const store = new Map<string, number[]>();
+  let lastSweepAt = 0;
 
   /**
-   * In-memory cleanup (only used for fallback mode)
+   * In-memory cleanup (only used for fallback mode). Throttled to once per
+   * window unless forced, so a flood does not scan every key per request.
    */
-  function cleanupMemory(): void {
+  function cleanupMemory(force = false): void {
     const now = Date.now();
+    if (!force && lastSweepAt && now - lastSweepAt < windowMs) return;
+    lastSweepAt = now;
     const cutoff = now - windowMs;
 
     for (const [ip, timestamps] of store.entries()) {
@@ -73,7 +80,15 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
    * In-memory rate limit check (fallback for development)
    */
   function checkRateLimitMemory(ip: string): RateLimitResult {
-    cleanupMemory();
+    if (!store.has(ip) && store.size >= MAX_MEMORY_KEYS) {
+      cleanupMemory(true);
+      for (const oldest of store.keys()) {
+        if (store.size < MAX_MEMORY_KEYS) break;
+        store.delete(oldest);
+      }
+    } else {
+      cleanupMemory();
+    }
 
     const now = Date.now();
     const cutoff = now - windowMs;

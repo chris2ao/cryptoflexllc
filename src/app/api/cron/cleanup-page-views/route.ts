@@ -62,14 +62,17 @@ export async function GET(request: NextRequest) {
       async () => {
         // Blank the IP on rows older than the retention window. Parameterized day
         // count via make_interval keeps this a bounded, injection-safe UPDATE.
-        const result = await sql`
-          UPDATE page_views
-          SET ip_address = ''
-          WHERE visited_at < NOW() - make_interval(days => ${RETENTION_DAYS})
-            AND ip_address <> ''
+        const rows = await sql`
+          WITH u AS (
+            UPDATE page_views
+            SET ip_address = ''
+            WHERE visited_at < NOW() - make_interval(days => ${RETENTION_DAYS})
+              AND ip_address <> ''
+            RETURNING 1
+          ) SELECT COUNT(*)::int AS n FROM u
         `;
 
-        const anonymized = (result as unknown as { count: number }).count ?? 0;
+        const anonymized = Number(rows[0]?.n ?? 0);
         console.log(`Page view retention: anonymized ${anonymized} old IP(s)`);
 
         // Retention for operational tables; each delete is isolated inside.

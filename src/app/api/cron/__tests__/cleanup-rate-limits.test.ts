@@ -19,7 +19,7 @@ describe("cleanup-rate-limits cron", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.CRON_SECRET = "test-secret";
-    mockSql.mockResolvedValue({ count: 6 });
+    mockSql.mockResolvedValue([{ n: 6 }]);
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -38,7 +38,7 @@ describe("cleanup-rate-limits cron", () => {
     });
     mockSql.mockImplementation((strings: TemplateStringsArray) => {
       if (strings.join("?").includes("INSERT INTO cron_runs")) order.push("record");
-      return Promise.resolve({ count: 1 });
+      return Promise.resolve([{ n: 1 }]);
     });
     await GET(req(true));
     expect(ensureAnalyticsSchema).toHaveBeenCalledWith(mockSql);
