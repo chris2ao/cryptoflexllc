@@ -1,31 +1,31 @@
-import { loadContent } from "@/lib/analytics-queries/content";
+import { loadContent, loadReferrerClasses } from "@/lib/analytics-queries/content";
+import { loadPostPerformance } from "@/lib/analytics-queries/posts";
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { CampaignPanel } from "../_components/campaign-panel";
 import { SearchQueriesPanel } from "../_components/search-queries-panel";
 import { AxPanel } from "../_components/ax-panel";
-import { AxRankedList } from "../_components/ax-ranked-list";
+import { PostPerformanceTable } from "../_components/post-performance-table";
+import { ReferrerClasses } from "../_components/referrer-classes";
 import { ScrollDepthChart, TimeOnPageChart } from "./lazy-charts";
 
-export async function ContentSection({ days }: { days: number }) {
+export async function ContentSection({
+  days,
+  scope = "humans",
+}: {
+  days: number;
+  scope?: TrafficScope;
+}) {
+  const [content, posts, referrers] = await Promise.all([
+    loadContent(days),
+    loadPostPerformance(days, scope),
+    loadReferrerClasses(days, scope),
+  ]);
   const {
-    topPages: typedTopPages,
-    referrers: typedReferrers,
     scrollDepth: typedScrollDepth,
     timeOnPage: typedTimeOnPage,
     campaignData: typedCampaigns,
     searchQueries: typedSearchQueries,
-  } = await loadContent(days);
-
-  const topPageItems = typedTopPages.slice(0, 10).map((p) => ({
-    label: p.page_path,
-    value: p.views,
-    sublabel: `${p.unique_views.toLocaleString()} uniques`,
-    href: p.page_path.startsWith("/") ? p.page_path : undefined,
-  }));
-  const referrerItems = typedReferrers.slice(0, 10).map((r) => ({
-    label: r.referrer_domain || "(direct)",
-    value: r.views,
-    sublabel: `${r.unique_visitors.toLocaleString()} visitors`,
-  }));
+  } = content;
 
   return (
     <div className="ax-wrap ax-section">
@@ -35,17 +35,23 @@ export async function ContentSection({ days }: { days: number }) {
           What they&apos;re <em>reading.</em>
         </h2>
         <p className="lede">
-          Top pages, where traffic came from, how deep readers scrolled, and
-          how long they stayed.
+          Which posts get read, where traffic came from, how deep readers
+          scrolled, and how long they stayed.
         </p>
       </div>
 
-      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
-        <AxPanel title="Top pages" kicker={`TOP ${topPageItems.length}`}>
-          <AxRankedList items={topPageItems} />
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Post performance" kicker={`${posts.length} POSTS`}>
+          <PostPerformanceTable rows={posts} />
         </AxPanel>
-        <AxPanel title="Referrers" kicker={`TOP ${referrerItems.length}`}>
-          <AxRankedList items={referrerItems} />
+      </div>
+
+      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
+        <AxPanel title="Referrers" kicker="BY CLASS">
+          <ReferrerClasses classes={referrers.classes} hosts={referrers.hosts} />
+        </AxPanel>
+        <AxPanel title="Campaigns" kicker="UTM TRAFFIC">
+          <CampaignPanel campaigns={typedCampaigns} />
         </AxPanel>
       </div>
 
@@ -58,10 +64,7 @@ export async function ContentSection({ days }: { days: number }) {
         </AxPanel>
       </div>
 
-      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
-        <AxPanel title="Campaigns" kicker="UTM TRAFFIC">
-          <CampaignPanel campaigns={typedCampaigns} />
-        </AxPanel>
+      <div style={{ marginBottom: 20 }}>
         <AxPanel title="Site search" kicker="QUERIES">
           <SearchQueriesPanel queries={typedSearchQueries} />
         </AxPanel>

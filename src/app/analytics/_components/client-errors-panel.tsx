@@ -8,7 +8,6 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { ClientErrorTrendRow, ClientErrorRow } from "@/lib/analytics-types";
-import { PanelWrapper } from "./panel-wrapper";
 
 const chartConfig = {
   error_count: {
@@ -33,21 +32,13 @@ export function ClientErrorsPanel({
   totalCount,
 }: ClientErrorsPanelProps) {
   return (
-    <div className="space-y-8">
-      {/* Trend chart */}
-      <PanelWrapper
-        title="Client Errors"
-        tooltip="JavaScript errors captured from visitor browsers via window.onerror and unhandledrejection listeners"
-        badge={
-          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-            {totalCount} total
-          </span>
-        }
-      >
+    <div>
+      <div className="ax-block">
+        <p className="ax-subhead">
+          Client errors <span className="ax-pill">{totalCount} total</span>
+        </p>
         {trend.length === 0 ? (
-          <p className="text-muted-foreground text-sm text-center py-8">
-            No errors recorded yet
-          </p>
+          <p className="ax-empty">No errors recorded yet</p>
         ) : (
           <ChartContainer config={chartConfig} className="h-[200px] w-full">
             <AreaChart
@@ -56,28 +47,12 @@ export function ClientErrorsPanel({
             >
               <defs>
                 <linearGradient id="fillErrors" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="var(--chart-5)"
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="var(--chart-5)"
-                    stopOpacity={0}
-                  />
+                  <stop offset="5%" stopColor="var(--chart-5)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--chart-5)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="fillUnique" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="var(--chart-4)"
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="var(--chart-4)"
-                    stopOpacity={0}
-                  />
+                  <stop offset="5%" stopColor="var(--chart-4)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--chart-4)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -94,11 +69,7 @@ export function ClientErrorsPanel({
                   });
                 }}
               />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                allowDecimals={false}
-              />
+              <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Area
                 dataKey="error_count"
@@ -117,32 +88,26 @@ export function ClientErrorsPanel({
             </AreaChart>
           </ChartContainer>
         )}
-      </PanelWrapper>
+      </div>
 
-      {/* Recent errors table */}
       {recent.length > 0 && (
-        <PanelWrapper
-          title="Recent Errors"
-          tooltip="Most recent client-side errors with type, page, and browser info"
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <div className="ax-block">
+          <p className="ax-subhead">Recent errors</p>
+          <div className="ax-tbl-scroll">
+            <table className="ax-tbl ax-tbl-static">
               <thead>
-                <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="pb-2 pr-4 font-medium">Time</th>
-                  <th className="pb-2 pr-4 font-medium">Type</th>
-                  <th className="pb-2 pr-4 font-medium">Message</th>
-                  <th className="pb-2 pr-4 font-medium">Page</th>
-                  <th className="pb-2 font-medium">Browser</th>
+                <tr>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Message</th>
+                  <th>Page</th>
+                  <th>Browser</th>
                 </tr>
               </thead>
               <tbody>
                 {recent.map((err) => (
-                  <tr
-                    key={err.id}
-                    className="border-b border-border/50 last:border-0"
-                  >
-                    <td className="py-2 pr-4 text-muted-foreground whitespace-nowrap">
+                  <tr key={err.id}>
+                    <td className="muted" style={{ whiteSpace: "nowrap" }}>
                       {new Date(err.recorded_at).toLocaleString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -150,21 +115,16 @@ export function ClientErrorsPanel({
                         minute: "2-digit",
                       })}
                     </td>
-                    <td className="py-2 pr-4">
-                      <span className="inline-block rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">
-                        {err.error_type}
-                      </span>
+                    <td>
+                      <span className="ax-pill ax-pill--bad">{err.error_type}</span>
                     </td>
-                    <td
-                      className="py-2 pr-4 max-w-[300px] truncate"
-                      title={err.error_message}
-                    >
+                    <td className="trunc" title={err.error_message}>
                       {err.error_message}
                     </td>
-                    <td className="py-2 pr-4 text-muted-foreground whitespace-nowrap">
+                    <td className="muted" style={{ whiteSpace: "nowrap" }}>
                       {err.page_path}
                     </td>
-                    <td className="py-2 text-muted-foreground whitespace-nowrap">
+                    <td className="muted" style={{ whiteSpace: "nowrap" }}>
                       {err.browser}
                     </td>
                   </tr>
@@ -172,7 +132,7 @@ export function ClientErrorsPanel({
               </tbody>
             </table>
           </div>
-        </PanelWrapper>
+        </div>
       )}
     </div>
   );

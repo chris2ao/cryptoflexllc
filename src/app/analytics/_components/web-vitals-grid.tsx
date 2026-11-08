@@ -8,9 +8,6 @@ const THRESHOLDS: Record<string, Threshold> = {
   CLS: { good: 0.1, poor: 0.25, unit: "" },
   FCP: { good: 1800, poor: 3000, unit: "ms" },
   TTFB: { good: 800, poor: 1800, unit: "ms" },
-  FID: { good: 100, poor: 300, unit: "ms" },
-  SI: { good: 3400, poor: 5800, unit: "ms" },
-  TBT: { good: 200, poor: 600, unit: "ms" },
 };
 
 const METRIC_LABELS: Record<string, string> = {
@@ -19,17 +16,14 @@ const METRIC_LABELS: Record<string, string> = {
   CLS: "Cumulative Layout Shift",
   FCP: "First Contentful Paint",
   TTFB: "Time to First Byte",
-  FID: "First Input Delay",
-  SI: "Speed Index",
-  TBT: "Total Blocking Time",
 };
 
-const METRIC_ORDER = ["LCP", "INP", "CLS", "FCP", "TTFB", "FID", "SI", "TBT"];
+const METRIC_ORDER = ["LCP", "INP", "CLS", "FCP", "TTFB"];
 
 type Formatted = { text: string; unit: string };
 
 function formatValue(name: string, value: number | null): Formatted {
-  if (value == null) return { text: "—", unit: "" };
+  if (value == null) return { text: "n/a", unit: "" };
   if (name === "CLS") return { text: value.toFixed(3), unit: "" };
   if (value >= 1000) return { text: (value / 1000).toFixed(2), unit: "s" };
   return { text: String(Math.round(value)), unit: "ms" };

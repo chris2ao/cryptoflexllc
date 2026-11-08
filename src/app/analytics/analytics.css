@@ -1435,5 +1435,97 @@ ol.ax-chart-legend a:hover { color: var(--primary); }
 
 /* ==== REGION: panels ==== */
 
+.ax-empty {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-3);
+  padding: 16px 8px;
+  margin: 0;
+}
+
+.ax-tbl-scroll { overflow-x: auto; }
+.ax-tbl td.trunc { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ax-tbl td.muted { color: var(--fg-3); }
+.ax-tbl tr.pending-row { background: var(--accent-dim); }
+.ax-tbl .ax-link { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--accent-line); background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+.ax-tbl .ax-link:hover { text-decoration-color: var(--primary); }
+.ax-tbl .row-actions { display: flex; align-items: center; gap: 6px; }
+.ax-tbl.ax-tbl-static th { cursor: default; position: static; }
+
+.ax-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.ax-pill--ok { color: var(--ax-green); border-color: oklch(0.78 0.17 150 / 0.4); background: oklch(0.78 0.17 150 / 0.08); }
+.ax-pill--warn { color: var(--ax-amber); border-color: oklch(0.80 0.15 72 / 0.4); background: oklch(0.80 0.15 72 / 0.08); }
+.ax-pill--bad { color: var(--ax-red); border-color: oklch(0.72 0.20 22 / 0.4); background: oklch(0.72 0.20 22 / 0.08); }
+
+.ax-subhead {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+.ax-block { margin-bottom: 20px; }
+.ax-block:last-child { margin-bottom: 0; }
+.ax-notice {
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-2);
+}
+.ax-notice--bad { color: var(--ax-red); border-color: oklch(0.72 0.20 22 / 0.4); background: oklch(0.72 0.20 22 / 0.08); }
+
+.ax-stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.ax-stat { border: 1px solid var(--border); background: var(--surface-2); padding: 10px 12px; }
+.ax-stat .v { display: block; font-family: var(--font-mono); font-size: 20px; color: var(--fg); font-variant-numeric: tabular-nums; }
+.ax-stat .l { display: block; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-3); }
+
+.ax-panel-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.ax-input {
+  width: 100%;
+  max-width: 420px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: 0;
+}
+.ax-input:focus-visible { outline: 2px solid var(--primary); outline-offset: -1px; }
+@media (min-width: 640px) { .ax-input { font-size: 13px; } }
+.ax-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@keyframes ax-spin { to { transform: rotate(360deg); } }
+.ax-spin { animation: ax-spin 1s linear infinite; }
+.ax-icon-btn { display: inline-flex; align-items: center; gap: 4px; }
+.ax-icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ax-class-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.ax-class-chip {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 96px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-2);
+  font-family: var(--font-mono);
+}
+.ax-class-chip .lbl { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-3); }
+.ax-class-chip .cnt { font-size: 16px; color: var(--fg); font-variant-numeric: tabular-nums; }
+.ax-class-chip .note { font-size: 10px; color: var(--fg-3); max-width: 160px; }
+.ax-class-chip.dim { opacity: 0.5; }
+.ax-class-chip.dim .cnt { color: var(--fg-3); }
+
 /* ==== REGION: intel ==== */
 
