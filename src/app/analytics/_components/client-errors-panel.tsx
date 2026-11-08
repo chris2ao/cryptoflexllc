@@ -7,6 +7,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { IpLink } from "./ip-link";
 import type { ClientErrorTrendRow, ClientErrorRow } from "@/lib/analytics-types";
 
 const chartConfig = {
@@ -102,6 +103,7 @@ export function ClientErrorsPanel({
                   <th>Message</th>
                   <th>Page</th>
                   <th>Browser</th>
+                  <th>IP</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,6 +128,9 @@ export function ClientErrorsPanel({
                     </td>
                     <td className="muted" style={{ whiteSpace: "nowrap" }}>
                       {err.browser}
+                    </td>
+                    <td>
+                      <IpLink ip={err.ip_address} />
                     </td>
                   </tr>
                 ))}

@@ -15,6 +15,7 @@ import { getAnalyticsCookieName, verifyAuthToken } from "@/lib/analytics-auth";
 import { loadLiveSummary } from "@/lib/analytics-queries/live-summary";
 import { rangeDays, resolveScope } from "@/lib/analytics-queries/shared";
 import { AnalyticsShell } from "./_components/analytics-shell";
+import { VisitorPanelHost } from "./_components/visitor-panel";
 import { AnalyticsHeader } from "./_components/analytics-header";
 import { resolveTab } from "./_components/tabs";
 import { SECTIONS, SKELETONS } from "./_sections/registry";
@@ -105,6 +106,7 @@ export default async function AnalyticsPage({
           </Suspense>
         </div>
       </AnalyticsShell>
+      <VisitorPanelHost />
     </section>
   );
 }
