@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fetchRecentCommits, countSince } from "./github-activity";
+import { fetchRecentCommits, countSince, excludeAutomated, AUTOMATED_COMMIT_PREFIXES } from "./github-activity";
 
 const ok = (body: unknown) =>
   vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => body });
@@ -42,5 +42,18 @@ describe("countSince", () => {
     ];
     expect(countSince(commits, "2026-11-03T00:00:00Z")).toBe(1);
     expect(countSince(commits, "nope")).toBe(0);
+  });
+});
+
+describe("excludeAutomated", () => {
+  it("drops cron metric commits and keeps the rest without mutating", () => {
+    const input = [
+      { sha: "1", message: "chore: update gmail metrics 2026-11-07", date: "d" },
+      { sha: "2", message: "fix: CLAUD-1 something", date: "d" },
+    ];
+    const out = excludeAutomated(input);
+    expect(out.map((c) => c.sha)).toEqual(["2"]);
+    expect(input).toHaveLength(2);
+    expect(AUTOMATED_COMMIT_PREFIXES).toContain("chore: update gmail metrics");
   });
 });

@@ -1,0 +1,123 @@
+/* SVG visitor map */
+.ax-map-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* World map (replaces hand-drawn blobs) */
+.ax-world-map { width: 100%; height: auto; display: block; }
+
+.ax-world-map .ax-world-land {
+  fill: color-mix(in oklab, var(--surface-2) 55%, transparent);
+  stroke: var(--border-2);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.ax-world-map .graticule {
+  stroke: var(--border);
+  stroke-width: 0.3;
+  fill: none;
+  opacity: 0.5;
+}
+
+.ax-world-map .ax-arc-guide {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 0.6;
+  stroke-opacity: 0.12;
+  vector-effect: non-scaling-stroke;
+}
+
+.ax-world-map .ax-arc-head {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-dasharray: 0.18 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--primary) 70%, transparent));
+  animation: ax-arc-draw 3.6s linear infinite;
+  vector-effect: non-scaling-stroke;
+}
+
+@keyframes ax-arc-draw {
+  0%   { stroke-dashoffset: 1;    opacity: 0; }
+  10%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { stroke-dashoffset: -0.2; opacity: 0; }
+}
+
+.ax-world-map .ax-origin {
+  fill: var(--primary);
+  filter: drop-shadow(0 0 8px color-mix(in oklab, var(--primary) 90%, transparent));
+}
+
+.ax-world-map .ax-origin-pulse {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  animation: ax-origin-ring 2.4s ease-out infinite;
+}
+
+@keyframes ax-origin-ring {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  100% { transform: scale(3.5); opacity: 0;   }
+}
+
+.ax-world-map .dot {
+  fill: var(--primary);
+  filter: drop-shadow(0 0 6px color-mix(in oklab, var(--primary) 60%, transparent));
+  cursor: pointer;
+}
+
+.ax-world-map .dot-pulse {
+  fill: var(--primary);
+  opacity: 0.8;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ax-dot-pulse 2.2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ax-dot-pulse {
+  0%   { opacity: 0.8; transform: scale(0.3); }
+  100% { opacity: 0;   transform: scale(1.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ax-world-map .ax-arc-head    { animation: none; stroke-dashoffset: 0; stroke-dasharray: none; stroke-opacity: 0.5; }
+  .ax-world-map .ax-origin-pulse { animation: none; opacity: 0.3; }
+  .ax-world-map .dot-pulse       { animation: none; opacity: 0.3; }
+}
+
+.ax-map-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: color-mix(in oklab, var(--background) 80%, transparent);
+  border: 1px solid var(--border-2);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+  letter-spacing: 0.06em;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.ax-map-legend .scale {
+  display: flex;
+  gap: 2px;
+}
+
+.ax-map-legend .scale i {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  border-radius: 2px;
+}
+

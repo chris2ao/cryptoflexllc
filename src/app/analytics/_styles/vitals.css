@@ -1,0 +1,113 @@
+/* Web Vitals grid */
+.ax-vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1000px) {
+  .ax-vitals-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .ax-vitals-grid { grid-template-columns: 1fr; }
+}
+
+.ax-vital-card {
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ax-vital-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ax-vital-label span:first-child {
+  color: var(--fg);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.ax-vital-label .hint {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+  color: var(--fg-3);
+}
+
+.ax-vital-value {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ax-vital-value .unit {
+  font-size: 14px;
+  color: var(--fg-3);
+  font-weight: 500;
+  margin-left: 3px;
+}
+
+.ax-vital-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2px;
+  height: 6px;
+  position: relative;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ax-vital-bar .seg {
+  height: 100%;
+}
+
+.ax-vital-bar .seg.good { background: oklch(0.78 0.17 150 / 0.35); }
+.ax-vital-bar .seg.warn { background: oklch(0.80 0.15 72 / 0.35); }
+.ax-vital-bar .seg.poor { background: oklch(0.72 0.20 22 / 0.35); }
+
+.ax-vital-bar .marker {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--fg);
+  border-radius: 1px;
+  transform: translateX(-1px);
+}
+
+.ax-vital-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-2);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ax-vital-status .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.ax-vital-status .budget {
+  color: var(--fg-3);
+}
+

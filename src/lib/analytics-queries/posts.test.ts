@@ -25,6 +25,15 @@ describe("loadPostPerformance", () => {
     expect(rows[0].views).toBe(10);
   });
 
+  it("windows subscribes and comments like the other columns", async () => {
+    tag.mockResolvedValue([]);
+    await loadPostPerformance(30, "humans");
+    const text = (tag.mock.calls[0][0] as string[]).join("?");
+    expect(text).toContain("s.subscribed_at > NOW() - INTERVAL '1 day' * ?");
+    expect(text).toContain("c.created_at > NOW() - INTERVAL '1 day' * ?");
+    expect(tag.mock.calls[0].filter((v: unknown) => v === 30).length).toBeGreaterThanOrEqual(6);
+  });
+
   it("keeps the path for an unknown slug", async () => {
     tag.mockResolvedValue([row("/blog/ghost")]);
     const rows = await loadPostPerformance(30, "all");

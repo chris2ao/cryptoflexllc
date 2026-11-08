@@ -1,0 +1,28 @@
+/* ==== REGION: shell ==== */
+
+/* Seven tabs fit a 1360px content width only without their numbers. */
+@media (max-width: 1540px) {
+  .ax-tab .n { display: none; }
+}
+.btn-editorial--danger { color: var(--ax-red); border-color: color-mix(in oklab, var(--ax-red) 40%, transparent); }
+.btn-editorial--danger:hover { background: color-mix(in oklab, var(--ax-red) 12%, transparent); }
+
+.ax-meta-line {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 6px 40px;
+  max-width: 1440px;
+  margin: 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.08em;
+}
+
+.ax-meta-line span b { color: var(--fg-2); font-weight: 500; }
+
+@media (max-width: 768px) {
+  .ax-meta-line { padding: 6px 20px; }
+}
+

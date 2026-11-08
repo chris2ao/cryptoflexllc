@@ -71,6 +71,13 @@ describe("PostPerformanceTable", () => {
     expect(screen.getByText("12.3%")).toBeTruthy();
   });
 
+  it("labels subscribes and comments without an all-time caveat", () => {
+    render(<PostPerformanceTable rows={rows} />);
+    expect(screen.getByRole("columnheader", { name: /^subscribes/i }).textContent).not.toMatch(/all time/i);
+    expect(screen.getByRole("columnheader", { name: /^comments/i }).textContent).not.toMatch(/all time/i);
+    expect(screen.queryByTitle("All time, not limited to the range")).toBeNull();
+  });
+
   it("renders the empty state", () => {
     render(<PostPerformanceTable rows={[]} />);
     expect(screen.getByText("No posts in range")).toBeTruthy();

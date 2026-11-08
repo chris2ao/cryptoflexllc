@@ -35,7 +35,14 @@ export function DigestRunsPanel({ runs }: { runs: DigestRunRow[] }) {
               <td>{r.sent}</td>
               <td>{r.failed}</td>
               <td className="ax-nowrap">{(r.duration_ms / 1000).toFixed(1)}s</td>
-              <td>{r.clicks7d}</td>
+              <td>
+                {r.clicks7d}
+                {r.partial && (
+                  <span className="ax-nowrap" title="Seven-day window still open">
+                    {" "}so far
+                  </span>
+                )}
+              </td>
               <td className="ax-nowrap">{clickThrough(r.clicks7d, r.recipients)}</td>
             </tr>
           ))}
