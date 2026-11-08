@@ -363,4 +363,20 @@ describe("POST /api/analytics/vitals", () => {
     expect(response.status).toBe(400);
     expect(data.error).toBe("Invalid input");
   });
+
+  it.each([
+    ["dashboard", "/analytics"],
+    ["backlog", "/backlog/some-post"],
+  ])("accepts but does not store vitals for %s paths", async (_label, path) => {
+    const request = new NextRequest("http://localhost/api/analytics/vitals", {
+      method: "POST",
+      body: JSON.stringify({ name: "LCP", value: 2500, rating: "good", path }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(204);
+    expect(mockSql).not.toHaveBeenCalled();
+  });
 });

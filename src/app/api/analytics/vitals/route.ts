@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/analytics";
 import { recordApiMetric } from "@/lib/api-timing";
+import { isTrackedPath } from "@/lib/analytics-tracking-rules";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 const VALID_METRICS = new Set(["LCP", "INP", "CLS", "FCP", "TTFB"]);
@@ -76,6 +77,11 @@ export async function POST(request: NextRequest) {
     // Additional validation for path (must start with /)
     if (!path.startsWith("/")) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
+
+    // Dashboard and backlog paths are never stored: accept and drop.
+    if (!isTrackedPath(path)) {
+      return new NextResponse(null, { status: 204 });
     }
 
     const safeNavType = navigationType || "navigate";
