@@ -8,16 +8,15 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { SubscriberGrowthRow } from "@/lib/analytics-types";
-import { PanelWrapper } from "./panel-wrapper";
 
 const chartConfig = {
   cumulative: {
     label: "Total Subscribers",
-    color: "var(--chart-3)",
+    color: "var(--ax-amber)",
   },
   new_subscribers: {
     label: "New",
-    color: "var(--chart-1)",
+    color: "var(--primary)",
   },
 } satisfies ChartConfig;
 
@@ -28,28 +27,18 @@ interface SubscriberGrowthChartProps {
 export function SubscriberGrowthChart({ data }: SubscriberGrowthChartProps) {
   if (data.length === 0) {
     return (
-      <PanelWrapper
-        title="Subscriber Growth"
-        tooltip="Weekly subscriber growth trend showing new signups and cumulative total"
-      >
-        <p className="text-muted-foreground text-sm text-center py-8">
-          No subscriber data yet
-        </p>
-      </PanelWrapper>
+      <p className="ax-empty">No data in range</p>
     );
   }
 
   return (
-    <PanelWrapper
-      title="Subscriber Growth"
-      tooltip="Weekly subscriber growth trend showing new signups and cumulative total"
-    >
-      <ChartContainer config={chartConfig} className="h-[250px] w-full">
+    <div className="ax-chart">
+      <ChartContainer config={chartConfig} className="ax-chart-fill">
         <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="fillCumulative" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0} />
+              <stop offset="5%" stopColor="var(--ax-amber)" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="var(--ax-amber)" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -72,19 +61,19 @@ export function SubscriberGrowthChart({ data }: SubscriberGrowthChartProps) {
             dataKey="cumulative"
             type="monotone"
             fill="url(#fillCumulative)"
-            stroke="var(--chart-3)"
+            stroke="var(--ax-amber)"
             strokeWidth={2}
           />
           <Area
             dataKey="new_subscribers"
             type="monotone"
             fill="none"
-            stroke="var(--chart-1)"
+            stroke="var(--primary)"
             strokeWidth={2}
             strokeDasharray="4 2"
           />
         </AreaChart>
       </ChartContainer>
-    </PanelWrapper>
+    </div>
   );
 }

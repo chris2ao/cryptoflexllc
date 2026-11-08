@@ -1,12 +1,11 @@
 "use client";
 
 import type { HourlyHeatmapRow } from "@/lib/analytics-types";
-import { PanelWrapper } from "./panel-wrapper";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function getColor(value: number, max: number): string {
-  if (max === 0 || value === 0) return "var(--muted)";
+  if (max === 0 || value === 0) return "var(--surface-2)";
   const intensity = value / max;
   // oklch ramp from muted to primary
   if (intensity < 0.25) return "oklch(0.35 0.06 195)";
@@ -28,70 +27,46 @@ export function PeakHoursHeatmap({ data }: { data: HourlyHeatmapRow[] }) {
   }
 
   if (data.length === 0) {
-    return (
-      <PanelWrapper
-        title="Peak Hours"
-        tooltip="Traffic intensity by day of week and hour — find the best times to publish"
-      >
-        <p className="text-muted-foreground text-sm text-center py-8">
-          No data yet
-        </p>
-      </PanelWrapper>
-    );
+    return <p className="ax-empty">No data in range</p>;
   }
 
   return (
-    <PanelWrapper
-      title="Peak Hours"
-      tooltip="Traffic intensity by day of week and hour — find the best times to publish"
-    >
-      <div className="overflow-x-auto">
-        <div className="min-w-[600px]">
-          {/* Hour labels */}
-          <div className="flex ml-10 mb-1">
-            {Array.from({ length: 24 }, (_, h) => (
-              <div
-                key={h}
-                className="flex-1 text-center text-[10px] text-muted-foreground"
-              >
-                {h % 3 === 0 ? `${h}` : ""}
-              </div>
-            ))}
-          </div>
-
-          {/* Rows */}
-          {DAYS.map((day, di) => (
-            <div key={day} className="flex items-center gap-1 mb-0.5">
-              <span className="w-9 text-xs text-muted-foreground text-right pr-1">
-                {day}
-              </span>
-              {grid[di].map((views, hi) => (
-                <div
-                  key={hi}
-                  className="flex-1 aspect-square rounded-sm transition-colors"
-                  style={{ backgroundColor: getColor(views, maxViews) }}
-                  title={`${day} ${hi}:00 — ${views} views`}
-                />
-              ))}
+    <div className="ax-heatmap">
+      <div className="ax-heatmap-inner">
+        <div className="ax-heatmap-hours">
+          {Array.from({ length: 24 }, (_, h) => (
+            <div key={h} className="ax-heatmap-hour">
+              {h % 3 === 0 ? `${h}` : ""}
             </div>
           ))}
+        </div>
 
-          {/* Legend */}
-          <div className="flex items-center justify-end gap-1 mt-2 text-[10px] text-muted-foreground">
-            <span>Less</span>
-            {[0, 0.25, 0.5, 0.75, 1].map((i) => (
+        {DAYS.map((day, di) => (
+          <div key={day} className="ax-heatmap-row">
+            <span className="ax-heatmap-day">{day}</span>
+            {grid[di].map((views, hi) => (
               <div
-                key={i}
-                className="w-3 h-3 rounded-sm"
-                style={{
-                  backgroundColor: getColor(i * maxViews, maxViews),
-                }}
+                key={hi}
+                className="ax-heatmap-cell"
+                style={{ backgroundColor: getColor(views, maxViews) }}
+                title={`${day} ${hi}:00, ${views} views`}
               />
             ))}
-            <span>More</span>
           </div>
+        ))}
+
+        <div className="ax-heatmap-legend">
+          <span>Less</span>
+          {[0, 0.25, 0.5, 0.75, 1].map((i) => (
+            <div
+              key={i}
+              className="ax-heatmap-swatch"
+              style={{ backgroundColor: getColor(i * maxViews, maxViews) }}
+            />
+          ))}
+          <span>More</span>
         </div>
       </div>
-    </PanelWrapper>
+    </div>
   );
 }

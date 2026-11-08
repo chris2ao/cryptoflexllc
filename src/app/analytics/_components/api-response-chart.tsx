@@ -8,24 +8,19 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { PanelWrapper } from "./panel-wrapper";
 
 const trendConfig = {
-  p50: { label: "p50", color: "var(--chart-2)" },
-  p75: { label: "p75", color: "var(--chart-1)" },
-  p95: { label: "p95", color: "var(--chart-5)" },
+  p50: { label: "p50", color: "var(--ax-green)" },
+  p75: { label: "p75", color: "var(--primary)" },
+  p95: { label: "p95", color: "var(--ax-red)" },
 } satisfies ChartConfig;
 
-function getRatingColor(p75: number): string {
-  if (p75 <= 200) return "text-green-400";
-  if (p75 <= 500) return "text-yellow-400";
-  return "text-red-400";
-}
+type Rating = "good" | "warn" | "bad";
 
-function getRatingBorder(p75: number): string {
-  if (p75 <= 200) return "border-green-500/30 bg-green-500/5";
-  if (p75 <= 500) return "border-yellow-500/30 bg-yellow-500/5";
-  return "border-red-500/30 bg-red-500/5";
+function getRating(p75: number): Rating {
+  if (p75 <= 200) return "good";
+  if (p75 <= 500) return "warn";
+  return "bad";
 }
 
 export function ApiResponseChart({
@@ -39,64 +34,44 @@ export function ApiResponseChart({
   const hasDaily = daily.length > 0;
 
   if (!hasEndpoints && !hasDaily) {
-    return (
-      <PanelWrapper
-        title="API Response Times"
-        tooltip="Server-side latency (p50/p75/p95) and error rates per endpoint"
-      >
-        <p className="text-muted-foreground text-sm text-center py-8">
-          No API metrics collected yet. Metrics appear as API routes are called.
-        </p>
-      </PanelWrapper>
-    );
+    return <p className="ax-empty">No data in range</p>;
   }
 
   return (
-    <PanelWrapper
-      title="API Response Times"
-      tooltip="Server-side latency (p50/p75/p95) and error rates per endpoint"
-    >
-      {/* Per-endpoint summary cards */}
+    <>
       {hasEndpoints && (
-        <div className="space-y-2 mb-6">
+        <div className="ax-endpoints">
           {endpoints.map((ep) => {
             const errorPct =
               ep.total_count > 0
                 ? Math.round((ep.error_count / ep.total_count) * 100)
                 : 0;
+            const rating = getRating(ep.p75);
             return (
               <div
                 key={`${ep.method}-${ep.endpoint}`}
-                className={`rounded-md border p-3 ${getRatingBorder(ep.p75)}`}
+                className={`ax-endpoint ax-endpoint--${rating}`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted">
-                      {ep.method}
-                    </span>
-                    <span className="text-sm font-semibold truncate max-w-[200px]">
-                      {ep.endpoint}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span
-                      className={`text-lg font-bold ${getRatingColor(ep.p75)}`}
-                    >
+                <div className="ax-endpoint-head">
+                  <span>
+                    <span className="ax-endpoint-method">{ep.method}</span>
+                    {ep.endpoint}
+                  </span>
+                  <span>
+                    <span className={`ax-endpoint-p75 ax-endpoint-p75--${rating}`}>
                       {Math.round(ep.p75)}ms
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-1">
-                      p75
-                    </span>
-                  </div>
+                    </span>{" "}
+                    p75
+                  </span>
                 </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
+                <div className="ax-endpoint-meta">
                   <span>
                     p50: {Math.round(ep.p50)}ms &middot; p95:{" "}
                     {Math.round(ep.p95)}ms &middot;{" "}
                     {ep.total_count.toLocaleString()} calls
                   </span>
                   {errorPct > 0 && (
-                    <span className="text-red-400">{errorPct}% errors</span>
+                    <span className="ax-endpoint-err">{errorPct}% errors</span>
                   )}
                 </div>
               </div>
@@ -105,9 +80,9 @@ export function ApiResponseChart({
         </div>
       )}
 
-      {/* Daily trend chart */}
       {hasDaily && (
-        <ChartContainer config={trendConfig} className="h-[200px] w-full">
+        <div className="ax-chart">
+        <ChartContainer config={trendConfig} className="ax-chart-fill">
           <AreaChart
             data={daily}
             margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
@@ -116,12 +91,12 @@ export function ApiResponseChart({
               <linearGradient id="fillP75api" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
-                  stopColor="var(--chart-1)"
+                  stopColor="var(--primary)"
                   stopOpacity={0.3}
                 />
                 <stop
                   offset="95%"
-                  stopColor="var(--chart-1)"
+                  stopColor="var(--primary)"
                   stopOpacity={0}
                 />
               </linearGradient>
@@ -156,7 +131,7 @@ export function ApiResponseChart({
               dataKey="p50"
               type="monotone"
               fill="none"
-              stroke="var(--chart-2)"
+              stroke="var(--ax-green)"
               strokeWidth={1}
               strokeDasharray="4 2"
             />
@@ -164,20 +139,21 @@ export function ApiResponseChart({
               dataKey="p75"
               type="monotone"
               fill="url(#fillP75api)"
-              stroke="var(--chart-1)"
+              stroke="var(--primary)"
               strokeWidth={2}
             />
             <Area
               dataKey="p95"
               type="monotone"
               fill="none"
-              stroke="var(--chart-5)"
+              stroke="var(--ax-red)"
               strokeWidth={1}
               strokeDasharray="4 2"
             />
           </AreaChart>
         </ChartContainer>
+        </div>
       )}
-    </PanelWrapper>
+    </>
   );
 }
