@@ -9,9 +9,7 @@ import { KpiStrip } from "../_components/kpi-strip";
 import { AxPanel } from "../_components/ax-panel";
 import { GmailMetricsChart } from "./lazy-charts";
 
-export async function AgentsSection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
-  void days;
-  void scope;
+export async function AgentsSection(_props: { days: number; scope?: TrafficScope }) {
   const sql = getDb();
   const { gmailRuns, sessions } = await loadGmailMetricsSnapshots(sql);
   const unsub = await loadUnsubscribePanel(sql).catch(() => null);

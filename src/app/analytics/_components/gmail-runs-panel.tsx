@@ -1,5 +1,4 @@
 import type { GmailRun } from "@/lib/analytics-types";
-import { PanelWrapper } from "./panel-wrapper";
 import { DataTable } from "./data-table";
 
 function formatTimestamp(ts: string): string {
@@ -45,16 +44,5 @@ export function GmailRunsPanel({ runs }: { runs: GmailRun[] }) {
     runStatus(r),
   ]);
 
-  return (
-    <PanelWrapper
-      title="Gmail Assistant Runs"
-      tooltip="Recent runs of the gmail-agent showing scanned, trashed, archived, and flagged counts plus error state."
-    >
-      <DataTable
-        title=""
-        headers={headers}
-        rows={rows}
-      />
-    </PanelWrapper>
-  );
+  return <DataTable title="" headers={headers} rows={rows} />;
 }

@@ -9,7 +9,6 @@ import { AxPanel } from "../_components/ax-panel";
 import { BotTrendChart, AuthAttemptsChart } from "./lazy-charts";
 
 export async function SecuritySection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
-  void scope;
   const {
     botTrend: typedBotTrend,
     authAttempts: typedAuthAttempts,
@@ -18,7 +17,7 @@ export async function SecuritySection({ days, scope = "humans" }: { days: number
     clientErrorCount,
     firewall,
     recent: typedRecent,
-  } = await loadSecurity(days);
+  } = await loadSecurity(days, scope);
 
   const errorTotal = (clientErrorCount[0] || { total: 0 }).total;
 

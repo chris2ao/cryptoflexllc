@@ -7,7 +7,6 @@ import { AxDonut } from "../_components/ax-donut";
 import { NewVsReturningChart } from "./lazy-charts";
 
 export async function ReadersSection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
-  void scope;
   const {
     mapLocations: typedMapLocations,
     topCountries: typedCountries,
@@ -15,7 +14,7 @@ export async function ReadersSection({ days, scope = "humans" }: { days: number;
     browsers: typedBrowsers,
     devices: typedDevices,
     osStats: typedOs,
-  } = await loadReaders(days);
+  } = await loadReaders(days, scope);
 
   const countryItems = typedCountries.slice(0, 10).map((c) => ({
     label: c.country || "Unknown",

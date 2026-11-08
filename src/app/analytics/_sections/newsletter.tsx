@@ -9,7 +9,6 @@ import { AxRankedList } from "../_components/ax-ranked-list";
 import { SubscriberGrowthChart } from "./lazy-charts";
 
 export async function NewsletterSection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
-  void scope;
   const {
     subscriberList: typedSubscribers,
     subscriberGrowth: typedSubGrowth,
@@ -17,7 +16,7 @@ export async function NewsletterSection({ days, scope = "humans" }: { days: numb
     commentList: typedComments,
     guestbookList: typedGuestbook,
     subscriberSummary,
-  } = await loadNewsletter(days);
+  } = await loadNewsletter(days, scope);
 
   const subStats = subscriberSummary[0] || { total: 0, active: 0, inactive: 0 };
 

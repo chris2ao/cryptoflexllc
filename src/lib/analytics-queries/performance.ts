@@ -1,32 +1,24 @@
 import { getDb } from "@/lib/analytics";
-import { scopeClass, type TrafficScope } from "./shared";
+import type { TrafficScope } from "./shared";
 import type {
   ApiMetricDailyRow,
   ApiMetricRow,
-  CountryRow,
-  TopPageRow,
   WebVitalsSummary,
 } from "@/lib/analytics-types";
-
-type PerformanceSummaryRow = { total_views: number; unique_visitors: number };
 
 export interface PerformanceData {
   apiMetricsEndpoints: ApiMetricRow[];
   apiMetricsDaily: ApiMetricDailyRow[];
   webVitalsRaw: WebVitalsSummary[];
-  topPages: TopPageRow[];
-  topCountries: CountryRow[];
-  summaryRow: PerformanceSummaryRow[];
 }
 
 export async function loadPerformance(
   days: number,
-  scope: TrafficScope = "humans"
+  _scope: TrafficScope = "humans"
 ): Promise<PerformanceData> {
   const sql = getDb();
-  const sc = scopeClass(scope);
 
-  const [apiMetricsEndpoints, apiMetricsDaily, webVitalsRaw, topPages, topCountries] =
+  const [apiMetricsEndpoints, apiMetricsDaily, webVitalsRaw] =
     await Promise.all([
       sql`
         SELECT
@@ -72,38 +64,11 @@ export async function loadPerformance(
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY metric_name
       `.catch(() => []),
-      sql`
-        SELECT page_path, COUNT(*)::int AS views, COUNT(DISTINCT ip_address)::int AS unique_views
-        FROM page_views
-        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
-          AND (${sc}::text IS NULL OR traffic_class = ${sc})
-        GROUP BY page_path ORDER BY views DESC LIMIT 1
-      `.catch(() => []),
-      sql`
-        SELECT country, COUNT(*)::int AS views
-        FROM page_views
-        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
-          AND (${sc}::text IS NULL OR traffic_class = ${sc})
-        GROUP BY country ORDER BY views DESC LIMIT 1
-      `.catch(() => []),
     ]);
-
-  // Need total_views for VercelAnalyticsCard -- fetch inline
-  const summaryRow = await sql`
-    SELECT
-      COUNT(*)::int AS total_views,
-      COUNT(DISTINCT ip_address)::int AS unique_visitors
-    FROM page_views
-    WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
-      AND (${sc}::text IS NULL OR traffic_class = ${sc})
-  `;
 
   return {
     apiMetricsEndpoints: apiMetricsEndpoints as unknown as ApiMetricRow[],
     apiMetricsDaily: apiMetricsDaily as unknown as ApiMetricDailyRow[],
     webVitalsRaw: webVitalsRaw as unknown as WebVitalsSummary[],
-    topPages: topPages as unknown as TopPageRow[],
-    topCountries: topCountries as unknown as CountryRow[],
-    summaryRow: summaryRow as unknown as PerformanceSummaryRow[],
   };
 }
