@@ -18,7 +18,7 @@ import { getDb } from "@/lib/analytics";
 import { withCronRun } from "@/lib/cron-runs";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 import { backfillLegacyReferrers, classifyPendingPageViews } from "@/lib/traffic/backfill";
-import { pruneOperationalRecords, pruneStaleIntel } from "@/lib/analytics-retention";
+import { anonymizeEngagementIps, pruneOperationalRecords, pruneStaleIntel } from "@/lib/analytics-retention";
 import { enrichPendingIps } from "@/lib/ip-enrichment/batch";
 
 // Classification loops plus up to 60 sequential enrichment lookups at 1.4s spacing.
@@ -75,6 +75,14 @@ export async function GET(request: NextRequest) {
         const anonymized = Number(rows[0]?.n ?? 0);
         console.log(`Page view retention: anonymized ${anonymized} old IP(s)`);
 
+        // Engagement tables keep raw IPs too: blank them on the same window.
+        let anonymizedEngagement = { scrollEvents: 0, pageEngagement: 0 };
+        try {
+          anonymizedEngagement = await anonymizeEngagementIps(sql, RETENTION_DAYS);
+        } catch (error) {
+          console.error("Engagement IP anonymise error:", error);
+        }
+
         // Retention for operational tables; each delete is isolated inside.
         let pruned = { serverEvents: 0, cronRuns: 0, digestRuns: 0, intel: 0 };
         try {
@@ -119,10 +127,10 @@ export async function GET(request: NextRequest) {
           console.error("Page view classification batch error:", error);
         }
 
-        return { ok: true, anonymized, retentionDays: RETENTION_DAYS, legacyReferrers, classified, enriched, pruned };
+        return { ok: true, anonymized, retentionDays: RETENTION_DAYS, legacyReferrers, classified, enriched, anonymizedEngagement, pruned };
       },
       (r) =>
-        `anonymized ${r.anonymized}, legacy referrers ${r.legacyReferrers}, classified ${r.classified}, enriched ${r.enriched}, pruned events ${r.pruned.serverEvents}, runs ${r.pruned.cronRuns}, digests ${r.pruned.digestRuns}, intel ${r.pruned.intel}`,
+        `anonymized ${r.anonymized}, engagement ips ${r.anonymizedEngagement.scrollEvents}+${r.anonymizedEngagement.pageEngagement}, legacy referrers ${r.legacyReferrers}, classified ${r.classified}, enriched ${r.enriched}, pruned events ${r.pruned.serverEvents}, runs ${r.pruned.cronRuns}, digests ${r.pruned.digestRuns}, intel ${r.pruned.intel}`,
     );
     return NextResponse.json(summary);
   } catch (error) {

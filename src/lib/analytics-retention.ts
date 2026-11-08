@@ -74,3 +74,27 @@ export async function pruneStaleIntel(sql: SqlTag, days: number = 90): Promise<n
     ) SELECT COUNT(*)::int AS n FROM d
   `);
 }
+
+/** Blanks raw IPs on engagement tables so they cannot be re-linked to anonymised page views. */
+export async function anonymizeEngagementIps(
+  sql: SqlTag,
+  days: number = 90,
+): Promise<{ scrollEvents: number; pageEngagement: number }> {
+  const scrollEvents = await counted("scroll_events", () => sql`
+    WITH u AS (
+      UPDATE scroll_events SET ip_address = ''
+      WHERE recorded_at < NOW() - make_interval(days => ${days})
+        AND ip_address <> ''
+      RETURNING 1
+    ) SELECT COUNT(*)::int AS n FROM u
+  `);
+  const pageEngagement = await counted("page_engagement", () => sql`
+    WITH u AS (
+      UPDATE page_engagement SET ip_address = ''
+      WHERE recorded_at < NOW() - make_interval(days => ${days})
+        AND ip_address <> ''
+      RETURNING 1
+    ) SELECT COUNT(*)::int AS n FROM u
+  `);
+  return { scrollEvents, pageEngagement };
+}

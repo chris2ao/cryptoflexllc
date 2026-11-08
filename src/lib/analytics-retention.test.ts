@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { pruneOperationalRecords, pruneStaleIntel } from "./analytics-retention";
+import { anonymizeEngagementIps, pruneOperationalRecords, pruneStaleIntel } from "./analytics-retention";
 
 function text(call: unknown[]): string {
   return (call[0] as TemplateStringsArray).join("?");
@@ -68,6 +68,42 @@ describe("pruneStaleIntel", () => {
   it("returns 0 on failure", async () => {
     const sql = vi.fn().mockRejectedValue(new Error("boom"));
     expect(await pruneStaleIntel(sql as never, 30)).toBe(0);
+    expect(console.error).toHaveBeenCalled();
+  });
+});
+
+describe("anonymizeEngagementIps", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("blanks both tables with counting CTEs and a bound day count", async () => {
+    const sql = vi.fn().mockResolvedValueOnce([{ n: 3 }]).mockResolvedValueOnce([{ n: 4 }]);
+    expect(await anonymizeEngagementIps(sql as never, 60)).toEqual({
+      scrollEvents: 3,
+      pageEngagement: 4,
+    });
+    const [a, b] = sql.mock.calls;
+    expect(text(a)).toContain("UPDATE scroll_events SET ip_address = ''");
+    expect(text(b)).toContain("UPDATE page_engagement SET ip_address = ''");
+    for (const c of [a, b]) {
+      expect(text(c)).toContain("recorded_at < NOW() - make_interval(days => ?)");
+      expect(text(c)).toContain("ip_address <> ''");
+      expect(text(c)).toContain("RETURNING 1");
+      expect(text(c)).toContain("SELECT COUNT(*)::int AS n FROM u");
+      expect(c[1]).toBe(60);
+    }
+  });
+
+  it("defaults to 90 days", async () => {
+    const sql = vi.fn().mockResolvedValue([{ n: 0 }]);
+    await anonymizeEngagementIps(sql as never);
+    expect(sql.mock.calls[0][1]).toBe(90);
+  });
+
+  it("counts 0 for a failed table and still runs the other", async () => {
+    const sql = vi.fn().mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce([{ n: 2 }]);
+    expect(await anonymizeEngagementIps(sql as never)).toEqual({ scrollEvents: 0, pageEngagement: 2 });
     expect(console.error).toHaveBeenCalled();
   });
 });
