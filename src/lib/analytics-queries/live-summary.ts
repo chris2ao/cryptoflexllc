@@ -29,11 +29,22 @@ export async function loadLiveSummary(days = 30) {
         .then((r) => (r as Array<{ pending: number }>)[0]?.pending ?? 0)
         .catch(() => 0);
     pending = await countPending();
+    // Rows from before the referrer columns existed; the partial index makes
+    // this an instant probe once the backfill is done.
+    const legacy = await sql`
+      SELECT EXISTS (
+        SELECT 1 FROM page_views
+        WHERE referrer_host = '' AND referrer_class = 'direct'
+          AND referrer <> '' AND referrer <> '(direct)'
+      ) AS legacy
+    `
+      .then((r) => Boolean((r as Array<{ legacy: boolean }>)[0]?.legacy))
+      .catch(() => false);
     // The daily cron does the bulk of the classification; an owner load with
     // rows still pending clears a bounded batch after the response is sent,
     // so the dashboard converges within a few loads without paying for the
     // UPDATE in its own time to first byte.
-    if (pending > 0) {
+    if (pending > 0 || legacy) {
       after(async () => {
         try {
           await backfillLegacyReferrers(sql, 50);

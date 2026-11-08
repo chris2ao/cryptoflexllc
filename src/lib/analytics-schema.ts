@@ -18,6 +18,7 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
   "ALTER TABLE page_views ADD COLUMN IF NOT EXISTS referrer_class VARCHAR(16) NOT NULL DEFAULT 'direct'",
   "ALTER TABLE page_views ADD COLUMN IF NOT EXISTS traffic_class VARCHAR(8)",
   "CREATE INDEX IF NOT EXISTS idx_page_views_traffic_class ON page_views (traffic_class)",
+  "CREATE INDEX IF NOT EXISTS idx_page_views_legacy_referrer ON page_views (id) WHERE referrer_host = ''",
   "CREATE TABLE IF NOT EXISTS server_events (id SERIAL PRIMARY KEY, occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), route TEXT NOT NULL, kind VARCHAR(40) NOT NULL, message TEXT NOT NULL DEFAULT '')",
   "CREATE TABLE IF NOT EXISTS cron_runs (id SERIAL PRIMARY KEY, ran_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), name VARCHAR(60) NOT NULL, ok BOOLEAN NOT NULL, duration_ms INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '')",
   "CREATE TABLE IF NOT EXISTS digest_runs (id SERIAL PRIMARY KEY, ran_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), recipients INTEGER NOT NULL, sent INTEGER NOT NULL, failed INTEGER NOT NULL, duration_ms INTEGER NOT NULL DEFAULT 0)",
@@ -54,11 +55,14 @@ async function runStatement(sql: SqlTag, statement: string): Promise<unknown> {
  * ALTER TABLE locks on page_views when the columns already exist.
  */
 const PRESENCE_CHECK =
-  "SELECT column_name FROM information_schema.columns WHERE (table_name = 'page_views' AND column_name = 'traffic_class') OR (table_name = 'ip_intel' AND column_name = 'enriched_at')";
+  "SELECT column_name AS marker FROM information_schema.columns WHERE (table_name = 'page_views' AND column_name = 'traffic_class') OR (table_name = 'ip_intel' AND column_name = 'enriched_at') UNION ALL SELECT indexname FROM pg_indexes WHERE indexname = 'idx_page_views_legacy_referrer'";
+
+/** Three markers: the two newest columns and the newest index. A new statement needs a new marker here. */
+const PRESENCE_MARKERS = 3;
 
 async function columnsPresent(sql: SqlTag): Promise<boolean> {
   const rows = await runStatement(sql, PRESENCE_CHECK);
-  return Array.isArray(rows) && rows.length >= 2;
+  return Array.isArray(rows) && rows.length >= PRESENCE_MARKERS;
 }
 
 /** After a failure, wait this long before any request tries the chain again. */

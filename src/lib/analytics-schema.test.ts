@@ -18,14 +18,16 @@ describe("analytics schema", () => {
     await ensureAnalyticsSchema(sql as never);
     expect(sql).toHaveBeenCalledTimes(SCHEMA_STATEMENTS.length + 1);
     expect(String(sql.mock.calls[0][0])).toContain("information_schema.columns");
+    expect(String(sql.mock.calls[0][0])).toContain("pg_indexes");
   });
 
   it("skips the statements when the marker columns already exist", async () => {
     const sql = vi
       .fn()
       .mockResolvedValue([
-        { column_name: "traffic_class" },
-        { column_name: "enriched_at" },
+        { marker: "traffic_class" },
+        { marker: "enriched_at" },
+        { marker: "idx_page_views_legacy_referrer" },
       ]);
     await ensureAnalyticsSchema(sql as never);
     await ensureAnalyticsSchema(sql as never);
