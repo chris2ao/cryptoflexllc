@@ -395,6 +395,28 @@ describe("POST /api/analytics/track schema fallback and rate limit", () => {
     expect(insertText).not.toContain("traffic_class");
   });
 
+  it("warns once for two consecutive legacy fallback inserts", async () => {
+    const { ensureAnalyticsSchema } = await import("@/lib/analytics-schema");
+    vi.mocked(ensureAnalyticsSchema).mockResolvedValue(false);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockSql.mockResolvedValue([]);
+    for (const ip of ["198.51.100.31", "198.51.100.32"]) {
+      await POST(
+        new NextRequest("http://localhost/api/analytics/track", {
+          method: "POST",
+          body: JSON.stringify({ path: "/blog/warn" }),
+          headers: { "content-type": "application/json", "x-real-ip": ip },
+        }),
+      );
+    }
+    vi.mocked(ensureAnalyticsSchema).mockResolvedValue(true);
+    const legacyWarns = warn.mock.calls.filter((c) =>
+      String(c[0]).includes("legacy columns"),
+    );
+    expect(legacyWarns.length).toBeLessThanOrEqual(1);
+    warn.mockRestore();
+  });
+
   it("rate limits the 61st beacon from one IP with 429", async () => {
     mockSql.mockResolvedValue([]);
     const send = () =>

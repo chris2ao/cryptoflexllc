@@ -49,6 +49,16 @@ const trackLimiter = createRateLimiter({
   backend: "memory",
 });
 
+const LEGACY_WARN_INTERVAL_MS = 5 * 60 * 1000;
+let lastLegacyWarnAt = 0;
+
+function warnLegacyFallback(): void {
+  const now = Date.now();
+  if (lastLegacyWarnAt && now - lastLegacyWarnAt < LEGACY_WARN_INTERVAL_MS) return;
+  lastLegacyWarnAt = now;
+  console.warn("Analytics schema not ready, recording the beacon with legacy columns");
+}
+
 export async function POST(request: NextRequest) {
   const t0 = Date.now();
   try {
@@ -181,6 +191,7 @@ export async function POST(request: NextRequest) {
         )
       `;
     } else {
+      warnLegacyFallback();
       // Schema not confirmed: record the beacon with the legacy columns only.
       // The nightly backfill derives referrer_host, referrer_class and
       // traffic_class later.

@@ -11,11 +11,13 @@ describe("pruneOperationalRecords", () => {
   });
 
   it("deletes by the right timestamp column with bound day counts", async () => {
-    const sql = vi.fn().mockResolvedValue({ count: 2 });
+    const sql = vi.fn().mockResolvedValue([{ n: 2 }]);
     const counts = await pruneOperationalRecords(sql as never);
     expect(counts).toEqual({ serverEvents: 2, cronRuns: 2, digestRuns: 2 });
     const [a, b, c] = sql.mock.calls;
     expect(text(a)).toContain("DELETE FROM server_events");
+    expect(text(a)).toContain("RETURNING 1");
+    expect(text(a)).toContain("SELECT COUNT(*)::int AS n FROM d");
     expect(text(a)).toContain("occurred_at < NOW() - make_interval(days => ?)");
     expect(a[1]).toBe(90);
     expect(text(b)).toContain("DELETE FROM cron_runs");
@@ -26,7 +28,7 @@ describe("pruneOperationalRecords", () => {
   });
 
   it("honours custom windows", async () => {
-    const sql = vi.fn().mockResolvedValue({ count: 0 });
+    const sql = vi.fn().mockResolvedValue([{ n: 0 }]);
     await pruneOperationalRecords(sql as never, {
       serverEventsDays: 1,
       cronRunsDays: 2,
@@ -39,7 +41,7 @@ describe("pruneOperationalRecords", () => {
     const sql = vi
       .fn()
       .mockRejectedValueOnce(new Error("boom"))
-      .mockResolvedValue({ count: 5 });
+      .mockResolvedValue([{ n: 5 }]);
     const counts = await pruneOperationalRecords(sql as never);
     expect(counts).toEqual({ serverEvents: 0, cronRuns: 5, digestRuns: 5 });
     expect(console.error).toHaveBeenCalled();
@@ -52,7 +54,7 @@ describe("pruneStaleIntel", () => {
   });
 
   it("only deletes stale rows with no page_views reference", async () => {
-    const sql = vi.fn().mockResolvedValue({ count: 7 });
+    const sql = vi.fn().mockResolvedValue([{ n: 7 }]);
     expect(await pruneStaleIntel(sql as never)).toBe(7);
     const q = text(sql.mock.calls[0]);
     expect(q).toContain("DELETE FROM ip_intel i");
