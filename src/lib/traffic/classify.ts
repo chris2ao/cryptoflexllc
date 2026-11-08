@@ -13,8 +13,11 @@ import { isTrackedPath } from "@/lib/analytics-tracking-rules";
 
 export type TrafficClass = "human" | "bot" | "owner" | "self";
 
-const BOT_UA_PATTERN =
-  /bot|crawl|spider|slurp|headless|bytespider|python-requests|go-http-client|curl\/|wget\/|scrapy|facebookexternalhit|preview|okhttp|java\/|libwww/i;
+/** Regex source shared with the SQL batch (`~*` is case-insensitive) so both stay identical. */
+export const BOT_UA_PATTERN_SOURCE =
+  "bot|crawl|spider|slurp|headless|bytespider|python-requests|go-http-client|curl/|wget/|scrapy|facebookexternalhit|preview|okhttp|java/|libwww";
+
+const BOT_UA_PATTERN = new RegExp(BOT_UA_PATTERN_SOURCE, "i");
 
 export function isBotUserAgent(userAgent: string): boolean {
   return BOT_UA_PATTERN.test(userAgent);
