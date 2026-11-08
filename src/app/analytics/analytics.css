@@ -1634,6 +1634,18 @@ ol.ax-chart-legend a:hover { color: var(--primary); }
 .ax-ellipsis { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ==== REGION: signals-vercel ==== */
+.ax-dstrip { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ax-dchip { display: flex; align-items: center; gap: 8px; max-width: 280px; padding: 6px 10px; border: 1px solid var(--border); background: var(--surface-2); font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); }
+.ax-ddot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--ax-amber); }
+.ax-ddot.ok { background: var(--ax-green); }
+.ax-ddot.err { background: var(--ax-red); }
+.ax-ddot.muted { background: var(--fg-3); }
+.ax-dtime { color: var(--fg-3); white-space: nowrap; }
+.ax-dmsg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ax-wa-ratio { font-family: var(--font-mono); font-size: 14px; color: var(--fg); margin-bottom: 8px; }
+.ax-wa-note { font-family: var(--font-mono); font-size: 12px; color: var(--fg-3); margin: 0; }
+.ax-wa code { font-family: var(--font-mono); }
+.ax-stat-sub { font-size: 11px; color: var(--fg-3); }
 
 /* ==== REGION: signals-gsc ==== */
 

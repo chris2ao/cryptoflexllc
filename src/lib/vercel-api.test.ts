@@ -4,6 +4,12 @@ import {
   fetchAttackStatus,
   fetchFirewallEvents,
   isVercelApiConfigured,
+  parseWebAnalyticsAggregate,
+  parseWebAnalyticsCount,
+  parseDeployments,
+  fetchWebAnalyticsDaily,
+  fetchWebAnalyticsCount,
+  fetchDeployments,
 } from "./vercel-api";
 
 // Mock global fetch
@@ -359,5 +365,107 @@ describe("vercel-api", () => {
         })
       );
     });
+  });
+});
+
+describe("web analytics and deployments", () => {
+  const originalEnv = process.env;
+  const respond = (status: number, body: unknown) =>
+    ({
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => body,
+      text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
+    }) as unknown as Response;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv };
+    process.env.VERCEL_API_TOKEN = "test-token-123";
+    process.env.VERCEL_PROJECT_ID = "test-project-id";
+  });
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it("parses the aggregate fixture and slices the date", () => {
+    expect(
+      parseWebAnalyticsAggregate({
+        version: 1,
+        data: [{ timestamp: "2024-10-01T00:00:00.000Z", pageviews: 220, visitors: 180 }],
+      })
+    ).toEqual([{ date: "2024-10-01", pageviews: 220, visitors: 180 }]);
+    expect(parseWebAnalyticsAggregate(null)).toEqual([]);
+  });
+
+  it("parses the count fixture", () => {
+    expect(parseWebAnalyticsCount({ data: { pageviews: 9, visitors: 4 } })).toEqual({
+      pageviews: 9,
+      visitors: 4,
+    });
+    expect(parseWebAnalyticsCount({})).toEqual({ pageviews: 0, visitors: 0 });
+  });
+
+  it("parses deployments, truncating to the first line of 80 characters", () => {
+    const long = "x".repeat(120);
+    const out = parseDeployments({
+      deployments: [
+        {
+          uid: "d1",
+          url: "a.vercel.app",
+          state: "READY",
+          created: 1000,
+          ready: 2000,
+          target: "production",
+          meta: { githubCommitMessage: `${long}\nbody`, githubCommitSha: "abc123" },
+        },
+        { uid: "d2", state: "ERROR", created: 3000, target: null, meta: {} },
+      ],
+    });
+    expect(out[0].commitMessage).toHaveLength(80);
+    expect(out[0]).toMatchObject({ id: "d1", readyAt: 2000, target: "production", commitSha: "abc123" });
+    expect(out[1]).toMatchObject({ id: "d2", readyAt: null, target: "", commitMessage: "" });
+    expect(parseDeployments(undefined)).toEqual([]);
+  });
+
+  it("maps 404 Web Analytics not found to not-enabled", async () => {
+    vi.mocked(fetch).mockResolvedValue(respond(404, "Web Analytics not found"));
+    expect(await fetchWebAnalyticsCount("2026-10-01", "2026-10-30")).toEqual({
+      state: "not-enabled",
+      pageviews: 0,
+      visitors: 0,
+    });
+    expect(await fetchWebAnalyticsDaily("2026-10-01", "2026-10-30")).toEqual({
+      state: "not-enabled",
+      rows: [],
+    });
+  });
+
+  it("maps other failures and thrown errors to unavailable", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(respond(500, "boom"));
+    expect((await fetchWebAnalyticsCount("a", "b")).state).toBe("unavailable");
+    vi.mocked(fetch).mockResolvedValueOnce(respond(404, "other"));
+    expect((await fetchWebAnalyticsDaily("a", "b")).state).toBe("unavailable");
+    vi.mocked(fetch).mockRejectedValueOnce(new Error("net"));
+    expect((await fetchWebAnalyticsDaily("a", "b")).state).toBe("unavailable");
+  });
+
+  it("returns ok rows and sends the by=day query with a timeout signal", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      respond(200, { data: [{ timestamp: "2026-10-02T00:00:00.000Z", pageviews: 3, visitors: 2 }] })
+    );
+    const r = await fetchWebAnalyticsDaily("2026-10-01", "2026-10-30");
+    expect(r).toEqual({ state: "ok", rows: [{ date: "2026-10-02", pageviews: 3, visitors: 2 }] });
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain("by=day");
+    expect(String(url)).toContain("/v1/query/web-analytics/visits/aggregate");
+    expect((init as RequestInit).signal).toBeDefined();
+  });
+
+  it("fetchDeployments returns [] on failure and never throws", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(respond(403, "no"));
+    expect(await fetchDeployments()).toEqual([]);
+    vi.mocked(fetch).mockRejectedValueOnce(new Error("net"));
+    expect(await fetchDeployments(5)).toEqual([]);
   });
 });
