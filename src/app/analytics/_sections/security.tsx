@@ -1,4 +1,4 @@
-import type { TrafficScope } from "@/lib/analytics-queries/shared";
+import { deltaPercent, type TrafficScope } from "@/lib/analytics-queries/shared";
 import { loadSecurity } from "@/lib/analytics-queries/security";
 import { isVercelApiConfigured } from "@/lib/vercel-api";
 import { VercelFirewallCard } from "../_components/vercel-firewall-card";
@@ -6,10 +6,15 @@ import { ClientErrorsPanel } from "../_components/client-errors-panel";
 import { RecentVisitsTable } from "../_components/recent-visits-table";
 import { KpiStrip } from "../_components/kpi-strip";
 import { AxPanel } from "../_components/ax-panel";
+import { NetworkTypesPanel } from "../_components/network-types-panel";
+import { KnownBadPanel } from "../_components/known-bad-panel";
 import { BotTrendChart, AuthAttemptsChart } from "./lazy-charts";
 
 export async function SecuritySection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
   const {
+    kpis,
+    networkTypes,
+    knownBad,
     botTrend: typedBotTrend,
     authAttempts: typedAuthAttempts,
     clientErrorTrend: typedErrorTrend,
@@ -24,32 +29,30 @@ export async function SecuritySection({ days, scope = "humans" }: { days: number
   const { vercelFirewallConfig, vercelAttackStatus, vercelFirewallEvents } =
     firewall;
 
-  const totalBot = typedBotTrend.reduce((s, r) => s + (r.bot_count ?? 0), 0);
-  const totalAuthFail = typedAuthAttempts.reduce(
-    (s, r) => s + (r.fail_count ?? 0),
-    0
-  );
-  const firewallDenied = vercelAttackStatus?.anomalies?.length ?? 0;
-
   const secKpis = [
     {
-      id: "firewall",
-      label: "Firewall Denied",
-      value: firewallDenied,
-      hint: "▼",
+      id: "bots",
+      label: "Bots",
+      value: kpis.bots.current,
+      delta: deltaPercent(kpis.bots.current, kpis.bots.previous),
     },
-    { id: "bot", label: "Bot Traffic", value: totalBot, hint: "▲" },
+    {
+      id: "known-bad",
+      label: "Known bad",
+      value: kpis.knownBad.current,
+      delta: deltaPercent(kpis.knownBad.current, kpis.knownBad.previous),
+    },
     {
       id: "auth",
-      label: "Auth Failures",
-      value: totalAuthFail,
-      hint: "▼",
+      label: "Auth failures",
+      value: kpis.authFailures.current,
+      delta: deltaPercent(kpis.authFailures.current, kpis.authFailures.previous),
     },
     {
       id: "client-err",
-      label: "Client Errors",
-      value: errorTotal,
-      hint: "▼",
+      label: "Client errors",
+      value: kpis.clientErrors.current,
+      delta: deltaPercent(kpis.clientErrors.current, kpis.clientErrors.previous),
     },
   ];
 
@@ -74,6 +77,15 @@ export async function SecuritySection({ days, scope = "humans" }: { days: number
         </AxPanel>
         <AxPanel title="Auth attempts" kicker="SUCCESS / FAIL">
           <AuthAttemptsChart data={typedAuthAttempts} />
+        </AxPanel>
+      </div>
+
+      <div className="ax-grid-2" style={{ marginBottom: 20 }}>
+        <AxPanel title="Network types" kicker="VISITORS">
+          <NetworkTypesPanel data={networkTypes} />
+        </AxPanel>
+        <AxPanel title="Known bad" kicker={`${knownBad.visitors} IN RANGE`}>
+          <KnownBadPanel rows={knownBad.rows} />
         </AxPanel>
       </div>
 

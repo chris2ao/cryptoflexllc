@@ -13,9 +13,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/analytics";
+import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
+import { classifyPendingPageViews } from "@/lib/traffic/backfill";
+import { enrichPendingIps } from "@/lib/ip-enrichment/batch";
 
 // Retain raw IPs for this many days, then blank them.
 const RETENTION_DAYS = 90;
+const CLASSIFY_BATCH = 5000;
+const CLASSIFY_MAX_ITERATIONS = 20;
+const ENRICH_LIMIT = 200;
 
 export async function GET(request: NextRequest) {
   // ---- Auth: Vercel Cron sends this header automatically ----
@@ -39,6 +45,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const sql = getDb();
+    await ensureAnalyticsSchema(sql);
 
     // Blank the IP on rows older than the retention window. Parameterized day
     // count via make_interval keeps this a bounded, injection-safe UPDATE.
@@ -52,10 +59,31 @@ export async function GET(request: NextRequest) {
     const anonymized = (result as unknown as { count: number }).count ?? 0;
     console.log(`Page view retention: anonymized ${anonymized} old IP(s)`);
 
+    // Each stage is isolated: a failure is logged and the next stage still runs.
+    let classified = 0;
+    try {
+      for (let i = 0; i < CLASSIFY_MAX_ITERATIONS; i++) {
+        const n = await classifyPendingPageViews(sql, CLASSIFY_BATCH);
+        if (!n) break;
+        classified += n;
+      }
+    } catch (error) {
+      console.error("Page view classification batch error:", error);
+    }
+
+    let enriched = 0;
+    try {
+      enriched = await enrichPendingIps(sql, ENRICH_LIMIT);
+    } catch (error) {
+      console.error("IP enrichment batch error:", error);
+    }
+
     return NextResponse.json({
       ok: true,
       anonymized,
       retentionDays: RETENTION_DAYS,
+      classified,
+      enriched,
     });
   } catch (error) {
     console.error("Page view retention cleanup error:", error);

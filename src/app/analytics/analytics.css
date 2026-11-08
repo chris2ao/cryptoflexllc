@@ -1535,6 +1535,19 @@ ol.ax-chart-legend a:hover { color: var(--primary); }
 .ax-class-chip.dim { opacity: 0.5; }
 .ax-class-chip.dim .cnt { color: var(--fg-3); }
 
+.ax-tbl .chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+  padding: 2px 8px;
+  border: 1px solid var(--border-2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ax-chip-row { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+
 /* ==== REGION: intel ==== */
 
 /* IP links open the visitor dossier (wave 3). */

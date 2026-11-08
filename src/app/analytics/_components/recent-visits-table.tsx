@@ -74,13 +74,14 @@ export function RecentVisitsTable({ data }: RecentVisitsTableProps) {
               <th>Browser</th>
               <th>OS</th>
               <th>Device</th>
+              <th>Class</th>
               <th>Referrer</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="ax-tbl-empty">
+                <td colSpan={9} className="ax-tbl-empty">
                   No visits in this view
                 </td>
               </tr>
@@ -100,8 +101,18 @@ export function RecentVisitsTable({ data }: RecentVisitsTableProps) {
                   <td>{row.browser}</td>
                   <td>{row.os}</td>
                   <td>{row.device_type}</td>
-                  <td className="ax-ellipsis ax-muted" title={row.referrer}>
-                    {row.referrer}
+                  <td>
+                    {row.traffic_class ? (
+                      <span className="chip">{row.traffic_class}</span>
+                    ) : (
+                      <span className="ax-muted">n/a</span>
+                    )}
+                  </td>
+                  <td
+                    className="ax-ellipsis ax-muted"
+                    title={row.referrer_host || row.referrer}
+                  >
+                    {row.referrer_host || row.referrer}
                   </td>
                 </tr>
               ))
