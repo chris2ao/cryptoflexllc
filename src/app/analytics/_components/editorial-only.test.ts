@@ -3,10 +3,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 /**
- * Files still on the old shadcn styling. Wave 3 replaces ip-osint-panel.tsx,
- * which empties this list.
+ * Files still on the old shadcn styling. The wave 3 port is done, so the list is empty.
  */
-export const PENDING_PORT: readonly string[] = ["ip-osint-panel.tsx"];
+export const PENDING_PORT: readonly string[] = [];
 
 const FORBIDDEN = [
   "rounded-",

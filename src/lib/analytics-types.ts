@@ -50,6 +50,8 @@ export interface RecentVisit {
   os: string;
   device_type: string;
   referrer: string;
+  referrer_host?: string;
+  traffic_class?: string | null;
   country: string;
   city: string;
   region: string;
@@ -274,28 +276,6 @@ export interface NewVsReturningRow {
   date: string;
   new_visitors: number;
   returning_visitors: number;
-}
-
-export interface IpIntelData {
-  ip_address: string;
-  isp: string;
-  org: string;
-  as_number: string;
-  as_name: string;
-  is_proxy: boolean;
-  is_hosting: boolean;
-  is_mobile: boolean;
-  country: string;
-  city: string;
-  region: string;
-  whois_org: string;
-  whois_address: string;
-  reverse_address: string;
-  reverse_county: string;
-  reverse_state: string;
-  latitude: string;
-  longitude: string;
-  cached_at: string;
 }
 
 /** Client-side error record */

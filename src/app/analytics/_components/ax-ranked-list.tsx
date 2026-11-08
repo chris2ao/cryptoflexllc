@@ -1,3 +1,4 @@
+import { isSitePath } from "@/lib/site-path";
 import Link from "next/link";
 
 export type RankedItem = {
@@ -13,10 +14,7 @@ export type RankedItem = {
  * Only accepts a single leading slash followed by a non-slash character.
  */
 function isSafeInternalPath(href: string): boolean {
-  if (!href.startsWith("/")) return false;
-  if (href.startsWith("//")) return false;
-  if (href.startsWith("/\\")) return false;
-  return true;
+  return isSitePath(href);
 }
 
 type Props = {

@@ -1,5 +1,6 @@
 "use client";
 
+import { isSitePath } from "@/lib/site-path";
 import Link from "next/link";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
@@ -22,10 +23,7 @@ const PREFIXES = ["/blog/series/", "/backlog/", "/blog/"];
 
 /** Same rule as ax-ranked-list: a single leading slash, no protocol-relative paths. */
 export function isSafeInternalPath(href: string): boolean {
-  if (!href.startsWith("/")) return false;
-  if (href.startsWith("//")) return false;
-  if (href.startsWith("/\\")) return false;
-  return true;
+  return isSitePath(href);
 }
 
 /** Slug shown on the axis: known prefix stripped, capped at 28 chars. */

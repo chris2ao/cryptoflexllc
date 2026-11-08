@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Trash2, Loader2, CheckCircle } from "lucide-react";
+import { IpLink } from "./ip-link";
 import type { GuestbookRow } from "@/lib/analytics-types";
 
 interface GuestbookPanelProps {
@@ -90,6 +91,7 @@ export function GuestbookPanel({ entries: initialEntries }: GuestbookPanelProps)
             <tr>
               <th>Status</th>
               <th>Name</th>
+              <th>IP</th>
               <th>Message</th>
               <th>Date</th>
               <th>
@@ -100,7 +102,7 @@ export function GuestbookPanel({ entries: initialEntries }: GuestbookPanelProps)
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="muted">
+                <td colSpan={6} className="muted">
                   {search ? "No entries match your search." : "No guestbook entries yet."}
                 </td>
               </tr>
@@ -116,6 +118,9 @@ export function GuestbookPanel({ entries: initialEntries }: GuestbookPanelProps)
                   </td>
                   <td className="trunc" title={e.name}>
                     <b>{e.name}</b>
+                  </td>
+                  <td>
+                    <IpLink ip={e.ip ?? ""} />
                   </td>
                   <td className="trunc" title={e.message}>
                     {e.message}
