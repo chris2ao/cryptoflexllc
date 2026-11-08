@@ -18,6 +18,9 @@ describe("classifyReferrer", () => {
     ["https://t.co/abc", "t.co", "social"],
     ["https://chatgpt.com/", "chatgpt.com", "ai"],
     ["https://gemini.google.com/app", "gemini.google.com", "ai"],
+    ["https://google.attacker.com/", "google.attacker.com", "other"],
+    ["https://google.com.evil.net/", "google.com.evil.net", "other"],
+    ["https://docs.google.com/document/d/1", "docs.google.com", "other"],
     ["https://example.org/post", "example.org", "other"],
     ["https://evilcryptoflexllc.com/", "evilcryptoflexllc.com", "other"],
     ["https://notlocalhost/", "notlocalhost", "other"],
@@ -36,6 +39,8 @@ describe("classifyReferrer", () => {
   });
   it("classifies an AI utm source", () => {
     expect(classifyReferrer("", { source: "chatgpt.com" }).cls).toBe("ai");
+    expect(classifyReferrer("", { source: "chatgpt" }).cls).toBe("ai");
+    expect(classifyReferrer("", { source: "perplexity" }).cls).toBe("ai");
   });
 });
 

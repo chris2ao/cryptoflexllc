@@ -30,7 +30,8 @@ export async function classifyPendingPageViews(
     classified AS (
       SELECT pv.id,
         CASE
-          WHEN pv.page_path LIKE '/analytics%' OR pv.page_path LIKE '/backlog%' THEN 'self'
+          WHEN pv.page_path = '/analytics' OR pv.page_path LIKE '/analytics/%'
+            OR pv.page_path = '/backlog' OR pv.page_path LIKE '/backlog/%' THEN 'self'
           WHEN o.ip_address IS NOT NULL THEN 'owner'
           WHEN pv.device_type = 'Bot' OR pv.referrer_class = 'forged' OR pv.user_agent ~* ${BOT_UA_PATTERN_SOURCE} THEN 'bot'
           WHEN COALESCE(ii.is_hosting, FALSE) OR COALESCE(ii.is_datacenter, FALSE) THEN
@@ -47,7 +48,8 @@ export async function classifyPendingPageViews(
       LEFT JOIN ip_intel ii ON ii.ip_address = pv.ip_address
     ),
     upd AS (
-      UPDATE page_views SET traffic_class = c.cls FROM classified c WHERE page_views.id = c.id RETURNING 1
+      UPDATE page_views SET traffic_class = c.cls FROM classified c
+      WHERE page_views.id = c.id AND page_views.traffic_class IS NULL RETURNING 1
     )
     SELECT COUNT(*)::int AS updated FROM upd
   `;

@@ -23,6 +23,12 @@ export function isBotUserAgent(userAgent: string): boolean {
   return BOT_UA_PATTERN.test(userAgent);
 }
 
+/**
+ * Insert-time pass. Owner detection needs a database lookup, so a crawler
+ * or forged hit from the owner's own address is recorded as a bot here; the
+ * batch pass (classifyFromSignals) checks owner first and only sees rows
+ * this pass left pending.
+ */
 export function classifyAtInsert(input: {
   userAgent: string;
   referrerClass: ReferrerClass;

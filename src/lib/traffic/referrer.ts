@@ -73,10 +73,23 @@ function hostMatches(host: string, list: readonly string[]): boolean {
   return list.some((entry) => host === entry || host.endsWith(`.${entry}`));
 }
 
+/**
+ * `google.com`, `google.co.uk`, `yandex.ru`: the engine label must be the
+ * registrable name, so `docs.google.com` and `google.attacker.com` do not count.
+ */
 function isSearchHost(host: string): boolean {
   if (hostMatches(host, SEARCH_HOSTS)) return true;
   const labels = host.split(".");
-  return SEARCH_LABELS.some((label) => labels.includes(label));
+  if (!SEARCH_LABELS.some((label) => label === labels[0])) return false;
+  return labels.length === 2 || (labels.length === 3 && labels[1].length <= 3);
+}
+
+/** `chatgpt.com` and the bare `chatgpt` both mean the assistant sent the reader. */
+function isAiSource(source: string): boolean {
+  return (
+    hostMatches(source, AI_HOSTS) ||
+    AI_HOSTS.some((h) => h.split(".")[0] === source)
+  );
 }
 
 function isInternalHost(host: string): boolean {
@@ -109,7 +122,7 @@ export function classifyReferrer(
   if (medium === "email" || source === "newsletter") {
     return { host, cls: "newsletter" };
   }
-  if (source && hostMatches(source, AI_HOSTS)) {
+  if (source && isAiSource(source)) {
     return { host, cls: "ai" };
   }
   if (!host) return { host, cls: "direct" };
