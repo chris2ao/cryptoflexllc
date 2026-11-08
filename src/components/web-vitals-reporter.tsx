@@ -6,6 +6,9 @@
  *
  * Uses sendBeacon() for non-blocking, reliable delivery (same pattern
  * as the AnalyticsTracker component).
+ *
+ * Dashboard and backlog paths (see isTrackedPath) are skipped: no web-vitals
+ * listeners are registered there, so nothing is measured or sent.
  */
 
 "use client";
@@ -14,6 +17,7 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { onLCP, onINP, onCLS, onFCP, onTTFB } from "web-vitals";
 import type { Metric } from "web-vitals";
+import { isTrackedPath } from "@/lib/analytics-tracking-rules";
 
 function sendMetric(metric: Metric, path: string) {
   const payload = JSON.stringify({
@@ -43,6 +47,7 @@ export function WebVitalsReporter() {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!isTrackedPath(pathname)) return;
     onLCP((metric) => sendMetric(metric, pathname));
     onINP((metric) => sendMetric(metric, pathname));
     onCLS((metric) => sendMetric(metric, pathname));

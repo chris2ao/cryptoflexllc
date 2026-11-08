@@ -1,7 +1,7 @@
 /**
  * GET /api/analytics/live
  * -----------------------------------------------
- * Returns recent events (page views, API hits, subscriber signups,
+ * Returns recent events (page views, bot hits, API hits, subscriber signups,
  * client errors) for the analytics dashboard live feed.
  *
  * Auth: cookie-based via analytics_session (same as /analytics page).
@@ -15,6 +15,9 @@
  * Returns:
  *   { events: Event[], cursor: string }
  *   where each Event = { tag, time, body, meta, ts }
+ *   and tag is one of "hit" | "bot" | "api" | "sub" | "err".
+ *   Page views with traffic_class = 'self' are excluded; 'bot' rows get
+ *   the "bot" tag.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -34,7 +37,7 @@ const liveRateLimiter = createRateLimiter({
   maxRequests: 60,
 });
 
-type EventTag = "hit" | "api" | "sub" | "err";
+type EventTag = "hit" | "bot" | "api" | "sub" | "err";
 
 type LiveEvent = {
   tag: EventTag;
@@ -55,8 +58,9 @@ function formatRelative(iso: string, now: Date): string {
 
 // Strip control chars + Unicode directional overrides that could visually
 // reorder text in the rendered feed rows. Client uses React text nodes, so
-// this is belt-and-suspenders — not an XSS guard.
-const CONTROL_AND_BIDI = /[\u0000-\u001f\u007f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g;
+// this is belt-and-suspenders, not an XSS guard.
+const CONTROL_AND_BIDI =
+  /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069\ufeff]+/g;
 function sanitize(s: string | null | undefined, max = 120): string {
   if (!s) return "";
   return s.replace(CONTROL_AND_BIDI, " ").slice(0, max);
@@ -117,9 +121,10 @@ export async function GET(request: NextRequest) {
   // page_views → HIT events
   try {
     const rows = (await sql`
-      SELECT visited_at, page_path, country, device_type, browser
+      SELECT visited_at, page_path, country, device_type, browser, traffic_class
       FROM page_views
       WHERE visited_at > ${cursorIso}
+        AND (traffic_class IS DISTINCT FROM 'self')
       ORDER BY visited_at DESC
       LIMIT ${perQueryLimit}
     `) as Array<{
@@ -128,10 +133,11 @@ export async function GET(request: NextRequest) {
       country: string | null;
       device_type: string | null;
       browser: string | null;
+      traffic_class: string | null;
     }>;
     for (const r of rows) {
       events.push({
-        tag: "hit",
+        tag: r.traffic_class === "bot" ? "bot" : "hit",
         ts: r.visited_at,
         time: formatRelative(r.visited_at, now),
         body: sanitize(r.page_path, 80),
@@ -188,17 +194,17 @@ export async function GET(request: NextRequest) {
   // subscribers → SUB events
   try {
     const rows = (await sql`
-      SELECT created_at, source_page
+      SELECT subscribed_at, source_page
       FROM subscribers
-      WHERE created_at > ${cursorIso}
-      ORDER BY created_at DESC
+      WHERE subscribed_at > ${cursorIso}
+      ORDER BY subscribed_at DESC
       LIMIT ${perQueryLimit}
-    `) as Array<{ created_at: string; source_page: string | null }>;
+    `) as Array<{ subscribed_at: string; source_page: string | null }>;
     for (const r of rows) {
       events.push({
         tag: "sub",
-        ts: r.created_at,
-        time: formatRelative(r.created_at, now),
+        ts: r.subscribed_at,
+        time: formatRelative(r.subscribed_at, now),
         body: "new subscriber",
         meta: sanitize(r.source_page ?? "", 60),
       });
@@ -210,22 +216,22 @@ export async function GET(request: NextRequest) {
   // client_errors → ERR events
   try {
     const rows = (await sql`
-      SELECT occurred_at, message, page_path
+      SELECT recorded_at, error_message, page_path
       FROM client_errors
-      WHERE occurred_at > ${cursorIso}
-      ORDER BY occurred_at DESC
+      WHERE recorded_at > ${cursorIso}
+      ORDER BY recorded_at DESC
       LIMIT ${perQueryLimit}
     `) as Array<{
-      occurred_at: string;
-      message: string | null;
+      recorded_at: string;
+      error_message: string | null;
       page_path: string | null;
     }>;
     for (const r of rows) {
       events.push({
         tag: "err",
-        ts: r.occurred_at,
-        time: formatRelative(r.occurred_at, now),
-        body: sanitize(r.message ?? "error", 80),
+        ts: r.recorded_at,
+        time: formatRelative(r.recorded_at, now),
+        body: sanitize(r.error_message ?? "error", 80),
         meta: sanitize(r.page_path ?? "", 60),
       });
     }

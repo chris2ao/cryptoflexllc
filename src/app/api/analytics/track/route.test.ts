@@ -7,6 +7,9 @@ import { POST } from "./route";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/analytics");
+vi.mock("@/lib/analytics-schema", () => ({
+  ensureAnalyticsSchema: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe("POST /api/analytics/track", () => {
   let mockSql: any;
@@ -40,7 +43,7 @@ describe("POST /api/analytics/track", () => {
         "x-forwarded-for": "203.0.113.1, 198.51.100.1",
         "user-agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
-        referer: "https://google.com/search",
+        referer: "https://google.com/search", // ignored: the body carries the referrer
         "x-vercel-ip-country": "United%20States",
         "x-vercel-ip-city": "San%20Francisco",
         "x-vercel-ip-country-region": "California",
@@ -69,7 +72,7 @@ describe("POST /api/analytics/track", () => {
     expect(insertCall[4]).toContain("Chrome"); // browser
     expect(insertCall[5]).toContain("Windows"); // os
     expect(insertCall[6]).toBe("Desktop"); // device_type
-    expect(insertCall[7]).toBe("https://google.com/search"); // referrer
+    expect(insertCall[7]).toBe(""); // referrer (header ignored)
     expect(insertCall[8]).toBe("United States"); // country
     expect(insertCall[9]).toBe("San Francisco"); // city
     expect(insertCall[10]).toBe("California"); // region
@@ -198,7 +201,7 @@ describe("POST /api/analytics/track", () => {
     expect(insertCall[2]).toBe("127.0.0.1");
   });
 
-  it("should default referrer to (direct) when missing", async () => {
+  it("should store an empty referrer when missing", async () => {
     mockSql.mockResolvedValueOnce([]);
     mockSql.mockResolvedValueOnce([]);
 
@@ -210,9 +213,8 @@ describe("POST /api/analytics/track", () => {
 
     await POST(request);
 
-    // Verify referrer defaults to (direct)
     const insertCall = mockSql.mock.calls[1];
-    expect(insertCall[7]).toBe("(direct)");
+    expect(insertCall[7]).toBe("");
   });
 
   it("should decode URL-encoded geo headers", async () => {
@@ -286,5 +288,58 @@ describe("POST /api/analytics/track", () => {
 
     expect(response.status).toBe(400);
     expect(data.error).toBe("Invalid input");
+  });
+  describe("referrer and traffic class", () => {
+    function req(body: unknown, headers: Record<string, string> = {}) {
+      return new NextRequest("http://localhost/api/analytics/track", {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "content-type": "application/json", ...headers },
+      });
+    }
+
+    it("stores the client referrer, its host and class, and the insert-time traffic class", async () => {
+      mockSql.mockResolvedValueOnce([]);
+      mockSql.mockResolvedValueOnce([]);
+      await POST(
+        req(
+          { path: "/blog/x", referrer: "https://www.google.com/search?q=x" },
+          { referer: "https://www.cryptoflexllc.com/blog" },
+        ),
+      );
+      const insertCall = mockSql.mock.calls[1];
+      expect((insertCall[0] as string[]).join(" ")).toContain("referrer_class");
+      const values = insertCall.slice(1);
+      expect(values).toContain("https://www.google.com/search");
+      expect(values).not.toContain("https://www.google.com/search?q=x");
+      expect(values).toContain("google.com");
+      expect(values).toContain("search");
+      expect(values).toContain(null);
+      expect(values).not.toContain("https://www.cryptoflexllc.com/blog");
+    });
+
+    it("records nothing for untracked paths", async () => {
+      const response = await POST(req({ path: "/analytics" }));
+      expect(response.status).toBe(204);
+      expect(mockSql).not.toHaveBeenCalled();
+    });
+
+    it("marks a hit from the forged referrer as a bot at insert", async () => {
+      mockSql.mockResolvedValueOnce([]);
+      mockSql.mockResolvedValueOnce([]);
+      await POST(req({ path: "/blog/x", referrer: "https://www.aocr.org/" }));
+      const values = mockSql.mock.calls[1].slice(1);
+      expect(values).toContain("forged");
+      expect(values).toContain("bot");
+    });
+
+    it("stores an empty referrer for direct visits", async () => {
+      mockSql.mockResolvedValueOnce([]);
+      mockSql.mockResolvedValueOnce([]);
+      await POST(req({ path: "/blog/x" }));
+      const values = mockSql.mock.calls[1].slice(1);
+      expect(values).toContain("");
+      expect(values).toContain("direct");
+    });
   });
 });
