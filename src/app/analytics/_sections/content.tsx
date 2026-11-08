@@ -1,7 +1,8 @@
-import { loadContent, loadReferrerClasses } from "@/lib/analytics-queries/content";
+import { loadContent, loadReferrerClasses, loadSearchConsole } from "@/lib/analytics-queries/content";
 import { loadPostPerformance } from "@/lib/analytics-queries/posts";
 import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { CampaignPanel } from "../_components/campaign-panel";
+import { SearchConsolePanel } from "../_components/search-console-panel";
 import { SearchQueriesPanel } from "../_components/search-queries-panel";
 import { AxPanel } from "../_components/ax-panel";
 import { PostPerformanceTable } from "../_components/post-performance-table";
@@ -15,10 +16,11 @@ export async function ContentSection({
   days: number;
   scope?: TrafficScope;
 }) {
-  const [content, posts, referrers] = await Promise.all([
+  const [content, posts, referrers, searchConsole] = await Promise.all([
     loadContent(days, scope),
     loadPostPerformance(days, scope),
     loadReferrerClasses(days, scope),
+    loadSearchConsole(days),
   ]);
   const {
     scrollDepth: typedScrollDepth,
@@ -61,6 +63,12 @@ export async function ContentSection({
         </AxPanel>
         <AxPanel title="Time on page" kicker="MEDIAN DWELL">
           <TimeOnPageChart data={typedTimeOnPage} />
+        </AxPanel>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Search Console" kicker="GOOGLE">
+          <SearchConsolePanel data={searchConsole} />
         </AxPanel>
       </div>
 

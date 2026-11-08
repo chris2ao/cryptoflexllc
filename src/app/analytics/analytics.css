@@ -1648,6 +1648,11 @@ ol.ax-chart-legend a:hover { color: var(--primary); }
 .ax-stat-sub { font-size: 11px; color: var(--fg-3); }
 
 /* ==== REGION: signals-gsc ==== */
+.ax-gsc-summary { font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-3); margin: 14px 0 0; }
+.ax-gsc-subhead { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-3); margin: 0 0 8px; }
+.ax-gsc-setup { font-size: 13px; line-height: 1.6; color: var(--fg-2); }
+.ax-gsc-setup ul { margin: 8px 0; padding-left: 18px; }
+.ax-gsc-setup code { font-family: var(--font-mono); font-size: 12px; }
 
 /* ==== REGION: signals-ops ==== */
 .ax-tbl .chip.ax-ops-ok { color: var(--fg-2); }
