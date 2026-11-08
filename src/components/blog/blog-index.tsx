@@ -5,13 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { BlogList, type BlogPostSummary } from "@/components/blog-list";
 import { CategoryFilter } from "@/components/blog/CategoryFilter";
 import { StartHere } from "@/components/blog/start-here";
+import { resolveTopic } from "@/lib/tag-alias";
 import type { SeriesSummary } from "@/lib/home-content";
 
 interface BlogIndexProps {
   posts: BlogPostSummary[];
   startHere: SeriesSummary[];
   categories: string[];
-  allTags: string[];
 }
 
 /**
@@ -30,16 +30,17 @@ export function BlogIndex({
   posts,
   startHere,
   categories,
-  allTags,
 }: BlogIndexProps) {
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get("category");
 
   const filteredPosts = useMemo(() => {
     if (!activeCategory) return posts;
-    const needle = activeCategory.toLowerCase();
+    const needles = [activeCategory, resolveTopic(activeCategory)]
+      .filter((n): n is string => n !== null)
+      .map((n) => n.toLowerCase());
     return posts.filter((post) =>
-      post.tags.some((tag) => tag.toLowerCase() === needle)
+      post.tags.some((tag) => needles.includes(tag.toLowerCase()))
     );
   }, [posts, activeCategory]);
 
@@ -47,7 +48,7 @@ export function BlogIndex({
     <>
       {activeCategory === null && <StartHere series={startHere} />}
 
-      <BlogList posts={filteredPosts} allTags={allTags} />
+      <BlogList posts={filteredPosts} />
 
       {/* Category filter below posts for browsing by topic */}
       <div className="mt-16 pt-12 border-t border-border/40">

@@ -258,6 +258,7 @@ describe("POST /api/comments", () => {
         slug: "test-post",
         comment: "Reply to nothing",
         email: "user@example.com",
+        reaction: "up",
         parent_id: 999,
       }),
       headers: { "content-type": "application/json" },
@@ -283,6 +284,7 @@ describe("POST /api/comments", () => {
         slug: "test-post",
         comment: "Reply to a reply",
         email: "user@example.com",
+        reaction: "up",
         parent_id: 50,
       }),
       headers: { "content-type": "application/json" },
@@ -315,6 +317,7 @@ describe("POST /api/comments", () => {
         slug: "test-post",
         comment: "Test",
         email: "USER@EXAMPLE.COM",
+        reaction: "up",
       }),
       headers: { "content-type": "application/json" },
     });
@@ -326,32 +329,23 @@ describe("POST /api/comments", () => {
     expect(subscriberCheckCall[1]).toBe("user@example.com");
   });
 
-  it("should default reaction to 'up' when not provided", async () => {
-    mockSql.mockResolvedValueOnce([{ id: 1 }]);
-    mockSql.mockResolvedValueOnce([
-      {
-        id: 1,
-        slug: "test-post",
-        comment: "Test",
-        reaction: "up",
-        email: "user@example.com",
-        created_at: "2026-02-13T12:00:00Z",
-        parent_id: null,
-      },
-    ]);
-
+  it("should return 400 when reaction is missing", async () => {
     const request = new NextRequest("http://localhost/api/comments", {
       method: "POST",
       body: JSON.stringify({
         slug: "test-post",
-        comment: "Test",
+        comment: "Test comment",
         email: "user@example.com",
       }),
       headers: { "content-type": "application/json" },
     });
 
     const response = await POST(request);
-    expect(response.status).toBe(200);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
+    expect(mockSql).not.toHaveBeenCalled();
   });
 
   it("should return 403 when email is not a subscriber", async () => {
@@ -363,6 +357,7 @@ describe("POST /api/comments", () => {
         slug: "test-post",
         comment: "Great article!",
         email: "nonsubscriber@example.com",
+        reaction: "up",
       }),
       headers: { "content-type": "application/json" },
     });
@@ -497,6 +492,7 @@ describe("POST /api/comments", () => {
         slug: "test-post",
         comment: "Test comment",
         email: "user@example.com",
+        reaction: "up",
       }),
       headers: { "content-type": "application/json" },
     });

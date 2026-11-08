@@ -29,7 +29,7 @@ export function CommentForm({
   const { comment, reaction, email, submitting, submitStatus, submitMessage } = state;
 
   return (
-    <form onSubmit={onSubmit} className="mb-8 space-y-4">
+    <form onSubmit={onSubmit} className="ed-comment-form">
       <textarea
         value={comment}
         onChange={(e) => onCommentChange(e.target.value)}
@@ -38,23 +38,19 @@ export function CommentForm({
         rows={3}
         maxLength={2000}
         required
-        className="w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y min-h-[80px]"
+        className="ed-comment-input"
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+      <div className="ed-comment-row">
         {/* Reaction toggle */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground mr-1">Reaction:</span>
+        <div className="ed-comment-toggles">
+          <span className="ed-comment-label">Reaction</span>
           <button
             type="button"
             onClick={() => onReactionChange("up")}
             aria-pressed={reaction === "up"}
             aria-label="React with thumbs up"
-            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              reaction === "up"
-                ? "bg-success/20 text-success ring-1 ring-success/40"
-                : "bg-muted text-muted-foreground hover:text-foreground"
-            }`}
+            className="btn-editorial btn-editorial--sm ed-comment-toggle"
           >
             <ThumbsUp className="h-3.5 w-3.5" />
             Thumbs Up
@@ -64,11 +60,7 @@ export function CommentForm({
             onClick={() => onReactionChange("down")}
             aria-pressed={reaction === "down"}
             aria-label="React with thumbs down"
-            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              reaction === "down"
-                ? "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
-                : "bg-muted text-muted-foreground hover:text-foreground"
-            }`}
+            className="btn-editorial btn-editorial--sm ed-comment-toggle"
           >
             <ThumbsDown className="h-3.5 w-3.5" />
             Thumbs Down
@@ -76,7 +68,7 @@ export function CommentForm({
         </div>
 
         {/* Email + submit */}
-        <div className="flex flex-1 gap-2 w-full sm:w-auto">
+        <div className="ed-comment-send">
           <input
             type="email"
             required
@@ -84,12 +76,12 @@ export function CommentForm({
             onChange={(e) => onEmailChange(e.target.value)}
             placeholder="your-subscriber@email.com"
             aria-label="Your subscriber email"
-            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="ed-comment-input"
           />
           <button
             type="submit"
             disabled={submitting || reaction === null}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+            className="btn-editorial btn-editorial--primary"
           >
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -101,15 +93,13 @@ export function CommentForm({
         </div>
       </div>
 
-      {reaction === null && (
-        <p className="text-xs text-muted-foreground">Pick a reaction</p>
-      )}
+      {reaction === null && <p className="ed-comment-label">Pick a reaction</p>}
 
       {submitStatus === "success" && (
-        <p className="text-sm text-success">{submitMessage}</p>
+        <p className="ed-comment-status ed-comment-status--ok">{submitMessage}</p>
       )}
       {submitStatus === "error" && (
-        <p className="text-sm text-destructive">{submitMessage}</p>
+        <p className="ed-comment-status ed-comment-status--err">{submitMessage}</p>
       )}
     </form>
   );

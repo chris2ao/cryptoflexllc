@@ -106,7 +106,7 @@ describe("BlogComments", () => {
     // Reply should have the indented class
     const replyElement = document.getElementById("comment-3");
     expect(replyElement).toBeInTheDocument();
-    expect(replyElement?.className).toContain("ml-8");
+    expect(replyElement?.className).toContain("ed-comment--reply");
   });
 
   it("shows Reply button on top-level comments", async () => {
@@ -403,28 +403,28 @@ describe("BlogComments", () => {
     // Nothing is preselected
     expect(thumbsUpButton).toHaveAttribute("aria-pressed", "false");
     expect(thumbsDownButton).toHaveAttribute("aria-pressed", "false");
-    expect(thumbsUpButton).not.toHaveClass("bg-success/20");
+    expect(thumbsUpButton).toHaveAttribute("aria-pressed", "false");
 
     // Choosing a side
     fireEvent.click(thumbsUpButton);
     await waitFor(() => {
-      expect(thumbsUpButton).toHaveClass("bg-success/20");
+      expect(thumbsUpButton).toHaveAttribute("aria-pressed", "true");
     });
 
     // Click thumbs down
     fireEvent.click(thumbsDownButton);
 
     await waitFor(() => {
-      expect(thumbsDownButton).toHaveClass("bg-destructive/20");
-      expect(thumbsUpButton).not.toHaveClass("bg-success/20");
+      expect(thumbsDownButton).toHaveAttribute("aria-pressed", "true");
+      expect(thumbsUpButton).toHaveAttribute("aria-pressed", "false");
     });
 
     // Click thumbs up again
     fireEvent.click(thumbsUpButton);
 
     await waitFor(() => {
-      expect(thumbsUpButton).toHaveClass("bg-success/20");
-      expect(thumbsDownButton).not.toHaveClass("bg-destructive/20");
+      expect(thumbsUpButton).toHaveAttribute("aria-pressed", "true");
+      expect(thumbsDownButton).toHaveAttribute("aria-pressed", "false");
     });
   });
 
@@ -884,5 +884,46 @@ describe("BlogComments", () => {
     ) as HTMLTextAreaElement;
 
     expect(textarea.maxLength).toBe(2000);
+  });
+
+  describe("editorial styling", () => {
+    it("uses btn-editorial on the Post button", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => ({ comments: [], thumbsUp: 0 }),
+      });
+      render(<BlogComments slug="test-post" />);
+      await screen.findByText(/No comments yet/i);
+
+      const post = screen.getByRole("button", { name: /^post$/i });
+      expect(post).toHaveClass("btn-editorial");
+      expect(post).toHaveClass("btn-editorial--primary");
+    });
+
+    it("marks the chosen reaction toggle as pressed", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => ({ comments: [], thumbsUp: 0 }),
+      });
+      render(<BlogComments slug="test-post" />);
+      await screen.findByText(/No comments yet/i);
+
+      const up = screen.getByRole("button", { name: /thumbs up/i });
+      expect(up).toHaveClass("ed-comment-toggle");
+      fireEvent.click(up);
+      expect(up).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("renders the thread inside ed-comment-thread", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => ({ comments: mockCommentsThreaded, thumbsUp: 1 }),
+      });
+      render(<BlogComments slug="test-post" />);
+      await screen.findByText("Great post!");
+
+      const card = document.getElementById("comment-1");
+      expect(card?.parentElement?.parentElement).toHaveClass("ed-comment-thread");
+    });
   });
 });

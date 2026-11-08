@@ -2555,6 +2555,216 @@
   .ed-subscribe-card .subscribe-form .row { flex-wrap: wrap; }
 }
 
+/* ==== EDITORIAL REDESIGN: comments (CLAUD-768 item 6) ==== */
+
+.ed-comments {
+  margin-top: 64px;
+  border-top: 1px solid var(--border);
+  padding-top: 40px;
+}
+
+.ed-comments-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.ed-comments-head h3 {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.ed-comment-label,
+.ed-comment-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.ed-comment-note { margin: 4px 0 0 0; }
+
+.ed-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 32px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 20px;
+}
+
+.ed-comment-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ed-comment-toggles,
+.ed-comment-send {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ed-comment-send { width: 100%; }
+
+.ed-comment-input {
+  width: 100%;
+  background: var(--background);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 140ms ease;
+}
+
+.ed-comment-input::placeholder { color: var(--fg-3); }
+
+.ed-comment-input:focus { border-color: var(--primary); }
+.ed-comment-input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+textarea.ed-comment-input {
+  font-family: var(--font-body);
+  resize: vertical;
+  min-height: 80px;
+}
+
+.ed-comment-send .ed-comment-input { flex: 1; min-width: 0; }
+
+.ed-comment-toggle[aria-pressed="true"] {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--accent-dim);
+}
+
+.ed-comment-form .btn-editorial:disabled,
+.ed-reply-form .btn-editorial:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ed-comment-status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin: 0;
+}
+
+.ed-comment-status--ok { color: var(--success); }
+.ed-comment-status--err { color: var(--destructive); }
+
+.ed-comment-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ed-comment {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 16px;
+}
+
+.ed-comment--reply {
+  margin-left: 32px;
+  border-left: 2px solid var(--primary);
+}
+
+.ed-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fg-3);
+}
+
+.ed-comment-up { color: var(--success); }
+.ed-comment-down { color: var(--destructive); }
+
+.ed-comment-body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--fg-2);
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ed-comment-actions { margin: 4px 0 0 8px; }
+
+.ed-comment-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  transition: color 140ms ease;
+}
+
+.ed-comment-link:hover,
+.ed-comment-link:focus-visible { color: var(--primary); }
+
+.ed-reply-slot { margin: 8px 0 0 32px; }
+
+.ed-reply-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--primary);
+  border-radius: 2px;
+  padding: 16px;
+}
+
+.ed-reply-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ed-comment-empty {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--fg-3);
+  text-align: center;
+  padding: 32px 0;
+  margin: 0;
+}
+
+.ed-comment-summary {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .ed-comment-row { flex-direction: row; align-items: flex-end; }
+  .ed-comment-send { flex: 1; width: auto; }
+  .ed-comment-input { font-size: 13px; }
+}
+
 /* ================================================================
    EDITORIAL REDESIGN — Blog Post Page
    ================================================================ */

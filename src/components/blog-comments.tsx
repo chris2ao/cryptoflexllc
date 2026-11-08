@@ -204,15 +204,13 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
   };
 
   return (
-    <div className="mt-16 border-t border-border pt-10">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-          <MessageSquare className="h-5 w-5 text-primary" />
-        </div>
+    <div className="ed-comments">
+      <div className="ed-comments-head">
+        <MessageSquare className="h-5 w-5 text-primary" />
         <div>
-          <h3 className="text-lg font-semibold">Comments</h3>
-          <p className="text-xs text-muted-foreground">
-            Subscribers only — enter your subscriber email to comment
+          <h3>Comments</h3>
+          <p className="ed-comment-note">
+            Subscribers only: enter your subscriber email to comment
           </p>
         </div>
       </div>
@@ -233,31 +231,29 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
 
       {/* Comments list */}
       {loading ? (
-        <div className="flex items-center justify-center py-8 text-muted-foreground">
+        <div className="ed-comment-empty flex items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
           Loading comments...
         </div>
       ) : loadFailed ? (
         <div
           role="status"
-          className="flex flex-col items-center gap-3 py-8 text-center"
+          className="ed-comment-empty flex flex-col items-center gap-3"
         >
-          <p className="text-sm text-muted-foreground">
-            Comments could not be loaded right now.
-          </p>
+          <p>Comments could not be loaded right now.</p>
           <button
             type="button"
             onClick={() => {
               setLoading(true);
               fetchComments();
             }}
-            className="inline-flex items-center rounded-md border border-border px-3 py-1 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            className="btn-editorial btn-editorial--sm"
           >
             Try again
           </button>
         </div>
       ) : comments.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground py-8">
+        <p className="ed-comment-empty">
           No comments yet. Be the first to share your thoughts!
         </p>
       ) : (
@@ -281,8 +277,8 @@ export function BlogComments({ slug, onThumbsUpCount }: BlogCommentsProps) {
 
       {/* Thumbs up summary at bottom */}
       {!loading && thumbsUp > 0 && (
-        <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <ThumbsUp className="h-4 w-4 text-success" />
+        <div className="ed-comment-summary ed-comment-label">
+          <ThumbsUp className="ed-comment-up h-4 w-4" />
           <span>
             {thumbsUp} {thumbsUp === 1 ? "person" : "people"} liked this post
           </span>
