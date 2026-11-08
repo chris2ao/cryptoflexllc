@@ -1,6 +1,7 @@
 # Changelog
 
 All notable changes to this project are documented here.
+
 ## 2026-11-07 - CLAUD-765: Design and UX Review Implemented (13 Items, 4 PRs)
 
 ### What changed
