@@ -8,12 +8,12 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { TimeOnPageRow } from "@/lib/analytics-types";
-import { PanelWrapper } from "./panel-wrapper";
+import { PathLegend, PathTick } from "./scroll-depth-chart";
 
 const chartConfig = {
   avg_seconds: {
     label: "Avg Time (s)",
-    color: "var(--chart-3)",
+    color: "var(--primary)",
   },
 } satisfies ChartConfig;
 
@@ -26,60 +26,49 @@ function formatSeconds(s: number): string {
 
 export function TimeOnPageChart({ data }: { data: TimeOnPageRow[] }) {
   if (data.length === 0) {
-    return (
-      <PanelWrapper
-        title="Avg Time on Page"
-        tooltip="Average time visitors spend on each page before navigating away"
-      >
-        <p className="text-muted-foreground text-sm text-center py-8">
-          No engagement data yet
-        </p>
-      </PanelWrapper>
-    );
+    return <p className="ax-empty">No data in range</p>;
   }
 
   return (
-    <PanelWrapper
-      title="Avg Time on Page"
-      tooltip="Average time visitors spend on each page before navigating away"
-    >
-      <ChartContainer config={chartConfig} className="h-[300px] w-full">
-        <BarChart
-          data={data}
-          layout="vertical"
-          margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
-        >
-          <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-          <YAxis
-            dataKey="page_path"
-            type="category"
-            width={120}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(v: string) =>
-              v.length > 18 ? v.slice(0, 18) + "..." : v
-            }
-          />
-          <XAxis
-            type="number"
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(v: number) => formatSeconds(v)}
-          />
-          <ChartTooltip
-            content={
-              <ChartTooltipContent
-                formatter={(value) => formatSeconds(Number(value))}
-              />
-            }
-          />
-          <Bar
-            dataKey="avg_seconds"
-            fill="var(--chart-3)"
-            radius={[0, 4, 4, 0]}
-          />
-        </BarChart>
-      </ChartContainer>
-    </PanelWrapper>
+    <>
+      <div className="ax-chart ax-chart--tall">
+        <ChartContainer config={chartConfig} className="ax-chart-fill">
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+            <YAxis
+              dataKey="page_path"
+              type="category"
+              width={170}
+              tickLine={false}
+              axisLine={false}
+              tick={<PathTick />}
+            />
+            <XAxis
+              type="number"
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v: number) => formatSeconds(v)}
+            />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  formatter={(value) => formatSeconds(Number(value))}
+                />
+              }
+            />
+            <Bar
+              dataKey="avg_seconds"
+              fill="var(--primary)"
+              radius={[0, 4, 4, 0]}
+            />
+          </BarChart>
+        </ChartContainer>
+      </div>
+      <PathLegend paths={data.map((r) => r.page_path)} />
+    </>
   );
 }

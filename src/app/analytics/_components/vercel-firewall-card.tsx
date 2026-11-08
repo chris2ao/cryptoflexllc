@@ -21,24 +21,37 @@ const CRS_LABELS: Record<string, string> = {
   java: "Java Attack",
 };
 
+const ACTION_TONE: Record<string, string> = {
+  deny: "ax-pill--bad",
+  challenge: "ax-pill--warn",
+  log: "",
+  bypass: "ax-pill--ok",
+  rate_limit: "ax-pill--warn",
+};
+
 function ActionBadge({ action }: { action: string }) {
-  const colors: Record<string, string> = {
-    deny: "bg-red-500/20 text-red-400",
-    challenge: "bg-yellow-500/20 text-yellow-400",
-    log: "bg-blue-500/20 text-blue-400",
-    bypass: "bg-green-500/20 text-green-400",
-    rate_limit: "bg-orange-500/20 text-orange-400",
-  };
+  const tone = ACTION_TONE[action] ?? "";
+  return <span className={`ax-pill ${tone}`.trim()}>{action}</span>;
+}
+
+function StatusDot({ on, tone }: { on: boolean; tone: "ok" | "bad" }) {
+  const color = !on ? "var(--fg-4)" : tone === "ok" ? "var(--ax-green)" : "var(--ax-red)";
   return (
     <span
-      className={`inline-block px-2 py-0.5 text-xs rounded-full font-medium ${
-        colors[action] || "bg-muted text-muted-foreground"
-      }`}
-    >
-      {action}
-    </span>
+      role="img"
+      aria-label={on ? "active" : "inactive"}
+      style={{
+        display: "inline-block",
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: color,
+      }}
+    />
   );
 }
+
+const UNAVAILABLE = <p className="ax-empty">Unavailable from the Vercel API</p>;
 
 export function VercelFirewallCard({
   config,
@@ -49,145 +62,120 @@ export function VercelFirewallCard({
   attackStatus: VercelAttackStatus | null;
   events: VercelFirewallEvents | null;
 }) {
-  const hasAnomalies =
-    attackStatus && attackStatus.anomalies && attackStatus.anomalies.length > 0;
+  const anomalies = attackStatus?.anomalies ?? [];
+  const hasAnomalies = anomalies.length > 0;
+  const eventActions = events?.actions ?? [];
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Vercel Firewall</h2>
+    <div>
+      <div className="ax-panel-toolbar">
+        <p className="ax-subhead" style={{ margin: 0 }}>Vercel Firewall</p>
         {config && (
-          <span
-            className={`inline-block px-2.5 py-1 text-xs rounded-full font-medium ${
-              config.firewallEnabled
-                ? "bg-green-500/20 text-green-400"
-                : "bg-red-500/20 text-red-400"
-            }`}
-          >
+          <span className={`ax-pill ${config.firewallEnabled ? "ax-pill--ok" : "ax-pill--bad"}`}>
             {config.firewallEnabled ? "Enabled" : "Disabled"}
           </span>
         )}
       </div>
 
-      {/* Attack Status */}
-      <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">
-          Attack Status
-        </h3>
-        {hasAnomalies ? (
-          <div className="space-y-2">
-            {attackStatus.anomalies.map((anomaly, i) => (
-              <div
-                key={i}
-                className="rounded-md border border-red-500/30 bg-red-500/10 p-3"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-sm font-medium text-red-400">
+      {!config && <div className="ax-block">{UNAVAILABLE}</div>}
+
+      <div className="ax-block">
+        <h3 className="ax-subhead">Attack status</h3>
+        {attackStatus === null ? (
+          UNAVAILABLE
+        ) : hasAnomalies ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            {anomalies.map((anomaly, i) => (
+              <div key={i} className="ax-notice ax-notice--bad">
+                <div style={{ marginBottom: 4 }}>
+                  <b>
                     {anomaly.state === "active"
-                      ? "Active Attack Detected"
+                      ? "Active attack detected"
                       : `Attack (${anomaly.state})`}
-                  </span>
+                  </b>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(anomaly.startTime).toLocaleString()} &mdash;{" "}
-                  {anomaly.endTime
-                    ? new Date(anomaly.endTime).toLocaleString()
-                    : "Ongoing"}
-                </p>
+                <div className="muted">
+                  {new Date(anomaly.startTime).toLocaleString()} to{" "}
+                  {anomaly.endTime ? new Date(anomaly.endTime).toLocaleString() : "ongoing"}
+                </div>
                 {anomaly.affectedHostMap &&
-                  Object.entries(anomaly.affectedHostMap).map(
-                    ([host, data]) => (
-                      <div key={host} className="mt-2 text-xs">
-                        <span className="font-mono text-muted-foreground">
-                          {host}
+                  Object.entries(anomaly.affectedHostMap).map(([host, data]) => (
+                    <div key={host} style={{ marginTop: 8 }}>
+                      <span>{host}</span>
+                      {data.anomalyAlerts?.map((alert, j) => (
+                        <span key={j} style={{ marginLeft: 8 }}>
+                          z-score: {alert.zscore?.toFixed(2)} | requests:{" "}
+                          {alert.requestCount?.toLocaleString()}
                         </span>
-                        {data.anomalyAlerts?.map((alert, j) => (
-                          <span key={j} className="ml-2 text-muted-foreground">
-                            z-score: {alert.zscore?.toFixed(2)} | requests:{" "}
-                            {alert.requestCount?.toLocaleString()}
-                          </span>
-                        ))}
-                        {data.ddosAlerts?.map((alert, j) => (
-                          <span key={j} className="ml-2 text-red-400">
-                            DDoS: {alert.totalRequests?.toLocaleString()}{" "}
-                            requests
-                          </span>
-                        ))}
-                      </div>
-                    )
-                  )}
+                      ))}
+                      {data.ddosAlerts?.map((alert, j) => (
+                        <span key={j} style={{ marginLeft: 8 }}>
+                          DDoS: {alert.totalRequests?.toLocaleString()} requests
+                        </span>
+                      ))}
+                    </div>
+                  ))}
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-green-400">No active attacks detected</p>
+          <p className="ax-empty" style={{ color: "var(--ax-green)" }}>
+            No active attacks detected
+          </p>
         )}
       </div>
 
-      {/* Managed Rulesets (OWASP CRS) */}
       {config?.crs && Object.keys(config.crs).length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            Managed Rulesets (OWASP)
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {Object.entries(config.crs).map(([key, rule]) => (
-              <div
-                key={key}
-                className={`flex items-center justify-between rounded-md border px-3 py-2 text-xs ${
-                  rule.active
-                    ? "border-green-500/30 bg-green-500/5"
-                    : "border-border bg-muted/30"
-                }`}
-              >
-                <span className="truncate mr-2">
-                  {CRS_LABELS[key] || key}
-                </span>
-                {rule.active ? (
-                  <ActionBadge action={rule.action} />
-                ) : (
-                  <span className="text-muted-foreground">off</span>
-                )}
-              </div>
-            ))}
+        <div className="ax-block">
+          <h3 className="ax-subhead">Managed rulesets (OWASP)</h3>
+          <div className="ax-tbl-scroll">
+            <table className="ax-tbl ax-tbl-static">
+              <thead>
+                <tr>
+                  <th>Ruleset</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(config.crs).map(([key, rule]) => (
+                  <tr key={key}>
+                    <td>{CRS_LABELS[key] || key}</td>
+                    <td>
+                      {rule.active ? (
+                        <ActionBadge action={rule.action} />
+                      ) : (
+                        <span className="ax-pill">off</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* Custom WAF Rules */}
       {config?.rules && config.rules.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            Custom Rules ({config.rules.length})
-          </h3>
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full text-sm">
+        <div className="ax-block">
+          <h3 className="ax-subhead">Custom rules ({config.rules.length})</h3>
+          <div className="ax-tbl-scroll">
+            <table className="ax-tbl ax-tbl-static">
               <thead>
-                <tr className="bg-muted/50 text-left">
-                  <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Action</th>
-                  <th className="px-3 py-2 font-medium">Active</th>
+                <tr>
+                  <th>Name</th>
+                  <th>Action</th>
+                  <th>Active</th>
                 </tr>
               </thead>
               <tbody>
                 {config.rules.map((rule) => (
-                  <tr
-                    key={rule.id}
-                    className="border-t border-border hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="px-3 py-2 font-mono text-xs">
-                      {rule.name || rule.id}
-                    </td>
-                    <td className="px-3 py-2">
+                  <tr key={rule.id}>
+                    <td>{rule.name || rule.id}</td>
+                    <td>
                       <ActionBadge action={rule.action.type} />
                     </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`inline-block w-2 h-2 rounded-full ${
-                          rule.active ? "bg-green-500" : "bg-muted-foreground"
-                        }`}
-                      />
+                    <td>
+                      <StatusDot on={rule.active} tone="ok" />
                     </td>
                   </tr>
                 ))}
@@ -197,34 +185,26 @@ export function VercelFirewallCard({
         </div>
       )}
 
-      {/* IP Rules */}
       {config?.ips && config.ips.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            IP Rules ({config.ips.length})
-          </h3>
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full text-sm">
+        <div className="ax-block">
+          <h3 className="ax-subhead">IP rules ({config.ips.length})</h3>
+          <div className="ax-tbl-scroll">
+            <table className="ax-tbl ax-tbl-static">
               <thead>
-                <tr className="bg-muted/50 text-left">
-                  <th className="px-3 py-2 font-medium">IP</th>
-                  <th className="px-3 py-2 font-medium">Action</th>
-                  <th className="px-3 py-2 font-medium">Notes</th>
+                <tr>
+                  <th>IP</th>
+                  <th>Action</th>
+                  <th>Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {config.ips.map((rule) => (
-                  <tr
-                    key={rule.id}
-                    className="border-t border-border hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="px-3 py-2 font-mono text-xs">{rule.ip}</td>
-                    <td className="px-3 py-2">
+                  <tr key={rule.id}>
+                    <td>{rule.ip}</td>
+                    <td>
                       <ActionBadge action={rule.action} />
                     </td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">
-                      {rule.notes || "—"}
-                    </td>
+                    <td className="muted">{rule.notes || "n/a"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -233,71 +213,49 @@ export function VercelFirewallCard({
         </div>
       )}
 
-      {/* Firewall Events */}
-      {events && events.actions && events.actions.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            Recent Firewall Events ({events.actions.length})
-          </h3>
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full text-sm">
+      <div className="ax-block">
+        <h3 className="ax-subhead">
+          Recent firewall events{eventActions.length > 0 ? ` (${eventActions.length})` : ""}
+        </h3>
+        {events === null ? (
+          UNAVAILABLE
+        ) : eventActions.length === 0 ? (
+          <p className="ax-empty">No firewall events recorded in the selected period</p>
+        ) : (
+          <div className="ax-tbl-scroll">
+            <table className="ax-tbl ax-tbl-static">
               <thead>
-                <tr className="bg-muted/50 text-left">
-                  <th className="px-3 py-2 font-medium">Time</th>
-                  <th className="px-3 py-2 font-medium">Action</th>
-                  <th className="px-3 py-2 font-medium">Host</th>
-                  <th className="px-3 py-2 font-medium">IP</th>
-                  <th className="px-3 py-2 font-medium">Count</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
+                <tr>
+                  <th>Time</th>
+                  <th>Action</th>
+                  <th>Host</th>
+                  <th>IP</th>
+                  <th className="num">Count</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {events.actions.map((evt, i) => (
-                  <tr
-                    key={i}
-                    className="border-t border-border hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                {eventActions.map((evt, i) => (
+                  <tr key={i}>
+                    <td className="muted" style={{ whiteSpace: "nowrap" }}>
                       {new Date(evt.startTime).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2">
+                    <td>
                       <ActionBadge action={evt.action_type} />
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs">
-                      {evt.host || "—"}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-xs">
-                      {evt.public_ip || "—"}
-                    </td>
-                    <td className="px-3 py-2 text-xs">
-                      {evt.count?.toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`inline-block w-2 h-2 rounded-full ${
-                          evt.isActive ? "bg-red-500 animate-pulse" : "bg-muted-foreground"
-                        }`}
-                      />
+                    <td>{evt.host || "n/a"}</td>
+                    <td>{evt.public_ip || "n/a"}</td>
+                    <td className="num">{evt.count?.toLocaleString()}</td>
+                    <td>
+                      <StatusDot on={Boolean(evt.isActive)} tone="bad" />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-
-      {/* Empty state when no firewall events */}
-      {(!events || !events.actions || events.actions.length === 0) && (
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            Recent Firewall Events
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            No firewall events recorded in the selected period
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

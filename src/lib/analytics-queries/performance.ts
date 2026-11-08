@@ -1,27 +1,24 @@
 import { getDb } from "@/lib/analytics";
+import type { TrafficScope } from "./shared";
 import type {
   ApiMetricDailyRow,
   ApiMetricRow,
-  CountryRow,
-  TopPageRow,
   WebVitalsSummary,
 } from "@/lib/analytics-types";
-
-type PerformanceSummaryRow = { total_views: number; unique_visitors: number };
 
 export interface PerformanceData {
   apiMetricsEndpoints: ApiMetricRow[];
   apiMetricsDaily: ApiMetricDailyRow[];
   webVitalsRaw: WebVitalsSummary[];
-  topPages: TopPageRow[];
-  topCountries: CountryRow[];
-  summaryRow: PerformanceSummaryRow[];
 }
 
-export async function loadPerformance(days: number): Promise<PerformanceData> {
+export async function loadPerformance(
+  days: number,
+  _scope: TrafficScope = "humans"
+): Promise<PerformanceData> {
   const sql = getDb();
 
-  const [apiMetricsEndpoints, apiMetricsDaily, webVitalsRaw, topPages, topCountries] =
+  const [apiMetricsEndpoints, apiMetricsDaily, webVitalsRaw] =
     await Promise.all([
       sql`
         SELECT
@@ -67,36 +64,11 @@ export async function loadPerformance(days: number): Promise<PerformanceData> {
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
         GROUP BY metric_name
       `.catch(() => []),
-      sql`
-        SELECT page_path, COUNT(*)::int AS views, COUNT(DISTINCT ip_address)::int AS unique_views
-        FROM page_views
-        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
-        GROUP BY page_path ORDER BY views DESC LIMIT 1
-      `,
-      sql`
-        SELECT country, COUNT(*)::int AS views
-        FROM page_views
-        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
-        GROUP BY country ORDER BY views DESC LIMIT 1
-      `,
     ]);
-
-  // Need total_views for VercelAnalyticsCard -- fetch inline
-  const sql2 = getDb();
-  const summaryRow = await sql2`
-    SELECT
-      COUNT(*)::int AS total_views,
-      COUNT(DISTINCT ip_address)::int AS unique_visitors
-    FROM page_views
-    WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
-  `;
 
   return {
     apiMetricsEndpoints: apiMetricsEndpoints as unknown as ApiMetricRow[],
     apiMetricsDaily: apiMetricsDaily as unknown as ApiMetricDailyRow[],
     webVitalsRaw: webVitalsRaw as unknown as WebVitalsSummary[],
-    topPages: topPages as unknown as TopPageRow[],
-    topCountries: topCountries as unknown as CountryRow[],
-    summaryRow: summaryRow as unknown as PerformanceSummaryRow[],
   };
 }

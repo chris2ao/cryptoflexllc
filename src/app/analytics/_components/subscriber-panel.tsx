@@ -32,7 +32,7 @@ export function SubscriberPanel({
         setSubscribers((prev) => prev.filter((s) => s.id !== sub.id));
       }
     } catch {
-      // Network error — silently fail
+      // Network error: the row stays, so the failure is visible
     } finally {
       setDeletingId(null);
     }
@@ -41,120 +41,95 @@ export function SubscriberPanel({
   return (
     <>
       <div>
-        {/* Section Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Subscribers</h2>
-          <span
-            className={`inline-block px-2.5 py-1 text-xs rounded-full font-medium ${
-              activeCount > 0
-                ? "bg-green-500/20 text-green-400"
-                : "bg-zinc-500/20 text-zinc-400"
-            }`}
-          >
+        <div className="ax-panel-toolbar">
+          <span className={`ax-pill${activeCount > 0 ? " ax-pill--ok" : ""}`}>
             {activeCount} active
           </span>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="rounded-md border border-border bg-muted/30 p-3">
-            <span className="block text-2xl font-bold">
-              {totalCount.toLocaleString()}
-            </span>
-            <span className="block text-xs text-muted-foreground">Total</span>
+        <div className="ax-stat-row">
+          <div className="ax-stat">
+            <span className="v">{totalCount.toLocaleString()}</span>
+            <span className="l">Total</span>
           </div>
-          <div className="rounded-md border border-border bg-muted/30 p-3">
-            <span className="block text-2xl font-bold text-green-400">
+          <div className="ax-stat">
+            <span className="v" style={{ color: "var(--ax-green)" }}>
               {activeCount.toLocaleString()}
             </span>
-            <span className="block text-xs text-muted-foreground">Active</span>
+            <span className="l">Active</span>
           </div>
-          <div className="rounded-md border border-border bg-muted/30 p-3">
-            <span className="block text-2xl font-bold text-zinc-500">
+          <div className="ax-stat">
+            <span className="v" style={{ color: "var(--fg-3)" }}>
               {inactiveCount.toLocaleString()}
             </span>
-            <span className="block text-xs text-muted-foreground">
-              Unsubscribed
-            </span>
+            <span className="l">Unsubscribed</span>
           </div>
         </div>
 
-        {/* Subscriber Table */}
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
+        <div className="ax-tbl-scroll">
+          <table className="ax-tbl ax-tbl-static">
             <thead>
-              <tr className="bg-muted/50 text-left">
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Subscribed</th>
-                <th className="px-4 py-3 font-medium">IP</th>
-                <th className="px-4 py-3 font-medium">Location</th>
-                <th className="px-4 py-3 font-medium w-20"></th>
+              <tr>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Subscribed</th>
+                <th>IP</th>
+                <th>Location</th>
+                <th>
+                  <span className="ax-sr">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {subscribers.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
+                  <td colSpan={6} className="muted">
                     No subscribers yet.
                   </td>
                 </tr>
               ) : (
                 subscribers.map((sub) => (
-                  <tr
-                    key={sub.id}
-                    className="border-t border-border hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="px-4 py-2 font-mono text-xs">
-                      {sub.email}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={`inline-block px-2 py-0.5 text-xs rounded-full font-medium ${
-                          sub.active
-                            ? "bg-green-500/20 text-green-400"
-                            : "bg-zinc-500/20 text-zinc-400"
-                        }`}
-                      >
+                  <tr key={sub.id}>
+                    <td>{sub.email}</td>
+                    <td>
+                      <span className={`ax-pill${sub.active ? " ax-pill--ok" : ""}`}>
                         {sub.active ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-muted-foreground">
+                    <td className="muted" style={{ whiteSpace: "nowrap" }}>
                       {new Date(sub.subscribed_at).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-2 font-mono text-xs">
+                    <td>
                       {sub.ip_address ? (
                         <button
                           type="button"
                           onClick={() => osint.lookup(sub.ip_address)}
-                          className="text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/30 hover:decoration-primary/60 transition-colors cursor-pointer"
+                          className="ax-link"
                         >
                           {sub.ip_address}
                         </button>
                       ) : (
-                        <span className="text-muted-foreground">N/A</span>
+                        <span className="muted">N/A</span>
                       )}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap">
+                    <td style={{ whiteSpace: "nowrap" }}>
                       {[sub.city, sub.region, sub.country]
                         .filter((v) => v && v !== "Unknown")
                         .join(", ") || "Unknown"}
                     </td>
-                    <td className="px-4 py-2">
+                    <td>
                       <button
                         type="button"
                         onClick={() => handleRemove(sub)}
                         disabled={deletingId === sub.id}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                        className="btn-editorial btn-editorial--sm btn-editorial--danger ax-icon-btn"
                         title="Remove subscriber"
+                        aria-label="Remove subscriber"
                       >
                         {deletingId === sub.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <Loader2 size={14} className="ax-spin" />
                         ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 size={14} />
                         )}
                       </button>
                     </td>

@@ -14,6 +14,8 @@
 
 **Tech stack:** Next.js 16 App Router (force-dynamic page, Suspense), React 19, Neon serverless SQL tag, Recharts through `src/components/ui/chart`, vitest + Testing Library (jsdom), zod, node:crypto. No new runtime dependencies.
 
+**Status:** Wave 1 merged in PR #55 (merge commit e82b2d0, 2026-11-07), verified in production. Wave 2 in progress on `refresh/analytics-w2-shell`.
+
 ## Global Constraints
 
 - Zero new runtime dependencies. External data comes from `fetch` with `AbortSignal.timeout`, never throws into a section, and every section query in a `Promise.all` carries `.catch(() => [])` or a defaults object.
@@ -99,7 +101,7 @@
 - Produces: `export const SECTIONS: Record<TabId, (props: { days: number }) => Promise<ReactElement>>` and `export type TabId` in `registry.ts` (nine ids today; Task 6 reduces them).
 - Produces: one loader per tab, e.g. `export async function loadOverview(days: number): Promise<OverviewData>`, returning exactly the rows the section used before. No SQL text changes in this task.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // shared.test.ts
@@ -115,10 +117,10 @@ it("has one section per default tab", () => {
 });
 ```
 
-- [ ] **Step 2: Run and confirm they fail** (`npx vitest run src/lib/analytics-queries/shared.test.ts src/app/analytics/_sections/registry.test.ts`, FAIL: module not found)
-- [ ] **Step 3: Move each `*Section` function into its `_sections` file, its SQL into the matching loader, import `./analytics.css` from `page.tsx`, and move the CSS block.** Behaviour identical. Any test that read the moved rules from `globals.css` points at `analytics.css` instead (check `src/lib/contrast.test.ts` and `src/__tests__/*css*.test.ts`).
-- [ ] **Step 4: Run** `npx tsc --noEmit && npx vitest run src/app/analytics src/lib/analytics-queries src/lib/contrast.test.ts src/__tests__` and `wc -l src/app/analytics/page.tsx` (under 200). PASS.
-- [ ] **Step 5: Commit** `refactor: CLAUD-779 split the analytics page into sections, loaders and its own stylesheet`
+- [x] **Step 2: Run and confirm they fail** (`npx vitest run src/lib/analytics-queries/shared.test.ts src/app/analytics/_sections/registry.test.ts`, FAIL: module not found)
+- [x] **Step 3: Move each `*Section` function into its `_sections` file, its SQL into the matching loader, import `./analytics.css` from `page.tsx`, and move the CSS block.** Behaviour identical. Any test that read the moved rules from `globals.css` points at `analytics.css` instead (check `src/lib/contrast.test.ts` and `src/__tests__/*css*.test.ts`).
+- [x] **Step 4: Run** `npx tsc --noEmit && npx vitest run src/app/analytics src/lib/analytics-queries src/lib/contrast.test.ts src/__tests__` and `wc -l src/app/analytics/page.tsx` (under 200). PASS.
+- [x] **Step 5: Commit** `refactor: CLAUD-779 split the analytics page into sections, loaders and its own stylesheet`
 
 ### Task 2: Tracker sends the referrer; the track route classifies at insert  `critical` `parallel-safe`
 
@@ -133,7 +135,7 @@ it("has one section per default tab", () => {
 - Consumes: `classifyReferrer`, `classifyAtInsert` from Task 3 (its Interfaces block). Until Task 3 lands in the worktree, import the names; the controller merges Task 3 first.
 - Track route: body schema gains `referrer: z.string().max(2000).optional().default("")`; the `Referer` header is no longer read; untracked paths return 204 with no insert; the INSERT adds `referrer_host, referrer_class, traffic_class`; `ensureAnalyticsSchema(sql)` is awaited before the dedup SELECT.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // analytics-tracking-rules.test.ts
@@ -160,10 +162,10 @@ it("records nothing for /analytics paths", ...) // 204, sql not called for INSER
 it("marks a hit from the forged referrer as a bot at insert", ...) // referrer https://www.aocr.org/ -> traffic_class "bot"
 ```
 
-- [ ] **Step 2: Run and confirm failure** (`npx vitest run src/lib/analytics-tracking-rules.test.ts src/lib/analytics-schema.test.ts src/app/api/analytics/track/route.test.ts`)
-- [ ] **Step 3: Implement.** Tracker: `beacon("/api/analytics/track", { path: fullPath, referrer: document.referrer })`, and return early from both effects when `!isTrackedPath(pathname)`.
-- [ ] **Step 4: Run the three test files, PASS.** `npx tsc --noEmit` clean.
-- [ ] **Step 5: Commit** `fix: CLAUD-778 capture the client referrer and classify page views at insert`
+- [x] **Step 2: Run and confirm failure** (`npx vitest run src/lib/analytics-tracking-rules.test.ts src/lib/analytics-schema.test.ts src/app/api/analytics/track/route.test.ts`)
+- [x] **Step 3: Implement.** Tracker: `beacon("/api/analytics/track", { path: fullPath, referrer: document.referrer })`, and return early from both effects when `!isTrackedPath(pathname)`.
+- [x] **Step 4: Run the three test files, PASS.** `npx tsc --noEmit` clean.
+- [x] **Step 5: Commit** `fix: CLAUD-778 capture the client referrer and classify page views at insert`
 
 ### Task 3: Referrer and traffic classifiers, and the pending-row batch  `parallel-safe`
 
@@ -176,7 +178,7 @@ it("marks a hit from the forged referrer as a bot at insert", ...) // referrer h
 - Produces: `export type TrafficClass = "human" | "bot" | "owner" | "self"`; `export function isBotUserAgent(ua: string): boolean` (case-insensitive: bot, crawl, spider, slurp, headless, bytespider, python-requests, go-http-client, curl/, wget/, scrapy, facebookexternalhit, preview, okhttp, java/, libwww); `export function classifyAtInsert(i: { userAgent: string; referrerClass: ReferrerClass; pagePath: string }): TrafficClass | null` (`self` for untracked prefixes, `bot` for bot UA or `forged`, else `null`); `export function classifyFromSignals(s: { userAgent: string; referrerClass: ReferrerClass; pagePath: string; isHosting: boolean | null; hasEngagement: boolean; isOwnerIp: boolean }): TrafficClass` (order: self, owner, bot when UA or forged or (`isHosting === true` and no engagement), else human).
 - Produces: `export async function classifyPendingPageViews(sql: SqlTag, limit = 5000): Promise<number>`: one UPDATE over the oldest `limit` rows where `traffic_class IS NULL`, using a CTE with `ip_intel.is_hosting OR ip_intel.is_datacenter` as hosting, `EXISTS` on `scroll_events` or `page_engagement` for the same `ip_address` and `page_path` within one day as engagement, and `auth_attempts` successes in the last 30 days as owner; returns the row count. Consumes `isTrackedPath` prefixes from Task 2 by re-declaring the two literals in SQL (`page_path LIKE '/analytics%' OR page_path LIKE '/backlog%'`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // referrer.test.ts
@@ -216,10 +218,10 @@ it("updates a bounded batch and returns the count", async () => {
 it("returns 0 when nothing is pending", ...)
 ```
 
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement the three modules.**
-- [ ] **Step 4: Run `npx vitest run src/lib/traffic`, PASS; `npx tsc --noEmit` clean.**
-- [ ] **Step 5: Commit** `feat: CLAUD-778 referrer and traffic classifiers with a pending-row batch`
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement the three modules.**
+- [x] **Step 4: Run `npx vitest run src/lib/traffic`, PASS; `npx tsc --noEmit` clean.**
+- [x] **Step 5: Commit** `feat: CLAUD-778 referrer and traffic classifiers with a pending-row batch`
 
 ### Task 4: Vitals and the live feed stop lying  `parallel-safe`
 
@@ -231,7 +233,7 @@ it("returns 0 when nothing is pending", ...)
 - Consumes: `isTrackedPath` from Task 2 (import; the controller merges Task 2 first).
 - Live route: `subscribers` uses `subscribed_at`; `client_errors` uses `recorded_at` and `error_message`; page view rows carry `traffic_class`; hits with `traffic_class = 'self'` are skipped; hits with `traffic_class = 'bot'` get `tag: "bot"`; `EventTag` gains `"bot"`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // vitals route
@@ -243,19 +245,19 @@ it("reads subscribers by subscribed_at and client errors by recorded_at", async 
 it("tags bot hits and hides self hits", ...) // rows with traffic_class bot/self/human -> tags ["bot","hit"] only
 ```
 
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.** Reporter returns before registering listeners when `!isTrackedPath(pathname)`.
-- [ ] **Step 4: Run the two route test files, PASS.**
-- [ ] **Step 5: Commit** `fix: CLAUD-778 keep dashboard vitals out of the data and repair the live feed queries`
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.** Reporter returns before registering listeners when `!isTrackedPath(pathname)`.
+- [x] **Step 4: Run the two route test files, PASS.**
+- [x] **Step 5: Commit** `fix: CLAUD-778 keep dashboard vitals out of the data and repair the live feed queries`
 
 ### Wave 1 checkpoint
 
-- [ ] Merge order: Task 1 (already on the wave branch), Task 3, Task 2, Task 4. Typecheck after each merge.
-- [ ] `npx tsc --noEmit && npm run lint && npm test && npm run build`
-- [ ] Headless harness on `next start` (port 3100, throwaway `ANALYTICS_SECRET`, cookie minted through `POST /api/analytics/auth` from the page context): every tab renders its empty state with no console errors and `page.tsx` under 200 lines.
-- [ ] One `code-reviewer` on `git diff <wave-base>..HEAD`; one `security-reviewer` in parallel (tracker input, track route, schema statements). CRITICAL and HIGH fixed before the PR.
-- [ ] PR, CI, merge, production check in the owner's Chrome session: dashboard renders, live feed shows a `bot` or `hit` row, Vercel runtime errors show nothing new, and after one dashboard load the schema columns exist (the live feed query succeeds).
-- [ ] Jira: CLAUD-778 to Done with the merge commit. Status line to the owner.
+- [x] Merge order: Task 1 (already on the wave branch), Task 3, Task 2, Task 4. Typecheck after each merge.
+- [x] `npx tsc --noEmit && npm run lint && npm test && npm run build`
+- [x] Headless harness on `next start` (port 3100, throwaway `ANALYTICS_SECRET`, cookie minted through `POST /api/analytics/auth` from the page context): every tab renders its empty state with no console errors and `page.tsx` under 200 lines.
+- [x] One `code-reviewer` on `git diff <wave-base>..HEAD`; one `security-reviewer` in parallel (tracker input, track route, schema statements). CRITICAL and HIGH fixed before the PR.
+- [x] PR, CI, merge, production check in the owner's Chrome session: dashboard renders, live feed shows a `bot` or `hit` row, Vercel runtime errors show nothing new, and after one dashboard load the schema columns exist (the live feed query succeeds).
+- [x] Jira: CLAUD-778 to Done with the merge commit. Status line to the owner.
 
 ---
 

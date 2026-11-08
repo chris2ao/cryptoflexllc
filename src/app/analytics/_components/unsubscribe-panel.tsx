@@ -36,15 +36,15 @@ function Section({
   emptyLabel,
 }: SectionProps) {
   return (
-    <div className="mb-6">
-      <h3 className="text-sm font-semibold mb-2">{heading}</h3>
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm">
+    <div className="ax-block">
+      <h3 className="ax-subhead">{heading}</h3>
+      <div className="ax-tbl-scroll">
+        <table className="ax-tbl ax-tbl-static">
           <thead>
-            <tr className="bg-muted/50 text-left">
+            <tr>
               {TABLE_HEADERS.map((header, i) => (
-                <th key={i} className="px-4 py-3 font-medium">
-                  {header === "" ? <span className="sr-only">Actions</span> : header}
+                <th key={i}>
+                  {header === "" ? <span className="ax-sr">Actions</span> : header}
                 </th>
               ))}
             </tr>
@@ -52,10 +52,7 @@ function Section({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td
-                  colSpan={TABLE_HEADERS.length}
-                  className="px-4 py-8 text-center text-muted-foreground"
-                >
+                <td colSpan={TABLE_HEADERS.length} className="muted">
                   {emptyLabel}
                 </td>
               </tr>
@@ -80,9 +77,9 @@ function Section({
 
 function SummaryStat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/30 p-3" aria-label={`${label}: ${value}`}>
-      <span className="block text-xl font-bold">{value}</span>
-      <span className="block text-xs text-muted-foreground">{label}</span>
+    <div className="ax-stat" aria-label={`${label}: ${value}`}>
+      <span className="v">{value}</span>
+      <span className="l">{label}</span>
     </div>
   );
 }
@@ -167,9 +164,9 @@ export function UnsubscribePanel({ initial }: UnsubscribePanelProps) {
 
   if (!data) {
     return (
-      <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-        Unsubscribe tables are not set up yet. Run{" "}
-        <code className="font-mono text-xs">/api/analytics/setup</code> to create them.
+      <div className="ax-notice">
+        Unsubscribe tables are not set up yet. Run <code>/api/analytics/setup</code> to
+        create them.
       </div>
     );
   }
@@ -181,13 +178,13 @@ export function UnsubscribePanel({ initial }: UnsubscribePanelProps) {
   return (
     <div>
       {error && (
-        <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+        <div className="ax-notice ax-notice--bad" role="alert" style={{ marginBottom: 16 }}>
           {error}
         </div>
       )}
 
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 flex-1">
+      <div className="ax-panel-toolbar" style={{ alignItems: "flex-start" }}>
+        <div className="ax-stat-row" style={{ flex: 1, marginBottom: 0 }}>
           <SummaryStat label="Pending" value={data.summary.pending} />
           <SummaryStat label="Approved" value={data.summary.approved} />
           <SummaryStat label="Allowed" value={data.summary.allowed} />
@@ -201,12 +198,12 @@ export function UnsubscribePanel({ initial }: UnsubscribePanelProps) {
           type="button"
           onClick={refresh}
           disabled={refreshing}
-          className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-muted-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
+          className="btn-editorial btn-editorial--sm ax-icon-btn"
         >
           {refreshing ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 size={14} className="ax-spin" />
           ) : (
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw size={14} />
           )}
           Refresh
         </button>

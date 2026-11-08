@@ -1,3 +1,4 @@
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { getDb } from "@/lib/analytics";
 import { loadGmailMetricsSnapshots } from "@/lib/automation-snapshots";
 import { loadUnsubscribePanel } from "@/lib/gmail-unsubscribe";
@@ -8,7 +9,7 @@ import { KpiStrip } from "../_components/kpi-strip";
 import { AxPanel } from "../_components/ax-panel";
 import { GmailMetricsChart } from "./lazy-charts";
 
-export async function AutomationSection() {
+export async function AgentsSection(_props: { days: number; scope?: TrafficScope }) {
   const sql = getDb();
   const { gmailRuns, sessions } = await loadGmailMetricsSnapshots(sql);
   const unsub = await loadUnsubscribePanel(sql).catch(() => null);
@@ -47,7 +48,7 @@ export async function AutomationSection() {
 
   return (
     <div className="ax-wrap ax-section">
-      <div className="ax-section-label">09 · Automation</div>
+      <div className="ax-section-label">07 · Agents</div>
       <div className="ax-section-head">
         <h2>
           Agents at <em>work.</em>

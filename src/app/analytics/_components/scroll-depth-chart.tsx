@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
@@ -8,64 +9,109 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { ScrollDepthRow } from "@/lib/analytics-types";
-import { PanelWrapper } from "./panel-wrapper";
 
 const chartConfig = {
-  depth_25: { label: "25%", color: "var(--chart-1)" },
-  depth_50: { label: "50%", color: "var(--chart-2)" },
-  depth_75: { label: "75%", color: "var(--chart-3)" },
-  depth_100: { label: "100%", color: "var(--chart-4)" },
+  depth_25: { label: "25%", color: "var(--primary)" },
+  depth_50: { label: "50%", color: "var(--ax-green)" },
+  depth_75: { label: "75%", color: "var(--ax-amber)" },
+  depth_100: { label: "100%", color: "var(--ax-red)" },
 } satisfies ChartConfig;
+
+const MAX_LABEL = 28;
+const PREFIXES = ["/blog/series/", "/backlog/", "/blog/"];
+
+/** Same rule as ax-ranked-list: a single leading slash, no protocol-relative paths. */
+export function isSafeInternalPath(href: string): boolean {
+  if (!href.startsWith("/")) return false;
+  if (href.startsWith("//")) return false;
+  if (href.startsWith("/\\")) return false;
+  return true;
+}
+
+/** Slug shown on the axis: known prefix stripped, capped at 28 chars. */
+export function slugLabel(path: string): string {
+  const prefix = PREFIXES.find((p) => path.startsWith(p));
+  const slug = prefix ? path.slice(prefix.length) : path;
+  return slug.length > MAX_LABEL ? slug.slice(0, MAX_LABEL - 1) + "…" : slug;
+}
+
+export function PathTick(props: {
+  x?: number;
+  y?: number;
+  payload?: { value: string };
+}) {
+  const { x = 0, y = 0, payload } = props;
+  const path = payload?.value ?? "";
+  return (
+    <text
+      x={x}
+      y={y}
+      dy={4}
+      textAnchor="end"
+      className="recharts-cartesian-axis-tick-value"
+    >
+      <title>{path}</title>
+      {slugLabel(path)}
+    </text>
+  );
+}
+
+export function PathLegend({ paths }: { paths: string[] }) {
+  return (
+    <ol className="ax-chart-legend" aria-label="Pages">
+      {paths.map((path) => (
+        <li key={path} className="ax-chart-legend-item">
+          {isSafeInternalPath(path) ? (
+            <Link href={path} title={path}>
+              {slugLabel(path)}
+            </Link>
+          ) : (
+            <span title={path}>{slugLabel(path)}</span>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export function ScrollDepthChart({ data }: { data: ScrollDepthRow[] }) {
   if (data.length === 0) {
-    return (
-      <PanelWrapper
-        title="Scroll Depth"
-        tooltip="How far down the page visitors scroll (25%, 50%, 75%, 100%)"
-      >
-        <p className="text-muted-foreground text-sm text-center py-8">
-          No scroll data yet
-        </p>
-      </PanelWrapper>
-    );
+    return <p className="ax-empty">No data in range</p>;
   }
 
   return (
-    <PanelWrapper
-      title="Scroll Depth"
-      tooltip="How far down the page visitors scroll (25%, 50%, 75%, 100%)"
-    >
-      <ChartContainer config={chartConfig} className="h-[300px] w-full">
-        <BarChart
-          data={data}
-          layout="vertical"
-          margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
-        >
-          <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-          <YAxis
-            dataKey="page_path"
-            type="category"
-            width={120}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(v: string) =>
-              v.length > 18 ? v.slice(0, 18) + "..." : v
-            }
-          />
-          <XAxis type="number" tickLine={false} axisLine={false} />
-          <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="depth_25" stackId="a" fill="var(--chart-1)" />
-          <Bar dataKey="depth_50" stackId="a" fill="var(--chart-2)" />
-          <Bar dataKey="depth_75" stackId="a" fill="var(--chart-3)" />
-          <Bar
-            dataKey="depth_100"
-            stackId="a"
-            fill="var(--chart-4)"
-            radius={[0, 4, 4, 0]}
-          />
-        </BarChart>
-      </ChartContainer>
-    </PanelWrapper>
+    <>
+      <div className="ax-chart ax-chart--tall">
+        <ChartContainer config={chartConfig} className="ax-chart-fill">
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+            <YAxis
+              dataKey="page_path"
+              type="category"
+              width={170}
+              tickLine={false}
+              axisLine={false}
+              tick={<PathTick />}
+            />
+            <XAxis type="number" tickLine={false} axisLine={false} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Bar dataKey="depth_25" stackId="a" fill="var(--primary)" />
+            <Bar dataKey="depth_50" stackId="a" fill="var(--ax-green)" />
+            <Bar dataKey="depth_75" stackId="a" fill="var(--ax-amber)" />
+            <Bar
+              dataKey="depth_100"
+              stackId="a"
+              fill="var(--ax-red)"
+              radius={[0, 4, 4, 0]}
+            />
+          </BarChart>
+        </ChartContainer>
+      </div>
+      <PathLegend paths={data.map((r) => r.page_path)} />
+    </>
   );
 }

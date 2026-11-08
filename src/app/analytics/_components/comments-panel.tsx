@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Loader2, ThumbsUp, ThumbsDown, Search, Reply } from "lucide-react";
+import { Trash2, Loader2, ThumbsUp, ThumbsDown, Reply } from "lucide-react";
 import type { CommentRow } from "@/lib/analytics-types";
 import { BASE_URL } from "@/lib/constants";
 
@@ -43,110 +43,97 @@ export function CommentsPanel({ comments: initialComments }: CommentsPanelProps)
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">Comments</h2>
-        <span
-          className={`inline-block px-2.5 py-1 text-xs rounded-full font-medium ${
-            comments.length > 0
-              ? "bg-blue-500/20 text-blue-400"
-              : "bg-zinc-500/20 text-zinc-400"
-          }`}
-        >
+      <div className="ax-panel-toolbar">
+        <span className={`ax-pill${comments.length > 0 ? " ax-pill--ok" : ""}`}>
           {comments.length} total
         </span>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="ax-panel-toolbar">
+        <label className="ax-sr" htmlFor="comments-search">
+          Search comments
+        </label>
         <input
+          id="comments-search"
           type="text"
           placeholder="Search by post, comment text, or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 text-base sm:text-sm rounded-md border border-border bg-muted/30 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          className="ax-input"
         />
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm">
+      <div className="ax-tbl-scroll">
+        <table className="ax-tbl ax-tbl-static">
           <thead>
-            <tr className="bg-muted/50 text-left">
-              <th className="px-4 py-3 font-medium">Post</th>
-              <th className="px-4 py-3 font-medium">Comment</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Reaction</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Date</th>
-              <th className="px-4 py-3 font-medium w-20"></th>
+            <tr>
+              <th>Post</th>
+              <th>Comment</th>
+              <th>Type</th>
+              <th>Reaction</th>
+              <th>Email</th>
+              <th>Date</th>
+              <th>
+                <span className="ax-sr">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td
-                  colSpan={7}
-                  className="px-4 py-8 text-center text-muted-foreground"
-                >
+                <td colSpan={7} className="muted">
                   {search ? "No comments match your search." : "No comments yet."}
                 </td>
               </tr>
             ) : (
               filtered.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-t border-border hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-4 py-2 font-mono text-xs max-w-[160px] truncate" title={c.slug}>
+                <tr key={c.id}>
+                  <td className="trunc" title={c.slug}>
                     {c.slug}
                   </td>
-                  <td className="px-4 py-2 max-w-[280px] truncate" title={c.comment}>
+                  <td className="trunc" title={c.comment}>
                     <a
                       href={`${BASE_URL}/blog/${c.slug}#comment-${c.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/30 hover:decoration-primary/60 transition-colors"
+                      className="ax-link"
                     >
                       {c.comment}
                     </a>
                   </td>
-                  <td className="px-4 py-2">
+                  <td>
                     {c.parent_id != null ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-blue-400">
-                        <Reply className="h-3 w-3" />
-                        #{c.parent_id}
+                      <span className="ax-pill">
+                        <Reply size={12} style={{ display: "inline" }} aria-hidden="true" /> #{c.parent_id}
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Top</span>
+                      <span className="muted">Top</span>
                     )}
                   </td>
-                  <td className="px-4 py-2">
+                  <td>
                     {c.reaction === "up" ? (
-                      <ThumbsUp className="h-4 w-4 text-green-400" />
+                      <ThumbsUp size={16} style={{ color: "var(--ax-green)" }} aria-label="Thumbs up" />
                     ) : (
-                      <ThumbsDown className="h-4 w-4 text-red-400" />
+                      <ThumbsDown size={16} style={{ color: "var(--ax-red)" }} aria-label="Thumbs down" />
                     )}
                   </td>
-                  <td className="px-4 py-2 font-mono text-xs">
-                    {c.email}
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-muted-foreground">
+                  <td>{c.email}</td>
+                  <td className="muted" style={{ whiteSpace: "nowrap" }}>
                     {new Date(c.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-2">
+                  <td>
                     <button
                       type="button"
                       onClick={() => handleDelete(c)}
                       disabled={deletingId === c.id}
-                      className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                      className="btn-editorial btn-editorial--sm btn-editorial--danger ax-icon-btn"
                       title="Delete comment"
+                      aria-label="Delete comment"
                     >
                       {deletingId === c.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Loader2 size={14} className="ax-spin" />
                       ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 size={14} />
                       )}
                     </button>
                   </td>

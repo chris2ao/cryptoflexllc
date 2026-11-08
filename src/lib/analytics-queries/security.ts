@@ -1,9 +1,11 @@
 import { getDb } from "@/lib/analytics";
+import { scopeClass, type TrafficScope } from "./shared";
 import type {
   AuthAttemptRow,
   BotTrendRow,
   ClientErrorRow,
   ClientErrorTrendRow,
+  RecentVisit,
   VercelAttackStatus,
   VercelFirewallConfig,
   VercelFirewallEvents,
@@ -58,21 +60,27 @@ export interface SecurityData {
   clientErrorRecent: ClientErrorRow[];
   clientErrorCount: { total: number }[];
   firewall: VercelFirewallBundle;
+  recent: RecentVisit[];
 }
 
-export async function loadSecurity(days: number): Promise<SecurityData> {
+export async function loadSecurity(
+  days: number,
+  scope: TrafficScope = "humans"
+): Promise<SecurityData> {
   const sql = getDb();
+  const sc = scopeClass(scope);
 
-  const [botTrend, authAttempts, clientErrorTrend, clientErrorRecent, clientErrorCount] =
+  const [botTrend, authAttempts, clientErrorTrend, clientErrorRecent, clientErrorCount, recent] =
     await Promise.all([
+      // Bot trend spans every class on purpose: scoping it to humans would hide the bots.
       sql`
         SELECT
           DATE(visited_at)::text AS date,
-          COUNT(*) FILTER (WHERE device_type = 'Bot')::int AS bot_count,
-          COUNT(*) FILTER (WHERE device_type != 'Bot')::int AS human_count,
+          COUNT(*) FILTER (WHERE device_type = 'Bot' OR traffic_class = 'bot')::int AS bot_count,
+          COUNT(*) FILTER (WHERE device_type != 'Bot' AND traffic_class IS DISTINCT FROM 'bot')::int AS human_count,
           CASE
             WHEN COUNT(*) > 0
-            THEN ROUND(COUNT(*) FILTER (WHERE device_type = 'Bot')::numeric / COUNT(*) * 100, 1)
+            THEN ROUND(COUNT(*) FILTER (WHERE device_type = 'Bot' OR traffic_class = 'bot')::numeric / COUNT(*) * 100, 1)
             ELSE 0
           END AS bot_pct
         FROM page_views
@@ -110,6 +118,13 @@ export async function loadSecurity(days: number): Promise<SecurityData> {
         FROM client_errors
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
       `.catch(() => [{ total: 0 }]),
+      sql`
+        SELECT id, visited_at, page_path, ip_address, browser, os,
+               device_type, referrer, country, city, region
+        FROM page_views
+        WHERE (${sc}::text IS NULL OR traffic_class = ${sc})
+        ORDER BY visited_at DESC LIMIT 50
+      `.catch(() => []),
     ]);
 
   const firewall = await loadVercelFirewall(days);
@@ -121,5 +136,6 @@ export async function loadSecurity(days: number): Promise<SecurityData> {
     clientErrorRecent: clientErrorRecent as unknown as ClientErrorRow[],
     clientErrorCount: clientErrorCount as unknown as { total: number }[],
     firewall: firewall as unknown as VercelFirewallBundle,
+    recent: recent as unknown as RecentVisit[],
   };
 }

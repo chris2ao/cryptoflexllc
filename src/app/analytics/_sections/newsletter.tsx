@@ -1,3 +1,4 @@
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { loadNewsletter } from "@/lib/analytics-queries/newsletter";
 import { SubscriberPanel } from "../_components/subscriber-panel";
 import { CommentsPanel } from "../_components/comments-panel";
@@ -7,7 +8,7 @@ import { AxPanel } from "../_components/ax-panel";
 import { AxRankedList } from "../_components/ax-ranked-list";
 import { SubscriberGrowthChart } from "./lazy-charts";
 
-export async function NewsletterSection({ days: _days }: { days: number }) {
+export async function NewsletterSection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
   const {
     subscriberList: typedSubscribers,
     subscriberGrowth: typedSubGrowth,
@@ -15,7 +16,7 @@ export async function NewsletterSection({ days: _days }: { days: number }) {
     commentList: typedComments,
     guestbookList: typedGuestbook,
     subscriberSummary,
-  } = await loadNewsletter(_days);
+  } = await loadNewsletter(days, scope);
 
   const subStats = subscriberSummary[0] || { total: 0, active: 0, inactive: 0 };
 
@@ -44,7 +45,7 @@ export async function NewsletterSection({ days: _days }: { days: number }) {
 
   return (
     <div className="ax-wrap ax-section">
-      <div className="ax-section-label">07 · Newsletter</div>
+      <div className="ax-section-label">06 · Newsletter</div>
       <div className="ax-section-head">
         <h2>
           Subscribers &amp; <em>community.</em>

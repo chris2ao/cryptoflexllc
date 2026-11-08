@@ -9,43 +9,28 @@ export function DataTable({
 }) {
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">{title}</h2>
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm">
+      <h2 className="ax-subhead">{title}</h2>
+      <div className="ax-tbl-scroll">
+        <table className="ax-tbl ax-tbl-static">
           <thead>
-            <tr className="bg-muted/50 text-left">
+            <tr>
               {headers.map((h) => (
-                <th key={h} className="px-4 py-3 font-medium">
-                  {h}
-                </th>
+                <th key={h}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td
-                  colSpan={headers.length}
-                  className="px-4 py-6 text-center text-muted-foreground"
-                >
+                <td colSpan={headers.length} className="muted">
                   No data yet
                 </td>
               </tr>
             ) : (
               rows.map((row, i) => (
-                <tr
-                  key={i}
-                  className="border-t border-border hover:bg-muted/30 transition-colors"
-                >
+                <tr key={i}>
                   {row.map((cell, j) => (
-                    <td
-                      key={j}
-                      className={`px-4 py-2 ${
-                        j === 0 ? "font-mono text-xs" : ""
-                      }`}
-                    >
-                      {cell}
-                    </td>
+                    <td key={j}>{j === 0 ? <b>{cell}</b> : cell}</td>
                   ))}
                 </tr>
               ))

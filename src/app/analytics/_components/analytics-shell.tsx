@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import type { ReactNode } from "react";
 
 import {
@@ -9,21 +11,28 @@ import {
   DEFAULT_TABS,
   type RangeDef,
   type TabDef,
+  type TabId,
 } from "./tabs";
 
 // Server components import these from "./tabs" directly; the re-export
 // keeps client-side consumers working.
 export { DEFAULT_RANGES, DEFAULT_TABS };
-export type { RangeDef, TabDef };
+export type { RangeDef, TabDef, TabId };
 
 type Props = {
-  tabs?: TabDef[];
-  ranges?: RangeDef[];
+  activeTab: TabId;
   currentDays: number;
+  scope: TrafficScope;
+  tabs?: readonly TabDef[];
+  ranges?: RangeDef[];
+  meta?: ReactNode;
   children: ReactNode;
 };
 
-const TAB_STORAGE_KEY = "cf_analytics_tab";
+const SCOPES: ReadonlyArray<{ id: TrafficScope; label: string }> = [
+  { id: "humans", label: "Humans" },
+  { id: "all", label: "All" },
+];
 
 function resolveRangeId(ranges: RangeDef[], days: number): string {
   const match = ranges.find((r) => r.days === days);
@@ -31,23 +40,21 @@ function resolveRangeId(ranges: RangeDef[], days: number): string {
 }
 
 export function AnalyticsShell({
+  activeTab,
+  currentDays,
+  scope,
   tabs = DEFAULT_TABS,
   ranges = DEFAULT_RANGES,
-  currentDays,
+  meta,
   children,
 }: Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window === "undefined") return tabs[0]?.id ?? "overview";
-    const saved = window.localStorage.getItem(TAB_STORAGE_KEY);
-    if (saved && tabs.some((t) => t.id === saved)) return saved;
-    return tabs[0]?.id ?? "overview";
-  });
   const [search, setSearch] = useState<string>("");
   const [autoOn, setAutoOn] = useState<boolean>(true);
 
   const tabsContainerRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const filterRef = useRef<HTMLDivElement | null>(null);
   const [canLeft, setCanLeft] = useState<boolean>(false);
   const [canRight, setCanRight] = useState<boolean>(false);
   const [showArrows, setShowArrows] = useState<boolean>(true);
@@ -57,19 +64,9 @@ export function AnalyticsShell({
     [ranges, currentDays]
   );
 
-  // Persist tab when it changes
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(TAB_STORAGE_KEY, activeTab);
-  }, [activeTab]);
-
-  // Toggle .on on child panels + broadcast active-panel event for child effects
+  // Broadcast the active tab and auto-refresh flag for child effects
   useEffect(() => {
     if (typeof document === "undefined") return;
-    document.querySelectorAll<HTMLElement>("[data-panel]").forEach((el) => {
-      const match = el.getAttribute("data-panel") === activeTab;
-      el.classList.toggle("on", match);
-    });
     document.body.dataset.axTab = activeTab;
     document.body.dataset.axAuto = autoOn ? "1" : "0";
   }, [activeTab, autoOn]);
@@ -122,26 +119,39 @@ export function AnalyticsShell({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Search applies a textContent substring filter to .ax-row / .ax-tbl tbody tr
+  // Search applies a textContent substring filter to .ax-row / .ax-tbl tbody tr.
+  // Sections stream in behind Suspense after this effect first runs, so a
+  // MutationObserver re-applies the filter to rows that arrive later.
   useEffect(() => {
+    const container = filterRef.current;
+    if (!container) return;
     const q = search.trim().toLowerCase();
-    const rows = document.querySelectorAll<HTMLElement>(
-      "[data-ax-filterable] .ax-row, [data-ax-filterable] .ax-tbl tbody tr"
-    );
-    rows.forEach((row) => {
-      if (!q) {
-        row.style.display = "";
-        return;
-      }
-      const text = (row.textContent ?? "").toLowerCase();
-      row.style.display = text.includes(q) ? "" : "none";
-    });
+    const apply = () => {
+      const rows = container.querySelectorAll<HTMLElement>(
+        ".ax-row, .ax-tbl tbody tr"
+      );
+      rows.forEach((row) => {
+        if (!q) {
+          row.style.display = "";
+          return;
+        }
+        const text = (row.textContent ?? "").toLowerCase();
+        row.style.display = text.includes(q) ? "" : "none";
+      });
+    };
+    apply();
+    if (!q) return;
+    const observer = new MutationObserver(apply);
+    observer.observe(container, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [search, activeTab]);
 
   const handleRange = (days: number) => {
-    const params = new URLSearchParams(window.location.search);
-    params.set("days", String(days));
-    router.push(`/analytics?${params.toString()}`);
+    router.push(`/analytics?tab=${activeTab}&days=${days}&scope=${scope}`);
+  };
+
+  const handleScope = (next: TrafficScope) => {
+    router.push(`/analytics?tab=${activeTab}&days=${currentDays}&scope=${next}`);
   };
 
   const scrollTabs = (delta: number) => {
@@ -171,6 +181,23 @@ export function AnalyticsShell({
           })}
         </div>
 
+        <div className="seg" role="group" aria-label="Traffic scope">
+          {SCOPES.map((o) => {
+            const isActive = o.id === scope;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                className={isActive ? "on" : ""}
+                onClick={() => handleScope(o.id)}
+                aria-pressed={isActive}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="tabs-wrap">
           {showArrows && (
             <button
@@ -185,21 +212,20 @@ export function AnalyticsShell({
           )}
           <div className="toolbar-tabs" ref={tabsContainerRef} role="tablist">
             {tabs.map((t) => (
-              <button
+              <Link
                 key={t.id}
-                type="button"
                 role="tab"
                 id={`ax-tab-${t.id}`}
                 aria-selected={activeTab === t.id}
                 aria-controls={`ax-panel-${t.id}`}
-                tabIndex={activeTab === t.id ? 0 : -1}
                 data-tab-id={t.id}
                 className={`ax-tab${activeTab === t.id ? " on" : ""}`}
-                onClick={() => setActiveTab(t.id)}
+                href={`/analytics?tab=${t.id}&days=${currentDays}&scope=${scope}`}
+                prefetch={false}
               >
                 <span className="n">{t.number}</span>
                 <span>{t.label}</span>
-              </button>
+              </Link>
             ))}
           </div>
           {showArrows && (
@@ -240,7 +266,9 @@ export function AnalyticsShell({
         </button>
       </div>
 
-      <div data-ax-filterable>{children}</div>
+      {meta ? <div className="ax-meta-line">{meta}</div> : null}
+
+      <div data-ax-filterable ref={filterRef}>{children}</div>
     </>
   );
 }

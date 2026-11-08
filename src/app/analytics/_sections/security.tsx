@@ -1,12 +1,14 @@
+import type { TrafficScope } from "@/lib/analytics-queries/shared";
 import { loadSecurity } from "@/lib/analytics-queries/security";
 import { isVercelApiConfigured } from "@/lib/vercel-api";
 import { VercelFirewallCard } from "../_components/vercel-firewall-card";
 import { ClientErrorsPanel } from "../_components/client-errors-panel";
+import { RecentVisitsTable } from "../_components/recent-visits-table";
 import { KpiStrip } from "../_components/kpi-strip";
 import { AxPanel } from "../_components/ax-panel";
 import { BotTrendChart, AuthAttemptsChart } from "./lazy-charts";
 
-export async function SecuritySection({ days }: { days: number }) {
+export async function SecuritySection({ days, scope = "humans" }: { days: number; scope?: TrafficScope }) {
   const {
     botTrend: typedBotTrend,
     authAttempts: typedAuthAttempts,
@@ -14,7 +16,8 @@ export async function SecuritySection({ days }: { days: number }) {
     clientErrorRecent: typedErrorRecent,
     clientErrorCount,
     firewall,
-  } = await loadSecurity(days);
+    recent: typedRecent,
+  } = await loadSecurity(days, scope);
 
   const errorTotal = (clientErrorCount[0] || { total: 0 }).total;
 
@@ -52,7 +55,7 @@ export async function SecuritySection({ days }: { days: number }) {
 
   return (
     <div className="ax-wrap ax-section">
-      <div className="ax-section-label">06 · Security</div>
+      <div className="ax-section-label">05 · Security</div>
       <div className="ax-section-head">
         <h2>
           Firewall, <em>bots, auth.</em>
@@ -91,7 +94,7 @@ export async function SecuritySection({ days }: { days: number }) {
         </AxPanel>
       </div>
 
-      <div>
+      <div style={{ marginBottom: 20 }}>
         <AxPanel title="Client errors" kicker={`${errorTotal} IN RANGE`}>
           <ClientErrorsPanel
             trend={typedErrorTrend}
@@ -99,6 +102,10 @@ export async function SecuritySection({ days }: { days: number }) {
             totalCount={errorTotal}
           />
         </AxPanel>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <RecentVisitsTable data={typedRecent} />
       </div>
     </div>
   );
