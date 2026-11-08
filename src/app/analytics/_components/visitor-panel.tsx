@@ -13,6 +13,8 @@ import {
   SignalsSection,
 } from "./visitor-panel-sections";
 
+export type EnrichmentError = null | "unauthorized" | "unavailable";
+
 export type VisitorPanelProps = {
   ip: string;
   dossier: VisitorDossier | null;
@@ -20,7 +22,7 @@ export type VisitorPanelProps = {
   loadingDossier: boolean;
   loadingEnrichment: boolean;
   error: string | null;
-  enrichmentError?: boolean;
+  enrichmentError?: EnrichmentError;
   onClose: () => void;
   headingRef?: React.Ref<HTMLHeadingElement>;
 };
@@ -32,7 +34,7 @@ export function VisitorPanel({
   loadingDossier,
   loadingEnrichment,
   error,
-  enrichmentError = false,
+  enrichmentError = null,
   onClose,
   headingRef,
 }: VisitorPanelProps) {
@@ -59,7 +61,9 @@ export function VisitorPanel({
       ) : loadingEnrichment ? (
         <p className="ax-muted">Loading network details...</p>
       ) : enrichmentError ? (
-        <p className="ax-empty">Enrichment unavailable</p>
+        <p className="ax-empty">
+          {enrichmentError === "unauthorized" ? "Session expired" : "Enrichment unavailable"}
+        </p>
       ) : null}
 
       {dossier ? (
@@ -87,7 +91,7 @@ type HostState = {
   loadingDossier: boolean;
   loadingEnrichment: boolean;
   error: string | null;
-  enrichmentError: boolean;
+  enrichmentError: EnrichmentError;
 };
 
 const IDLE: HostState = {
@@ -97,7 +101,7 @@ const IDLE: HostState = {
   loadingDossier: false,
   loadingEnrichment: false,
   error: null,
-  enrichmentError: false,
+  enrichmentError: null,
 };
 
 const FETCH_INIT = {
@@ -113,72 +117,88 @@ function isEnrichment(v: unknown): v is IpEnrichment {
   );
 }
 
+class HttpError extends Error {
+  constructor(readonly status: number) {
+    super(String(status));
+  }
+}
+
 export function VisitorPanelHost() {
   const [state, setState] = useState<HostState>(IDLE);
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const currentIp = useRef("");
+  const openerRef = useRef<HTMLElement | null>(null);
 
   const close = useCallback(() => {
     currentIp.current = "";
     setOpen(false);
     dialogRef.current?.close();
+    const opener = openerRef.current;
+    openerRef.current = null;
+    if (opener?.isConnected) opener.focus();
   }, []);
 
-  const load = useCallback(async (ip: string) => {
-    currentIp.current = ip;
-    setState({ ...IDLE, ip, loadingDossier: true, loadingEnrichment: true });
-    const q = encodeURIComponent(ip);
-    const stale = () => currentIp.current !== ip;
-
+  const loadDossier = useCallback(async (ip: string, stale: () => boolean) => {
     try {
-      const res = await fetch(`/api/analytics/visitor?ip=${q}`, FETCH_INIT);
+      const res = await fetch(`/api/analytics/visitor?ip=${encodeURIComponent(ip)}`, FETCH_INIT);
       if (stale()) return;
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) throw new HttpError(res.status);
       const body = (await res.json()) as { dossier?: VisitorDossier };
       if (stale()) return;
-      setState((s) => ({
-        ...s,
-        dossier: body.dossier ?? null,
-        loadingDossier: false,
-      }));
-    } catch {
+      setState((s) => ({ ...s, dossier: body.dossier ?? null, loadingDossier: false }));
+    } catch (err) {
       if (stale()) return;
-      setState((s) => ({
-        ...s,
-        loadingDossier: false,
-        error: "Visitor history unavailable",
-      }));
+      const error =
+        err instanceof HttpError && err.status === 401
+          ? "Session expired. Reload the dashboard."
+          : "Visitor history unavailable";
+      setState((s) => ({ ...s, loadingDossier: false, error }));
     }
+  }, []);
 
+  const loadEnrichment = useCallback(async (ip: string, stale: () => boolean) => {
     try {
-      const res = await fetch(`/api/analytics/ip-intel?ip=${q}`, FETCH_INIT);
+      const res = await fetch(`/api/analytics/ip-intel?ip=${encodeURIComponent(ip)}`, FETCH_INIT);
       if (stale()) return;
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) throw new HttpError(res.status);
       const body = (await res.json()) as { enrichment?: unknown };
       if (stale()) return;
       if (!isEnrichment(body.enrichment)) throw new Error("shape");
       const enrichment = body.enrichment;
       setState((s) => ({ ...s, enrichment, loadingEnrichment: false }));
-    } catch {
+    } catch (err) {
       if (stale()) return;
-      setState((s) => ({
-        ...s,
-        loadingEnrichment: false,
-        enrichmentError: true,
-      }));
+      const enrichmentError: EnrichmentError =
+        err instanceof HttpError && err.status === 401 ? "unauthorized" : "unavailable";
+      setState((s) => ({ ...s, loadingEnrichment: false, enrichmentError }));
     }
   }, []);
+
+  const load = useCallback(
+    (ip: string) => {
+      currentIp.current = ip;
+      setState({ ...IDLE, ip, loadingDossier: true, loadingEnrichment: true });
+      const stale = () => currentIp.current !== ip;
+      void loadDossier(ip, stale);
+      void loadEnrichment(ip, stale);
+    },
+    [loadDossier, loadEnrichment],
+  );
 
   useEffect(() => {
     const onOpen = (e: Event) => {
       const ip = (e as CustomEvent<VisitorEventDetail>).detail?.ip;
       if (!ip) return;
+      const active = document.activeElement;
+      if (!dialogRef.current?.open && active instanceof HTMLElement && active !== document.body) {
+        openerRef.current = active;
+      }
       setOpen(true);
       const dlg = dialogRef.current;
       if (dlg && !dlg.open) dlg.show();
-      void load(ip);
+      load(ip);
       requestAnimationFrame(() => headingRef.current?.focus());
     };
     window.addEventListener(VISITOR_EVENT, onOpen);

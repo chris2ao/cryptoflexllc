@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { VisitorPanelHost } from "./visitor-panel";
-import { openVisitor } from "./ip-link";
+import { IpLink, openVisitor } from "./ip-link";
 
 const DOSSIER = {
   ip: "8.8.8.8",
@@ -104,5 +104,72 @@ describe("VisitorPanelHost", () => {
     await waitFor(() => expect(screen.getByText("History")).toBeTruthy());
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByText("History")).toBeNull();
+  });
+
+  it("shows the session message on a 401 from both endpoints", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 401, json: async () => ({}) })));
+    render(<VisitorPanelHost />);
+    act(() => openVisitor("8.8.8.8"));
+    await waitFor(() =>
+      expect(screen.getByText("Session expired. Reload the dashboard.")).toBeTruthy(),
+    );
+    expect(screen.getByText("Session expired")).toBeTruthy();
+  });
+
+  it("shows the generic history message on a 500", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
+    render(<VisitorPanelHost />);
+    act(() => openVisitor("8.8.8.8"));
+    await waitFor(() => expect(screen.getByText("Visitor history unavailable")).toBeTruthy());
+  });
+
+  it("starts both fetches before either resolves", async () => {
+    const urls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn((url: string) => { urls.push(url); return new Promise(() => undefined); }));
+    render(<VisitorPanelHost />);
+    act(() => openVisitor("8.8.8.8"));
+    expect(urls).toHaveLength(2);
+  });
+
+  it("returns focus to the opener on close", async () => {
+    render(
+      <>
+        <IpLink ip="8.8.8.8" />
+        <VisitorPanelHost />
+      </>,
+    );
+    const opener = screen.getByRole("button", { name: /Open visitor details/ });
+    opener.focus();
+    fireEvent.click(opener);
+    await waitFor(() => expect(screen.getByText("History")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("ignores a late response for a previous IP", async () => {
+    const pending: Record<string, (v: unknown) => void> = {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        const ip = new URL(url, "http://x").searchParams.get("ip") ?? "";
+        const kind = url.includes("/visitor") ? "d" : "e";
+        return new Promise((resolve) => { pending[`${kind}:${ip}`] = resolve; });
+      }),
+    );
+    render(<VisitorPanelHost />);
+    act(() => openVisitor("1.1.1.1"));
+    act(() => openVisitor("2.2.2.2"));
+    await act(async () => {
+      pending["d:2.2.2.2"]({ ok: true, json: async () => ({ dossier: { ...DOSSIER, ip: "2.2.2.2", hits: 22 } }) });
+      pending["e:2.2.2.2"]({ ok: true, json: async () => ({ enrichment: { ...ENRICH, ip: "2.2.2.2", company: "Bee Co" } }) });
+    });
+    await waitFor(() => expect(screen.getByText("Bee Co")).toBeTruthy());
+    await act(async () => {
+      pending["d:1.1.1.1"]({ ok: true, json: async () => ({ dossier: { ...DOSSIER, ip: "1.1.1.1", hits: 11 } }) });
+      pending["e:1.1.1.1"]({ ok: true, json: async () => ({ enrichment: { ...ENRICH, ip: "1.1.1.1", company: "Ay Co" } }) });
+    });
+    expect(screen.getByRole("heading", { name: "2.2.2.2" })).toBeTruthy();
+    expect(screen.getByText("Bee Co")).toBeTruthy();
+    expect(screen.queryByText("Ay Co")).toBeNull();
   });
 });

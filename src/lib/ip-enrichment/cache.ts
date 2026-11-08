@@ -1,4 +1,5 @@
 import type { SqlTag } from "./batch";
+import { sanitizeEnrichment } from "./sanitize";
 import { EMPTY_ENRICHMENT, type IpEnrichment } from "./types";
 
 type Row = Record<string, unknown>;
@@ -16,7 +17,7 @@ function rowToEnrichment(row: Row): IpEnrichment {
   const enrichedAt = row.enriched_at ? new Date(s(row.enriched_at)).toISOString() : "";
   const sources = s(row.sources).split(",").map((x) => x.trim()).filter(Boolean);
 
-  return {
+  return sanitizeEnrichment({
     ...EMPTY_ENRICHMENT,
     ip: s(row.ip_address),
     asn: s(row.as_number),
@@ -37,7 +38,7 @@ function rowToEnrichment(row: Row): IpEnrichment {
     whoisOrg: s(row.whois_org),
     sources,
     enrichedAt,
-  };
+  });
 }
 
 /** A cached row whose `enriched_at` is within 7 days, else null. */

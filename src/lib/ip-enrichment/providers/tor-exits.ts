@@ -1,11 +1,11 @@
 import type { SqlTag } from "../batch";
 import { ipv4ToInt } from "../cidr";
 
-export /** After a failed refresh the stale text is reused this long before trying again. */
-const STALE_TTL_MS = 10 * 60 * 1000;
+/** After a failed refresh the stale text is reused this long before trying again. */
+export const STALE_TTL_MS = 10 * 60 * 1000;
 /** A real list is well under this; a consent or error page that slips through is not cached. */
 const MAX_LIST_BYTES = 2 * 1024 * 1024;
-const LIST_TTL_MS = 24 * 60 * 60 * 1000;
+export const LIST_TTL_MS = 24 * 60 * 60 * 1000;
 const TOR_URL = "https://check.torproject.org/torbulkexitlist";
 
 const memo = new Map<string, { text: string; at: number }>();
@@ -21,6 +21,11 @@ export function resetListCache(): void {
  * stale cached text, else an empty string. Never throws.
  */
 function rememberStale(name: string, text: string, now: number): string {
+  if (text) {
+    console.warn(`Threat list "${name}" refresh failed, serving stale copy`);
+  } else {
+    console.warn(`Threat list "${name}" refresh failed and no cached copy exists`);
+  }
   memo.set(name, { text, at: now - LIST_TTL_MS + STALE_TTL_MS });
   return text;
 }

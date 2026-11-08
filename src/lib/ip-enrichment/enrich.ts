@@ -5,6 +5,7 @@ import { fetchIpapiIs } from "./providers/ipapi-is";
 import { fetchRdap } from "./providers/rdap";
 import { loadDropCidrs } from "./providers/spamhaus-drop";
 import { loadTorExitSet } from "./providers/tor-exits";
+import { sanitizeEnrichment } from "./sanitize";
 import { EMPTY_ENRICHMENT, type IpEnrichment } from "./types";
 
 export interface EnrichDeps {
@@ -63,7 +64,7 @@ export async function enrichIp(
       ...(dropCidrs.length > 0 ? ["spamhaus-drop"] : []),
     ];
 
-    const enrichment: IpEnrichment = {
+    const enrichment: IpEnrichment = sanitizeEnrichment({
       ...EMPTY_ENRICHMENT,
       ...ipapi,
       ip,
@@ -72,7 +73,7 @@ export async function enrichIp(
       whoisOrg: rdap.org,
       sources,
       enrichedAt,
-    };
+    });
 
     await upsertIntel(sql, enrichment);
     return { enrichment, cached: false };
