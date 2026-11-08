@@ -54,6 +54,7 @@ export function AnalyticsShell({
 
   const tabsContainerRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const filterRef = useRef<HTMLDivElement | null>(null);
   const [canLeft, setCanLeft] = useState<boolean>(false);
   const [canRight, setCanRight] = useState<boolean>(false);
   const [showArrows, setShowArrows] = useState<boolean>(true);
@@ -118,20 +119,31 @@ export function AnalyticsShell({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Search applies a textContent substring filter to .ax-row / .ax-tbl tbody tr
+  // Search applies a textContent substring filter to .ax-row / .ax-tbl tbody tr.
+  // Sections stream in behind Suspense after this effect first runs, so a
+  // MutationObserver re-applies the filter to rows that arrive later.
   useEffect(() => {
+    const container = filterRef.current;
+    if (!container) return;
     const q = search.trim().toLowerCase();
-    const rows = document.querySelectorAll<HTMLElement>(
-      "[data-ax-filterable] .ax-row, [data-ax-filterable] .ax-tbl tbody tr"
-    );
-    rows.forEach((row) => {
-      if (!q) {
-        row.style.display = "";
-        return;
-      }
-      const text = (row.textContent ?? "").toLowerCase();
-      row.style.display = text.includes(q) ? "" : "none";
-    });
+    const apply = () => {
+      const rows = container.querySelectorAll<HTMLElement>(
+        ".ax-row, .ax-tbl tbody tr"
+      );
+      rows.forEach((row) => {
+        if (!q) {
+          row.style.display = "";
+          return;
+        }
+        const text = (row.textContent ?? "").toLowerCase();
+        row.style.display = text.includes(q) ? "" : "none";
+      });
+    };
+    apply();
+    if (!q) return;
+    const observer = new MutationObserver(apply);
+    observer.observe(container, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [search, activeTab]);
 
   const handleRange = (days: number) => {
@@ -256,7 +268,7 @@ export function AnalyticsShell({
 
       {meta ? <div className="ax-meta-line">{meta}</div> : null}
 
-      <div data-ax-filterable>{children}</div>
+      <div data-ax-filterable ref={filterRef}>{children}</div>
     </>
   );
 }

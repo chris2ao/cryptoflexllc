@@ -53,7 +53,8 @@ function windowOf(rows: unknown, cur = "current", prev = "previous"): KpiWindow 
 }
 
 function pct(done: number, views: number): number {
-  return views > 0 ? Math.round((done / views) * 1000) / 10 : 0;
+  if (views <= 0) return 0;
+  return Math.min(100, Math.round((done / views) * 1000) / 10);
 }
 
 function publishDatesIn(days: number): string[] {
@@ -173,13 +174,21 @@ export async function loadOverview(
     // Read-through: completed blog scrolls over scoped blog views.
     sql`
       SELECT
-        (SELECT COUNT(*) FROM scroll_events
-          WHERE depth = 100 AND page_path LIKE '/blog/%'
-            AND recorded_at > NOW() - INTERVAL '1 day' * ${days})::int AS done_current,
-        (SELECT COUNT(*) FROM scroll_events
-          WHERE depth = 100 AND page_path LIKE '/blog/%'
-            AND recorded_at > NOW() - INTERVAL '1 day' * (2 * ${days})
-            AND recorded_at <= NOW() - INTERVAL '1 day' * ${days})::int AS done_previous,
+        (SELECT COUNT(DISTINCT se.ip_address || ' ' || se.page_path) FROM scroll_events se
+          WHERE se.depth = 100 AND se.page_path LIKE '/blog/%'
+            AND se.recorded_at > NOW() - INTERVAL '1 day' * ${days}
+            AND (${sc}::text IS NULL OR EXISTS (
+              SELECT 1 FROM page_views pv
+              WHERE pv.ip_address = se.ip_address AND pv.traffic_class = ${sc}
+                AND pv.visited_at > NOW() - INTERVAL '1 day' * ${days})))::int AS done_current,
+        (SELECT COUNT(DISTINCT se.ip_address || ' ' || se.page_path) FROM scroll_events se
+          WHERE se.depth = 100 AND se.page_path LIKE '/blog/%'
+            AND se.recorded_at > NOW() - INTERVAL '1 day' * (2 * ${days})
+            AND se.recorded_at <= NOW() - INTERVAL '1 day' * ${days}
+            AND (${sc}::text IS NULL OR EXISTS (
+              SELECT 1 FROM page_views pv
+              WHERE pv.ip_address = se.ip_address AND pv.traffic_class = ${sc}
+                AND pv.visited_at > NOW() - INTERVAL '1 day' * (2 * ${days}))))::int AS done_previous,
         (SELECT COUNT(*) FROM page_views
           WHERE page_path LIKE '/blog/%'
             AND visited_at > NOW() - INTERVAL '1 day' * ${days}

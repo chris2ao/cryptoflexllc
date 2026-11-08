@@ -126,7 +126,7 @@ export function CommentsPanel({ comments: initialComments }: CommentsPanelProps)
                       type="button"
                       onClick={() => handleDelete(c)}
                       disabled={deletingId === c.id}
-                      className="btn-editorial btn-editorial--sm ax-icon-btn"
+                      className="btn-editorial btn-editorial--sm btn-editorial--danger ax-icon-btn"
                       title="Delete comment"
                       aria-label="Delete comment"
                     >

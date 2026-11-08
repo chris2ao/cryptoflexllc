@@ -111,7 +111,7 @@ export function SubscriberPanel({
                         type="button"
                         onClick={() => handleRemove(sub)}
                         disabled={deletingId === sub.id}
-                        className="btn-editorial btn-editorial--sm ax-icon-btn"
+                        className="btn-editorial btn-editorial--sm btn-editorial--danger ax-icon-btn"
                         title="Remove subscriber"
                         aria-label="Remove subscriber"
                       >

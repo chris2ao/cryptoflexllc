@@ -16,7 +16,7 @@ export async function ContentSection({
   scope?: TrafficScope;
 }) {
   const [content, posts, referrers] = await Promise.all([
-    loadContent(days),
+    loadContent(days, scope),
     loadPostPerformance(days, scope),
     loadReferrerClasses(days, scope),
   ]);
