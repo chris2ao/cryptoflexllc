@@ -11,6 +11,7 @@ vi.mock("@/lib/analytics-schema", () => ({
   ensureAnalyticsSchema: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/lib/traffic/backfill", () => ({
+  backfillLegacyReferrers: vi.fn().mockResolvedValue(3),
   classifyPendingPageViews: (...args: unknown[]) => classify(...args),
 }));
 vi.mock("@/lib/ip-enrichment/batch", () => ({
@@ -47,6 +48,7 @@ describe("cleanup-page-views cron", () => {
       ok: true,
       anonymized: 4,
       retentionDays: 90,
+      legacyReferrers: 3,
       classified: 5120,
       enriched: 37,
     });
@@ -74,6 +76,6 @@ describe("cleanup-page-views cron", () => {
     expect(insert).toBeDefined();
     expect(insert?.[1]).toBe("cleanup-page-views");
     expect(insert?.[2]).toBe(true);
-    expect(insert?.[4]).toBe("anonymized 4, classified 0, enriched 2");
+    expect(insert?.[4]).toBe("anonymized 4, legacy referrers 3, classified 0, enriched 2");
   });
 });

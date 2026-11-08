@@ -11,6 +11,7 @@
 
 import type { getDb } from "@/lib/analytics";
 import { BOT_UA_PATTERN_SOURCE } from "./classify";
+import { classifyReferrer } from "./referrer";
 
 type SqlTag = ReturnType<typeof getDb>;
 
@@ -56,4 +57,54 @@ export async function classifyPendingPageViews(
   `;
   const first = (rows as Array<{ updated?: number }>)[0];
   return first?.updated ?? 0;
+}
+
+/**
+ * Rows written before the referrer columns existed carry the raw referrer
+ * string with referrer_host '' and referrer_class 'direct' (the column
+ * default). This derives host and class for them, one distinct referrer and
+ * UTM pair at a time (busiest first), marks processed rows with a host of
+ * "none" when the raw value is not a URL so they are never selected again,
+ * and re-marks forged-referrer hits as bots. Returns the number of distinct
+ * referrer groups processed.
+ */
+export async function backfillLegacyReferrers(
+  sql: SqlTag,
+  limit = 200,
+): Promise<number> {
+  const groups = (await sql`
+    SELECT referrer, utm_source, utm_medium, COUNT(*)::int AS n
+    FROM page_views
+    WHERE referrer_host = ''
+      AND referrer_class = 'direct'
+      AND referrer <> ''
+      AND referrer <> '(direct)'
+    GROUP BY referrer, utm_source, utm_medium
+    ORDER BY n DESC
+    LIMIT ${limit}
+  `) as Array<{ referrer: string; utm_source: string | null; utm_medium: string | null }>;
+
+  for (const g of groups) {
+    const { host, cls } = classifyReferrer(g.referrer, {
+      source: g.utm_source,
+      medium: g.utm_medium,
+    });
+    await sql`
+      UPDATE page_views
+      SET referrer_host = ${host || "none"}, referrer_class = ${cls}
+      WHERE referrer = ${g.referrer}
+        AND utm_source IS NOT DISTINCT FROM ${g.utm_source}
+        AND utm_medium IS NOT DISTINCT FROM ${g.utm_medium}
+        AND referrer_host = ''
+        AND referrer_class = 'direct'
+    `;
+  }
+
+  if (groups.length > 0) {
+    await sql`
+      UPDATE page_views SET traffic_class = 'bot'
+      WHERE referrer_class = 'forged' AND traffic_class IS DISTINCT FROM 'bot'
+    `;
+  }
+  return groups.length;
 }
