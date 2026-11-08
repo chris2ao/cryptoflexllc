@@ -51,7 +51,7 @@ describe("cleanup-page-views cron", () => {
       enriched: 37,
     });
     expect(classify).toHaveBeenCalledTimes(3);
-    expect(enrich).toHaveBeenCalledWith(mockSql, 200);
+    expect(enrich).toHaveBeenCalledWith(mockSql, 60);
   });
 
   it("still enriches when classification throws", async () => {

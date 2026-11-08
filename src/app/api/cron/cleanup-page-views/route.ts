@@ -11,6 +11,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+
+// Classification loops plus up to 60 sequential enrichment lookups at 1.4s spacing.
+export const maxDuration = 300;
 import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/analytics";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
@@ -21,7 +24,7 @@ import { enrichPendingIps } from "@/lib/ip-enrichment/batch";
 const RETENTION_DAYS = 90;
 const CLASSIFY_BATCH = 5000;
 const CLASSIFY_MAX_ITERATIONS = 20;
-const ENRICH_LIMIT = 200;
+const ENRICH_LIMIT = 60;
 
 export async function GET(request: NextRequest) {
   // ---- Auth: Vercel Cron sends this header automatically ----
