@@ -8,16 +8,15 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { AuthAttemptRow } from "@/lib/analytics-types";
-import { PanelWrapper } from "./panel-wrapper";
 
 const chartConfig = {
   success_count: {
     label: "Success",
-    color: "var(--chart-2)",
+    color: "var(--ax-green)",
   },
   fail_count: {
     label: "Failed",
-    color: "var(--chart-5)",
+    color: "var(--ax-red)",
   },
 } satisfies ChartConfig;
 
@@ -26,30 +25,19 @@ export function AuthAttemptsChart({ data }: { data: AuthAttemptRow[] }) {
 
   if (data.length === 0) {
     return (
-      <PanelWrapper
-        title="Auth Attempts"
-        tooltip="Login success/failure trends — helps detect brute-force patterns"
-      >
-        <p className="text-muted-foreground text-sm text-center py-8">
-          No login attempts recorded yet
-        </p>
-      </PanelWrapper>
+      <p className="ax-empty">No data in range</p>
     );
   }
 
   return (
-    <PanelWrapper
-      title="Auth Attempts"
-      tooltip="Login success/failure trends — helps detect brute-force patterns"
-      badge={
-        totalFailed > 0 ? (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">
-            {totalFailed} failed
-          </span>
-        ) : undefined
-      }
-    >
-      <ChartContainer config={chartConfig} className="h-[200px] w-full">
+    <>
+      {totalFailed > 0 && (
+        <span className="ax-chart-badge ax-chart-badge--bad">
+          {totalFailed} failed
+        </span>
+      )}
+      <div className="ax-chart">
+      <ChartContainer config={chartConfig} className="ax-chart-fill">
         <BarChart
           data={data}
           margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
@@ -77,17 +65,18 @@ export function AuthAttemptsChart({ data }: { data: AuthAttemptRow[] }) {
           <Bar
             dataKey="success_count"
             stackId="a"
-            fill="var(--chart-2)"
+            fill="var(--ax-green)"
             radius={[0, 0, 0, 0]}
           />
           <Bar
             dataKey="fail_count"
             stackId="a"
-            fill="var(--chart-5)"
+            fill="var(--ax-red)"
             radius={[4, 4, 0, 0]}
           />
         </BarChart>
       </ChartContainer>
-    </PanelWrapper>
+      </div>
+    </>
   );
 }

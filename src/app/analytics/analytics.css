@@ -1327,6 +1327,112 @@ table.ax-tbl {
 
 /* ==== REGION: charts ==== */
 
+.ax-chart { width: 100%; height: 260px; }
+.ax-chart--tall { height: 320px; }
+.ax-chart-fill { width: 100%; height: 100%; aspect-ratio: auto; }
+.ax-chart .recharts-cartesian-axis-tick-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--fg-3);
+}
+.ax-chart .recharts-cartesian-grid line { stroke: var(--border); }
+.ax-chart .recharts-reference-line line { stroke: var(--fg-3); }
+
+.ax-empty {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-3);
+  text-align: center;
+  padding: 40px 0;
+  margin: 0;
+}
+
+.ax-chart-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  margin-bottom: 8px;
+}
+.ax-chart-badge--bad { color: var(--ax-red); }
+
+ol.ax-chart-legend {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0 0;
+  display: grid;
+  gap: 4px;
+}
+ol.ax-chart-legend a {
+  color: var(--fg-2);
+  text-decoration: none;
+}
+ol.ax-chart-legend a:hover { color: var(--primary); }
+
+.ax-endpoints { display: grid; gap: 8px; margin-bottom: 16px; }
+.ax-endpoint {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+}
+.ax-endpoint--good { border-color: var(--ax-green); }
+.ax-endpoint--warn { border-color: var(--ax-amber); }
+.ax-endpoint--bad { border-color: var(--ax-red); }
+.ax-endpoint-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--fg);
+}
+.ax-endpoint-method { color: var(--fg-3); margin-right: 8px; }
+.ax-endpoint-p75 { font-size: 16px; font-weight: 600; }
+.ax-endpoint-p75--good { color: var(--ax-green); }
+.ax-endpoint-p75--warn { color: var(--ax-amber); }
+.ax-endpoint-p75--bad { color: var(--ax-red); }
+.ax-endpoint-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--fg-3);
+  margin-top: 4px;
+}
+.ax-endpoint-err { color: var(--ax-red); }
+
+.ax-heatmap { overflow-x: auto; }
+.ax-heatmap-inner { min-width: 600px; }
+.ax-heatmap-hours { display: flex; margin-left: 40px; margin-bottom: 4px; }
+.ax-heatmap-hour {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-3);
+}
+.ax-heatmap-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.ax-heatmap-day {
+  width: 36px;
+  padding-right: 4px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+}
+.ax-heatmap-cell { flex: 1; aspect-ratio: 1; border-radius: 2px; }
+.ax-heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-3);
+}
+.ax-heatmap-swatch { width: 12px; height: 12px; border-radius: 2px; }
+
 /* ==== REGION: panels ==== */
 
 /* ==== REGION: intel ==== */

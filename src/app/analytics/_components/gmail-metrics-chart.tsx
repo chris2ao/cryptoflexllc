@@ -18,42 +18,41 @@ export interface GmailMetricsChartEntry {
 const chartConfig = {
   processed: {
     label: "Processed",
-    color: "var(--chart-1)",
+    color: "var(--primary)",
   },
   trashed: {
     label: "Trashed",
-    color: "var(--chart-3)",
+    color: "var(--ax-amber)",
   },
   archived: {
     label: "Archived",
-    color: "var(--chart-2)",
+    color: "var(--ax-green)",
   },
 } satisfies ChartConfig;
 
 export function GmailMetricsChart({ data }: { data: GmailMetricsChartEntry[] }) {
   if (data.length === 0) {
     return (
-      <p className="text-muted-foreground text-sm text-center py-8">
-        No data yet
-      </p>
+      <p className="ax-empty">No data in range</p>
     );
   }
 
   return (
-    <ChartContainer config={chartConfig} className="h-[300px] w-full">
+    <div className="ax-chart ax-chart--tall">
+    <ChartContainer config={chartConfig} className="ax-chart-fill">
       <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="fillGmailProcessed" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
+            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
           </linearGradient>
           <linearGradient id="fillGmailTrashed" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0} />
+            <stop offset="5%" stopColor="var(--ax-amber)" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="var(--ax-amber)" stopOpacity={0} />
           </linearGradient>
           <linearGradient id="fillGmailArchived" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
+            <stop offset="5%" stopColor="var(--ax-green)" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="var(--ax-green)" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -62,7 +61,6 @@ export function GmailMetricsChart({ data }: { data: GmailMetricsChartEntry[] }) 
           tickLine={false}
           axisLine={false}
           tickMargin={8}
-          tick={{ fontSize: 11 }}
         />
         <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
         <ChartTooltip content={<ChartTooltipContent />} />
@@ -70,24 +68,25 @@ export function GmailMetricsChart({ data }: { data: GmailMetricsChartEntry[] }) 
           dataKey="processed"
           type="monotone"
           fill="url(#fillGmailProcessed)"
-          stroke="var(--chart-1)"
+          stroke="var(--primary)"
           strokeWidth={2}
         />
         <Area
           dataKey="trashed"
           type="monotone"
           fill="url(#fillGmailTrashed)"
-          stroke="var(--chart-3)"
+          stroke="var(--ax-amber)"
           strokeWidth={2}
         />
         <Area
           dataKey="archived"
           type="monotone"
           fill="url(#fillGmailArchived)"
-          stroke="var(--chart-2)"
+          stroke="var(--ax-green)"
           strokeWidth={2}
         />
       </AreaChart>
     </ChartContainer>
+    </div>
   );
 }
