@@ -7,6 +7,9 @@ import { GET } from "./route";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/analytics");
+vi.mock("@/lib/analytics-schema", () => ({
+  ensureAnalyticsSchema: vi.fn().mockResolvedValue(true),
+}));
 vi.mock("@/lib/blog");
 vi.mock("@/lib/subscribers");
 vi.mock("@/lib/newsletter-intro");
@@ -213,7 +216,7 @@ describe("GET /api/cron/weekly-digest", () => {
 
     expect(mockTransporter.sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
-        subject: expect.stringContaining("Quick Update"),
+        subject: "This Week at CryptoFlex: Quick Update",
         html: expect.stringContaining("No new posts this week"),
       })
     );
@@ -378,9 +381,32 @@ describe("GET /api/cron/weekly-digest", () => {
 
     expect(mockTransporter.sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
-        subject: expect.stringMatching(/1 New Post!/),
+        subject: expect.stringMatching(/CryptoFlex: 1 New Post$/),
       })
     );
+  });
+
+  it("ensures the schema before the run and records a failed run for a production testEmail", async () => {
+    const { ensureAnalyticsSchema } = await import("@/lib/analytics-schema");
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      mockSql.mockResolvedValue([]);
+      const response = await GET(
+        new NextRequest(
+          "http://localhost/api/cron/weekly-digest?testEmail=a@example.com",
+          { headers: { authorization: "Bearer test-cron-secret" } },
+        ),
+      );
+      expect(response.status).toBe(400);
+      expect(ensureAnalyticsSchema).toHaveBeenCalledWith(mockSql);
+      const insert = mockSql.mock.calls.find((c: any[]) =>
+        (c[0] as TemplateStringsArray).join("?").includes("INSERT INTO cron_runs"),
+      );
+      expect(insert?.[1]).toBe("weekly-digest");
+      expect(insert?.[2]).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("should return 500 when database query fails", async () => {

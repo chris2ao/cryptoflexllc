@@ -4,6 +4,7 @@
  * Triggered by Vercel Cron daily. Anonymizes the stored client IP on page_views
  * older than the retention window, keeping the analytics rows but dropping the
  * PII (F-L11). Uses an UPDATE (not DELETE) so historical analytics survive.
+ * Also prunes old operational rows (server events, cron and digest runs, stale IP intel).
  *
  * Required env vars:
  *   CRON_SECRET   - Vercel cron secret for auth
@@ -17,6 +18,7 @@ import { getDb } from "@/lib/analytics";
 import { withCronRun } from "@/lib/cron-runs";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 import { backfillLegacyReferrers, classifyPendingPageViews } from "@/lib/traffic/backfill";
+import { pruneOperationalRecords, pruneStaleIntel } from "@/lib/analytics-retention";
 import { enrichPendingIps } from "@/lib/ip-enrichment/batch";
 
 // Classification loops plus up to 60 sequential enrichment lookups at 1.4s spacing.
@@ -70,6 +72,16 @@ export async function GET(request: NextRequest) {
         const anonymized = (result as unknown as { count: number }).count ?? 0;
         console.log(`Page view retention: anonymized ${anonymized} old IP(s)`);
 
+        // Retention for operational tables; each delete is isolated inside.
+        let pruned = { serverEvents: 0, cronRuns: 0, digestRuns: 0, intel: 0 };
+        try {
+          const ops = await pruneOperationalRecords(sql);
+          const intel = await pruneStaleIntel(sql);
+          pruned = { ...ops, intel };
+        } catch (error) {
+          console.error("Retention prune stage error:", error);
+        }
+
         // Each stage is isolated: a failure is logged and the next stage still runs.
         // Enrichment goes first so the classifier sees tonight's hosting flags;
         // both stages stop at the deadline so the function never hits maxDuration.
@@ -104,10 +116,10 @@ export async function GET(request: NextRequest) {
           console.error("Page view classification batch error:", error);
         }
 
-        return { ok: true, anonymized, retentionDays: RETENTION_DAYS, legacyReferrers, classified, enriched };
+        return { ok: true, anonymized, retentionDays: RETENTION_DAYS, legacyReferrers, classified, enriched, pruned };
       },
       (r) =>
-        `anonymized ${r.anonymized}, legacy referrers ${r.legacyReferrers}, classified ${r.classified}, enriched ${r.enriched}`,
+        `anonymized ${r.anonymized}, legacy referrers ${r.legacyReferrers}, classified ${r.classified}, enriched ${r.enriched}, pruned events ${r.pruned.serverEvents}, runs ${r.pruned.cronRuns}, digests ${r.pruned.digestRuns}, intel ${r.pruned.intel}`,
     );
     return NextResponse.json(summary);
   } catch (error) {

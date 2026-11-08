@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/analytics";
 import { withCronRun } from "@/lib/cron-runs";
+import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 
 export async function GET(request: NextRequest) {
   // ---- Auth: Vercel Cron sends this header automatically ----
@@ -37,6 +38,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const sql = getDb();
+    // cron_runs may not exist on a fresh database: create it before recording.
+    await ensureAnalyticsSchema(sql);
 
     // Delete rate limit entries older than 24 hours
     const deleted = await withCronRun(

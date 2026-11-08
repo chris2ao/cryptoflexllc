@@ -22,6 +22,9 @@ interface RateLimitOptions {
   name: string;
   windowMs: number;
   maxRequests: number;
+  // "db" (default) uses the rate_limits table when DATABASE_URL is set.
+  // "memory" never touches the database: a per-instance sliding window.
+  backend?: "db" | "memory";
 }
 
 // IPv6 max is 45 characters; anything longer is malformed or spoofed and would
@@ -45,7 +48,7 @@ interface RateLimiter {
  * Falls back to in-memory storage if DATABASE_URL is not set
  */
 export function createRateLimiter(options: RateLimitOptions): RateLimiter {
-  const { name, windowMs, maxRequests } = options;
+  const { name, windowMs, maxRequests, backend = "db" } = options;
   const store = new Map<string, number[]>();
 
   /**
@@ -164,7 +167,7 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
     // Check if database is available
     const hasDatabase = !!process.env.DATABASE_URL;
 
-    if (!hasDatabase) {
+    if (backend === "memory" || !hasDatabase) {
       // Fallback to in-memory for development
       return checkRateLimitMemory(key);
     }
@@ -199,7 +202,7 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
  * overflow the analytics ip_address column (F-M15).
  *
  * Deploy note: validate the real header chain at the origin (a live header dump)
- * and roll out log-only before relying on this — see the remediation plan.
+ * and roll out log-only before relying on this (see the remediation plan).
  */
 export function getClientIp(request: NextRequest): string {
   const vercelForwarded = request.headers.get("x-vercel-forwarded-for");
