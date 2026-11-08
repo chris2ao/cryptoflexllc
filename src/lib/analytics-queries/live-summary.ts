@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { getDb } from "@/lib/analytics";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 import { classifyPendingPageViews } from "@/lib/traffic/backfill";
@@ -29,11 +30,17 @@ export async function loadLiveSummary(days = 30) {
         .catch(() => 0);
     pending = await countPending();
     // The daily cron does the bulk of the classification; an owner load with
-    // rows still pending clears a bounded batch so the dashboard converges
-    // within a few loads instead of waiting a day.
+    // rows still pending clears a bounded batch after the response is sent,
+    // so the dashboard converges within a few loads without paying for the
+    // UPDATE in its own time to first byte.
     if (pending > 0) {
-      const classified = await classifyPendingPageViews(sql, 2000).catch(() => 0);
-      if (classified > 0) pending = await countPending();
+      after(async () => {
+        try {
+          await classifyPendingPageViews(sql, 2000);
+        } catch (error) {
+          console.error("Pending classification kick failed:", error);
+        }
+      });
     }
   } catch (error) {
     console.error("Live summary error:", error);

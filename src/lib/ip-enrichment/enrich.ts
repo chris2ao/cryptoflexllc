@@ -48,7 +48,13 @@ export async function enrichIp(
 
     const ipapiOk = Object.keys(ipapi).length > 0;
     const rdapOk = Boolean(rdap.org || rdap.address);
-    if (!ipapiOk && !rdapOk) return { enrichment: empty, cached: false };
+    if (!ipapiOk && !rdapOk) {
+      // Negative cache: a row without ipapi.is in its sources is served for
+      // one day only (see getCachedIntel), so a dead lookup cannot occupy a
+      // batch slot every night and is retried tomorrow.
+      await upsertIntel(sql, empty).catch(() => undefined);
+      return { enrichment: empty, cached: false };
+    }
 
     const sources = [
       ...(ipapiOk ? ["ipapi.is"] : []),
