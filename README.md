@@ -104,7 +104,7 @@ No database, no CMS. Posts are files in the repo, version-controlled with Git.
 | `title` | Yes | Post title |
 | `date` | Yes | ISO date string (determines sort order) |
 | `description` | Yes | Shown on blog listing cards |
-| `tags` | Yes | Array of strings (rendered as badges) |
+| `tags` | Yes | Array of strings from the 12-topic taxonomy (enforced by `src/__tests__/tag-taxonomy.test.ts`; `node scripts/consolidate-tags.mjs --check` verifies) |
 | `image` | No | Cover image URL (reserved for future use) |
 
 ## Design

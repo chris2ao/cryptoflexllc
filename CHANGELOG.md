@@ -1,6 +1,27 @@
 # Changelog
 
 All notable changes to this project are documented here.
+## 2026-11-07 - CLAUD-765: Design and UX Review Implemented (13 Items, 4 PRs)
+
+### What changed
+- **Implemented** all 13 items of the Nov 6 2026 design and UX review in one unattended session: four sequential waves, each with 2 or 3 parallel implementers in separate git worktrees and the main session as controller
+- **Merged** PRs #50 (226240c), #51 (1cfdfba), #52 (61f2f9d) and #53 (8b6d242) to main the same day. Each passed tsc, eslint, the full vitest suite, next build, CI, a measured visual pass and one code review (wave 3 also a security review), and was verified live on production with headless Chrome
+- **Replaced** 206 free-form tags with a 12-topic taxonomy, enforced by `src/__tests__/tag-taxonomy.test.ts` and rewritten by `scripts/consolidate-tags.mjs` (byte-preserving, `--check` mode)
+- **Added** `src/lib/subscribe-copy.ts` as the single subscribe copy source; the popup now appears only after a real scroll past 60%
+- **Added** `src/lib/identity.ts`, the one identity line used in hero, About, author card, meta and JSON-LD
+- **Changed** the Now strip to derive fully from post frontmatter
+- **Added** `src/lib/contrast.ts` and a test that measure WCAG ratios from the real `globals.css`
+- **Changed** the masthead to one sticky 88px bar with all offsets at 100px/84px
+- **Changed** wide tables to use viewport maths instead of `container-type`, because fixed lightboxes live inside the MDX
+- **Filed** follow-ups CLAUD-767 (blog pipeline must pick tags from the taxonomy, Ready) and CLAUD-768 (eight minor review findings, Backlog)
+
+### What was learned
+- curl against the production domain receives the Vercel Security Checkpoint page, so live checks need a real browser (a stdlib Node headless-Chrome DevTools harness worked)
+- Turbopack cannot build inside a nested worktree with a symlinked node_modules
+- The Chrome extension's bridge breaks after a fixed lightbox opens
+- Git conflict hunks can drop a shared closing brace when both sides append to the end of a CSS file
+
+---
 
 ## 2026-10-28 - Trim Vercel Hobby Usage (Deployment Storage and Fast Origin Transfer)
 
