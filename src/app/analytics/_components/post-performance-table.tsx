@@ -83,8 +83,8 @@ export function PostPerformanceTable({ rows }: { rows: PostPerformanceRow[] }) {
             {renderHeader("readers", "Readers")}
             {renderHeader("read_through_pct", "Read-through")}
             {renderHeader("median_seconds", "Median read")}
-            <th scope="col" className="num" style={{ cursor: "default" }}>Subscribes</th>
-            <th scope="col" className="num" style={{ cursor: "default" }}>Comments</th>
+            <th scope="col" className="num" style={{ cursor: "default" }} title="All time, not limited to the range">Subscribes (all time)</th>
+            <th scope="col" className="num" style={{ cursor: "default" }} title="All time, not limited to the range">Comments (all time)</th>
           </tr>
         </thead>
         <tbody>

@@ -4,7 +4,7 @@ import { KpiStrip, type KpiItem } from "../_components/kpi-strip";
 import { LiveFeed } from "../_components/live-feed";
 import { TrendChartPanel, type TrendSeries } from "../_components/trend-chart-panel";
 import { AxPanel } from "../_components/ax-panel";
-import { PeakHoursHeatmap } from "./lazy-charts";
+import { BotTrendChart, PeakHoursHeatmap } from "./lazy-charts";
 
 export async function OverviewSection({
   days,
@@ -18,7 +18,12 @@ export async function OverviewSection({
     dailyViews: typedDailyViews,
     hourlyHeatmap: typedHeatmap,
     kpis,
+    trend,
+    publishDates,
   } = await loadOverview(days, scope);
+  const botShare = trend.reduce((s, r) => s + r.bots, 0);
+  const totalShare = trend.reduce((s, r) => s + r.humans + r.bots, 0);
+  const botPct = totalShare > 0 ? Math.round((botShare / totalShare) * 100) : 0;
 
   // Sparkline data from daily views
   const viewsSpark = typedDailyViews.map((r) => r.views);
@@ -97,6 +102,15 @@ export async function OverviewSection({
           } satisfies TrendSeries}
           days={days}
         />
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel
+          title="Humans and bots"
+          kicker={`${botPct}% BOTS · ${publishDates.length} POSTS PUBLISHED`}
+        >
+          <BotTrendChart data={[]} series={trend} markers={publishDates} />
+        </AxPanel>
       </div>
 
       <div className="ax-grid-12" style={{ marginBottom: 20 }}>

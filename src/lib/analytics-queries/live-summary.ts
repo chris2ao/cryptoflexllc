@@ -25,7 +25,8 @@ export async function loadLiveSummary(days = 30) {
     `
       .then((r) => (r as Array<{ pending: number }>)[0]?.pending ?? 0)
       .catch(() => 0);
-  } catch {
+  } catch (error) {
+    console.error("Live summary error:", error);
     activeSessions = 0;
   }
 

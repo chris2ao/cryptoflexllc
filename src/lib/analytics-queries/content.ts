@@ -56,8 +56,12 @@ export async function loadContent(
           COUNT(*) FILTER (WHERE depth = 50)::int AS depth_50,
           COUNT(*) FILTER (WHERE depth = 75)::int AS depth_75,
           COUNT(*) FILTER (WHERE depth = 100)::int AS depth_100
-        FROM scroll_events
+        FROM scroll_events se
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${sc}::text IS NULL OR EXISTS (
+            SELECT 1 FROM page_views pv
+            WHERE pv.ip_address = se.ip_address AND pv.traffic_class = ${sc}
+              AND pv.visited_at > NOW() - INTERVAL '1 day' * ${days}))
         GROUP BY page_path
         ORDER BY (COUNT(*) FILTER (WHERE depth = 100)) DESC
         LIMIT 10
@@ -67,8 +71,12 @@ export async function loadContent(
           page_path,
           ROUND(AVG(time_seconds))::int AS avg_seconds,
           COUNT(*)::int AS sample_count
-        FROM page_engagement
+        FROM page_engagement pe
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${sc}::text IS NULL OR EXISTS (
+            SELECT 1 FROM page_views pv
+            WHERE pv.ip_address = pe.ip_address AND pv.traffic_class = ${sc}
+              AND pv.visited_at > NOW() - INTERVAL '1 day' * ${days}))
         GROUP BY page_path
         ORDER BY avg_seconds DESC
         LIMIT 10
@@ -91,8 +99,12 @@ export async function loadContent(
         SELECT
           query,
           COUNT(*)::int AS search_count
-        FROM search_queries
+        FROM search_queries sq
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${sc}::text IS NULL OR EXISTS (
+            SELECT 1 FROM page_views pv
+            WHERE pv.ip_address = sq.ip_address AND pv.traffic_class = ${sc}
+              AND pv.visited_at > NOW() - INTERVAL '1 day' * ${days}))
         GROUP BY query
         ORDER BY search_count DESC
         LIMIT 20

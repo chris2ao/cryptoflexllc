@@ -10,11 +10,13 @@ function formatUtc(d: Date): string {
 }
 
 export function LiveClock() {
-  const [now, setNow] = useState<Date | null>(() =>
-    typeof window !== "undefined" ? new Date() : null
-  );
+  // Server and first client render agree on the placeholder; the real time
+  // arrives in the effect, so hydration never sees two different clocks.
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration: the clock starts after mount
+    setNow(new Date());
     const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
   }, []);

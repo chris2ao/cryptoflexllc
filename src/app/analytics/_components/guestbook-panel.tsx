@@ -145,7 +145,7 @@ export function GuestbookPanel({ entries: initialEntries }: GuestbookPanelProps)
                         type="button"
                         onClick={() => handleDelete(e)}
                         disabled={actionId === e.id}
-                        className="btn-editorial btn-editorial--sm ax-icon-btn"
+                        className="btn-editorial btn-editorial--sm btn-editorial--danger ax-icon-btn"
                         title="Delete entry"
                         aria-label="Delete entry"
                       >

@@ -1306,6 +1306,14 @@ table.ax-tbl {
 }
 
 /* ==== REGION: shell ==== */
+
+/* Seven tabs fit a 1360px content width only without their numbers. */
+@media (max-width: 1540px) {
+  .ax-tab .n { display: none; }
+}
+.btn-editorial--danger { color: var(--ax-red); border-color: color-mix(in oklab, var(--ax-red) 40%, transparent); }
+.btn-editorial--danger:hover { background: color-mix(in oklab, var(--ax-red) 12%, transparent); }
+
 .ax-meta-line {
   display: flex;
   gap: 16px;
