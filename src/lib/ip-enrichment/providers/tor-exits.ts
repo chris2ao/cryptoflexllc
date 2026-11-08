@@ -1,7 +1,9 @@
 import type { SqlTag } from "../batch";
 import { ipv4ToInt } from "../cidr";
 
-export const LIST_TTL_MS = 24 * 60 * 60 * 1000;
+export /** After a failed refresh the stale text is reused this long before trying again. */
+const STALE_TTL_MS = 10 * 60 * 1000;
+const LIST_TTL_MS = 24 * 60 * 60 * 1000;
 const TOR_URL = "https://check.torproject.org/torbulkexitlist";
 
 const memo = new Map<string, { text: string; at: number }>();
@@ -16,6 +18,11 @@ export function resetListCache(): void {
  * `threat_lists` row, then the network. On fetch failure falls back to the
  * stale cached text, else an empty string. Never throws.
  */
+function rememberStale(name: string, text: string, now: number): string {
+  memo.set(name, { text, at: now - LIST_TTL_MS + STALE_TTL_MS });
+  return text;
+}
+
 export async function loadListText(
   sql: SqlTag,
   name: string,
@@ -46,9 +53,9 @@ export async function loadListText(
 
   try {
     const res = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
-    if (!res.ok) return stale;
+    if (!res.ok) return rememberStale(name, stale, now);
     const text = await res.text();
-    if (!text.trim()) return stale;
+    if (!text.trim()) return rememberStale(name, stale, now);
     memo.set(name, { text, at: now });
     try {
       await sql`
@@ -61,7 +68,7 @@ export async function loadListText(
     }
     return text;
   } catch {
-    return stale;
+    return rememberStale(name, stale, now);
   }
 }
 

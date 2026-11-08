@@ -46,7 +46,9 @@ export async function getCachedIntel(sql: SqlTag, ip: string): Promise<IpEnrichm
     SELECT * FROM ip_intel
     WHERE ip_address = ${ip}
       AND enriched_at IS NOT NULL
-      AND enriched_at > NOW() - INTERVAL '7 days'
+      AND enriched_at > NOW() - (
+        CASE WHEN sources LIKE '%ipapi.is%' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END
+      )
     LIMIT 1
   `) as Row[];
   return rows.length > 0 ? rowToEnrichment(rows[0]) : null;

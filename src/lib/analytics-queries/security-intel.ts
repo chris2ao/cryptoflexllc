@@ -58,7 +58,9 @@ export async function loadNetworkTypes(
         WHEN ii.is_tor IS TRUE THEN 'tor'
         WHEN ii.is_proxy IS TRUE OR ii.is_vpn IS TRUE THEN 'proxy'
         WHEN ii.is_hosting IS TRUE OR ii.is_datacenter IS TRUE THEN 'datacenter'
-        WHEN ii.ip_address IS NOT NULL THEN 'residential'
+        WHEN ii.is_datacenter IS FALSE
+          OR (ii.enriched_at IS NULL AND ii.ip_address IS NOT NULL AND ii.is_hosting IS FALSE)
+          THEN 'residential'
         ELSE 'unknown'
       END AS type,
       COUNT(DISTINCT pv.ip_address)::int AS visitors,

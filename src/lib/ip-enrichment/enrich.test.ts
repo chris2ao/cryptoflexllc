@@ -76,13 +76,14 @@ describe("enrichIp", () => {
     expect(inserts).toHaveLength(1);
   });
 
-  it("total failure returns empty sources and does not upsert", async () => {
+  it("total failure returns empty sources and negative-caches the row for a day", async () => {
     const sql = vi.fn().mockResolvedValue([]);
     const f = vi.fn().mockRejectedValue(new Error("offline"));
     const r = await enrichIp(sql as never, "8.8.4.4", { fetchImpl: f as never, key: undefined, now: NOW });
     expect(r.enrichment.sources).toEqual([]);
     expect(r.cached).toBe(false);
     const inserts = sql.mock.calls.filter((c) => String(c[0].join("")).includes("INSERT INTO ip_intel"));
-    expect(inserts).toHaveLength(0);
+    // One upsert with no sources: served for a day, retried by the batch after that.
+    expect(inserts).toHaveLength(1);
   });
 });
