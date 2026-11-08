@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/analytics";
+import { scopeClass, type TrafficScope } from "./shared";
 import type {
   BrowserRow,
   CountryRow,
@@ -17,8 +18,12 @@ export interface ReadersData {
   osStats: OsRow[];
 }
 
-export async function loadReaders(days: number): Promise<ReadersData> {
+export async function loadReaders(
+  days: number,
+  scope: TrafficScope = "humans"
+): Promise<ReadersData> {
   const sql = getDb();
+  const sc = scopeClass(scope);
 
   const [
     mapLocations,
@@ -35,17 +40,19 @@ export async function loadReaders(days: number): Promise<ReadersData> {
         MAX(city) AS city, MAX(country) AS country
       FROM page_views
       WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+        AND (${sc}::text IS NULL OR traffic_class = ${sc})
         AND latitude IS NOT NULL AND latitude != ''
         AND longitude IS NOT NULL AND longitude != ''
       GROUP BY latitude, longitude
       ORDER BY views DESC LIMIT 200
-    `,
+    `.catch(() => []),
     sql`
       SELECT country, COUNT(*)::int AS views, COUNT(DISTINCT ip_address)::int AS unique_visitors
       FROM page_views
       WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+        AND (${sc}::text IS NULL OR traffic_class = ${sc})
       GROUP BY country ORDER BY views DESC LIMIT 20
-    `,
+    `.catch(() => []),
     sql`
       WITH daily_visitors AS (
         SELECT
@@ -54,6 +61,7 @@ export async function loadReaders(days: number): Promise<ReadersData> {
           MIN(visited_at) OVER (PARTITION BY ip_address) AS first_ever
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${sc}::text IS NULL OR traffic_class = ${sc})
       )
       SELECT
         visit_date::text AS date,
@@ -68,20 +76,23 @@ export async function loadReaders(days: number): Promise<ReadersData> {
       SELECT browser, COUNT(*)::int AS count
       FROM page_views
       WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+        AND (${sc}::text IS NULL OR traffic_class = ${sc})
       GROUP BY browser ORDER BY count DESC LIMIT 15
-    `,
+    `.catch(() => []),
     sql`
       SELECT device_type, COUNT(*)::int AS count
       FROM page_views
       WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+        AND (${sc}::text IS NULL OR traffic_class = ${sc})
       GROUP BY device_type ORDER BY count DESC
-    `,
+    `.catch(() => []),
     sql`
       SELECT os, COUNT(*)::int AS count
       FROM page_views
       WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+        AND (${sc}::text IS NULL OR traffic_class = ${sc})
       GROUP BY os ORDER BY count DESC LIMIT 15
-    `,
+    `.catch(() => []),
   ]);
 
   return {

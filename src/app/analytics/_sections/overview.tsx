@@ -1,71 +1,60 @@
 import { loadOverview } from "@/lib/analytics-queries/overview";
-import { KpiStrip } from "../_components/kpi-strip";
+import { deltaPercent, type TrafficScope } from "@/lib/analytics-queries/shared";
+import { KpiStrip, type KpiItem } from "../_components/kpi-strip";
 import { LiveFeed } from "../_components/live-feed";
 import { TrendChartPanel, type TrendSeries } from "../_components/trend-chart-panel";
 import { AxPanel } from "../_components/ax-panel";
 import { PeakHoursHeatmap } from "./lazy-charts";
 
-export async function OverviewSection({ days }: { days: number }) {
+export async function OverviewSection({
+  days,
+  scope = "humans",
+}: {
+  days: number;
+  scope?: TrafficScope;
+}) {
   const {
     newVsReturning: typedNewVsReturning,
     dailyViews: typedDailyViews,
     hourlyHeatmap: typedHeatmap,
-    summary,
-    bounceData,
-  } = await loadOverview(days);
+    kpis,
+  } = await loadOverview(days, scope);
 
-  const stats = summary[0] || {
-    total_views: 0,
-    unique_visitors: 0,
-    first_visit: null,
-    last_visit: null,
-  };
-
-  const bounceStats = bounceData[0] || { single_page: 0, total_visitors: 0 };
-  const bounceRate =
-    bounceStats.total_visitors > 0
-      ? Math.round((bounceStats.single_page / bounceStats.total_visitors) * 100)
-      : 0;
-
-  const totalNew = typedNewVsReturning.reduce((s, r) => s + r.new_visitors, 0);
-  const totalReturning = typedNewVsReturning.reduce(
-    (s, r) => s + r.returning_visitors,
-    0
-  );
-
-  // Sparkline data from daily views (last N points each)
+  // Sparkline data from daily views
   const viewsSpark = typedDailyViews.map((r) => r.views);
   const uniquesSpark = typedDailyViews.map((r) => r.unique_visitors);
 
-  // Computed KPIs
-  const kpiItems = [
+  const kpiItems: KpiItem[] = [
     {
       id: "views",
-      label: "Total Views",
-      value: stats.total_views ?? 0,
+      label: "Views",
+      value: kpis.views.current,
+      delta: deltaPercent(kpis.views.current, kpis.views.previous),
       spark: viewsSpark,
-      hint: "▲",
     },
     {
-      id: "uniques",
-      label: "Unique Visitors",
-      value: stats.unique_visitors ?? 0,
+      id: "readers",
+      label: "Readers",
+      value: kpis.readers.current,
+      delta: deltaPercent(kpis.readers.current, kpis.readers.previous),
       spark: uniquesSpark,
-      hint: "▲",
     },
     {
-      id: "bounce",
-      label: "Bounce Rate",
-      value: bounceRate,
-      format: "percent" as const,
+      id: "read-through",
+      label: "Read-through",
+      value: kpis.readThrough.current,
+      format: "percent",
       unit: "%",
-      hint: bounceRate > 60 ? "▼" : "—",
+      delta: deltaPercent(kpis.readThrough.current, kpis.readThrough.previous),
     },
     {
-      id: "new",
-      label: "New / Returning",
-      value: totalNew,
-      hint: `${totalReturning} returning`,
+      id: "reader-minutes",
+      label: "Reader minutes",
+      value: kpis.readerMinutes.current,
+      delta: deltaPercent(
+        kpis.readerMinutes.current,
+        kpis.readerMinutes.previous
+      ),
     },
   ];
 
