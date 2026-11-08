@@ -29,7 +29,7 @@ import { recordApiMetric } from "@/lib/api-timing";
 import { getClientIp } from "@/lib/rate-limit";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
 import { isTrackedPath } from "@/lib/analytics-tracking-rules";
-import { classifyReferrer } from "@/lib/traffic/referrer";
+import { classifyReferrer, referrerForStorage } from "@/lib/traffic/referrer";
 import { classifyAtInsert } from "@/lib/traffic/classify";
 
 // Zod schema for input validation
@@ -103,8 +103,9 @@ export async function POST(request: NextRequest) {
     const deviceType = parseDeviceType(userAgent);
 
     // ---- 6. Classify the client-supplied referrer and the hit ----
-    const referrer = parsed.data.referrer;
-    const ref = classifyReferrer(referrer, {
+    // Classification sees the full client value; storage keeps origin and path only.
+    const referrer = referrerForStorage(parsed.data.referrer);
+    const ref = classifyReferrer(parsed.data.referrer, {
       source: utmSource,
       medium: utmMedium,
     });

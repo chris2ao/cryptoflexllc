@@ -37,29 +37,54 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
 type QueryCapable = { query?: (text: string) => Promise<unknown> };
 
 /** Run one constant statement via sql.query when exposed, else the raw tag. */
-async function runStatement(sql: SqlTag, statement: string): Promise<void> {
+async function runStatement(sql: SqlTag, statement: string): Promise<unknown> {
   const withQuery = sql as unknown as QueryCapable;
   if (typeof withQuery.query === "function") {
-    await withQuery.query(statement);
-    return;
+    return withQuery.query(statement);
   }
   const strings = Object.assign([statement], { raw: [statement] });
-  await (sql as unknown as (s: TemplateStringsArray) => Promise<unknown>)(
+  return (sql as unknown as (s: TemplateStringsArray) => Promise<unknown>)(
     strings as unknown as TemplateStringsArray,
   );
 }
 
-let inFlight: Promise<void> | null = null;
+/**
+ * One cheap read decides whether the chain has to run at all. The last
+ * column of each ALTER group is the marker, so a process never takes the
+ * ALTER TABLE locks on page_views when the columns already exist.
+ */
+const PRESENCE_CHECK =
+  "SELECT column_name FROM information_schema.columns WHERE (table_name = 'page_views' AND column_name = 'traffic_class') OR (table_name = 'ip_intel' AND column_name = 'enriched_at')";
 
-export function ensureAnalyticsSchema(sql: SqlTag): Promise<void> {
+async function columnsPresent(sql: SqlTag): Promise<boolean> {
+  const rows = await runStatement(sql, PRESENCE_CHECK);
+  return Array.isArray(rows) && rows.length >= 2;
+}
+
+/** After a failure, wait this long before any request tries the chain again. */
+export const SCHEMA_RETRY_AFTER_MS = 5 * 60 * 1000;
+
+let inFlight: Promise<void> | null = null;
+let lastFailureAt = 0;
+
+export function ensureAnalyticsSchema(
+  sql: SqlTag,
+  now: number = Date.now(),
+): Promise<void> {
   if (inFlight) return inFlight;
+  if (lastFailureAt && now - lastFailureAt < SCHEMA_RETRY_AFTER_MS) {
+    return Promise.resolve();
+  }
   const run = (async () => {
     try {
+      if (await columnsPresent(sql)) return;
       for (const statement of SCHEMA_STATEMENTS) {
         await runStatement(sql, statement);
       }
+      lastFailureAt = 0;
     } catch (error) {
       console.error("Analytics schema ensure failed:", error);
+      lastFailureAt = now;
       inFlight = null;
     }
   })();
@@ -71,4 +96,5 @@ export function ensureAnalyticsSchema(sql: SqlTag): Promise<void> {
 
 export function resetSchemaMemoForTests(): void {
   inFlight = null;
+  lastFailureAt = 0;
 }

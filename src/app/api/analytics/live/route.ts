@@ -59,7 +59,8 @@ function formatRelative(iso: string, now: Date): string {
 // Strip control chars + Unicode directional overrides that could visually
 // reorder text in the rendered feed rows. Client uses React text nodes, so
 // this is belt-and-suspenders, not an XSS guard.
-const CONTROL_AND_BIDI = /[\u0000-\u001f\u007f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g;
+const CONTROL_AND_BIDI =
+  /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069\ufeff]+/g;
 function sanitize(s: string | null | undefined, max = 120): string {
   if (!s) return "";
   return s.replace(CONTROL_AND_BIDI, " ").slice(0, max);

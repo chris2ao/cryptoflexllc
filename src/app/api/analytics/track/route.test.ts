@@ -310,7 +310,8 @@ describe("POST /api/analytics/track", () => {
       const insertCall = mockSql.mock.calls[1];
       expect((insertCall[0] as string[]).join(" ")).toContain("referrer_class");
       const values = insertCall.slice(1);
-      expect(values).toContain("https://www.google.com/search?q=x");
+      expect(values).toContain("https://www.google.com/search");
+      expect(values).not.toContain("https://www.google.com/search?q=x");
       expect(values).toContain("google.com");
       expect(values).toContain("search");
       expect(values).toContain(null);
