@@ -31,7 +31,7 @@ const commentSchema = z.object({
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(200),
   comment: z.string().trim().min(3).max(2000),
   email: z.string().email().max(320),
-  reaction: z.enum(["up", "down"]).optional().default("up"),
+  reaction: z.enum(["up", "down"]),
   parent_id: z.number().int().positive().optional(),
 });
 

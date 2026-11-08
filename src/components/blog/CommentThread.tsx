@@ -48,20 +48,18 @@ function CommentCard({ c, isReply = false }: { c: Comment; isReply?: boolean }) 
   return (
     <div
       id={`comment-${c.id}`}
-      className={`rounded-lg border border-border bg-card/50 p-4 ${isReply ? "ml-8 border-l-2 border-l-primary/30" : ""}`}
+      className={isReply ? "ed-comment ed-comment--reply" : "ed-comment"}
     >
-      <div className="flex items-center gap-2 mb-2">
-        {isReply && <Reply className="h-3.5 w-3.5 text-muted-foreground" />}
+      <div className="ed-comment-meta">
+        {isReply && <Reply className="h-3.5 w-3.5" />}
         {c.reaction === "up" ? (
-          <ThumbsUp className="h-4 w-4 text-success" />
+          <ThumbsUp className="ed-comment-up h-4 w-4" />
         ) : (
-          <ThumbsDown className="h-4 w-4 text-destructive" />
+          <ThumbsDown className="ed-comment-down h-4 w-4" />
         )}
-        <span className="text-xs text-muted-foreground font-mono">
-          {maskEmail(c.email)}
-        </span>
-        <span className="text-xs text-muted-foreground">&middot;</span>
-        <span className="text-xs text-muted-foreground">
+        <span>{maskEmail(c.email)}</span>
+        <span>&middot;</span>
+        <span>
           {new Date(c.created_at).toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",
@@ -69,9 +67,7 @@ function CommentCard({ c, isReply = false }: { c: Comment; isReply?: boolean }) 
           })}
         </span>
       </div>
-      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-        {c.comment}
-      </p>
+      <p className="ed-comment-body">{c.comment}</p>
     </div>
   );
 }
@@ -106,18 +102,11 @@ function ReplyForm({
   if (replyingTo !== parentId) return null;
 
   return (
-    <div className="ml-8 mt-2">
-      <form
-        onSubmit={onReplySubmit}
-        className="space-y-3 rounded-lg border border-primary/20 bg-card/30 p-4"
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-primary">Replying to comment</span>
-          <button
-            type="button"
-            onClick={onCancelReply}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
+    <div className="ed-reply-slot">
+      <form onSubmit={onReplySubmit} className="ed-reply-form">
+        <div className="ed-reply-head">
+          <span className="ed-comment-label">Replying to comment</span>
+          <button type="button" onClick={onCancelReply} className="ed-comment-link">
             <X className="h-3.5 w-3.5" />
             Cancel
           </button>
@@ -131,23 +120,19 @@ function ReplyForm({
           rows={2}
           maxLength={2000}
           required
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y min-h-[60px]"
+          className="ed-comment-input"
         />
 
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+        <div className="ed-comment-row">
           {/* Reaction toggle */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground mr-1">Reaction:</span>
+          <div className="ed-comment-toggles">
+            <span className="ed-comment-label">Reaction</span>
             <button
               type="button"
               onClick={() => onReplyReactionChange("up")}
               aria-pressed={replyReaction === "up"}
               aria-label="React with thumbs up"
-              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                replyReaction === "up"
-                  ? "bg-success/20 text-success ring-1 ring-success/40"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
+              className="btn-editorial btn-editorial--sm ed-comment-toggle"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
               Up
@@ -157,11 +142,7 @@ function ReplyForm({
               onClick={() => onReplyReactionChange("down")}
               aria-pressed={replyReaction === "down"}
               aria-label="React with thumbs down"
-              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                replyReaction === "down"
-                  ? "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
+              className="btn-editorial btn-editorial--sm ed-comment-toggle"
             >
               <ThumbsDown className="h-3.5 w-3.5" />
               Down
@@ -169,7 +150,7 @@ function ReplyForm({
           </div>
 
           {/* Email + submit */}
-          <div className="flex flex-1 gap-2 w-full sm:w-auto">
+          <div className="ed-comment-send">
             <input
               type="email"
               required
@@ -177,12 +158,12 @@ function ReplyForm({
               onChange={(e) => onReplyEmailChange(e.target.value)}
               placeholder="your-subscriber@email.com"
               aria-label="Your subscriber email"
-              className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="ed-comment-input"
             />
             <button
               type="submit"
               disabled={replySubmitting || replyReaction === null}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+              className="btn-editorial btn-editorial--primary"
             >
               {replySubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -195,14 +176,14 @@ function ReplyForm({
         </div>
 
         {replyReaction === null && (
-          <p className="text-xs text-muted-foreground">Pick a reaction</p>
+          <p className="ed-comment-label">Pick a reaction</p>
         )}
 
         {replyStatus === "success" && (
-          <p className="text-sm text-success">{replyMessage}</p>
+          <p className="ed-comment-status ed-comment-status--ok">{replyMessage}</p>
         )}
         {replyStatus === "error" && (
-          <p className="text-sm text-destructive">{replyMessage}</p>
+          <p className="ed-comment-status ed-comment-status--err">{replyMessage}</p>
         )}
       </form>
     </div>
@@ -220,13 +201,13 @@ export function CommentThread({
   onReplySubmit,
 }: CommentThreadProps) {
   return (
-    <div className="space-y-4">
+    <div className="ed-comment-thread">
       {comments.map((c) => (
         <div key={c.id}>
           <CommentCard c={c} />
 
           {/* Reply button */}
-          <div className="mt-1 ml-2">
+          <div className="ed-comment-actions">
             <button
               type="button"
               onClick={() => {
@@ -237,7 +218,7 @@ export function CommentThread({
                   onStartReply(c.id);
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              className="ed-comment-link"
             >
               <Reply className="h-3.5 w-3.5" />
               Reply
@@ -257,7 +238,7 @@ export function CommentThread({
 
           {/* Replies */}
           {c.replies.length > 0 && (
-            <div className="mt-2 space-y-2">
+            <div className="ed-comment-thread">
               {c.replies.map((reply) => (
                 <CommentCard key={reply.id} c={reply} isReply />
               ))}
