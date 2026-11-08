@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/analytics";
 import type { ReferrerClass } from "@/lib/traffic/referrer";
-import type { TrafficScope } from "./shared";
+import { scopeClass, type TrafficScope } from "./shared";
 import type {
   CampaignRow,
   ReferrerRow,
@@ -19,8 +19,12 @@ export interface ContentData {
   searchQueries: SearchQueryRow[];
 }
 
-export async function loadContent(days: number): Promise<ContentData> {
+export async function loadContent(
+  days: number,
+  scope: TrafficScope = "humans"
+): Promise<ContentData> {
   const sql = getDb();
+  const sc = scopeClass(scope);
 
   const [topPages, referrers, scrollDepth, timeOnPage, campaignData, searchQueries] =
     await Promise.all([
@@ -28,8 +32,9 @@ export async function loadContent(days: number): Promise<ContentData> {
         SELECT page_path, COUNT(*)::int AS views, COUNT(DISTINCT ip_address)::int AS unique_views
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${sc}::text IS NULL OR traffic_class = ${sc})
         GROUP BY page_path ORDER BY views DESC LIMIT 20
-      `,
+      `.catch(() => []),
       sql`
         SELECT
           CASE
@@ -40,6 +45,7 @@ export async function loadContent(days: number): Promise<ContentData> {
           COUNT(DISTINCT ip_address)::int AS unique_visitors
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${sc}::text IS NULL OR traffic_class = ${sc})
         GROUP BY referrer_domain
         ORDER BY views DESC LIMIT 15
       `.catch(() => []),
@@ -76,6 +82,7 @@ export async function loadContent(days: number): Promise<ContentData> {
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
           AND utm_source IS NOT NULL
+          AND (${sc}::text IS NULL OR traffic_class = ${sc})
         GROUP BY utm_source, utm_medium, utm_campaign
         ORDER BY visit_count DESC
         LIMIT 20
@@ -102,7 +109,6 @@ export async function loadContent(days: number): Promise<ContentData> {
   };
 }
 
-// Stub for the wave 2 seam; implemented by Task 5.
 export type ReferrerClassRow = {
   cls: ReferrerClass;
   views: number;
@@ -116,8 +122,53 @@ export type ReferrerHostRow = {
 };
 
 export async function loadReferrerClasses(
-  _days: number,
-  _scope: TrafficScope
+  days: number,
+  scope: TrafficScope
 ): Promise<{ classes: ReferrerClassRow[]; hosts: ReferrerHostRow[] }> {
-  return { classes: [], hosts: [] };
+  const sql = getDb();
+  const sc = scopeClass(scope);
+
+  try {
+    const [classes, hosts] = await Promise.all([
+      sql`
+        SELECT
+          referrer_class AS cls,
+          COUNT(*)::int AS views,
+          COUNT(DISTINCT ip_address)::int AS visitors
+        FROM page_views
+        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND referrer_class IS NOT NULL
+          AND (${sc}::text IS NULL OR traffic_class = ${sc})
+        GROUP BY referrer_class
+        ORDER BY views DESC
+      `,
+      sql`
+        SELECT
+          referrer_host AS host,
+          MAX(referrer_class) AS cls,
+          COUNT(*)::int AS views
+        FROM page_views
+        WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND referrer_host IS NOT NULL AND referrer_host != ''
+          AND (${sc}::text IS NULL OR traffic_class = ${sc})
+        GROUP BY referrer_host
+        ORDER BY views DESC
+        LIMIT 15
+      `,
+    ]);
+    return {
+      classes: (classes as Array<Record<string, unknown>>).map((r) => ({
+        cls: r.cls as ReferrerClass,
+        views: Number(r.views) || 0,
+        visitors: Number(r.visitors) || 0,
+      })),
+      hosts: (hosts as Array<Record<string, unknown>>).map((r) => ({
+        host: String(r.host),
+        cls: r.cls as ReferrerClass,
+        views: Number(r.views) || 0,
+      })),
+    };
+  } catch {
+    return { classes: [], hosts: [] };
+  }
 }

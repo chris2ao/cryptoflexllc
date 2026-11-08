@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/analytics";
+import type { TrafficScope } from "./shared";
 import type {
   CommentRow,
   ConvertingPageRow,
@@ -18,7 +19,12 @@ export interface NewsletterData {
   subscriberSummary: SubscriberSummaryRow[];
 }
 
-export async function loadNewsletter(_days: number): Promise<NewsletterData> {
+// Subscribers, comments and the guestbook are not page_views: the scope
+// parameter is accepted for a uniform loader signature and not applied.
+export async function loadNewsletter(
+  _days: number,
+  _scope: TrafficScope = "humans"
+): Promise<NewsletterData> {
   const sql = getDb();
 
   const [

@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/analytics";
+import { scopeClass, type TrafficScope } from "./shared";
 import type {
   ApiMetricDailyRow,
   ApiMetricRow,
@@ -18,8 +19,12 @@ export interface PerformanceData {
   summaryRow: PerformanceSummaryRow[];
 }
 
-export async function loadPerformance(days: number): Promise<PerformanceData> {
+export async function loadPerformance(
+  days: number,
+  scope: TrafficScope = "humans"
+): Promise<PerformanceData> {
   const sql = getDb();
+  const sc = scopeClass(scope);
 
   const [apiMetricsEndpoints, apiMetricsDaily, webVitalsRaw, topPages, topCountries] =
     await Promise.all([
@@ -71,24 +76,26 @@ export async function loadPerformance(days: number): Promise<PerformanceData> {
         SELECT page_path, COUNT(*)::int AS views, COUNT(DISTINCT ip_address)::int AS unique_views
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${sc}::text IS NULL OR traffic_class = ${sc})
         GROUP BY page_path ORDER BY views DESC LIMIT 1
-      `,
+      `.catch(() => []),
       sql`
         SELECT country, COUNT(*)::int AS views
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+          AND (${sc}::text IS NULL OR traffic_class = ${sc})
         GROUP BY country ORDER BY views DESC LIMIT 1
-      `,
+      `.catch(() => []),
     ]);
 
   // Need total_views for VercelAnalyticsCard -- fetch inline
-  const sql2 = getDb();
-  const summaryRow = await sql2`
+  const summaryRow = await sql`
     SELECT
       COUNT(*)::int AS total_views,
       COUNT(DISTINCT ip_address)::int AS unique_visitors
     FROM page_views
     WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+      AND (${sc}::text IS NULL OR traffic_class = ${sc})
   `;
 
   return {
