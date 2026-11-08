@@ -16,7 +16,7 @@ import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/analytics";
 import { withCronRun } from "@/lib/cron-runs";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
-import { classifyPendingPageViews } from "@/lib/traffic/backfill";
+import { backfillLegacyReferrers, classifyPendingPageViews } from "@/lib/traffic/backfill";
 import { enrichPendingIps } from "@/lib/ip-enrichment/batch";
 
 // Classification loops plus up to 60 sequential enrichment lookups at 1.4s spacing.
@@ -75,6 +75,16 @@ export async function GET(request: NextRequest) {
         // both stages stop at the deadline so the function never hits maxDuration.
         const deadline = Date.now() + DEADLINE_MS;
 
+        // Rows from before the referrer columns existed get their host and
+        // class derived from the raw referrer so the classifier can see
+        // forged referrers; a no-op once the history is done.
+        let legacyReferrers = 0;
+        try {
+          legacyReferrers = await backfillLegacyReferrers(sql, 200);
+        } catch (error) {
+          console.error("Legacy referrer backfill error:", error);
+        }
+
         let enriched = 0;
         try {
           enriched = await enrichPendingIps(sql, ENRICH_LIMIT, { deadline });
@@ -94,10 +104,10 @@ export async function GET(request: NextRequest) {
           console.error("Page view classification batch error:", error);
         }
 
-        return { ok: true, anonymized, retentionDays: RETENTION_DAYS, classified, enriched };
+        return { ok: true, anonymized, retentionDays: RETENTION_DAYS, legacyReferrers, classified, enriched };
       },
       (r) =>
-        `anonymized ${r.anonymized}, classified ${r.classified}, enriched ${r.enriched}`,
+        `anonymized ${r.anonymized}, legacy referrers ${r.legacyReferrers}, classified ${r.classified}, enriched ${r.enriched}`,
     );
     return NextResponse.json(summary);
   } catch (error) {

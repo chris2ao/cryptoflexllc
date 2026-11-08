@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { getDb } from "@/lib/analytics";
 import { ensureAnalyticsSchema } from "@/lib/analytics-schema";
-import { classifyPendingPageViews } from "@/lib/traffic/backfill";
+import { backfillLegacyReferrers, classifyPendingPageViews } from "@/lib/traffic/backfill";
 
 export async function loadLiveSummary(days = 30) {
   const queryStart = Date.now();
@@ -36,6 +36,7 @@ export async function loadLiveSummary(days = 30) {
     if (pending > 0) {
       after(async () => {
         try {
+          await backfillLegacyReferrers(sql, 50);
           await classifyPendingPageViews(sql, 2000);
         } catch (error) {
           console.error("Pending classification kick failed:", error);
