@@ -26,7 +26,9 @@ const V4_RESERVED: ReadonlyArray<readonly [string, number]> = [
 const V6_RESERVED: ReadonlyArray<readonly [string, number]> = [
   ["::", 128],
   ["::1", 128],
+  ["64:ff9b::", 96],
   ["100::", 64],
+  ["2002::", 16],
   ["2001:db8::", 32],
   ["fc00::", 7],
   ["fe80::", 10],
@@ -40,7 +42,8 @@ for (const [net, prefix] of V6_RESERVED) RESERVED.addSubnet(net, prefix, "ipv6")
 
 /** True for any literal IPv4 or IPv6 address. */
 export function isValidIp(ip: string): boolean {
-  return isIP(ip) !== 0;
+  // A zone id (fe80::1%eth0) is not a plain literal, so it is rejected.
+  return !ip.includes("%") && isIP(ip) !== 0;
 }
 
 /** Turns ::ffff:a.b.c.d and ::ffff:hhhh:hhhh into dotted IPv4, else null. */
@@ -54,7 +57,10 @@ function unmapV4(ip: string): string | null {
   return `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
 }
 
-/** Reject private, loopback, and reserved IP ranges. */
+/**
+ * Reject private, loopback, and reserved IP ranges. Returns false for a
+ * string that is not an IP; every caller runs isValidIp first.
+ */
 export function isPrivateIp(ip: string): boolean {
   const family = isIP(ip);
   if (family === 0) return false;
