@@ -2,7 +2,7 @@
 
 Date: 2026-11-07. Scope: the owner-only dashboard at `/analytics` (page, nine tabs, 54 component files, 11 API routes, the IP intelligence lookup). Method: full read of the code on `main` (924a06b), the live page at 1440px and in a 390px same-origin frame, the Vercel project via the MCP, Jira and vector memory for prior decisions.
 
-Status: review only. Nothing here is built. The plan section becomes `analytics-refresh-plan.md` through `writing-plans` once the decisions at the end are made.
+Status: Done 2026-11-07. Built as `analytics-refresh-plan.md` in four PRs (#55 to #58) the same day; the owner's decisions are recorded in the plan header; owner steps for the external sources are CLAUD-781 and the review leftovers are CLAUD-782.
 
 ## Verdict: a refresh, with two cores rebuilt
 

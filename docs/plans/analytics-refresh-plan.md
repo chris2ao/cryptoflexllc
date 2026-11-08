@@ -14,7 +14,7 @@
 
 **Tech stack:** Next.js 16 App Router (force-dynamic page, Suspense), React 19, Neon serverless SQL tag, Recharts through `src/components/ui/chart`, vitest + Testing Library (jsdom), zod, node:crypto. No new runtime dependencies.
 
-**Status:** Wave 1 merged in PR #55 (e82b2d0), wave 2 in PR #56 (b26a80b), wave 3 in PR #57 (8545030), all verified in production on 2026-11-07. Wave 4 on `refresh/analytics-w4-signals`.
+**Status:** Done 2026-11-07. Wave 1 PR #55 (e82b2d0), wave 2 PR #56 (b26a80b), wave 3 PR #57 (8545030), wave 4 PR #58 (98ae711), each verified in production. Owner steps for the external sources: CLAUD-781. Review leftovers: CLAUD-782.
 
 ## Global Constraints
 
@@ -490,11 +490,11 @@ it("bot trend renders a publish marker", () => { /* render with markers ["2026-1
 - `WebAnalyticsCard({ state, ours: { pageviews, visitors }, theirs: { pageviews, visitors } | null, daily })`: when `not-enabled` prints "Web Analytics is not enabled on this project" and the command `vercel project web-analytics enable cryptoflexllc`; when ok shows both counts and the ratio.
 - `DeploysStrip({ deployments })`: ten chips (state colour, relative time, short message); `ShippingPanel({ commits7d, commits14d, deploys7d, lastDeploy })` on Overview.
 
-- [ ] **Step 1: Write the failing tests** (parsers over the documented fixtures; 404 "not found" maps to `not-enabled`; deployments map; commits map; cards render the two states)
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run `npx vitest run src/lib/vercel-api.test.ts src/lib/github-activity.test.ts src/app/analytics/_components`, PASS.**
-- [ ] **Step 5: Commit** `feat: CLAUD-779 Vercel web analytics cross-check, deploy strip and shipping panel`
+- [x] **Step 1: Write the failing tests** (parsers over the documented fixtures; 404 "not found" maps to `not-enabled`; deployments map; commits map; cards render the two states)
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run `npx vitest run src/lib/vercel-api.test.ts src/lib/github-activity.test.ts src/app/analytics/_components`, PASS.**
+- [x] **Step 5: Commit** `feat: CLAUD-779 Vercel web analytics cross-check, deploy strip and shipping panel`
 
 ### Task 13: Search Console  `critical` `parallel-safe`
 
@@ -507,11 +507,11 @@ it("bot trend renders a publish marker", () => { /* render with markers ["2026-1
 - `loadSearchConsole(days)` in `content.ts` returns `{ configured: boolean; queries; pages; daily }` with 28-day defaults (GSC data lags about two days; `endDate` is today minus 2).
 - `SearchConsolePanel` renders the not-configured state with the three env names, else top 10 queries, top 10 pages and a clicks and impressions trend.
 
-- [ ] **Step 1: Write the failing tests** (JWT verifies with `crypto.verify` against a key pair generated in the test with `generateKeyPairSync("rsa", { modulusLength: 2048 })`; claims carry the scope and a 3600s expiry; `normalisePrivateKey`; `getAccessToken` posts the assertion; `fetchSearchAnalytics` maps rows; `isSearchConsoleConfigured` false with env unset)
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the test, PASS.**
-- [ ] **Step 5: Commit** `feat: CLAUD-779 Search Console queries and pages on the Content tab`
+- [x] **Step 1: Write the failing tests** (JWT verifies with `crypto.verify` against a key pair generated in the test with `generateKeyPairSync("rsa", { modulusLength: 2048 })`; claims carry the scope and a 3600s expiry; `normalisePrivateKey`; `getAccessToken` posts the assertion; `fetchSearchAnalytics` maps rows; `isSearchConsoleConfigured` false with env unset)
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the test, PASS.**
+- [x] **Step 5: Commit** `feat: CLAUD-779 Search Console queries and pages on the Content tab`
 
 ### Task 14: Digest runs, cron runs, ops panel  `parallel-safe`
 
@@ -526,27 +526,27 @@ it("bot trend renders a publish marker", () => { /* render with markers ["2026-1
 - Produces: `loadDigestRuns(limit = 12): Promise<Array<{ ran_at; recipients; sent; failed; clicks7d }>>` where `clicks7d` counts human page views with `utm_campaign = 'weekly-digest'` in the seven days after `ran_at`; `DigestRunsPanel({ runs })` shows sends and click-through percent.
 - Weekly digest inserts one `digest_runs` row after the send loop (`recipients`, `sent`, `failed = recipients - sent`, `duration_ms`).
 
-- [ ] **Step 1: Write the failing tests**
-- [ ] **Step 2: Run and confirm failure**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the four test files, PASS.**
-- [ ] **Step 5: Commit** `feat: CLAUD-779 digest and cron run records, server events and the ops panel`
+- [x] **Step 1: Write the failing tests**
+- [x] **Step 2: Run and confirm failure**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the four test files, PASS.**
+- [x] **Step 5: Commit** `feat: CLAUD-779 digest and cron run records, server events and the ops panel`
 
 ### Task 15: Close-out (controller, inline)
 
-- [ ] `CHANGELOG.md` entry, README analytics section delta, `docs/plans/analytics-refresh-review.md` Status set to Done with the date, this plan's Status table (PRs and merge commits).
-- [ ] Vector memory: the referrer and traffic-class model, the URL-state shell, the enrichment sources and quotas, the owner steps (tagged `cryptoflexllc`).
-- [ ] Jira: CLAUD-779 to Done with the four merge commits; one bundle item for MEDIUM and LOW review findings; one Waiting on me item "[cryptoflexllc] Analytics owner steps" listing: enable Web Analytics (dashboard Analytics tab, or `vercel project web-analytics enable cryptoflexllc` with CLI 65 or newer; interactive confirmation); Speed Insights enable (note from the CLI docs: enabling upgrades the project to Speed Insights Plus, check pricing first); create the free ipapi.is key and set `IPAPI_IS_KEY` (Sensitive); create a Google Cloud service account with the Search Console API enabled, add its email to the `cryptoflexllc.com` property as a Full user, set `GSC_CLIENT_EMAIL`, `GSC_PRIVATE_KEY` (Sensitive), `GSC_SITE_URL=sc-domain:cryptoflexllc.com`; redeploy after env changes.
-- [ ] Final status to the owner.
+- [x] `CHANGELOG.md` entry, README analytics section delta, `docs/plans/analytics-refresh-review.md` Status set to Done with the date, this plan's Status table (PRs and merge commits).
+- [x] Vector memory: the referrer and traffic-class model, the URL-state shell, the enrichment sources and quotas, the owner steps (tagged `cryptoflexllc`).
+- [x] Jira: CLAUD-779 to Done with the four merge commits; one bundle item for MEDIUM and LOW review findings; one Waiting on me item "[cryptoflexllc] Analytics owner steps" listing: enable Web Analytics (dashboard Analytics tab, or `vercel project web-analytics enable cryptoflexllc` with CLI 65 or newer; interactive confirmation); Speed Insights enable (note from the CLI docs: enabling upgrades the project to Speed Insights Plus, check pricing first); create the free ipapi.is key and set `IPAPI_IS_KEY` (Sensitive); create a Google Cloud service account with the Search Console API enabled, add its email to the `cryptoflexllc.com` property as a Full user, set `GSC_CLIENT_EMAIL`, `GSC_PRIVATE_KEY` (Sensitive), `GSC_SITE_URL=sc-domain:cryptoflexllc.com`; redeploy after env changes.
+- [x] Final status to the owner.
 
 ### Wave 4 checkpoint
 
-- [ ] Seam commit first: `_sections/performance-ops.tsx` exporting `PerformanceOps` that returns `null`, so Task 12 can mount it while Task 14 fills it.
-- [ ] Merge order: Task 14, Task 12, Task 13. Typecheck after each.
-- [ ] Full gate; harness: Performance and Content tabs render their not-configured states locally.
-- [ ] Review: `code-reviewer` plus `security-reviewer` (JWT signing, token handling, external fetches).
-- [ ] PR, CI, merge, production: Web Analytics card shows the "not enabled" state until the owner enables it; deploy strip lists today's deployments; Shipping panel counts commits; Search Console panel shows the env names; Newsletter shows the digest runs table (empty until Monday).
-- [ ] Task 15, then the final status line.
+- [x] Seam commit first: `_sections/performance-ops.tsx` exporting `PerformanceOps` that returns `null`, so Task 12 can mount it while Task 14 fills it.
+- [x] Merge order: Task 14, Task 12, Task 13. Typecheck after each.
+- [x] Full gate; harness: Performance and Content tabs render their not-configured states locally.
+- [x] Review: `code-reviewer` plus `security-reviewer` (JWT signing, token handling, external fetches).
+- [x] PR, CI, merge, production: Web Analytics card shows the "not enabled" state until the owner enables it; deploy strip lists today's deployments; Shipping panel counts commits; Search Console panel shows the env names; Newsletter shows the digest runs table (empty until Monday).
+- [x] Task 15, then the final status line.
 
 ## Open Questions
 

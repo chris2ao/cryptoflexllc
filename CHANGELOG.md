@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here.
 
+## 2026-11-07 - CLAUD-779: /analytics Refresh (4 PRs, One Unattended Session)
+
+### What changed
+- **Reviewed** the owner dashboard end to end (`docs/plans/analytics-refresh-review.md`): a forged-referrer crawler was 71% of views, referrers were never captured, the dashboard counted its own visits, two design generations and twelve orphan files sat in one 1,580-line page, and the IP lookup was the February sheet. Verdict: refresh, not redesign. Plan in `docs/plans/analytics-refresh-plan.md`
+- **Merged** PRs #55 (wave 1, e82b2d0), #56 (wave 2, b26a80b), #57 (wave 3, 8545030) and #58 (wave 4, 98ae711) the same day, each through tsc, eslint, the full vitest suite, next build, CI, a headless pass on `next start` and one code review plus a security review where the wave touched input or secrets; every CRITICAL and HIGH fixed before merge
+- **Added** referrer capture (`document.referrer`, stored as origin plus path) with classes in `src/lib/traffic/referrer.ts`, and `traffic_class` (human, bot, owner, self) on page views with insert-time rules and a bounded batch (`src/lib/traffic/backfill.ts`); the dashboard and backlog paths are untracked; the schema migrates itself through `src/lib/analytics-schema.ts`
+- **Rebuilt** the page as one server section per tab under `_sections/` with loaders in `src/lib/analytics-queries/`; seven tabs carried in the URL with only the active one rendered; humans-only numbers by default with a scope toggle; Readers, Read-through and Reader minutes with period deltas replace bounce; a humans and bots trend with publish markers; a post performance table; referrers by class; a compact header and an opaque toolbar that fits every tab at 1440px
+- **Ported** nine charts and eleven panels to the editorial system, deleted thirteen orphans and `PanelWrapper`, and guarded the component directory with `editorial-only.test.ts`
+- **Replaced** the IP OSINT sheet with a visitor dossier (own history first, enrichment second) reachable from every IP, backed by `src/lib/ip-enrichment` (ipapi.is over HTTPS, RDAP, the Tor exit list and Spamhaus DROP, cached in `ip_intel` and `threat_lists`); the Security tab shows network types and known-bad overlap; the cleanup cron enriches and classifies nightly under a 240 second budget
+- **Added** Vercel Web Analytics cross-check and deployments, a GitHub shipping panel, Search Console through a node:crypto service-account JWT, `cron_runs`, `digest_runs` and `server_events` records and an ops panel; owner steps to enable the external sources are CLAUD-781
+- **Fixed** on the way: the live feed queried columns that do not exist (empty for months), a hydration mismatch from the live clock, and a stored page path that could act as an open redirect from dashboard links (`src/lib/site-path.ts`)
+
+### What was learned
+- Importing a value from a `"use client"` module into a server component yields a client reference: tsc and the build pass, the route 500s. Only a real `next start` render catches it, so every wave ran the headless harness with a minted analytics cookie before its PR
+- `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` still takes the table lock, so a lazy migration on a public beacon route needs a presence check first and a backoff after a failure
+- A bounded backfill that takes the oldest pending rows never moves the visible 30-day count while a months-old backlog exists; take newest first
+- Same-origin beacons carry the page's own URL as Referer, so a referrer must come from `document.referrer`; the forged `aocr.org` referrer is a documented ByteDance crawler signature
+
 ## 2026-11-07 - CLAUD-765: Design and UX Review Implemented (13 Items, 4 PRs)
 
 ### What changed
