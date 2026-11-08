@@ -163,7 +163,7 @@ export async function loadReferrerClasses(
       sql`
         SELECT
           referrer_host AS host,
-          MAX(referrer_class) AS cls,
+          mode() WITHIN GROUP (ORDER BY referrer_class) AS cls,
           COUNT(*)::int AS views
         FROM page_views
         WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}

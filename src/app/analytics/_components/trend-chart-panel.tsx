@@ -29,19 +29,19 @@ export type ViewsBreakdownPoint = {
 
 export type TrendSeries = {
   views: ViewsBreakdownPoint[];
-  uniques: TrendPoint[];
-  bounce: TrendPoint[];
-  new: TrendPoint[];
+  readers: TrendPoint[];
+  "read-through": TrendPoint[];
+  "reader-minutes": TrendPoint[];
 };
 
 type Mode = "area" | "line" | "bar";
 type MetricKey = keyof TrendSeries;
 
 const METRIC_LABELS: Record<MetricKey, string> = {
-  views: "Total Views",
-  uniques: "Unique Visitors",
-  bounce: "Bounce Rate",
-  new: "New Visitors",
+  views: "Views",
+  readers: "Readers",
+  "read-through": "Read-through %",
+  "reader-minutes": "Reader minutes",
 };
 
 const VIEWS_SERIES = [

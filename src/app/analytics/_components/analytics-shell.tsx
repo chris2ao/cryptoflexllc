@@ -36,7 +36,7 @@ const SCOPES: ReadonlyArray<{ id: TrafficScope; label: string }> = [
 
 function resolveRangeId(ranges: RangeDef[], days: number): string {
   const match = ranges.find((r) => r.days === days);
-  return match ? match.id : "30d";
+  return match ? match.id : "";
 }
 
 export function AnalyticsShell({

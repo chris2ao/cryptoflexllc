@@ -27,10 +27,12 @@ export interface DigestRunRow {
   failed: number;
   duration_ms: number;
   clicks7d: number;
+  /** True while the seven-day click window is still open. */
+  partial: boolean;
 }
 
 // One query: the clicks are a correlated count of human (or not yet
-// classified) page views tagged utm_campaign = 'weekly-digest' in the seven
+// classified) visitors, counted once per address, tagged utm_campaign = 'weekly-digest' in the seven
 // days after each send.
 export async function loadDigestRuns(limit = 12): Promise<DigestRunRow[]> {
   const sql = getDb();
@@ -42,13 +44,14 @@ export async function loadDigestRuns(limit = 12): Promise<DigestRunRow[]> {
       d.failed,
       d.duration_ms,
       (
-        SELECT COUNT(*)::int
+        SELECT COUNT(DISTINCT pv.ip_address)::int
         FROM page_views pv
         WHERE pv.utm_campaign = 'weekly-digest'
           AND (pv.traffic_class = 'human' OR pv.traffic_class IS NULL)
           AND pv.visited_at >= d.ran_at
           AND pv.visited_at < d.ran_at + INTERVAL '7 days'
-      ) AS clicks7d
+      ) AS clicks7d,
+      (d.ran_at > NOW() - INTERVAL '7 days') AS partial
     FROM digest_runs d
     ORDER BY d.ran_at DESC
     LIMIT ${limit}
@@ -60,6 +63,7 @@ export async function loadDigestRuns(limit = 12): Promise<DigestRunRow[]> {
     failed: Number(r.failed) || 0,
     duration_ms: Number(r.duration_ms) || 0,
     clicks7d: Number(r.clicks7d) || 0,
+    partial: r.partial === true,
   }));
 }
 

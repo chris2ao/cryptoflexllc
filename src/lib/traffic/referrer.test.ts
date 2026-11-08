@@ -37,6 +37,15 @@ describe("classifyReferrer", () => {
   it("utm email wins over a search referrer", () => {
     expect(classifyReferrer("https://www.google.com/", { medium: "email" }).cls).toBe("newsletter");
   });
+  it.each(["ChatGPT", "chat-gpt", "openai", "anthropic", "copilot", "gemini", "deepseek", "grok"])(
+    "classifies utm_source %s as ai",
+    (source) => expect(classifyReferrer("", { source }).cls).toBe("ai"),
+  );
+
+  it.each(["google", "twitter"])("does not treat utm_source %s as ai", (source) =>
+    expect(classifyReferrer("", { source }).cls).not.toBe("ai"),
+  );
+
   it("classifies an AI utm source", () => {
     expect(classifyReferrer("", { source: "chatgpt.com" }).cls).toBe("ai");
     expect(classifyReferrer("", { source: "chatgpt" }).cls).toBe("ai");

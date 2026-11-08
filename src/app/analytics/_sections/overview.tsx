@@ -19,6 +19,7 @@ export async function OverviewSection({
     dailyViews: typedDailyViews,
     hourlyHeatmap: typedHeatmap,
     kpis,
+    dailyEngagement,
     trend,
     publishDates,
     shipping,
@@ -29,7 +30,9 @@ export async function OverviewSection({
 
   // Sparkline data from daily views
   const viewsSpark = typedDailyViews.map((r) => r.views);
-  const uniquesSpark = typedDailyViews.map((r) => r.unique_visitors);
+  const readersSpark = dailyEngagement.map((r) => r.readers);
+  const readThroughSpark = dailyEngagement.map((r) => r.read_through_pct);
+  const minutesSpark = dailyEngagement.map((r) => r.reader_minutes);
 
   const kpiItems: KpiItem[] = [
     {
@@ -44,7 +47,7 @@ export async function OverviewSection({
       label: "Readers",
       value: kpis.readers.current,
       delta: deltaPercent(kpis.readers.current, kpis.readers.previous),
-      spark: uniquesSpark,
+      spark: readersSpark,
     },
     {
       id: "read-through",
@@ -53,6 +56,7 @@ export async function OverviewSection({
       format: "percent",
       unit: "%",
       delta: deltaPercent(kpis.readThrough.current, kpis.readThrough.previous),
+      spark: readThroughSpark,
     },
     {
       id: "reader-minutes",
@@ -62,6 +66,7 @@ export async function OverviewSection({
         kpis.readerMinutes.current,
         kpis.readerMinutes.previous
       ),
+      spark: minutesSpark,
     },
   ];
 
@@ -92,15 +97,18 @@ export async function OverviewSection({
                 returning: nvr?.returning_visitors ?? 0,
               };
             }),
-            uniques: typedDailyViews.map((r) => ({
+            readers: dailyEngagement.map((r) => ({
               date: r.date,
-              value: r.unique_visitors,
+              value: r.readers,
             })),
-            new: typedNewVsReturning.map((r) => ({
+            "read-through": dailyEngagement.map((r) => ({
               date: r.date,
-              value: r.new_visitors,
+              value: r.read_through_pct,
             })),
-            bounce: [],
+            "reader-minutes": dailyEngagement.map((r) => ({
+              date: r.date,
+              value: r.reader_minutes,
+            })),
           } satisfies TrendSeries}
           days={days}
         />

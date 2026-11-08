@@ -23,4 +23,12 @@ describe("loadReferrerClasses", () => {
     expect(out.classes).toEqual([{ cls: "search", views: 9, visitors: 5 }]);
     expect(out.hosts[0].host).toBe("google.com");
   });
+
+  it("picks the most common class per host, not the alphabetical maximum", async () => {
+    tag.mockResolvedValue([]);
+    await loadReferrerClasses(30, "humans");
+    const hostsQuery = (tag.mock.calls[1][0] as string[]).join("?");
+    expect(hostsQuery).toContain("mode() WITHIN GROUP (ORDER BY referrer_class)");
+    expect(hostsQuery).not.toContain("MAX(referrer_class)");
+  });
 });

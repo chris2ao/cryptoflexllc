@@ -91,11 +91,51 @@ describe("loadOverview", () => {
     expect(data.publishDates).toHaveLength(1);
   });
 
+  it("maps daily engagement rows with a numeric zero fill", async () => {
+    tag.mockImplementation((strings: TemplateStringsArray) =>
+      Promise.resolve(
+        strings.join("?").includes("reader_minutes")
+          ? [
+              { date: "2026-11-01", readers: "4", read_through_pct: "12.5", reader_minutes: "7" },
+              { date: "2026-11-02", readers: null, read_through_pct: null, reader_minutes: null },
+            ]
+          : [],
+      ),
+    );
+    const { dailyEngagement } = await loadOverview(30, "humans");
+    expect(dailyEngagement).toEqual([
+      { date: "2026-11-01", readers: 4, read_through_pct: 12.5, reader_minutes: 7 },
+      { date: "2026-11-02", readers: 0, read_through_pct: 0, reader_minutes: 0 },
+    ]);
+  });
+
+  it("scopes the daily engagement query like the KPI windows", async () => {
+    await loadOverview(30, "humans");
+    const q = text().find((t) => t.includes("reader_minutes")) ?? "";
+    expect(q).toContain("COUNT(DISTINCT u.ip_address)");
+    expect(q).toContain("FROM scroll_events");
+    expect(q).toContain("UNION ALL");
+    expect(q).toContain("FROM page_engagement");
+    expect(q).toContain("EXISTS");
+    expect(q).toContain("ROUND(mins.seconds / 60.0)");
+  });
+
+  it("excludes automated metric commits from the shipping counts", async () => {
+    fetchRecentCommits.mockResolvedValue([
+      { sha: "a", message: "chore: update gmail metrics 2026-11-07", date: new Date().toISOString() },
+      { sha: "b", message: "fix: real work", date: new Date().toISOString() },
+    ]);
+    const { shipping } = await loadOverview(30, "humans");
+    expect(shipping.commits7d).toBe(1);
+    expect(shipping.commits14d).toBe(1);
+  });
+
   it("falls back to zeros when every query fails", async () => {
     tag.mockImplementation(() => Promise.reject(new Error("boom")));
     const data = await loadOverview(30, "humans");
     expect(data.kpis.views).toEqual({ current: 0, previous: 0 });
     expect(data.kpis.pending).toBe(0);
     expect(data.trend).toEqual([]);
+    expect(data.dailyEngagement).toEqual([]);
   });
 });

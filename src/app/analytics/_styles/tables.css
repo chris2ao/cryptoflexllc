@@ -1,0 +1,69 @@
+/* Sortable table */
+table.ax-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.ax-tbl th,
+.ax-tbl td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ax-tbl th {
+  font-weight: 500;
+  color: var(--fg-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  background: var(--surface-2);
+  cursor: pointer;
+  user-select: none;
+  position: sticky;
+  top: 0;
+}
+
+.ax-tbl th:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.ax-tbl th .arr {
+  color: var(--fg-3);
+  margin-left: 4px;
+}
+
+.ax-tbl th.sorted {
+  color: var(--primary);
+}
+
+.ax-tbl th.num,
+.ax-tbl td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ax-tbl td {
+  color: var(--fg-2);
+}
+
+.ax-tbl td b {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.ax-tbl td.num {
+  color: var(--fg);
+}
+
+.ax-tbl tr {
+  transition: background 120ms;
+}
+
+.ax-tbl tbody tr:hover {
+  background: var(--surface-2);
+}
+

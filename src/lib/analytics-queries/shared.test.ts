@@ -12,6 +12,14 @@ describe("rangeDays", () => {
     expect(rangeDays("9999")).toBe(365);
   });
 
+  it("accepts only plain digits", () => {
+    expect(rangeDays("30abc")).toBe(30);
+    expect(rangeDays("45")).toBe(45);
+    expect(rangeDays("")).toBe(30);
+    expect(rangeDays("12345")).toBe(30);
+    expect(rangeDays("-5")).toBe(30);
+  });
+
   it("passes through valid values", () => {
     expect(rangeDays("7")).toBe(7);
   });

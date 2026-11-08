@@ -1,0 +1,137 @@
+/* ================================================================
+   ANALYTICS REDESIGN — /analytics dashboard
+   ================================================================ */
+
+.ax-page {
+  padding: 40px 0 80px;
+}
+
+.ax-wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+@media (max-width: 768px) {
+  .ax-wrap { padding: 0 20px; }
+}
+
+/* Page header */
+.ax-header {
+  padding: 24px 0 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ax-header-inner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .ax-header-inner { grid-template-columns: 1fr; }
+}
+
+.ax-crumbs {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ax-crumbs .sep { color: var(--fg-3); }
+.ax-crumbs b { color: var(--primary); font-weight: 500; }
+
+.ax-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -0.032em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.ax-title em {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--fg-2);
+}
+
+.ax-title .accent { color: var(--primary); }
+
+@media (max-width: 640px) {
+  .ax-title { font-size: 30px; }
+}
+
+.ax-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+@media (max-width: 900px) {
+  .ax-controls { align-items: flex-start; }
+}
+
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-2);
+  letter-spacing: 0.08em;
+}
+
+.live-pill .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ax-green);
+  animation: livepulse 1.6s ease-in-out infinite;
+}
+
+@keyframes livepulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 oklch(0.78 0.17 150 / 0.5); }
+  50%      { opacity: 0.5; box-shadow: 0 0 0 6px oklch(0.78 0.17 150 / 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-pill .dot { animation: none; }
+}
+
+.ax-btn-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ax-meta-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.08em;
+  flex-wrap: wrap;
+}
+
+.ax-meta-row span b { color: var(--fg-2); font-weight: 500; }
+.ax-meta-row span.ac b { color: var(--primary); }
+
