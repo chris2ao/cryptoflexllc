@@ -1,5 +1,12 @@
 import { getDb } from "@/lib/analytics";
 import { scopeClass, type TrafficScope } from "./shared";
+import type { KpiWindow } from "./overview";
+import {
+  loadNetworkTypes,
+  loadKnownBad,
+  type NetworkTypeRow,
+  type KnownBadData,
+} from "./security-intel";
 import type {
   AuthAttemptRow,
   BotTrendRow,
@@ -53,7 +60,32 @@ async function loadVercelFirewall(
   return { vercelFirewallConfig, vercelAttackStatus, vercelFirewallEvents };
 }
 
+export { loadNetworkTypes, loadKnownBad };
+export type { NetworkTypeRow, KnownBadData };
+
+export interface SecurityKpis {
+  bots: KpiWindow;
+  knownBad: KpiWindow;
+  authFailures: KpiWindow;
+  clientErrors: KpiWindow;
+}
+
+type Row = Record<string, unknown>;
+
+function toWindow(rows: unknown): KpiWindow {
+  const row = ((rows as Row[])?.[0] ?? {}) as Row;
+  const cur = Number(row.current);
+  const prev = Number(row.previous);
+  return {
+    current: Number.isFinite(cur) ? cur : 0,
+    previous: Number.isFinite(prev) ? prev : 0,
+  };
+}
+
 export interface SecurityData {
+  kpis: SecurityKpis;
+  networkTypes: NetworkTypeRow[];
+  knownBad: KnownBadData;
   botTrend: BotTrendRow[];
   authAttempts: AuthAttemptRow[];
   clientErrorTrend: ClientErrorTrendRow[];
@@ -70,8 +102,20 @@ export async function loadSecurity(
   const sql = getDb();
   const sc = scopeClass(scope);
 
-  const [botTrend, authAttempts, clientErrorTrend, clientErrorRecent, clientErrorCount, recent] =
-    await Promise.all([
+  const [
+    botTrend,
+    authAttempts,
+    clientErrorTrend,
+    clientErrorRecent,
+    clientErrorCount,
+    recent,
+    networkTypes,
+    knownBad,
+    botsWin,
+    knownBadWin,
+    authFailWin,
+    clientErrWin,
+  ] = await Promise.all([
       // Bot trend spans every class on purpose: scoping it to humans would hide the bots.
       sql`
         SELECT
@@ -120,16 +164,60 @@ export async function loadSecurity(
       `.catch(() => [{ total: 0 }]),
       sql`
         SELECT id, visited_at, page_path, ip_address, browser, os,
-               device_type, referrer, country, city, region
+               device_type, referrer, referrer_host, traffic_class,
+               country, city, region
         FROM page_views
         WHERE (${sc}::text IS NULL OR traffic_class = ${sc})
         ORDER BY visited_at DESC LIMIT 50
+      `.catch(() => []),
+      loadNetworkTypes(days, scope),
+      loadKnownBad(days),
+      // KPI windows: current and previous in one pass each.
+      sql`
+        SELECT
+          COUNT(*) FILTER (WHERE visited_at > NOW() - INTERVAL '1 day' * ${days})::int AS current,
+          COUNT(*) FILTER (WHERE visited_at <= NOW() - INTERVAL '1 day' * ${days})::int AS previous
+        FROM page_views
+        WHERE visited_at > NOW() - INTERVAL '1 day' * (2 * ${days})
+          AND traffic_class = 'bot'
+      `.catch(() => []),
+      sql`
+        SELECT
+          COUNT(DISTINCT pv.ip_address) FILTER (WHERE pv.visited_at > NOW() - INTERVAL '1 day' * ${days})::int AS current,
+          COUNT(DISTINCT pv.ip_address) FILTER (WHERE pv.visited_at <= NOW() - INTERVAL '1 day' * ${days})::int AS previous
+        FROM page_views pv
+        JOIN ip_intel ii ON ii.ip_address = pv.ip_address
+        WHERE pv.visited_at > NOW() - INTERVAL '1 day' * (2 * ${days})
+          AND (ii.is_abuser IS TRUE OR ii.is_tor IS TRUE OR ii.on_drop IS TRUE)
+      `.catch(() => []),
+      sql`
+        SELECT
+          COUNT(*) FILTER (WHERE attempted_at > NOW() - INTERVAL '1 day' * ${days})::int AS current,
+          COUNT(*) FILTER (WHERE attempted_at <= NOW() - INTERVAL '1 day' * ${days})::int AS previous
+        FROM auth_attempts
+        WHERE attempted_at > NOW() - INTERVAL '1 day' * (2 * ${days})
+          AND success = FALSE
+      `.catch(() => []),
+      sql`
+        SELECT
+          COUNT(*) FILTER (WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days})::int AS current,
+          COUNT(*) FILTER (WHERE recorded_at <= NOW() - INTERVAL '1 day' * ${days})::int AS previous
+        FROM client_errors
+        WHERE recorded_at > NOW() - INTERVAL '1 day' * (2 * ${days})
       `.catch(() => []),
     ]);
 
   const firewall = await loadVercelFirewall(days);
 
   return {
+    kpis: {
+      bots: toWindow(botsWin),
+      knownBad: toWindow(knownBadWin),
+      authFailures: toWindow(authFailWin),
+      clientErrors: toWindow(clientErrWin),
+    },
+    networkTypes,
+    knownBad,
     botTrend: botTrend as unknown as BotTrendRow[],
     authAttempts: authAttempts as unknown as AuthAttemptRow[],
     clientErrorTrend: clientErrorTrend as unknown as ClientErrorTrendRow[],

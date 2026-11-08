@@ -50,6 +50,8 @@ export interface RecentVisit {
   os: string;
   device_type: string;
   referrer: string;
+  referrer_host?: string;
+  traffic_class?: string | null;
   country: string;
   city: string;
   region: string;
