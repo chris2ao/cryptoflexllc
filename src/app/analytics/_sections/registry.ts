@@ -1,23 +1,19 @@
 import type { ReactElement } from "react";
 import type { DEFAULT_TABS } from "../_components/analytics-shell";
 import { OverviewSection } from "./overview";
-import { AudienceSection } from "./audience";
+import { ReadersSection } from "./readers";
 import { ContentSection } from "./content";
-import { TechnologySection } from "./technology";
 import { PerformanceSection } from "./performance";
 import { SecuritySection } from "./security";
 import { NewsletterSection } from "./newsletter";
-import { ActivitySection } from "./activity";
-import { AutomationSection } from "./automation";
+import { AgentsSection } from "./agents";
 import {
   OverviewSkeleton,
-  AudienceSkeleton,
+  ReadersSkeleton,
   ContentSkeleton,
-  TechSkeleton,
   TelemetrySkeleton,
   SecuritySkeleton,
   NewsletterSkeleton,
-  ActivitySkeleton,
   SectionSkeleton,
 } from "./skeletons";
 
@@ -28,24 +24,20 @@ export const SECTIONS: Record<
   (props: { days: number }) => Promise<ReactElement>
 > = {
   overview: OverviewSection,
-  audience: AudienceSection,
+  readers: ReadersSection,
   content: ContentSection,
-  technology: TechnologySection,
   performance: PerformanceSection,
   security: SecuritySection,
   newsletter: NewsletterSection,
-  activity: ActivitySection,
-  automation: AutomationSection,
+  agents: AgentsSection,
 };
 
 export const SKELETONS: Record<TabId, () => ReactElement> = {
   overview: OverviewSkeleton,
-  audience: AudienceSkeleton,
+  readers: ReadersSkeleton,
   content: ContentSkeleton,
-  technology: TechSkeleton,
   performance: TelemetrySkeleton,
   security: SecuritySkeleton,
   newsletter: NewsletterSkeleton,
-  activity: ActivitySkeleton,
-  automation: SectionSkeleton,
+  agents: SectionSkeleton,
 };

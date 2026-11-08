@@ -38,15 +38,11 @@ export function OverviewSkeleton() {
   );
 }
 
-export function AudienceSkeleton() {
-  return <SectionSkeleton />;
-}
-
 export function ContentSkeleton() {
   return <SectionSkeleton />;
 }
 
-export function TechSkeleton() {
+export function ReadersSkeleton() {
   return (
     <div className="space-y-6">
       <div className="h-8 w-48 animate-pulse bg-muted/20 rounded" />
@@ -69,13 +65,4 @@ export function SecuritySkeleton() {
 
 export function NewsletterSkeleton() {
   return <SectionSkeleton />;
-}
-
-export function ActivitySkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="h-8 w-48 animate-pulse bg-muted/20 rounded" />
-      <div className="h-64 animate-pulse bg-muted/20 rounded-lg" />
-    </div>
-  );
 }

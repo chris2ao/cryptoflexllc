@@ -44,7 +44,7 @@ export async function NewsletterSection({ days: _days }: { days: number }) {
 
   return (
     <div className="ax-wrap ax-section">
-      <div className="ax-section-label">07 · Newsletter</div>
+      <div className="ax-section-label">06 · Newsletter</div>
       <div className="ax-section-head">
         <h2>
           Subscribers &amp; <em>community.</em>

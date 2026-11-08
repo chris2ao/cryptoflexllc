@@ -1,4 +1,6 @@
 import { getDb } from "@/lib/analytics";
+import type { ReferrerClass } from "@/lib/traffic/referrer";
+import type { TrafficScope } from "./shared";
 import type {
   CampaignRow,
   ReferrerRow,
@@ -98,4 +100,24 @@ export async function loadContent(days: number): Promise<ContentData> {
     campaignData: campaignData as unknown as CampaignRow[],
     searchQueries: searchQueries as unknown as SearchQueryRow[],
   };
+}
+
+// Stub for the wave 2 seam; implemented by Task 5.
+export type ReferrerClassRow = {
+  cls: ReferrerClass;
+  views: number;
+  visitors: number;
+};
+
+export type ReferrerHostRow = {
+  host: string;
+  cls: ReferrerClass;
+  views: number;
+};
+
+export async function loadReferrerClasses(
+  _days: number,
+  _scope: TrafficScope
+): Promise<{ classes: ReferrerClassRow[]; hosts: ReferrerHostRow[] }> {
+  return { classes: [], hosts: [] };
 }

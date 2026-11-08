@@ -1,13 +1,25 @@
-import { loadTechnology } from "@/lib/analytics-queries/technology";
+import { loadReaders } from "@/lib/analytics-queries/readers";
+import { VisitorMapDynamic } from "../_components/visitor-map-dynamic";
 import { AxPanel } from "../_components/ax-panel";
+import { AxRankedList } from "../_components/ax-ranked-list";
 import { AxDonut } from "../_components/ax-donut";
+import { NewVsReturningChart } from "./lazy-charts";
 
-export async function TechnologySection({ days }: { days: number }) {
+export async function ReadersSection({ days }: { days: number }) {
   const {
+    mapLocations: typedMapLocations,
+    topCountries: typedCountries,
+    newVsReturning: typedNewVsReturning,
     browsers: typedBrowsers,
     devices: typedDevices,
     osStats: typedOs,
-  } = await loadTechnology(days);
+  } = await loadReaders(days);
+
+  const countryItems = typedCountries.slice(0, 10).map((c) => ({
+    label: c.country || "Unknown",
+    value: c.views,
+    sublabel: `${c.unique_visitors.toLocaleString()} visitors`,
+  }));
 
   const browserItems = typedBrowsers.slice(0, 6).map((b) => ({
     label: b.browser || "Unknown",
@@ -28,14 +40,30 @@ export async function TechnologySection({ days }: { days: number }) {
 
   return (
     <div className="ax-wrap ax-section">
-      <div className="ax-section-label">04 · Technology</div>
+      <div className="ax-section-label">02 · Readers</div>
       <div className="ax-section-head">
         <h2>
-          How they <em>connect.</em>
+          Who&apos;s <em>reading.</em>
         </h2>
         <p className="lede">
-          Browser, device, and OS breakdown of visitors.
+          Where readers come from, how often they return, and what they use to
+          get here.
         </p>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <AxPanel title="Visitor map" kicker={`${typedMapLocations.length} CITIES`}>
+          <VisitorMapDynamic data={typedMapLocations} />
+        </AxPanel>
+      </div>
+
+      <div className="ax-grid-12" style={{ marginBottom: 20 }}>
+        <AxPanel title="Top countries" kicker={`TOP ${countryItems.length}`}>
+          <AxRankedList items={countryItems} />
+        </AxPanel>
+        <AxPanel title="New vs returning" kicker="DAILY">
+          <NewVsReturningChart data={typedNewVsReturning} />
+        </AxPanel>
       </div>
 
       <div className="ax-grid-3">

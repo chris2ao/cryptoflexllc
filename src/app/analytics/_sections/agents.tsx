@@ -8,7 +8,7 @@ import { KpiStrip } from "../_components/kpi-strip";
 import { AxPanel } from "../_components/ax-panel";
 import { GmailMetricsChart } from "./lazy-charts";
 
-export async function AutomationSection() {
+export async function AgentsSection() {
   const sql = getDb();
   const { gmailRuns, sessions } = await loadGmailMetricsSnapshots(sql);
   const unsub = await loadUnsubscribePanel(sql).catch(() => null);
@@ -47,7 +47,7 @@ export async function AutomationSection() {
 
   return (
     <div className="ax-wrap ax-section">
-      <div className="ax-section-label">09 · Automation</div>
+      <div className="ax-section-label">07 · Agents</div>
       <div className="ax-section-head">
         <h2>
           Agents at <em>work.</em>

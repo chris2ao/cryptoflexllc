@@ -10,17 +10,15 @@ export type TabDef = {
   label: string;
 };
 
-export const DEFAULT_TABS: TabDef[] = [
+export const DEFAULT_TABS = [
   { id: "overview", number: "01", label: "Overview" },
-  { id: "audience", number: "02", label: "Audience" },
+  { id: "readers", number: "02", label: "Readers" },
   { id: "content", number: "03", label: "Content" },
-  { id: "technology", number: "04", label: "Technology" },
-  { id: "performance", number: "05", label: "Performance" },
-  { id: "security", number: "06", label: "Security" },
-  { id: "newsletter", number: "07", label: "Newsletter" },
-  { id: "activity", number: "08", label: "Activity" },
-  { id: "automation", number: "09", label: "Automation" },
-];
+  { id: "performance", number: "04", label: "Performance" },
+  { id: "security", number: "05", label: "Security" },
+  { id: "newsletter", number: "06", label: "Newsletter" },
+  { id: "agents", number: "07", label: "Agents" },
+] as const satisfies readonly TabDef[];
 
 export type RangeDef = {
   id: string;
@@ -37,7 +35,7 @@ export const DEFAULT_RANGES: RangeDef[] = [
 ];
 
 type Props = {
-  tabs?: TabDef[];
+  tabs?: readonly TabDef[];
   ranges?: RangeDef[];
   currentDays: number;
   children: ReactNode;

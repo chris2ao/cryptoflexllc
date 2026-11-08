@@ -4,6 +4,7 @@ import type {
   BotTrendRow,
   ClientErrorRow,
   ClientErrorTrendRow,
+  RecentVisit,
   VercelAttackStatus,
   VercelFirewallConfig,
   VercelFirewallEvents,
@@ -58,12 +59,13 @@ export interface SecurityData {
   clientErrorRecent: ClientErrorRow[];
   clientErrorCount: { total: number }[];
   firewall: VercelFirewallBundle;
+  recent: RecentVisit[];
 }
 
 export async function loadSecurity(days: number): Promise<SecurityData> {
   const sql = getDb();
 
-  const [botTrend, authAttempts, clientErrorTrend, clientErrorRecent, clientErrorCount] =
+  const [botTrend, authAttempts, clientErrorTrend, clientErrorRecent, clientErrorCount, recent] =
     await Promise.all([
       sql`
         SELECT
@@ -110,6 +112,11 @@ export async function loadSecurity(days: number): Promise<SecurityData> {
         FROM client_errors
         WHERE recorded_at > NOW() - INTERVAL '1 day' * ${days}
       `.catch(() => [{ total: 0 }]),
+      sql`
+        SELECT id, visited_at, page_path, ip_address, browser, os,
+               device_type, referrer, country, city, region
+        FROM page_views ORDER BY visited_at DESC LIMIT 50
+      `.catch(() => []),
     ]);
 
   const firewall = await loadVercelFirewall(days);
@@ -121,5 +128,6 @@ export async function loadSecurity(days: number): Promise<SecurityData> {
     clientErrorRecent: clientErrorRecent as unknown as ClientErrorRow[],
     clientErrorCount: clientErrorCount as unknown as { total: number }[],
     firewall: firewall as unknown as VercelFirewallBundle,
+    recent: recent as unknown as RecentVisit[],
   };
 }

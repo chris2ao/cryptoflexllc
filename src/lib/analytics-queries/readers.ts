@@ -1,20 +1,33 @@
 import { getDb } from "@/lib/analytics";
 import type {
+  BrowserRow,
   CountryRow,
+  DeviceRow,
   MapLocation,
   NewVsReturningRow,
+  OsRow,
 } from "@/lib/analytics-types";
 
-export interface AudienceData {
+export interface ReadersData {
   mapLocations: MapLocation[];
   topCountries: CountryRow[];
   newVsReturning: NewVsReturningRow[];
+  browsers: BrowserRow[];
+  devices: DeviceRow[];
+  osStats: OsRow[];
 }
 
-export async function loadAudience(days: number): Promise<AudienceData> {
+export async function loadReaders(days: number): Promise<ReadersData> {
   const sql = getDb();
 
-  const [mapLocations, topCountries, newVsReturning] = await Promise.all([
+  const [
+    mapLocations,
+    topCountries,
+    newVsReturning,
+    browsers,
+    devices,
+    osStats,
+  ] = await Promise.all([
     sql`
       SELECT
         latitude, longitude,
@@ -50,11 +63,33 @@ export async function loadAudience(days: number): Promise<AudienceData> {
       GROUP BY visit_date
       ORDER BY visit_date
     `.catch(() => []),
+
+    sql`
+      SELECT browser, COUNT(*)::int AS count
+      FROM page_views
+      WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+      GROUP BY browser ORDER BY count DESC LIMIT 15
+    `,
+    sql`
+      SELECT device_type, COUNT(*)::int AS count
+      FROM page_views
+      WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+      GROUP BY device_type ORDER BY count DESC
+    `,
+    sql`
+      SELECT os, COUNT(*)::int AS count
+      FROM page_views
+      WHERE visited_at > NOW() - INTERVAL '1 day' * ${days}
+      GROUP BY os ORDER BY count DESC LIMIT 15
+    `,
   ]);
 
   return {
     mapLocations: mapLocations as unknown as MapLocation[],
     topCountries: topCountries as unknown as CountryRow[],
     newVsReturning: newVsReturning as unknown as NewVsReturningRow[],
+    browsers: browsers as unknown as BrowserRow[],
+    devices: devices as unknown as DeviceRow[],
+    osStats: osStats as unknown as OsRow[],
   };
 }

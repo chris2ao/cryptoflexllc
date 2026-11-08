@@ -21,7 +21,16 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function BotTrendChart({ data }: { data: BotTrendRow[] }) {
+export function BotTrendChart({
+  data,
+  series: _series,
+  markers: _markers,
+}: {
+  data: BotTrendRow[];
+  series?: Array<{ date: string; humans: number; bots: number }>;
+  markers?: string[];
+}) {
+  // series and markers are rendered by Task 7
   if (data.length === 0) {
     return (
       <PanelWrapper

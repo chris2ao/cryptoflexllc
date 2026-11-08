@@ -28,7 +28,7 @@ export async function PerformanceSection({ days }: { days: number }) {
 
   return (
     <div className="ax-wrap ax-section">
-      <div className="ax-section-label">05 · Performance</div>
+      <div className="ax-section-label">04 · Performance</div>
       <div className="ax-section-head">
         <h2>
           Under the <em>hood.</em>
