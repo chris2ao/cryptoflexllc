@@ -5,6 +5,10 @@ import { enrichIp } from "./enrich";
 import { resetListCache } from "./providers/tor-exits";
 import { EMPTY_ENRICHMENT } from "./types";
 
+const u061 = String.fromCodePoint(0x61C);
+const u180 = String.fromCodePoint(0x180E);
+const ffa = String.fromCodePoint(0xFFF9);
+const tag = String.fromCodePoint(0xE0041);
 const NOW = Date.parse("2026-11-07T12:00:00Z");
 
 describe("cleanText", () => {
@@ -16,6 +20,18 @@ describe("cleanText", () => {
     const dirty = "  \u202Eevil\u0000 \u200BCorp\u2066\u0085\uFEFF  ";
     expect(cleanText(dirty, 100)).toBe("evil Corp");
     expect(cleanText("abcdef", 3)).toBe("abc");
+  });
+});
+
+describe("cleanText extended ranges", () => {
+  it("strips U+061C and tag characters", () => {
+    const dirty = "a" + u061 + "b" + tag + "c" + u180 + "d" + ffa;
+    expect(cleanText(dirty, 50)).toBe("abcd");
+  });
+  it("cuts on a character boundary", () => {
+    const out = cleanText(String.fromCodePoint(0x1F600).repeat(30), 10);
+    expect(Array.from(out).length).toBe(10);
+    expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(out)).toBe(false);
   });
 });
 

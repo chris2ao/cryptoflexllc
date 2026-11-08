@@ -3,12 +3,13 @@ import type { IpEnrichment } from "./types";
 // C0 and C1 controls, plus Unicode format and bidi characters that can
 // reorder or hide text when a provider string is rendered.
 const STRIP =
-  /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFEFF]/g;
+  /[\u0000-\u001F\u007F-\u009F\u061C\u180E\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFEFF\uFFF9-\uFFFB\u{E0000}-\u{E007F}]/gu;
 
 /** String-only, control and bidi stripped, trimmed, capped at `max`. */
 export function cleanText(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
-  return value.replace(STRIP, "").trim().slice(0, max);
+  // Array.from cuts on code points so a surrogate pair is never split.
+  return Array.from(value.replace(STRIP, "").trim()).slice(0, max).join("");
 }
 
 const MAX_SOURCES = 8;
