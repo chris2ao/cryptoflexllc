@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import type { DEFAULT_TABS } from "../_components/analytics-shell";
+import type { DEFAULT_TABS } from "../_components/tabs";
 import { OverviewSection } from "./overview";
 import { AudienceSection } from "./audience";
 import { ContentSection } from "./content";
