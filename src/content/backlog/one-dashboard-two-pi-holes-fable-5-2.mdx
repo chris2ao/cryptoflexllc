@@ -1,0 +1,404 @@
+---
+title: "One Dashboard for Two Pi-holes: What Claude Fable 5.2 Built While I Was Away From the Keyboard"
+date: "2026-11-10"
+description: "Claude Fable 5.2 built a dashboard for my two Pi-holes while I stepped away from the terminal. A separate reviewer caught a sign-in bypass the builder had missed, and a few things still wait on a real Pi."
+tags:
+  - Home Lab
+  - Security
+  - AI Agents
+author: "Chris Johnson"
+readingTime: "24 min read"
+featured: false
+series: Building in Public
+seriesOrder: 10
+schemaType: Article
+coverImage: /blog/one-dashboard-two-pi-holes-fable-5-2/infographic.jpg
+coverImageAlt: "Dark branded cover titled Combined is not an average. A large bar panel compares PiHoleMain (148,215 blocked of 383,882, 38.6 percent) and PiHoleBackup (1,521 blocked of 34,961, 4.4 percent) with a Combined bar at 35.75 percent (149,736 blocked of 418,843) and a dashed marker showing where a simple average would land. A green card labelled Sums first shows 35.75 percent, and a red card labelled Averaged shows 21.5 percent struck through, about 14 points too low."
+---
+
+I approved a seven-wave plan, said I was stepping away from the terminal, and Claude Fable 5.2 spent the next two and a half hours building a dashboard for both of my Pi-holes. Then a separate reviewer found that `/%61pi/status` skipped the sign-in entirely.
+
+## Why the Built-In Dashboard Lost
+
+Two Pi-holes serve DNS for the whole house. `PiHoleMain` is a Raspberry Pi 5. `PiHoleBackup` is a Pi 3B+ with 1 GB of memory and a query database of about 23 million rows. Both run Pi-hole v6, and each forwards to a local dnscrypt-proxy, so queries leave the house encrypted. I built those pieces earlier, so I won't retell it here.
+
+A few behaviors matter for what follows:
+
+- nebula-sync copies lists and `dns.*` settings from `PiHoleMain` to `PiHoleBackup` at 15 minutes past every hour. It never runs gravity, and it doesn't copy `misc.*` settings.
+- After a restart, `PiHoleBackup` answers DNS but blocks nothing for about 2 minutes while it imports query history.
+- Both Pis run Tailscale, and my tailnet's DNS points at them. A Pi-hole outage hits my devices when they're away from home, too.
+
+<Info title="What nebula-sync does">
+nebula-sync keeps a secondary Pi-hole in step with a primary one by copying lists and selected settings on a schedule. It's why the backup mostly behaves like the main, and also why settings it skips (like `misc.dnsmasq_lines`) can quietly drift apart.
+</Info>
+
+At 00:58 on November 10 I typed this into Claude Code:
+
+> "The standard pihole dashboard is terrible, it's hard to navigate and I don't think it does a good job with visualizing data, dns requests, finding hosts or even adding additional lists. There is also not very good visuals on system information."
+
+A backlog item for a custom dashboard already existed (CLAUD-741, filed a week earlier). It had one useful note: query logs reveal household browsing, so who gets to open the dashboard needed a deliberate decision.
+
+My message also gave Claude a lot of rope, typos included: "I want you to think what a home enthusiest who spent all his time building out his piholes whould want to see and show off." Memory, load, queries per second and active status were on the wish list. So was one dashboard connected to both Pi-holes at once.
+
+## Twenty-Four Minutes of Questions
+
+Claude didn't start building. It ran a brainstorming skill that asks one question at a time, and I answered between 01:01 and 01:05.
+
+The answers fit in a short list. System stats. Blocking effectiveness. Graphs of DNS and client activity. "A bunch of modifyable widgets". A search bar for clients and queries. Hosting would start on my Mac and move to a Mac Studio when that arrives. Buttons would add blocklists, whitelist domains, pause blocking and run gravity updates. And the host diagram would show the network "as the piholes see it", not a physical map of switches and cables.
+
+Then Claude published a mockup as a private web page with sample data. It had a dark mission-control look, a 3D bar field of queries over 24 hours, a rotating orbit of hosts, a row of number tiles and an encrypted upstream widget. My reply asked for cache stats too, and said I loved the upstream widget because it showed the encryption.
+
+The mockup is where I changed my mind twice in five minutes. At 01:12 the 3D chart made it hard to see both Pi-holes, so at 01:14 that panel became a flat comparison. By 01:17 the verdict was in: "I like the other 3d chart better." We also settled that log retention should follow whatever Pi-hole uses.
+
+So the flat two-band chart got built, looked at, and thrown out. The 3D chart stayed, with `PiHoleBackup`'s row in front and `PiHoleMain`'s row behind, each labelled. The design doc records it in one line: "The queries chart stays 3D. The flat two-band version was tried and rejected."
+
+Trying the flat version in a mockup cost a few minutes. Trying it in the real build would have cost commits.
+
+At 01:18 I said yes to a new private repo. At 01:22 I wrote "approved, add update buttons too and write the plan." The whole thing, from my first message to approval, took 24 minutes. I think those 24 minutes decided more than the next two and a half hours of building did.
+
+## The Design Doc and "Calls I Made"
+
+By 01:29 two documents were committed. The design is 194 lines, with sections for Intent, Goals, Non-goals, Anti-goals, Done when, Constraints, Decided by the owner, Calls I made, Left to the builder, and Open questions. The plan runs 821 lines.
+
+Claude's own "builder check" produced two questions. It reread the design as someone who can't ask anything, and it wanted to know who can open the dashboard and whether SSH-based extras are in. I chose "Home and tailnet, with login" and SSH extras "Include from the start". (That first answer changed later the same afternoon.)
+
+A few of the anti-goals, verbatim:
+
+> "It makes DNS worse. Polling must stay light, above all on PiHoleBackup (Pi 3B+, 1 GB, a query database of about 23 million rows)."
+>
+> "A click changes a live Pi-hole without a confirmation, or a change leaves the two Pis out of step without saying so."
+>
+> "The Combined view shows wrong numbers (double-counted clients, an averaged percentage)."
+>
+> "It looks impressive but takes more clicks than the built-in dashboard to find a host or a query."
+
+That last one is a good test for a person who just asked for 3D bar fields and an orbiting host display. I'd made the dashboard's most tempting feature compete against the boring job.
+
+The section called "Calls I made" opens with "These are the ones to check while reading." It lists every decision Claude made that I didn't. A model that makes a hundred small decisions will never get all of them right. It should hand me the list instead of hoping I notice the one that's wrong.
+
+The plan breaks into seven waves, each ending in something runnable and a checkpoint:
+
+| Wave | What it ends with |
+|---|---|
+| 1 | Combined numbers from both Pi-holes in a browser |
+| 2 | Sign-in, so it can be opened from other devices |
+| 3 | Every read-only page, plain but complete |
+| 4 | The overview from the mockup, with widgets and 3D |
+| 5 | Changes through the Pi-hole API |
+| 6 | SSH health and service controls |
+| 7 | Updates, end-to-end tests and handover |
+
+## "Approve and Do All Waves"
+
+At 06:17 I wrote: "Approve and do all waves. I'm going to step away from the terminal. If this are any manual steps I need to take and I can do them now, please give that to me now before I leave."
+
+Claude listed the manual steps before I left. Two were changes to the live Pi-holes, put to me as yes or no questions: authorise a new SSH key on both Pis, and make a first live write. I didn't answer either before leaving, so neither happened during the build.
+
+That shaped the whole run. My project instructions carry a standing rule, verbatim: "Confirm before every outward or hard-to-reverse action: UniFi DHCP and firewall changes, gateway DNS, anything on the old Pi, publishing the repo. Show the exact change and the rollback first." An unattended build can't confirm anything with me. So it had to stop at the edge of the real devices.
+
+In practice, only read requests reached the real Pi-holes. Every write, every SSH command and every update ran against stand-ins: two fake Pi-hole servers and a fake `ssh` program written for the tests. No SSH key was created. Nothing changed on either Pi.
+
+The first commit landed at 06:20. The last build commit landed at 08:53. That's 48 commits in 2 hours 33 minutes. The first copies in the design and plan, and the other 47 are the build and its review fixes. Every subject carries the Jira key, like `feat: CLAUD-741 add Pi-hole API client with session reuse`.
+
+Claude's context got compacted (summarised and continued) 4 times over the day. That could have wrecked a seven-wave build. But the plan lived in the repo with its steps ticked off as they finished, and a build log recorded what had been confirmed on a real device versus only written. After each compaction, the repo remembered what the conversation had forgotten.
+
+<Warning title="Stand-ins Come With Assumptions">
+Fake Pi-holes and a fake `ssh` let Claude build every write and update path without touching the house's DNS. The cost was a list of assumptions about the real Pis (that `flock` is installed, for one) that had to be written down and checked later. A passing test against a fake only proves the code matches the fake.
+</Warning>
+
+Read-only checks on the real Pis did run during the build:
+
+- Every page read live data in all three scopes (Combined, `PiHoleMain`, `PiHoleBackup`), and the combined total equalled the sum of the two.
+- `PiHoleBackup`'s load "stayed at its baseline over a 10 minute run with a browser open (mean 0.17, max 0.37)". That was the light-polling anti-goal.
+- The settings read hid the four secrets per Pi.
+- The drift check reported the two Pis in step.
+
+## What Got Built
+
+It's one Node process: a Fastify server that talks to both Pi-holes and serves a React app, TypeScript throughout. The browser never talks to a Pi-hole and never sees a Pi-hole password. The server holds one API session per Pi and reuses it. A small SQLite file (Node's built-in `node:sqlite`) holds only what the Pi-holes don't: widget layout, change history, and system samples kept for 30 days.
+
+<OneDashboardArchitectureDiagram />
+
+| Layer | What's in it |
+|---|---|
+| Server | Fastify 5, zod |
+| Web | React 19, three with @react-three/fiber, ECharts, react-grid-layout, TanStack Query, cmdk |
+| Shared and ops | Types shared by both sides, plus 3 shell scripts |
+| Tests | Vitest and Playwright |
+
+There are eleven pages: Overview, Query log, Clients, Domains, Blocklists, Network map, System, Logs, Updates, Settings and Change history. A selector at the top (Combined, `PiHoleMain`, `PiHoleBackup`) applies to every one of them.
+
+![Overview tab of the Pi-hole Control dashboard showing the Combined, PiHoleMain and PiHoleBackup selector, the tab row, and seven key number tiles. The data is invented, from a practice copy with two fake Pi-holes.](/blog/one-dashboard-two-pi-holes-fable-5-2/overview-header-and-tiles.png)
+
+*The Overview header and key number tiles, from the practice copy. Every number is invented.*
+
+I'd told Claude not to limit itself to what we'd discussed, and it took me at my word. The design has a section called "Additions beyond what was discussed". It lists more than I can cover here, including a cache panel, a show-off mode and a Cmd-K command palette. Four stand out:
+
+- A failover view, showing what share of queries each Pi answers over time.
+- A drift check between the two Pis, including `misc.dnsmasq_lines`, which nebula-sync never copies.
+- An encrypted upstream panel that warns if anything is forwarded to a resolver other than the local dnscrypt-proxy.
+- A reminder after allowing a domain that devices keep the blocked answer until their own cache expires.
+
+That last one is my favorite, because it's the sort of thing I'd forget and then blame the dashboard for.
+
+## Combined Is Not an Average
+
+What does a lazy Combined view get wrong? It averages two dashboards, which is easy to write and quietly wrong. That was the target of the anti-goal about wrong numbers. Here's the top of `combineSummary` from `server/pihole/combine.ts`:
+
+```ts
+/**
+ * Scope `all`: counts and queries per second are summed, the percentage is
+ * recomputed from the sums, clients are counted once (`uniqueClientCount`),
+ * and list size is PiHoleMain's with the difference reported as drift.
+ * Unique domains cannot be united without the full lists, so the larger of
+ * the two is used as a floor.
+ */
+export function combineSummary(parts: Partial<Record<PiId, Summary>>, scope: Scope, uniqueClientCount: number): Summary {
+  if (scope !== 'all') return { ...(parts[scope] ?? ZERO_SUMMARY) };
+  const all = present(parts);
+  const add = (pick: (s: Summary) => number): number => all.reduce((acc, s) => acc + pick(s), 0);
+  const total = add((s) => s.total);
+  const blocked = add((s) => s.blocked);
+```
+
+Further down, the percentage is `percentBlocked: total === 0 ? 0 : (blocked / total) * 100,`. Sums first, division last.
+
+<OneDashboardCombinedDiagram />
+
+The design doc's results table has the figures, checked later against the real Pi-holes. `PiHoleMain` handled 383,882 queries and blocked 148,215. `PiHoleBackup` handled 34,961 and blocked 1,521. Together that's 418,843 total and 149,736 blocked. So 149,736 / 418,843 is 35.75%, which is what Combined shows.
+
+The lazy version gives a different number. `PiHoleMain` blocks about 38.6% of its own traffic and `PiHoleBackup` about 4.4%. Averaging those two gives about 21.5%, which would understate blocking by roughly 14 points. The backup answers a small share of the house's queries, so it should barely move the total. It doesn't.
+
+## What the Reviews Caught
+
+The builder doesn't review its own work here. Separate reviewer agents, each with a fresh context, looked at the combined diff once per wave. From the commit messages:
+
+- Security reviews of Wave 1, Wave 2 (plus a re-review of its fix), the write wave, the SSH wave and the update wave.
+- Code reviews of Wave 3 and the update wave.
+- One UI review of the overview.
+
+None of them reported a critical finding. They did report high and medium ones, and each was fixed with tests before moving on. One caveat: the fixes made after the last security review were tested but not reviewed again.
+
+### The Sign-In That Read the Wrong Address
+
+This was the Wave 2 security review, run before the dashboard was exposed beyond loopback. The fix commit is titled `fix: CLAUD-741 close sign-in bypass through encoded addresses`. Its message explains it better than I can: "The guard read the raw request address while the router matched the decoded one, so /%61pi/status skipped sign-in, the request token and the loopback host check."
+
+`%61` is the letter `a`. So `/%61pi/status` is `/api/status`, and the router happily served it. The guard was looking at the raw text, saw something that didn't start with `/api`, and waved it through.
+
+<OneDashboardSignInBypassDiagram />
+
+<Security title="Decide From the Route">
+The fix puts every API route in one Fastify scope mounted at `/api` and installs the guard on that scope. The guard decides from the matched route, never from address text. Regression tests cover encoded, HEAD and look-alike addresses.
+</Security>
+
+The re-review "confirmed the sign-in bypass closed with no critical or high findings". The builder's own tests didn't catch it, and I doubt a skim of the diff would have either.
+
+### The Deny List That Lost
+
+The write wave lets the dashboard edit Pi-hole settings, which is the riskiest thing it does. The first design was a list of settings that were locked. The write-wave security review broke it. `misc.dnsmasq_lines` accepted raw resolver lines (a plaintext upstream, DHCP, `port=0`). And `dns.interface`, `dns.revServers` and `webserver.tls.*` were editable with Advanced switched on.
+
+A deny list is a bet that you thought of everything dangerous. The fix commit (`fix: CLAUD-741 lock settings by default and guard undo`) flips it to an allow list, and the code comment says why:
+
+```ts
+// An allow list: a setting is locked unless it is named here. Everything else
+// can only be changed on the Pi-hole itself, including settings a later
+// Pi-hole release adds.
+```
+
+```ts
+export function editability(path: string): Editability {
+  if (isHidden(path) || NEVER_EXACT.has(path)) return 'never';
+  if (BASIC.has(path)) return 'basic';
+  return ADVANCED_EXACT.has(path) || ADVANCED_PREFIX.some((prefix) => path.startsWith(prefix)) ? 'advanced' : 'never';
+}
+```
+
+The "including settings a later Pi-hole release adds" clause is the real point. A deny list quietly makes every new setting editable. An allow list makes every new setting locked until someone decides otherwise.
+
+Secrets get their own rule. Anything matching `const HIDDEN = /pwhash|password|secret|totp|key/i;` never leaves the server, and its value is replaced with the text `(hidden)`.
+
+The same commit fixed a second problem (the review called it M2). Undoing an older change put back a stale value and silently discarded a newer edit. Now an undo carries what its change wrote, and it's refused when the setting holds something else.
+
+### Reboots That Never Happened, Locks That Vanished
+
+Two update-wave findings share a shape: the code recorded success from something that wasn't proof.
+
+The code review found that a reboot the Pi refused could be recorded as a successful reboot. So could one where the Pi hadn't gone down yet. The reviewer's wording was that the run "records 'Rebooted PiHoleMain. It is answering again and its checks passed' although nothing rebooted." The fix reads the boot id before the reboot. The boot id must have changed before the Pi counts as back. An exit code other than 0 or 255 from the reboot command is a failure.
+
+Then the security review found that an update which lost its SSH session, or outlived a dashboard restart, carried on by itself. The lock that kept updates one at a time was gone. Now every update holds a lock file on its Pi for as long as it runs (`flock`, exit 75 when held). A read-only `update.state` command reads it. A lost session is waited out before the Pi is checked. And nothing starts on either Pi until both report idle.
+
+The same review also caught that "the other Pi is answering" only meant its API replied. The Pi that stays up now has to pass `verify-pi.sh` before an update or reboot of its partner begins.
+
+### The Rest, Briefly
+
+| Where | What a reviewer found |
+|---|---|
+| Wave 1 | Never follow redirects, refuse API paths that could leave `/api`, pause sign-ins after a second 401 so polling can't exhaust Pi-hole's session seats |
+| SSH wave | Two engine restarts sent together could take both resolvers down (now one service action at a time, a second gets 409, and a restart starts a 3 minute cooldown) |
+| SSH wave | `docs/ssh-setup.md` could join a new entry onto my own key, and its rollback could then delete that key |
+| Update wave | The unsigned nebula-sync download ran as root for its version check (now staged root-owned and run only as the nebula user) |
+| Wave 3 | The log tail stopped polling after a reply with no new lines or after an error |
+| Overview UI | 3D scenes now draw only while on screen in a visible tab, and a remembered Pause motion switch stops the sway, spin and pulses |
+
+The UI review gave a verdict of "conditional with no critical findings". It also asked for a table view of the bar field with a link per hour. And it asked for results and record types in plain words, with the Pi-hole keyword as a tooltip. The query log now says "Looked up", "Blocked by a list" and "From cache" instead of status codes.
+
+![Merged query log from both Pi-holes with an Answered by column naming which Pi answered each lookup, and results in plain words such as Looked up, Blocked by a list and From cache. The data is invented, from a practice copy.](/blog/one-dashboard-two-pi-holes-fable-5-2/query-log-answered-by.png)
+
+*The merged query log, from the practice copy with invented data.*
+
+The SSH setup doc finding is the one I'd have been least happy to discover the hard way: a rollback instruction that could delete my own SSH key. The step now adds a line break when needed, uses `restrict`, and rolls back only by restoring the dated copy.
+
+## A Fixed List for SSH
+
+How do you give a dashboard root-equivalent access safely? The dashboard has its own SSH key, separate from mine, so it can be removed from the Pis without affecting anything else. That key is root-equivalent on both Pis because the login has passwordless sudo.
+
+<Security title="That Key Is Root">
+The control isn't the key's power but the command list: a request can only choose an id from a fixed file, and nothing a browser sends is ever placed into a command.
+</Security>
+
+The whole list of commands it can run is one file. This is the top of `server/ssh/commands.ts`:
+
+```ts
+// Every command this app can run on a Pi over SSH. The list is fixed: a
+// request can only choose an id from it. Nothing a browser sends is ever
+// placed into a command, and no command contains a placeholder.
+```
+
+One read-only entry shows the style:
+
+```ts
+  // One connection gathers service states, disk use and the reboot flag,
+  // so the Pi 3B+ handles one SSH handshake per check instead of three.
+  health: {
+    command: 'systemctl is-active pihole-FTL dnscrypt-proxy tailscaled nebula-sync; echo ---; df -P /; echo ---; test -e /var/run/reboot-required && echo yes || echo no',
+    timeoutMs: 15 * SECOND,
+    changes: false,
+  },
+```
+
+I like the comment more than the command. It shows the anti-goal about light polling reaching all the way down into how many SSH handshakes a 1 GB Pi has to do.
+
+The rule that one Pi-hole always keeps answering is also code you can read. It's `canUpdate` in `server/updates/run.ts`:
+
+```ts
+export function canUpdate(pi: PiId, status: readonly PiStatus[], running: boolean, backupFailedChecks = false): Allowed {
+  if (running) return { ok: false, reason: 'An update is already running. Wait for it to finish.' };
+  const other = status.find((s) => s.id !== pi);
+  const otherName = PI_NAMES[pi === 'main' ? 'backup' : 'main'];
+  if (!other || !other.up) return { ok: false, reason: `${otherName} is not answering. Updating ${PI_NAMES[pi]} now could leave the house without DNS.` };
+  if (other.warmingUp) return { ok: false, reason: `${otherName} is still starting up and not blocking yet. Wait for it before updating ${PI_NAMES[pi]}.` };
+  if (pi === 'main' && backupFailedChecks) return { ok: false, reason: 'PiHoleBackup did not pass its checks after its last update. Fix that first, so a working Pi-hole is always there to fall back on.' };
+  return { ok: true };
+}
+```
+
+The `warmingUp` branch is the 2 minute import window from the start of this post, turned into a refusal.
+
+<OneDashboardUpdateGateDiagram />
+
+The Updates page says the same in words: update `PiHoleBackup` first and check it, then `PiHoleMain`, so one Pi-hole is always answering.
+
+![Updates page with the line telling the owner to update PiHoleBackup first and check it, then PiHoleMain. It shows per-component rows with Update buttons and a reboot banner on PiHoleBackup. The data is invented, from a practice copy.](/blog/one-dashboard-two-pi-holes-fable-5-2/updates-backup-first.png)
+
+*The Updates page, from the practice copy. The reboot banner is part of the invented data.*
+
+Other safeguards, from the README:
+
+- Every change opens a dialog that says what will happen. Nothing is sent before I confirm.
+- Changes go to `PiHoleMain` first, then `PiHoleBackup`.
+- A settings backup (Teleporter) of each Pi is saved once a day before the first change.
+- `ssh` runs with its own config only (`-F /dev/null` and its own `known_hosts`), at most two commands per Pi at a time.
+- Sign-in allows 5 tries a minute per address and 30 a minute overall.
+- The connection is plain HTTP inside the house, the same as the Pi-hole admin pages. The README says "Do not forward the port to the internet."
+
+## The Practice Copy and What the Tests Can't Say
+
+No test contacts a real Pi-hole, a real Pi over SSH, or GitHub. Instead, there's a practice copy of the whole dashboard:
+
+```bash
+npm run build && npx tsx scripts/fake-stack.ts
+```
+
+That serves everything on port 8750 against two fake Pi-holes and a fake ssh. It refuses to start if it's pointed at the real data folder. Every screenshot in this post comes from that practice copy, with invented names and numbers. That was on purpose: the query log shows what every device in the house looks up, and that isn't something to put in a blog post.
+
+On the numbers: 794 unit and API tests pass, run at 16:50 that afternoon. Twelve Playwright browser tests drive the built dashboard against the fake stack, but they haven't been rerun since the build. Statement coverage was measured at 94% during the build and hasn't been re-measured after the afternoon's changes. I'm listing the caveats next to the numbers because the numbers alone would make this sound more finished than it is.
+
+## The Afternoon: My Turn
+
+The build ended with four steps that needed me, because each one changes something real. Set a dashboard password. Authorise the SSH key on both Pis. Make a first live change while watching. Run a first live update.
+
+I asked for help, verbatim: "can you make an artifact with the steps I need to do in an ELI5 format with visuals and code blocks and step by step and easy to follow. I have not done anything yet." Claude published a private setup guide: a quick start, then five stops with 22 tick boxes, copy buttons, a "You should see" block and an Undo per stop. I followed it and set the password and authorised the key myself.
+
+The password minimum was 12 characters. I had it lowered to 6 so a 6-digit PIN works. That's my call, and I know the trade: the guard on the sign-in is the PIN plus the rate limit.
+
+### Starting on Boot
+
+Then I asked for something simpler: "Can you build a startup task that will start the pihole dashboard whenever a restart occurs or if it crashes turn it back on?", with no terminal left open.
+
+<Info title="What is launchd?">
+launchd is macOS's service manager. A launchd agent is a small property-list file that tells it what to run, when to start it, and whether to restart it if it exits. It's the macOS equivalent of a systemd service on a Pi.
+</Info>
+
+Claude wrote `scripts/service.sh` (install, uninstall, restart, status, logs). It sets up a launchd agent with `RunAtLoad`, `KeepAlive` and a 30 second `ThrottleInterval`. Then it tested the agent for real on the Mac. It force-killed the server with `kill -9`, and the dashboard was answering again about 12 seconds later as a new process, still reading both Pi-holes.
+
+One thing it added unprompted: the background copy logs warnings and errors only. The comment in `server/log-level.ts` reads: "The launchd agent sets "warn" so that request paths, which can name a device or a domain, are not kept in a log file." After the crash test, the log held 2 start lines and 0 request lines. That's the privacy anti-goal, enforced somewhere I wouldn't have thought to look.
+
+It also caught its own small bug while testing the status command. A shell expansion, `${pid:+..}${pid:-..}`, printed both the "running" and the "not running" text. Fixed before commit.
+
+The limits are stated plainly. It starts at login, not at the login window. It does nothing while the Mac sleeps. A hung (not exited) dashboard isn't detected. The agent file holds names and paths only, no secrets, and a test checks that.
+
+### The First Live Writes
+
+With me watching, the dashboard made its first live change. From the build log:
+
+- A 30 second blocking pause: both Pis `disabled` at once, and `enabled` again by the 32 second check without any action.
+- "Allow this domain" on a tracking domain that five lists blocked. That added an exact allow rule on both Pis.
+- Undo in Change history, which removed the rule from both.
+
+Afterwards both Pis answered `0.0.0.0` for that domain again, and the dashboard reported the Pis in step.
+
+Two more checks followed. The first was the dropped-session test on `PiHoleBackup`, which relates to the update lock finding:
+
+- The SSH client was killed 5 seconds into a 30 second test wrapper.
+- Right after, `sleep 30` was still running under `sudo sh -c` on the Pi.
+- 35 seconds later, `/run/pihole-control-test.log` read `finished`.
+
+So a dropped session doesn't kill the work on the Pi. The lock logic is there to cope with exactly that.
+
+The second was the "one Pi down" check. `PiHoleBackup` was rebooted at my request. Within 5 seconds the dashboard showed it as not answering, with the banner "PiHoleBackup did not answer, so this leaves it out." Combined kept answering with `PiHoleMain`'s numbers, and `PiHoleMain` answered DNS throughout. About 57 seconds later the backup was back, and the dashboard showed it up, blocking and in step, with nothing done by me.
+
+The design's "Done when" list also got a read-only walk against the live dashboard: all 22 read endpoints answered cleanly in all three scopes (66 calls, no per-Pi errors).
+
+### The First Live Update
+
+The first live update ran at 16:50 that afternoon, on `PiHoleBackup`, from the Updates page. `PiHoleMain` passed its checks, and a settings export was saved on the backup. Then `apt upgrade` started at 16:50:00. One package was pending: tailscale, 1.104.2 to 1.104.5.
+
+`tailscaled` restarted, and the update lock was released at 16:50:26. The dashboard's checks passed at 16:50:28, and Change history logged "Ran the system packages update on `PiHoleBackup`. Checks passed." That's about 28 seconds for one package.
+
+Checked separately afterward: the backup resolved a normal domain, answered `0.0.0.0` for a list domain, had three services active and needed no reboot.
+
+### One Requirement Changed
+
+Remember the "who can open it" question? I answered "Home and tailnet", and later that afternoon I changed it. The dashboard only needs to work on the home network, not on my phone over the tailnet. The app still listens on every address of the Mac. Narrowing it was offered and I declined, so it's recorded as an accepted risk. It's behind a sign-in and a rate limit, and the README says not to forward the port. I'd still rather tell you than pretend it's tight.
+
+## What Isn't Done
+
+The results table in the design doc marks each check as real, stand-ins, or needs you. This list does the same.
+
+- **One live update has run.** It was the `PiHoleBackup` update above: one package, about 28 seconds. Still undone: `PiHoleMain`'s system packages update (15 packages including a kernel, so it will likely need a reboot), the nebula-sync update, and Pi-hole or dnscrypt-proxy updates from the dashboard.
+- Adding a blocklist and running gravity from the dashboard have only been exercised against stand-ins.
+- Search is partial. The design promised search that "filters every panel on the page". It doesn't yet. With a search term, the top permitted, top blocked and top client lists, the live queries and the host orbit ("8 of 33 match") narrow. The summary tiles, 24-hour chart, query types, cache, encrypted upstream and "who answered" panels stay whole-network.
+
+Two checks were never tried: `PiHoleMain` being down on the real Pis (API tests cover it), and starting the dashboard on a second Mac from a fresh clone.
+
+CLAUD-741 was closed as Done around 14:10 that day, from my other session. Follow-ups stay open. CLAUD-855 holds the low-severity findings. CLAUD-856 is the search gap: it should narrow every Overview panel. CLAUD-857 is a bug found while taking this post's screenshots: the Overview status strip clips its text when a card wraps to two lines at 1440 px wide. The whole thing was built in one day and has been in real use for an afternoon.
+
+## What I'd Tell Someone Trying This
+
+The brainstorm was cheap and decided the most: the rejected flat chart, "as the Pi-holes see it", who can open it, update buttons. If you're going to leave a model alone for hours, spend the time before you leave. Ask it to list the calls it made without you, too, because you won't catch them reading the diff.
+
+The reviews found problems the builder had passing tests over. The encoded-address bypass, the reboot that "happened" without a reboot and the vanishing update lock all had green tests. A second agent with a fresh context caught them.
+
+Unattended building also stopped at the right edge. The key on the Pis, the first write and the first update all waited for me. The write ran with me watching, and the update ran after.
+
+The next update is `PiHoleMain`'s, with its 15 packages and a kernel that will probably need a reboot. `PiHoleBackup` will be answering the whole time.

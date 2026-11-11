@@ -252,3 +252,9 @@ export {
   ControlsMatrixDiagram,
   UnrestrictedModelChecklistDiagram,
 } from "./diagrams-the-agent-that-rewrote-its-own-rules-controls";
+export {
+  OneDashboardArchitectureDiagram,
+  OneDashboardSignInBypassDiagram,
+  OneDashboardUpdateGateDiagram,
+  OneDashboardCombinedDiagram,
+} from "./diagrams-one-dashboard-two-pi-holes-fable-5-2";
