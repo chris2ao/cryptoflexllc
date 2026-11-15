@@ -10,6 +10,9 @@ import {
   moveFile,
 } from "@/lib/github-api";
 import { getBacklogPostBySlug, getPostBySlug, toPublishedFrontmatter } from "@/lib/blog";
+import taxonomy from "@/content/tag-taxonomy.json";
+// The same rewrite CI's tag-taxonomy "no pending changes" test runs (CLAUD-946).
+import { rewriteContent } from "../../../../../scripts/consolidate-tags.mjs";
 
 const rateLimiter = createRateLimiter({
   name: "backlog-publish",
@@ -98,7 +101,10 @@ export async function POST(request: NextRequest) {
     // `published` flag so a stale draft value cannot hide the live post
     const { data, content } = parseFrontmatter(fileContent);
     const today = new Date().toISOString().split("T")[0];
-    const updatedContent = matter.stringify(content, toPublishedFrontmatter(data, today));
+    // matter.stringify re-serializes every field and unquotes topics such as
+    // "Python & Data", so put the tags block back in the canonical form CI checks.
+    const stringified = matter.stringify(content, toPublishedFrontmatter(data, today));
+    const updatedContent = rewriteContent(stringified, taxonomy).content;
 
     // Step 9: Add the post to the blog and remove it from the backlog in one
     // commit. Two commits meant two Vercel deployments for every publish.

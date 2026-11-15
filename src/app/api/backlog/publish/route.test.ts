@@ -4,6 +4,8 @@ import matter from "gray-matter";
 import { POST } from "./route";
 import { getFileContents, moveFile } from "@/lib/github-api";
 import { getBacklogPostBySlug, getPostBySlug, type BlogPost } from "@/lib/blog";
+import taxonomy from "@/content/tag-taxonomy.json";
+import { rewriteContent } from "../../../../../scripts/consolidate-tags.mjs";
 
 vi.mock("@/lib/analytics-auth", () => ({ verifyApiAuth: () => true }));
 
@@ -112,5 +114,30 @@ describe("POST /api/backlog/publish", () => {
 
     expect(res.status).toBe(500);
     expect((await res.json()).error).toMatch(/422/);
+  });
+
+  // CLAUD-946: matter.stringify dropped the quotes from "Python & Data", so the
+  // published post no longer matched CI's tag-taxonomy "no pending changes" test.
+  it("keeps the tags block in the form CI's tag-taxonomy test expects", async () => {
+    vi.mocked(getFileContents).mockResolvedValue({
+      content: `---
+title: "A New Post"
+date: "2026-10-01"
+tags:
+  - Security
+  - "Python & Data"
+---
+Body text.
+`,
+      sha: "abc123",
+    } as never);
+
+    const res = await publish();
+
+    expect(res.status).toBe(200);
+    const published = vi.mocked(moveFile).mock.calls[0][2] as string;
+    expect(published).toContain('tags:\n  - Security\n  - "Python & Data"\n');
+    expect(rewriteContent(published, taxonomy).changed).toBe(false);
+    expect(matter(published).data.tags).toEqual(["Security", "Python & Data"]);
   });
 });
