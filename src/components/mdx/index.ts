@@ -258,3 +258,11 @@ export {
   OneDashboardUpdateGateDiagram,
   OneDashboardCombinedDiagram,
 } from "./diagrams-one-dashboard-two-pi-holes-fable-5-2";
+export {
+  ThirdConflictTrackMapDiagram,
+  AgentWaveLoopDiagram,
+  CannThreeWavesDiagram,
+  SimulateFirstDeterminismDiagram,
+  UpgradeBeforeAfterNumbersDiagram,
+  OceanCliffsFuelDiagram,
+} from "./diagrams-building-the-games-i-want-to-play-third-conflict-2-cann-cann-3";

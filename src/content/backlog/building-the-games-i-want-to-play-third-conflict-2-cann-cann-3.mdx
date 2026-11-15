@@ -1,0 +1,264 @@
+---
+title: "Building the Games I Want to Play: Third Conflict 2.0 and Cann-Cann 3.0"
+date: "2026-11-15"
+description: "I'm a security guy, not a game developer, and AI let me remake two early-90s games I loved. This month I upgraded both, after a review found the first one was mostly a convincing demo."
+tags:
+  - Game Development
+  - AI Agents
+author: "Chris Johnson"
+readingTime: "16 min read"
+featured: false
+series: Game Development with Claude Code
+seriesOrder: 8
+schemaType: Article
+coverImage: /blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/infographic.jpg
+coverImageAlt: "Two side-by-side game screens on a dark workshop background under the headline The games I wanted to play. On the left, a Third Conflict space strategy map shows star systems in teal, amber, red, green and grey joined by dashed fleet lanes with small ship markers, captioned Third Conflict, remake of Second Conflict, 1991, now shipping 2.0. On the right, a Cann-Cann artillery screen shows a teal tank lobbing a dotted amber shell arc over hilly terrain onto a red tank, captioned Cann-Cann, remake of Bang! Bang!, 1990, now shipping 3.0. A tagline reads a security guy, an AI, and two early-90s favorites rebuilt for the browser."
+---
+
+I asked Claude whether I'd already written up the Third Conflict 3.0 upgrade. I hadn't, and there is no Third Conflict 3.0. Third Conflict just shipped 2.0, and Cann-Cann shipped 3.0 five days later. Mixing up my own version numbers is a fair summary of how this month went.
+
+Both games are live and free in a browser: [Third Conflict](https://third-conflict.vercel.app) and [Cann-Cann](https://cann-cann.vercel.app).
+
+## The Games I Wanted to Play
+
+I'm a security professional. The July Third Conflict post opened with "I know very little about game development," and that has not become less true. What I do have is a long memory for two games I loved in the early 90s.
+
+*Second Conflict* (1991) was a Windows 3.0 shareware space strategy game by Jerry W. Galloway. *Bang! Bang!* (1990) was a two-player artillery game by David B. Lutton II, where tanks lob shells over terrain at each other. I wanted to play them again, on whatever device I had in my hand, and nobody was going to remake them for me.
+
+So I used AI to build them. Third Conflict is a web remake of the first, and Cann-Cann is a web remake of the second. The earlier posts in this series cover how that went (starting with [rebuilding a 1991 space game with AI agents](/blog/rebuilding-a-1991-space-game-with-ai-agents) and [recreating the 1990 original for the web](/blog/building-cann-cann-recreating-a-1990-artillery-game-for-the-web)).
+
+Building a game you want to play is the easy part, because the first version is a thrill and you'll forgive it anything. The hard part is the third month, when you sit down to actually play and the thing you built doesn't hold up. That's where both of these upgrades started.
+
+<Info title="What is a 4X game?">
+4X stands for explore, expand, exploit, exterminate. You scout a map, claim territory, build an economy, and eventually crush your rivals. Third Conflict is a turn-based one set in space, so you spend your time moving fleets between star systems and deciding what to build.
+</Info>
+
+## Third Conflict: The Review That Hurt
+
+By mid-October the game looked finished. The CHANGELOG said a lot of things were done. So I had Claude run a five-track review (engine and AI, rendering, UX, prior plans, external research) plus a live play-test of the production build. The result was a list of reasons the game felt "vibe coded," and every one of them was specific.
+
+Start with the hollow systems. Features the CHANGELOG called done did nothing. Capital ships couldn't be built, and strategic resources gated nothing. Infrastructure and federations had no callers. The six-mission campaign was never referenced by anything, nine techs had no effect, and two combat stances didn't do what their text said.
+
+The engine had defects that break trust, too. A winning raid deleted every surviving attacker. If two of your own fleets arrived at the same system on the same turn, they fought each other. Negative unit counts passed validation, which duplicated ships.
+
+**The AI was the strange one, because it cheated and still played poorly.** It read hidden state and could see my same-turn orders. It never pooled its forces and never built troops, and it used 3 of 10 mission types. "Hard" and above only multiplied its income. I had a sample of 160 AI-versus-AI duels, and every one of them ended in a technology victory around turn 96. All that peeking, and it played the same game every time.
+
+The rest of the list was less dramatic and just as real. Stars were baked gradient blobs because the map spec said "no custom shaders." The battle viewer was a small modal that fired one serialized shot at a time, and kills went missing above 10 units. The HUD had 24 hand-rolled modal overlays and about 30 native `title=` tooltips. The project docs named a component library that wasn't even installed.
+
+The line that stung most was the last one. I had 1,178 passing tests, and zero component tests, zero end-to-end tests, and no CI. The tests passed because they tested the parts that already worked.
+
+<Warning title="Done in the CHANGELOG is not done">
+An AI will cheerfully write "implemented" next to something it scaffolded and never wired up. I now treat every old completion claim as a hypothesis until I've seen the feature do something in a running game.
+</Warning>
+
+What I did next is a decision I'd repeat. I didn't delete the embarrassing CHANGELOG entries. Where an older entry claimed something that was never built, never wired in, or later cut, the specific claim now carries a "Correction (2026-10-17)" note. The entries stay as written, and the correction sits next to them. A changelog that quietly rewrites history is just another way of looking finished.
+
+## Writing the Plan Down
+
+The fix was a plan, saved in the repo under `docs/plans/`, approved on 2026-10-16. It opens with the review above and then states what 2.0 should be: one visual identity (a holographic "war room sensor table"), battles worth watching, an AI that respects fog of war and gets harder by playing better instead of cheating, and a tooltip on every game term that links into an in-game codex.
+
+The plan keeps a decision log, D1 through D104. The owner (me) decides things, and the log is where I could see afterward what I'd actually said. A handful of entries:
+
+- **D1:** "Faithful core, modernized. Keep the 1991 loop and fix broken balance freely."
+- **D4 and D6:** "Curate: finish what stays, cut the rest." Federations and vassals were cut, and the unwired campaign became the tutorial campaign.
+- **D11:** "Fair AI on every level." Difficulty comes from smarter play. Only the top level gets a small, labeled income bonus, and the human is never nerfed.
+- **D28:** Every open rule question gets judged by three principles, Fun, Fair, Strategic, and I delegated those calls to Claude under those principles.
+
+D28 is the one people ask about. I'm not a game designer, so asking me "should a starbase give +5% or +10%?" produces a shrug. Giving Claude three principles and a way to measure the answer produces something much better. Several waves of rule choices came back to me as a list, and my whole contribution was "approve all."
+
+That's the arrangement in a nutshell. I'm the player, and I know when a game feels wrong. Claude does the part where "feels wrong" turns into numbers.
+
+The work was organized as milestones and three parallel tracks. Track R was rules, then the AI. Track P was presentation: the UI kit, the map, and the battle viewer. Track I was identity, audio, and the tutorial. Two gates sat in the middle of it, a rules freeze (I signed on 2026-10-31) and an art sign-off (I signed on 2026-11-01), and nothing downstream started until the gate cleared.
+
+<ThirdConflictTrackMapDiagram />
+
+<Info title="What is a look gate?">
+Before anyone builds the battle viewer, the map, and thirty screens in a new visual style, you build one vertical slice (a single scene that has the whole look in it) and the owner either likes it or doesn't. For Third Conflict that slice lived at `/lookdev`. If I hate the slice, I've spent an afternoon. If I hate it after the screens are built, I've spent a week and a mood.
+</Info>
+
+The git history shows how uneven the effort really was. The day after the plan was approved, October 17, the release branch took 255 commits. November 8 took 160 more. Almost all of the work landed on six days.
+
+Weeks of nothing, then a flood. That is how I work, and the agents don't mind.
+
+## What You Actually See in 2.0
+
+Open the new title screen and you get a galaxy flythrough behind the menu. That's cosmetic, but it's the first sign that the "no custom shaders" rule is gone.
+
+![Animated capture of the live Third Conflict 2.0 title screen. The THIRD CONFLICT wordmark and the menu (New Game, Tutorial, Continue Game, Load / Import Game, Settings, Codex) sit over a slowly drifting galaxy of glowing stars joined by faint lanes, with a purple nebula behind them.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/third-conflict-2-title-flythrough.webp)
+
+The map is now a PixiJS galaxy with a camera, shaders, labels, territory fills, lanes, and a minimap.
+
+![Side by side galaxy maps of Third Conflict. On the left the 1.x map from July with flat glowing star blobs and tiny text. On the right the 2.0 PixiJS map with named systems, a territory outline, lanes, a black hole with an accretion disk, a minimap and a larger button bar.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/third-conflict-1x-vs-2-galaxy-map.png)
+
+It also had to be fast. Hulls are baked to textures, so 200 fleets cost 79 draw calls instead of 912, and on my M5 Pro the map holds 60 fps.
+
+### The Battle Theater
+
+How do you make a replay that can't change who won? You decide the fight first. Combat in the engine is deterministic, so the engine resolves the whole battle and records a log as it goes. The new Battle Theater then plays that log back: per-race weapons and shields, explosions, landings, and cinematic moments.
+
+You get 1x to 4x speed and a Skip button, and a battle plays in 15 seconds at most at 1x. Decisive moments play at 0.25x for about 400 ms while the camera punches in. Kills shake the view, and the shake comes from seeded noise, so a battle replays the same way every time.
+
+Because the outcome is settled before the animation starts, the animation can be skipped, sped up, or rebuilt after a reload. Saves don't store the log at all. They keep a small "recipe" (the random state and the inputs), and after a load the log is rebuilt exactly from it.
+
+![Animated capture of the Battle Theater on the live site, Battle at Alpha Centauri. Blue Terran Hegemony ships in formation, each with an xN count chip, trade fire with pink Ashani Remnant ships and defenses beside a planet's edge. Shots streak across, ships burst into fireballs with shockwave rings, the force bars at the top drain, and the fight ends on a Space battle won result card with losses by unit type and a Continue button.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/third-conflict-2-battle-theater.webp)
+
+### An AI that doesn't peek
+
+The new AI is one AI for every seat. It decides from a belief built only from what its seat could know, and what you know about an enemy system is a dated snapshot with its age in turns, so the rule applies to you too. It scouts, plans multi-turn operations, picks treaties and espionage, and uses Monte Carlo battle estimates.
+
+There's a headless harness, `npm run ai:harness`, that plays the AI against itself and measures strategies and factions, and blocking gates run in CI. The new AI beat the old one in 74.0% of decisive games, and every step up the difficulty ladder measures 73% or better against the level below it.
+
+After release I used the harness to settle an argument with myself. I wanted starbases to help their system defend. Claude measured two options, +5% hit chance and +10%, over 864 games each, against a baseline of 0. Every gate passed at +5, and enemy conquests per 100 turns came out at 12.25 against 12.16 without the bonus. At +10, the economic-contest and victory-mix tests failed. I picked +5, and the data had already made the argument.
+
+### The codex tells the truth
+
+At the end, six codex sentences still described behavior the engine didn't have: resources shared between trade partners, a starbase defense bonus, buildings surviving a conquest. We reworded them "to what the engine does," and a test called `g7-honesty.test.ts` pins the engine behavior each sentence describes. If a rule changes and the text doesn't, the build fails.
+
+The CHANGELOG now says that where it and a rule number disagree, the in-game codex wins, because the codex reads every rule from the engine.
+
+## A Bug With Real Numbers
+
+How does a fight look fine and then go badly? That was CLAUD-451, and it looked like a minor display issue. The fleet-odds panel overrated fleets of capital ships that had warships escorting them.
+
+The odds model fired each volley once, at the starting mix of ships. In a real battle the escorts die, so later shots find more capital ships to hit. The fix fires a heavy volley in slices, each aimed at what's left. On contested mixed-fleet fights, that cut the misses from 74 of 116 to 12.
+
+The odds panel looked plausible, which is the problem with it. A model that's wrong only in contested fights passes every easy test you throw at it.
+
+## Cann-Cann: Too Slow and Not Far Enough
+
+Version 2.0 of Cann-Cann fixed the rules: honest physics, readable damage, crates, and online play (that's [the last post](/blog/cann-cann-2-we-have-multiplayer)). It didn't fix how the game looks and feels.
+
+This time I wrote the complaint myself, as a player. My words in the design doc were that the problem was "mainly the look and feel of the game, maybe more mobility and feel more fun," that driving was "too slow and you can't go far enough," and that "there should be different types of terrain so each map feels different and requires different gameplay." That's not a spec. It's what you say when you sit down with your own game and it isn't fun yet, and the AI's job was to turn it into one.
+
+That became a design doc on 2026-11-13, titled a total redesign, with one deliberate constraint. The deterministic engine, which simulates every shot first and then plays it back, stays. One action log drives local play, replays, and online matches, and that's too valuable to rewrite. Everything the player sees, hears, and touches gets rebuilt around it.
+
+![Side by side frames of a Big Bertha shot in Cann-Cann. On the left the 2.0 daytime hill with a BULLSEYE and KA-BOOM callout. On the right the 3.0 Volcanic night scene with a lava pool, glowing volcano, HUD chips for fuel, jumps, wind and biome, and a KA-BOOM callout.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/cann-cann-2-vs-3-big-bertha.webp)
+
+<UpgradeBeforeAfterNumbersDiagram />
+
+Here's what "too slow" meant in numbers. Sixty fuel was about 60 px of level driving, on an 800 px wide world, at 40 px per second, and slopes steeper than 1.2 px per px stopped the tank cold. The design set its targets against that: driving about 3.5 times faster (about 140 px per second), range about 3 times longer (about 200 px per round on default fuel), and a climb limit of about 2 px per px. Each tank also gets up to two jumps per turn.
+
+Blast knockback changed too. In 2.0 the most a blast did was shove a tank 14 px sideways. In 3.0, "Blasts throw tanks."
+
+Here's what that looks like on the live game. The round opens on the biome briefing card, then the tank drives across the cliff top, and the fuel gauge drops from 200 to 170 on the way.
+
+![Animated capture of Cann-Cann 3.0 on Ocean Cliffs at sunset. The OCEAN CLIFFS briefing card reads: A shell that lands in the sea is a dud. Water hurts each turn. Jump to get out. Then the green player tank drives along the clifftop above the sea while the HUD fuel chip counts down from 200 to 170 and the aim readout follows the tank.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/cann-cann-3-drive.webp)
+
+### Seven biomes, seven ways to lose
+
+The "different terrain" request turned into seven biomes, each with its own rules for how shells and tanks behave:
+
+| Biome | Ground | What changes |
+|---|---|---|
+| Grasslands | Dirt and grass | The baseline. Trees give cover until shot away. |
+| Desert | Sand | Wide shallow craters, nothing bounces, rollers bog down, dunes cost more fuel. |
+| Arctic | Ice and snow | Tanks slide when they stop and on slopes. Low flat shots skip. Ice pillars shatter. |
+| Volcanic | Rock and lava | Shells ricochet off rock at shallow angles. Lava pools burn any tank standing in them each turn. |
+| Ocean Cliffs | Rock and sea | Shells that land in water are duds. Tanks in water drive slowly and take damage each turn. |
+| Autumn Forest | Mud and trees | Mud slows driving but grips on slopes and muffles blasts. Dense trees block flat shots. |
+| Moonlit Craters | Dust, low gravity | Gravity is about 70 percent of normal, so shells and jumps travel further. |
+
+![Three Cann-Cann 3.0 aiming screens cropped to the battlefield: Volcanic with a lava pool, Ocean Cliffs with a sea between cliffs, and Arctic with ice pillars. Each shows its biome briefing card explaining how that terrain changes shots, driving and damage.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/cann-cann-3-biomes-aiming.webp)
+
+One rule from the design doc kept this from turning into chaos: every material effect goes through the same shot simulation that the aim guide, the Spotter, and the CPU use. Nothing a biome does is a hidden surprise. If sand buries your shell, the aim guide already showed you that before you pressed fire.
+
+The biomes look different in motion, too. On Volcanic at night, a Big Bertha lights up the whole valley, with a lava pool glowing in the low ground the whole time.
+
+![Animated capture of Cann-Cann 3.0 on the Volcanic biome at night. A Big Bertha shell arcs from the green tank over a valley with a glowing lava pool and an erupting volcano behind it, lands by the red CPU tank with a bright flash and a KA-BOOM callout, and then the CPU fires back across the valley.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/cann-cann-3-volcanic-big-bertha.webp)
+
+Arctic is now a level ice sheet, so flat shots really do skip. It also has an armored airship on patrol, and obstacles survive impacts. My napalm shot flew straight into it. The CPU's reply landed short of my tank, and the smoke drifted off on the wind.
+
+![Animated capture of Cann-Cann 3.0 on the Arctic biome at midday. Two tanks face each other across a flat sheet of ice with ice pillars between them and an armored airship patrolling overhead. The green tank's shell runs into the airship, the CPU fires back, its shell bursts on the ice just short of the green tank with a bright flash, and dark smoke rises and drifts sideways on the wind.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/cann-cann-3-arctic-napalm.webp)
+
+## Four Waves in About Two Days
+
+The design was approved on 2026-11-13 and 3.0.0 merged on 2026-11-14. That one day carried 115 commits, and the plan split the work into four waves with a gate at the front.
+
+<CannThreeWavesDiagram />
+
+**Wave 0 was a look target I could open on my phone.** It was a single page, `/lab/look/`, with the Volcanic biome at sunset, one tank, working lights, and tap-the-ground-for-an-explosion. It ran PixiJS 8 under the production content security policy, and the measurement on a CPU slowed 4x was an average frame of 16.7 ms with 1.8 ms of actual work.
+
+The gate was written into the plan: "Wave 1 does not start before approval." On 2026-11-14 I wrote "I approve the look," and only then did wave 1 start.
+
+**Wave 1** put the real game on the new renderer, with mobile tanks and materials. **Wave 2** made every biome play differently, gave every weapon its own look and sound, and finished the phone layout. **Wave 3** made every game mode work on the new game and shipped it.
+
+### The free coast
+
+Why did tapping the drive key go much further per unit of fuel than holding it? That was the question during wave 1. The answer (CLAUD-916): every move used to end with a free coast at full drive speed, so lots of small taps meant lots of free coasts.
+
+My decision was "make the coast grow." The coast is now a share of full speed that grows with distance driven:
+
+```ts
+const COAST_FULL_SPEED_AFTER_PX = 60;
+const coastShare = (px: number) => Math.min(1, px / COAST_FULL_SPEED_AFTER_PX);
+```
+
+A tiny tap coasts a little, and a 60 px drive coasts like before. That changed the physics, so `PHYSICS_VERSION` went to 5, and six of the seven golden digests (recorded fingerprints of a known match, used to detect any accidental change) changed and were re-recorded on purpose. Autumn Forest was the exception: mud never coasted.
+
+<Info title="Why golden digests?">
+A golden digest is a hash of the full result of a seeded match. If someone's refactor changes one shell's landing point by a pixel, the hash changes and a test fails. When I change a rule deliberately, I re-record the digest deliberately, and the diff in the commit shows the change was intentional.
+</Info>
+
+### The sea you couldn't leave
+
+How do you leave a sea you can't drive out of? A reviewer's note flagged it: "On Ocean Cliffs, a tank that drives or gets blown into the sea may be unable to climb back out."
+
+Claude measured it instead of arguing about it. By driving alone, no tank could leave the sea: 120 of 120 test placements were stuck on a full tank of fuel. By jumping, all of them could, but the walls above the shore were too steep to drive. The fix was shallower pools and drivable walls, a test (`liquid-escape.test.ts`) that pins it, and a biome briefing that tells you plainly, "Water hurts each turn. Jump to get out."
+
+![The Cann-Cann 3.0 Ocean Cliffs briefing card on the live game, over two tanks on facing cliffs with the sea in the ravine between them. The card reads: OCEAN CLIFFS. A shell that lands in the sea is a dud. Water hurts each turn. Jump to get out.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/cann-cann-ocean-cliffs-briefing.webp)
+
+Then I made a call that surprised me a little. On 40 Ocean Cliffs maps, driving back up to your starting height costs an average of 263 fuel (the range was 233 to 296), and a full tank is 200. It was reachable on 0 of 40 maps.
+
+<OceanCliffsFuelDiagram />
+
+Fixing that too was on the table, and I said "Keep it as is." Going down to the sea is a one-way trip for that round, on purpose. I read it as the one place in the game where a bad position really costs you, though that's my interpretation, not a line from the design doc.
+
+### Online play was on, and the docs said off
+
+The design and all three plans said online play "stays off." That was wrong: it's on in production. The evidence was a live API call that answered 400 "Invalid game id," when with online off every route answers 503.
+
+So I wasn't shipping a feature I'd forgotten. I was shipping an unplanned feature on a physics engine I'd just changed. Two browsers played seven complete online matches on 3.0 locally, and both sides agreed after every turn. I said "ship with online," and then "I want to ship now and want online included."
+
+## How the Agents Were Run
+
+Both upgrades used the same loop, and I only noticed it was the same when I read the two plans side by side. A foundation commit merges first, with the shared types or helpers every agent needs. Parallel agents then each take a separate file area. Only the main session merges, one branch at a time with `--no-ff` and a type check after each, and then comes one review of the combined diff and one consolidated QA pass.
+
+<AgentWaveLoopDiagram />
+
+For Third Conflict's interface wave, that meant five agents (codex, fleet command, production, safe end turn, turn report) with no overlapping files. For Cann-Cann's wave 3, it was four streams in their own git worktrees (Engine, Modes, Tutorial, Menus and settings). On Third Conflict the QA pass was a single long playthrough of the production build in a browser. On Cann-Cann, every checkpoint got a `code-reviewer` and a `security-reviewer` in parallel. CRITICAL and HIGH findings get fixed, and the rest are bundled into one ticket.
+
+The loop matches how I work: I decide the shape and play the result, and the part in between is somebody else's job. D40 in the Third Conflict log says it directly: no review per item, just one review of the combined diff before the wave finishes.
+
+### What goes wrong with parallel agents
+
+It isn't free. On 2026-11-08 I recorded two gotchas.
+
+First, agents changing shared flows interact. One agent sorted fleet destinations nearest-first, and that made the end-to-end smoke fleet fight on turn 2, which broke another agent's test that assumed turn 2 was quiet. Neither agent was wrong.
+
+Second, React bubbles events from a Radix portal through the component tree, so a click inside a hover card rendered from a game term that sits inside a button also fires the button's `onClick`. The fix is to stop propagation on the portal content.
+
+### Determinism is the safety net
+
+Both engines are deterministic, which is why any of this works. When two agents disagree about the game, a replay settles it, and when a rule changes on purpose, the golden digests get re-recorded on purpose.
+
+<SimulateFirstDeterminismDiagram />
+
+## Making This Post
+
+The captures behind this post come from the two live production sites. I had Claude drive headless Chromium with Playwright and capture the Chrome DevTools screencast, then assemble the frames into stills and animated clips. They're real gameplay, not mockups.
+
+For Cann-Cann the capture used challenge links, which set the biome, time of day, and seed, so the same match loads every time (seed 4242 is Volcanic at night, 7107 is Ocean Cliffs at sunset, 3131 is Arctic at midday). The capture tool imported the game's own `encodeChallenge` function to build them. For Third Conflict it reused the repo's own end-to-end fixtures against the live site.
+
+Seed 7107 is the one I'd send a friend. A Cluster Bomb splits at the top of its arc, and the bomblets land on the far cliff.
+
+![Animated capture of Cann-Cann 3.0 on Ocean Cliffs at sunset, seed 7107. A Cluster Bomb climbs from the green tank, splits over the sea ravine, and its bomblets explode around the red CPU tank on the far cliff with a BULLSEYE callout, a damage number, and speech bubbles from both tanks.](/blog/building-the-games-i-want-to-play-third-conflict-2-cann-cann-3/cann-cann-3-ocean-cliffs-cluster.webp)
+
+Two snags, since I promised honesty. Moonlit Craters wouldn't load from my hand-built challenge link because I guessed its id wrong, so it's missing from the captures. And my first capture script hung for minutes because it was looking for a button named "BIG." The real accessible name is "Big Bertha, 2 left, key 2. Same flight, much bigger boom." Pressing the number key worked.
+
+## What's Still Unplayed
+
+I should be straight about what's still unproven. After 3.0 shipped I played everything except two-player, and nothing was wrong. Runtime errors checked minutes after the deploy and again about five hours later showed none. But two people on two real phones, taking turns across the internet, hasn't been played by a human yet. It's item 27 on a ticket, CLAUD-928, and it's still open.
+
+Both of these started as games I wanted to play, and the upgrades are the proof that wanting wasn't enough. Mine looked finished twice before it was.
+
+If you want to see where a sea cliff ends and a volcano begins, both games are one tab away: [Third Conflict](https://third-conflict.vercel.app) and [Cann-Cann](https://cann-cann.vercel.app). Pick the Ocean Cliffs biome, drive off the edge, and see whether you can get back out.
