@@ -1,19 +1,34 @@
 ---
-title: "My Harness Lived Only on My Mac. So I Built It a Cloud Twin."
-date: "2026-10-28"
-description: "Claude Code sessions started from my phone ran on a cloud VM that had none of my rules, skills, agents or hooks. Part 4 of the Claude Harness Modernization series: the canary experiment, the two-stream design, and the secret gate that decides what is allowed to leave my Mac."
+title: My Harness Lived Only on My Mac. So I Built It a Cloud Twin.
+date: '2026-11-15'
+description: >-
+  Claude Code sessions started from my phone ran on a cloud VM that had none of
+  my rules, skills, agents or hooks. Part 4 of the Claude Harness Modernization
+  series: the canary experiment, the two-stream design, and the secret gate that
+  decides what is allowed to leave my Mac.
 tags:
   - Security
-  - "Python & Data"
+  - Python & Data
   - Claude Code
-author: "Chris Johnson"
-readingTime: "17 min read"
+author: Chris Johnson
+readingTime: 17 min read
 featured: false
 series: Claude Harness Modernization
 seriesOrder: 4
 schemaType: TechArticle
 coverImage: /blog/claude-harness-modernization-4-cloud-harness/infographic.jpg
-coverImageAlt: "Cover graphic for Part 4 of the Claude Harness Modernization series. A left panel labeled Mac ~/.claude lists Rules (14 files), File-guard hook, Skills (5 of 22), Agents (2 of 26), Plasticity learnings, Vector memory and LAN MCP servers. Amber arrows labeled Setup script (25 KB of 64 KB) carry the rules and the file-guard hook, and teal arrows labeled Account plugin carry skills, agents and learnings, to a right panel labeled Cloud VM cjclaudin. A vertical amber Secret Gate bar sits across the arrows. Vector memory and LAN MCP servers have red dashed lines ending in an X marked Stays home, and their cloud boxes read Not here, by design. A terminal strip at the bottom quotes the cloud session saying it has the full cloud harness, the subset meant for cloud sessions."
+coverImageAlt: >-
+  Cover graphic for Part 4 of the Claude Harness Modernization series. A left
+  panel labeled Mac ~/.claude lists Rules (14 files), File-guard hook, Skills (5
+  of 22), Agents (2 of 26), Plasticity learnings, Vector memory and LAN MCP
+  servers. Amber arrows labeled Setup script (25 KB of 64 KB) carry the rules
+  and the file-guard hook, and teal arrows labeled Account plugin carry skills,
+  agents and learnings, to a right panel labeled Cloud VM cjclaudin. A vertical
+  amber Secret Gate bar sits across the arrows. Vector memory and LAN MCP
+  servers have red dashed lines ending in an X marked Stays home, and their
+  cloud boxes read Not here, by design. A terminal strip at the bottom quotes
+  the cloud session saying it has the full cloud harness, the subset meant for
+  cloud sessions.
 ---
 
 I can start a Claude Code session from my phone, and until October 27 that session was a stranger. It ran on a fresh Linux VM in Anthropic's cloud with my repo cloned in and nothing else: none of my rules, skills, agents, hooks or learnings.
