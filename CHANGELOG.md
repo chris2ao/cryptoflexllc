@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## 2026-11-15 - Backlog Post on Third Conflict 2.0 and Cann-Cann 3.0, Blog Pipeline Fixes
+
+### What changed
+- **Wrote** the backlog draft "Building the Games I Want to Play: Third Conflict 2.0 and Cann-Cann 3.0" with live-game clips and diagrams (ea3a79e)
+- **Fixed** the backlog publish route (`src/app/api/backlog/publish/route.ts`) so `matter.stringify` output passes through the same `rewriteContent` from `scripts/consolidate-tags.mjs`; js-yaml had unquoted `"Python & Data"` and broke the tag-taxonomy CI check on main from 51bd1da (CLAUD-946, bb1a379, CI green)
+- **Changed** `validate-mdx.sh` Check 13b to import the repo's `scripts/consolidate-tags.mjs` and run `rewriteContent`, so the local tag check matches CI's "reports no pending changes" test exactly (CLAUD-944); the blog-writer template now emits YAML list-form tags with `&` topics double-quoted
+- **Added** an `animated <out-dir> <clip.gif>...` subcommand to `blog-image-convert.py` (gif2webp lossy q82, max 1920 px, source GIF kept); the blog-inline-images agent and `blog-pipeline.js` use it to publish animated GIFs as WebP (CLAUD-945)
+
+### What was learned
+- NotebookLM infographics drift on facts and garble text; check them before using them in a post
+- Live-game clips come from a Playwright CDP screencast converted to animated WebP
+- A local validator that reimplements a CI check drifts; importing the CI script itself keeps them identical
+
 ## 2026-11-08 - CLAUD-782: /analytics Refresh Leftovers (One PR, Three Parallel Implementers)
 
 ### What changed
