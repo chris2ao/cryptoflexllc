@@ -1,0 +1,268 @@
+---
+title: "Deploy Is Not Done: 29 Advisories, Zero Emergencies, and Why I Patched My Vibecoded App Anyway"
+date: "2026-11-18"
+description: "Nobody emails you when the media hub you built has a vulnerable dependency. One casual question about patches, a clean audit that was wrong by 13 days, and what maintaining your own software looks like."
+tags:
+  - Home Lab
+  - Security
+author: "Chris Johnson"
+readingTime: "17 min read"
+featured: false
+series: Security Engineering
+seriesOrder: 14
+schemaType: TechArticle
+coverImage: /blog/deploy-is-not-done-maintaining-a-vibecoded-app/infographic.jpg
+coverImageAlt: "Cover graphic titled Clean audit, 13 days late. A teal timeline of upstream release notes shows NOV 5 undici 8.12.4 ships with six fixes, NOV 11 Node 26.13.1 bundles it, and NOV 18 I run the audit. A red band reads 13 days: a high-severity fix was public and the scanner could not see it. Below, a dashed red advisory database lane labeled what pnpm audit reads shows a 404 NOT YET REVIEWED marker with nothing to report at either end. A terminal shows pnpm audit --prod printing No known vulnerabilities found, beside a callout reading 16 to 0 Node CVEs reachable once I asked what my app actually runs."
+---
+
+The question I typed was one line: "is there updates/upgrades/or patches we need to do for the cryptoflix platform?" The answer was 29 security advisories touching the stack, none of them urgent, and I patched the whole thing that night anyway.
+
+Nothing was on fire. But for a vibecoded app, nobody else is going to read those advisories for me.
+
+## You Are the Vendor Now
+
+When you pay for a streaming service, a SaaS tool, or an app from a store, a team you never meet reads the advisories and ships the fix. You tap "Update" and move on. That's most of what the subscription buys, and it's invisible until it stops.
+
+When you vibecode your own software, that team is you. You're the security team and the release manager, and you also decide whether 10 PM on a Wednesday is a good time to restart the server. Deploying the app isn't the end of the project. It's the day the maintenance starts.
+
+<WhoPatchesWhatDiagram />
+
+I'd already built the thing this post is about: CryptoFlix, a Netflix-style hub for my household's own media, running on a Mac Mini on my home network. I wrote about [why it exists](/blog/plex-jellyfin-or-build-it-yourself-cryptoflix), and about why ["it's only on my home network" is not a threat model](/blog/its-only-on-my-home-network-is-not-a-threat-model). This is the sequel nobody asks for: what happens after the build is done, when the dependencies keep moving and you're the only one watching.
+
+<Info title="What does vibecoded mean here?">
+Software you built mostly by describing what you want to an AI coding assistant, then running what comes out. CryptoFlix was built with Claude Code. The code is mine in the sense that matters: I run it, I'm responsible for it, and no vendor is going to patch it for me.
+</Info>
+
+## One Question, One Survey
+
+CryptoFlix has a skill called `/cryptoflix-deps`. Claude ran it when I asked my question. It's a read-only script that checks everything the app stands on and writes a report. Then Claude reads each project's release notes and traces each advisory to see whether the vulnerable code actually runs in my app.
+
+What does "everything the app stands on" cover? More than the `package.json`.
+
+| Layer | What the survey checked | State that night |
+|---|---|---|
+| Platform | macOS | 27.2.1, nothing pending |
+| Runtime | Node (Homebrew) | 26.13.0 installed, 26.13.1 available, with a security release in between |
+| Libraries Node links | libffi, llhttp, simdjson, simdutf, and 15 more | 4 behind, 15 current |
+| Package manager | pnpm | 10.34.9, newest 10.x |
+| Media server | Jellyfin | 12.4, current |
+| Local models | whisper.cpp, Silero VAD, hash-locked build wheels | Current, 6.2.0 vs 6.2.3 (packaging only), 7 of 28 pins behind (build-time only) |
+| npm packages | 18 behind, two majors held (jsdom 31, TypeScript 7) | Production audit clean |
+| Report only | Ollama, Tailscale, the Claude Code CLI | Not mine to update from this repo |
+
+The Node row is the one I'd have missed on my own. Node isn't one thing. Homebrew installs it and then links it against libraries it installs separately, and four of those were behind. If I only watched `package.json`, I'd never see them.
+
+The verdict came back fast: nothing needed action that night. No advisory reached code that runs in production. But a lot was behind, and "nothing is on fire" is a different statement from "nothing needs doing."
+
+## The Count: 29 Advisories
+
+Before the numbers, one term.
+
+<Info title="What is a CVE?">
+A CVE is a public ID (like CVE-2026-123864) for one specific, disclosed vulnerability. It tells you which software, what's wrong, and usually how bad. It doesn't tell you whether your app is exposed. That's your job.
+</Info>
+
+Here's how the 29 advisories break down, and where each one landed.
+
+| Component | Advisories | Status before tonight | After 9.15.2 |
+|---|---|---|---|
+| Node.js 26.13.1 | 16 | Unpatched | Patched |
+| undici 8.12.4 | 6 | Unpatched | Patched |
+| minimatch | 1 | Unpatched (dev only) | Patched |
+| React Router | 3 | Already fixed | Already fixed |
+| Jellyfin | 3 | Already fixed | Already fixed |
+
+The release cleared 23 of them. The other six were already behind me. The big two are Node and undici, so those get the space.
+
+## The Node Release: 16 CVEs
+
+Node's November 2026 security release (26.13.1) fixed 16 CVEs: 7 high, 6 medium, 3 low. The [Node.js advisory page](https://nodejs.org/en/blog/vulnerability/november-2026-security-releases) says "the highest severity issue fixed in this release is HIGH."
+
+Four of the seven highs show the range of what each one needs before it can hurt you. The advisory page has the rest.
+
+| CVE | What it does | What it needs |
+|---|---|---|
+| CVE-2026-123863 | Remote abort of an HTTP/2 server on session teardown | An `http2` server |
+| CVE-2026-123864 | HTTPS write re-enters the parser and leaks heap memory into the request body | An HTTPS server |
+| CVE-2026-123872 | TLS 1.2 renegotiation changes servername to bypass client certificate checks | A TLS server with per-host client-cert policies |
+| CVE-2026-123874 | HTTP/2 use-after-free when a `respondWithFile()` stream is reset | An `http2` server serving files |
+
+CVE-2026-123864 lets an unauthenticated client read memory belonging to other connections, including "TLS private keys and other users' requests." Triggering it takes a handler that calls `res.flushHeaders()` before the request body ends. That handler must later call `res.end()` with a non-empty chunk. Any ordinary route that echoes or stores a request body completes the setup. And "cleartext `node:http` is not affected."
+
+Two of the highs are follow-up fixes. CVE-2026-123863 is described as "a variant of CVE-2024-27983 that the earlier fix did not cover," and CVE-2026-123865 as "an incomplete-fix case of CVE-2026-48937." So "We patched that class of bug in 2024" is a statement with an expiry date.
+
+One more aside: the advisory for CVE-2026-123864 (and the zlib one) credits a researcher working "in collaboration with Claude and Anthropic Research." The tool I use to maintain the app also shows up in the credits for finding a bug in its runtime. I'm not drawing a conclusion from that.
+
+## Severity Is Not Exposure
+
+Sixteen CVEs and seven highs would sound like a weekend of emergency work. It wasn't, because severity describes the bug and exposure describes my app.
+
+<Info title="Two different questions">
+A "high" rating says the bug is serious wherever the vulnerable code runs. It says nothing about whether your app runs that code. Triage needs both answers, and only you can supply the second one.
+</Info>
+
+Claude checked the code against each advisory's precondition. These are the real commands, rerun against the production checkout after the deploy:
+
+```bash
+$ grep -rEn "from ['\"](node:)?(http2|https)['\"]" apps/server/src watchdog | grep -v '.test.ts'
+# no output: 0 files import http2 or https
+
+$ grep -rn "flushHeaders" apps/server/src --include='*.ts' | grep -v '.test.ts'
+# no output
+
+$ grep -n 'CMD=' deploy/launch/cryptoflix.sh
+35:CMD=("$NODE_BIN" --import tsx src/bin.ts)
+```
+
+The first command says CryptoFlix never imports `http2` or `https`. It serves plain HTTP/1.1 on the LAN (I declined HTTPS on purpose, for a single-household app on a trusted network). The second finds no `flushHeaders` call anywhere. The third is the launch command: no permission-model flag, no proxy flag, nothing exotic.
+
+Four questions took the 16 to zero:
+
+1. **Does the app run an HTTP/2 server?** No. That removes seven: 123863, 123865, 123866, 123874, 123828, 123868, 123875.
+2. **Does it run a TLS server or use `https.Agent`?** No. That removes five: 123864, 126051, 123872, 123867, 123877.
+3. **Does it start Node with the permission model or a proxy?** No. That removes three: 123829, 106071, 123871.
+4. **Does it call zlib `params()` while streaming to a peer?** No. That removes the last one, 123862.
+
+<ExposureFunnelDiagram />
+
+Seven plus five plus three plus one is 16, and the remaining count is zero.
+
+<Security title="Reachability is a snapshot">
+This is a check against the code as it exists today, done by reading code and advisories. It isn't proof that nothing is exploitable, and it changes the moment the code does. If I add HTTPS tomorrow, five of these CVEs become live. That's a reason to write the checks down, not a reason to skip them.
+</Security>
+
+## The Audit Said Clean. It Was Wrong by 13 Days.
+
+undici is the HTTP client inside Node's `fetch`. CryptoFlix also pins its own copy for one job: the Put.io download pool, which forces HTTP/1.1 so each download segment gets its own connection. Node 26's built-in fetch multiplexed every segment over a single HTTP/2 connection. That capped downloads at about 1 MB/s, which I measured on 2026-10-05. Updating Node doesn't update a pinned copy, so the pin needs its own attention.
+
+On 2026-11-05, undici 8.12.4 shipped and its release notes said "this release fixes six vulnerabilities." Six days later Node 26.13.1 bundled it. On 2026-11-18, the survey ran and the audit looked like this:
+
+<AdvisoryLagTimelineDiagram />
+
+```bash
+$ pnpm audit --prod
+No known vulnerabilities found
+```
+
+Clean. And yet a high-severity fix had been public for 13 days. The reason is boring: when Claude looked up the six undici advisories, GitHub's reviewed advisory database returned a 404. That database is what `pnpm audit` and most scanners read. Until someone reviews an advisory, the scanner can't see it.
+
+The survey caught it only because it reads undici's own release notes, not just the audit. Here are the six:
+
+| ID | Severity | What it was |
+|---|---|---|
+| CVE-2026-116592 | high | 8.12.2 and 8.12.3 could cache the final response from a redirect chain under the original request key, which "could poison a cache or expose one user's response to another user" |
+| CVE-2026-120474 | medium | A shared cache with `compose(redirect(), cache())` could store a credential-dependent response under the original URL |
+| CVE-2026-116630 | medium | A cross-origin redirect during cache revalidation could let a `304 Not Modified` validate a cached response from the original origin |
+| CVE-2026-120415 | medium | The redirect interceptor didn't strip credentials when headers were `[name, value]` pairs |
+| CVE-2026-120222 | medium | An exception during cache replay could escape as an uncaught exception and terminate the process |
+| CVE-2026-120423 | medium | `fetch()` could skip Subresource Integrity checks when the metadata was separated by a tab or other non-space whitespace |
+
+Were they reachable? Same drill. All six live in the cache and redirect interceptors, cache replay, and fetch's integrity check. The download pool uses undici's `Agent` and its own `fetch` and none of the rest:
+
+```bash
+$ grep -rEn "interceptors|compose\(|from 'undici'" apps/server/src --include='*.ts' | grep -v '.test.ts'
+apps/server/src/putio/downloadFetch.ts:1:import { Agent, fetch as undiciFetch } from 'undici';
+```
+
+One file, one import, none of the vulnerable pieces. Still, I'd rather know that from a grep than from an assumption.
+
+<Warning title="A clean audit is a lagging signal">
+An audit tells you what the advisory database has reviewed, not what upstream has published. For the dependencies you pin or care about most, read the release notes yourself.
+</Warning>
+
+## The Ones Already Behind Me
+
+Three React Router advisories were published the same day I ran this check. Two were high (a denial of service in server-side route discovery, and prototype pollution in data deserialization) and one was medium (cross-site scripting in RSC redirects). I didn't have to do anything about them. CryptoFlix was already on react-router 8.5.1, which has the fix. It also uses declarative routes (`<Routes>` in `App.tsx`), not Framework or RSC mode, so none of them applied even before the fix. The batch moved it to 8.5.2 regardless.
+
+Jellyfin had three advisories dated 2026-09-22, two medium and one low: a pair of path traversal bugs and an IDOR in playlist management. All fixed in 12.0. I run 12.4.
+
+The minimatch advisory (GHSA-g3hv-75wg-m249, moderate, a denial of service via globparts amplification) was dev-only. It reached the project only through ESLint, so it was a developer tool on my Mac and never the running server. ESLint 10.15.0 requires minimatch ^11.0.5, which cleared it.
+
+Staying current on small patches means some advisories are behind you on the day they publish: the alarm goes off and you're already on the other side of it.
+
+## Why Patch Anyway?
+
+If nothing was reachable, why spend an evening on it? A few reasons, and I'd rather be honest that one of them is just "it's cheaper."
+
+Versions are coupled. Node 26.13.1 bundles undici 8.12.4, and CryptoFlix has a test (`downloadFetch.version.test.ts`) that fails when Node bundles a newer undici than the app's own pinned copy. Before the upgrade, Node 26.13.0 bundled 8.12.2 while my pin was 8.12.3. The two move together or the test says so.
+
+The scanners also catch up. Once GitHub reviews those six undici advisories, my weekly audit would report a high on undici. Patching first means that alarm never fires.
+
+And small batches beat big jumps. One evening with patch and minor bumps is cheaper than a scary multi-version migration six months from now. I did hold some things back on purpose, with the reasons written down: TypeScript 7 (typescript-eslint 8.73.0 still requires `typescript <6.1.0`). Also held: pnpm 11 and 12, jsdom 31, and the planned move off Vidstack, tracked separately. Patching and migrating aren't the same job, and mixing them is how a quiet evening becomes a long weekend.
+
+## Patch Night
+
+Fanning out agents was my first idea. Claude said one session, in order, and gave a reason: there's one lockfile, one machine-wide Node, and one serial browser test run. Parallelism only helps when the work is parallel. The pick was "One session, in order."
+
+<PatchNightPipelineDiagram />
+
+The Node upgrade started around 21:05, behind a dry run with Homebrew's side effects turned off:
+
+```bash
+env HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 brew upgrade node --dry-run
+```
+
+<Tip title="Dry-run, then the real thing">
+Run the same command without `--dry-run` once the preview looks right. Keeping old kegs keeps a rollback. Turning off the dependents check stops Homebrew from upgrading other things that share the same libraries.
+</Tip>
+
+Before the real run, Claude saved `node -v`, `process.versions`, and `otool -L` to a small file as a rollback record. The upgrade pulled nine libraries along, including llhttp 9.4.4 and libffi 3.8.1.
+
+<Tip title="Run brew update first">
+The survey reads Node's own release list, but Homebrew's local metadata can lag it. On 2026-11-18, `brew info` still showed 26.13.0 as the newest. If your package manager disagrees with the project's release page, update the package manager's index before concluding there's nothing to do.
+</Tip>
+
+After the Node upgrade, the module version was unchanged (147). Native modules like `better-sqlite3` and `@node-rs/argon2` still loaded, and a TLS fetch worked. The npm batch followed, with patch and minor bumps including react-router and eslint (which cleared minimatch). CryptoFlix's versioning rule is that a dependency or security update is a patch release however big the batch, so this became 9.15.2. Nothing the household would notice.
+
+The gate before deploying:
+
+| Check | Result |
+|---|---|
+| Typecheck, lint, build | Exit 0, 79 chunks, matching the deployed bundle |
+| Unit tests with coverage | 13,677 passed across five packages |
+| Full browser E2E, one worker | 806 passed, 8 skipped, 0 CSP violations, 1.1 hours |
+
+The browser run fails on any Content Security Policy violation in the console, which is how bundle and browser regressions show up. There was no separate code review. The diff was version pins, the lockfile, and docs, with no code change.
+
+Then the deploy, which has one rule: if someone is watching, wait, and never ask them to stop. At 22:21, `nettop` on the server's node process showed 0 bytes in 5 seconds, no ffmpeg transcode running, and no port-80 connection. The same check ran again right before the restart.
+
+After that came a final audit (clean), a rollback copy of the live web bundle, and a fast-forward of `main`. Last were `pnpm install --frozen-lockfile` and `launchctl kickstart -k` at 22:22. Afterward: health ok, the `x-cryptoflix-version: 9.15.2` header, login answering 200, all 12 PC drive mounts present, and the server process mapped to the new Node. Then the `v9.15.2` tag and a GitHub Release.
+
+## The Test Tool Needs Maintenance Too
+
+Playwright, the browser-test tool, had been held at 1.63.0 since 2026-11-03. Under 1.64.1, its WebKit browser reported a CSP violation (`style-src-attr`) whenever a page created any `<select>` element, and 41 specs failed. The old web bundle failed the same way, so my app wasn't the cause. I'm not going to relax the CSP check or add `'unsafe-inline'` to make a test go green.
+
+Version 1.65.1 existed that night. The retry put its browsers in a separate folder, so a failed try couldn't break the working ones. The first run stalled: the setup spec's "Create account" click never became "stable," though the button was visible and enabled. That looked a lot like a second failed version to note down.
+
+Then a second agent watching the session sent a heads-up, which I'll quote because it was right: "Playwright 1.65's failure may not be its fault... That run was also the first browser test after Node was upgraded... Consider asking for one more 1.65.1 run before that note is saved as fact."
+
+The stall had landed on the first browser run after a Node upgrade, which is a second variable changing at the same time as the Playwright version. So the rerun came after the deploy. 13 passed, 0 CSP violations. 1.65's WebKit no longer reports the `<select>` violation. I never found the cause of the first stall. The full E2E on 1.65.1 then passed with the same numbers as 1.63.0, so the tests moved to 1.65.1 at 23:31 as a tests-only change, with no version bump and no restart.
+
+The rule that went into the project's dependency guide: never judge a Playwright version from the first browser run after a Node upgrade or a browser install. Rerun it once. Also, no test covers how real Safari handles drop-downs, so that went on my device-check list.
+
+## Even This Blog
+
+The irony arrived while publishing this post. The production build for this site refused to finish:
+
+```bash
+$ npm run build
+Error [SecurityFatalError]: Your version of Next.js is affected by a known security vulnerability. We strongly recommend you upgrade Next.js.
+```
+
+The site ran Next.js 16.4.3. Two moderate advisories covered it: [GHSA-mfr8-8qww-v76h](https://github.com/advisories/GHSA-mfr8-8qww-v76h) (information disclosure across root params when a `'use cache'` function is called through `unstable_cache()`) and [GHSA-vc7v-qv4w-wrv8](https://github.com/advisories/GHSA-vc7v-qv4w-wrv8) (a cache leak across root param values in nested `'use cache'` functions). Same drill as before. A grep of the site's source for `use cache` and `unstable_cache` found nothing, so neither was reachable here.
+
+I patched it anyway. Moving to 16.4.6 is a patch bump, and the build passed after it. This site is vibecoded too, and nobody else was going to bump it.
+
+## A Routine You Can Copy
+
+None of this needs my exact setup. For a vibecoded app of any size, start with an inventory of what it stands on: the runtime, the libraries your OS package manager links into it, the services it calls, and the tools you only use to build and test. Then automate one boring check, a weekly `pnpm audit` that actually reaches you. Mine texts me for high or critical.
+
+From there, read the release notes for whatever you pin, because the audit lags. For each advisory, ask whether your app runs the vulnerable path, and answer with a grep, the launch command, or a list of the features you use. Patch in small batches through the tests you already trust. Deploy when nobody's using it, keep a rollback, and verify after. Write it down in a changelog entry, a tag, a release record, so the next time starts from facts and not memory.
+
+Here's the same routine drawn as a loop, because the weekly audit starts it over every Sunday:
+
+![A five-step loop for maintaining a self-built app: inventory the runtime, packages and linked libraries; automate a scheduled baseline audit; verify by reading upstream release notes for pinned versions; triage advisories by whether the app reaches the vulnerable code; and batch small patches through trusted test pipelines.](/blog/deploy-is-not-done-maintaining-a-vibecoded-app/patch-routine-loop.webp)
+
+If you work with an AI coding assistant, the routine can be a reusable skill. Mine turns "is there anything to update?" into a survey, a triage table, and a gated release. It still makes mistakes worth catching. While drafting this post, Claude recounted the Node CVEs from the advisory page and found its own release record said 9 high, 7 medium, 3 low. The page says 7, 6, 3. The release notes list CVE-2026-123872 three times (three separate commits), and the first count took each line as its own CVE. Commit `aef250de` corrected the record and the ticket that night. Count from the advisory page, not from a changelog's bullet list.
+
+The weekly audit runs again Sunday at 05:15. This time it should say nothing, because the fix has been in production since 22:22 that night.

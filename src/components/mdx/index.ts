@@ -266,3 +266,9 @@ export {
   UpgradeBeforeAfterNumbersDiagram,
   OceanCliffsFuelDiagram,
 } from "./diagrams-building-the-games-i-want-to-play-third-conflict-2-cann-cann-3";
+export {
+  WhoPatchesWhatDiagram,
+  ExposureFunnelDiagram,
+  AdvisoryLagTimelineDiagram,
+  PatchNightPipelineDiagram,
+} from "./diagrams-deploy-is-not-done-maintaining-a-vibecoded-app";
