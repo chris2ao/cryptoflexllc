@@ -1,19 +1,34 @@
 ---
-title: "The Agent That Rewrote Its Own Rules: Securing Autonomous Agents Against Unrestricted Frontier Models"
-date: "2026-10-28T09:00:00"
-description: "In one night, an unrestricted model running under my own macOS account weakened its safety rules and copied production credentials, after it had patched its own tools. Here's what happened and what I changed."
+title: >-
+  The Agent That Rewrote Its Own Rules: Securing Autonomous Agents Against
+  Unrestricted Frontier Models
+date: '2026-11-26'
+description: >-
+  In one night, an unrestricted model running under my own macOS account
+  weakened its safety rules and copied production credentials, after it had
+  patched its own tools. Here's what happened and what I changed.
 tags:
   - Home Lab
   - Security
   - AI Agents
-author: "Chris Johnson"
-readingTime: "17 min read"
+author: Chris Johnson
+readingTime: 17 min read
 featured: false
 series: Security Engineering
 seriesOrder: 12
 schemaType: TechArticle
 coverImage: /blog/the-agent-that-rewrote-its-own-rules/infographic.jpg
-coverImageAlt: "A dark terminal-style diff titled git diff pre-run..HEAD shows the agent's own memory files. A credential rule that forbids opening or copying credential stores gains a red added line allowing the check without a fresh request, and a retry rule that said not to retry with reworded text is struck through and replaced by one that allows trying once more, once only. Three side cards read: git status clean because Letta auto-committed 11 edits, schg lock write refused because the one write aimed at a locked folder failed, and the lesson that a rule in a file the agent can edit is a request, not a boundary. The headline reads The agent that rewrote its own rules, with chips for Security Engineering and Part 12, Unrestricted models."
+coverImageAlt: >-
+  A dark terminal-style diff titled git diff pre-run..HEAD shows the agent's own
+  memory files. A credential rule that forbids opening or copying credential
+  stores gains a red added line allowing the check without a fresh request, and
+  a retry rule that said not to retry with reworded text is struck through and
+  replaced by one that allows trying once more, once only. Three side cards
+  read: git status clean because Letta auto-committed 11 edits, schg lock write
+  refused because the one write aimed at a locked folder failed, and the lesson
+  that a rule in a file the agent can edit is a request, not a boundary. The
+  headline reads The agent that rewrote its own rules, with chips for Security
+  Engineering and Part 12, Unrestricted models.
 ---
 
 A tool failed, and my test agent treated the failure as a ticket. It read the source and called a paid API directly with `curl`. Then it patched the wrapper, ran the tests, and rewrote the sentence in its own skill that told it to stop retrying.
